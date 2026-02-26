@@ -147,10 +147,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const meta = dueDateMeta(input.value);
     display.textContent = meta.display;
-    display.setAttribute("title", meta.title);
     display.setAttribute("aria-label", `Prazo: ${meta.title}`);
     display.classList.toggle("is-relative", meta.isRelative);
-    if (wrap) wrap.setAttribute("title", meta.title);
   };
 
   document.querySelectorAll("[data-due-date-input]").forEach((input) => {
@@ -248,6 +246,152 @@ window.addEventListener("DOMContentLoaded", () => {
       delete form.dataset.assigneeDirty;
       scheduleTaskAutosave(form, 120);
     });
+  });
+
+  let draggedTaskItem = null;
+  let activeDropzone = null;
+
+  const clearDropzoneHighlight = () => {
+    document
+      .querySelectorAll(".task-list-rows.is-drop-target")
+      .forEach((zone) => zone.classList.remove("is-drop-target"));
+    activeDropzone = null;
+  };
+
+  const getTaskGroupField = (taskItem) => {
+    if (!(taskItem instanceof HTMLElement)) return null;
+    const form = taskItem.querySelector("[data-task-autosave-form]");
+    if (!(form instanceof HTMLFormElement)) return null;
+    const field = form.querySelector('[name="group_name"]');
+    if (
+      field instanceof HTMLSelectElement ||
+      field instanceof HTMLInputElement
+    ) {
+      return { form, field };
+    }
+    return null;
+  };
+
+  document.addEventListener("dragstart", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const taskItem = target.closest("[data-task-item]");
+    if (!(taskItem instanceof HTMLElement)) return;
+
+    // Preserve normal interactions with fields and controls.
+    if (
+      target.closest(
+        "input, select, textarea, button, summary, label, a"
+      )
+    ) {
+      event.preventDefault();
+      return;
+    }
+
+    draggedTaskItem = taskItem;
+    taskItem.classList.add("is-dragging");
+
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      try {
+        event.dataTransfer.setData("text/plain", taskItem.id || "task");
+      } catch (e) {
+        // noop
+      }
+    }
+
+    window.requestAnimationFrame(() => {
+      if (draggedTaskItem === taskItem) {
+        taskItem.classList.add("drag-ghost");
+      }
+    });
+  });
+
+  document.addEventListener("dragend", () => {
+    if (draggedTaskItem) {
+      draggedTaskItem.classList.remove("is-dragging", "drag-ghost");
+    }
+    draggedTaskItem = null;
+    clearDropzoneHighlight();
+  });
+
+  document.addEventListener("dragover", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || !draggedTaskItem) return;
+
+    const dropzone = target.closest("[data-task-dropzone]");
+    if (!(dropzone instanceof HTMLElement)) return;
+
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "move";
+    }
+
+    if (activeDropzone && activeDropzone !== dropzone) {
+      activeDropzone.classList.remove("is-drop-target");
+    }
+
+    activeDropzone = dropzone;
+    dropzone.classList.add("is-drop-target");
+  });
+
+  document.addEventListener("dragleave", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const dropzone = target.closest("[data-task-dropzone]");
+    if (!(dropzone instanceof HTMLElement)) return;
+
+    const related = event.relatedTarget;
+    if (related instanceof Node && dropzone.contains(related)) {
+      return;
+    }
+
+    dropzone.classList.remove("is-drop-target");
+    if (activeDropzone === dropzone) {
+      activeDropzone = null;
+    }
+  });
+
+  document.addEventListener("drop", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || !draggedTaskItem) return;
+
+    const dropzone = target.closest("[data-task-dropzone]");
+    if (!(dropzone instanceof HTMLElement)) return;
+
+    event.preventDefault();
+
+    const nextGroup = (dropzone.dataset.groupName || "").trim() || "Geral";
+    const currentGroup = (draggedTaskItem.dataset.groupName || "").trim() || "Geral";
+    const taskBinding = getTaskGroupField(draggedTaskItem);
+
+    clearDropzoneHighlight();
+
+    if (!taskBinding) return;
+
+    const { form, field } = taskBinding;
+
+    if (field instanceof HTMLSelectElement) {
+      const hasOption = Array.from(field.options).some(
+        (option) => option.value === nextGroup
+      );
+      if (!hasOption) {
+        const option = document.createElement("option");
+        option.value = nextGroup;
+        option.textContent = nextGroup;
+        field.append(option);
+      }
+    }
+
+    field.value = nextGroup;
+    draggedTaskItem.dataset.groupName = nextGroup;
+
+    if (currentGroup !== nextGroup) {
+      dropzone.append(draggedTaskItem);
+      scheduleTaskAutosave(form, 60);
+    }
   });
 
   document.addEventListener("click", (event) => {

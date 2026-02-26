@@ -136,7 +136,7 @@
                     </div>
                 <?php else: ?>
                     <?php foreach ($tasksGroupedByGroup as $groupName => $groupTasks): ?>
-                        <section class="task-group" aria-labelledby="group-<?= e(md5((string) $groupName)) ?>">
+                        <section class="task-group" aria-labelledby="group-<?= e(md5((string) $groupName)) ?>" data-task-group data-group-name="<?= e((string) $groupName) ?>">
                             <header class="task-group-head">
                                 <div class="task-group-head-main">
                                     <h3 id="group-<?= e(md5((string) $groupName)) ?>"><?= e((string) $groupName) ?></h3>
@@ -146,7 +146,7 @@
                                 </div>
                             </header>
 
-                            <div class="task-list-rows">
+                            <div class="task-list-rows" data-task-dropzone data-group-name="<?= e((string) $groupName) ?>">
                                 <?php if (!$groupTasks): ?>
                                     <div class="task-group-empty-row">
                                         <button
@@ -155,7 +155,6 @@
                                             data-open-create-task-modal
                                             data-create-group="<?= e((string) $groupName) ?>"
                                             aria-label="Criar tarefa no grupo <?= e((string) $groupName) ?>"
-                                            title="Criar tarefa"
                                         >+</button>
                                     </div>
                                 <?php endif; ?>
@@ -168,7 +167,13 @@
                                     $dueDateValue = (string) ($task['due_date'] ?? '');
                                     $dueDateUi = taskDueDatePresentation($dueDateValue);
                                     ?>
-                                    <article class="task-list-item" id="task-<?= e((string) $taskId) ?>" data-task-item>
+                                    <article
+                                        class="task-list-item"
+                                        id="task-<?= e((string) $taskId) ?>"
+                                        data-task-item
+                                        data-group-name="<?= e((string) ($task['group_name'] ?? 'Geral')) ?>"
+                                        draggable="true"
+                                    >
                                         <form method="post" class="task-list-form" id="update-task-<?= e((string) $taskId) ?>" data-task-autosave-form>
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="update_task">
@@ -229,14 +234,13 @@
                                                     </details>
                                                 </div>
 
-                                                <div class="tag-field due-tag-field" title="<?= e((string) $dueDateUi['title']) ?>">
+                                                <div class="tag-field due-tag-field">
                                                     <span class="sr-only">Prazo</span>
                                                     <button
                                                         type="button"
                                                         class="due-date-display<?= !empty($dueDateUi['is_relative']) ? ' is-relative' : '' ?>"
                                                         data-due-date-display
                                                         aria-label="Prazo: <?= e((string) $dueDateUi['title']) ?>"
-                                                        title="<?= e((string) $dueDateUi['title']) ?>"
                                                     ><?= e((string) $dueDateUi['display']) ?></button>
                                                     <input
                                                         type="date"
@@ -246,6 +250,15 @@
                                                         data-due-date-input
                                                     >
                                                 </div>
+
+                                                <button
+                                                    type="submit"
+                                                    form="delete-task-<?= e((string) $taskId) ?>"
+                                                    class="task-row-delete"
+                                                    aria-label="Excluir tarefa"
+                                                >
+                                                    <span aria-hidden="true">×</span>
+                                                </button>
 
                                                 <button
                                                     type="button"
@@ -262,15 +275,29 @@
 
                                             <div class="task-line-details" id="task-details-<?= e((string) $taskId) ?>" hidden>
                                                 <div class="task-line-details-grid">
-                                                    <label>
+                                                    <label class="task-group-select-wrap">
                                                         <span>Grupo</span>
-                                                        <input
-                                                            type="text"
+                                                        <select
                                                             name="group_name"
-                                                            value="<?= e((string) ($task['group_name'] ?? 'Geral')) ?>"
-                                                            list="task-group-options"
-                                                            placeholder="Grupo"
+                                                            class="tag-select group-tag-select"
+                                                            data-task-group-select
                                                         >
+                                                            <?php
+                                                            $currentTaskGroup = normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral'));
+                                                            $groupRendered = false;
+                                                            foreach ($taskGroups as $groupNameOption):
+                                                                $optionValue = normalizeTaskGroupName((string) $groupNameOption);
+                                                                $selected = $optionValue === $currentTaskGroup;
+                                                                if ($selected) {
+                                                                    $groupRendered = true;
+                                                                }
+                                                            ?>
+                                                                <option value="<?= e($optionValue) ?>"<?= $selected ? ' selected' : '' ?>><?= e($optionValue) ?></option>
+                                                            <?php endforeach; ?>
+                                                            <?php if (!$groupRendered): ?>
+                                                                <option value="<?= e($currentTaskGroup) ?>" selected><?= e($currentTaskGroup) ?></option>
+                                                            <?php endif; ?>
+                                                        </select>
                                                     </label>
 
                                                     <label>
@@ -287,9 +314,6 @@
                                                         <?php endif; ?>
                                                     </div>
 
-                                                    <div class="task-line-actions">
-                                                        <button type="submit" form="delete-task-<?= e((string) $taskId) ?>" class="btn btn-mini btn-danger">Excluir</button>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </form>
@@ -322,7 +346,6 @@
                     data-task-fab-toggle
                     aria-expanded="false"
                     aria-label="Abrir menu de criacao"
-                    title="Criar"
                 >
                     <span aria-hidden="true">+</span>
                 </button>

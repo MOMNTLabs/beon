@@ -1389,6 +1389,15 @@ textarea:focus {
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(7, 11, 23, 0.75);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transition: border-color 140ms ease, background-color 140ms ease, opacity 140ms ease;
+}
+
+.task-list-item.is-dragging {
+    opacity: 0.5;
+}
+
+.task-list-item.drag-ghost {
+    border-color: rgba(44, 199, 255, 0.24);
 }
 
 .task-list-form {
@@ -1397,7 +1406,7 @@ textarea:focus {
 
 .task-line-row {
     display: grid;
-    grid-template-columns: minmax(220px, 1.9fr) 130px 120px 180px 138px 20px;
+    grid-template-columns: minmax(220px, 1.9fr) 130px 120px 180px 138px 18px 20px;
     gap: 6px;
     align-items: center;
 }
@@ -1448,6 +1457,7 @@ textarea:focus {
 }
 
 .due-date-display {
+    appearance: none;
     width: 100%;
     display: flex;
     align-items: center;
@@ -1469,6 +1479,10 @@ textarea:focus {
         inset 0 2px 0 rgba(255, 255, 255, 0.14),
         inset 0 -2px 0 rgba(255, 255, 255, 0.04);
     opacity: 0.7;
+}
+
+.due-date-display span {
+    pointer-events: none;
 }
 
 .due-date-display.is-relative {
@@ -1523,6 +1537,24 @@ textarea:focus {
     color: #b8ffe4;
     border-color: rgba(70, 220, 168, 0.22);
     background: rgba(70, 220, 168, 0.08);
+}
+
+.group-tag-select {
+    appearance: none;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 999px;
+    border-color: rgba(255, 255, 255, 0.12);
+    min-height: 36px;
+    padding-right: 30px;
+    font-size: 0.85rem;
+}
+
+.task-group-select-wrap {
+    max-width: 260px;
+}
+
+.task-group-select-wrap .group-tag-select {
+    width: 100%;
 }
 
 .assignee-tag-field {
@@ -1648,6 +1680,31 @@ textarea:focus {
     margin: 0 auto;
 }
 
+.task-row-delete {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.42);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 auto;
+    appearance: none;
+}
+
+.task-row-delete:hover,
+.task-row-delete:focus-visible {
+    color: rgba(255, 112, 134, 0.95);
+}
+
+.task-row-delete span {
+    line-height: 1;
+    font-size: 0.95rem;
+    transform: translateY(-1px);
+}
+
 .task-expand-toggle:hover,
 .task-expand-toggle:focus-visible {
     color: rgba(255, 255, 255, 0.9);
@@ -1742,6 +1799,12 @@ textarea:focus {
     padding: 6px 12px;
 }
 
+.task-list-rows.is-drop-target {
+    border-radius: 12px;
+    background: rgba(44, 199, 255, 0.03);
+    box-shadow: inset 0 0 0 1px rgba(44, 199, 255, 0.1);
+}
+
 .task-group-empty-add {
     width: 28px;
     height: 28px;
@@ -1755,6 +1818,7 @@ textarea:focus {
     cursor: pointer;
     font-size: 1rem;
     line-height: 1;
+    appearance: none;
     transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
 
@@ -1829,6 +1893,7 @@ textarea:focus {
     line-height: 1;
     transform: translateY(-1px);
     display: block;
+    pointer-events: none;
 }
 
 .task-fab-stack.is-open .task-fab-main span {
