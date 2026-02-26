@@ -1,11 +1,6 @@
 ﻿<header class="top-nav dashboard-nav">
     <a href="index.php" class="brand" aria-label="WorkForm">
-        <span class="brand-icon-wrap" aria-hidden="true">
-            <img src="assets/logo-mark.svg?v=4" alt="" class="brand-icon" width="26" height="26">
-        </span>
-        <span class="brand-wordmark">
-            <span class="brand-wordmark-main">Work</span><span class="brand-wordmark-sub">Form</span>
-        </span>
+        <img src="assets/logo-lockup.svg?v=2" alt="WorkForm" class="brand-lockup" width="170" height="42">
     </a>
     <nav class="nav-links" aria-label="Navegação do dashboard">
         <a href="#tasks">Tarefas</a>
@@ -73,7 +68,7 @@
             </div>
 
             <footer class="sidebar-footer">
-                <button type="button" class="icon-gear-button" aria-label="Configuracoes">
+                <button type="button" class="icon-gear-button sidebar-settings-button" aria-label="Configuracoes">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
                         <circle cx="12" cy="12" r="3.2"></circle>
@@ -120,6 +115,17 @@
                     <button type="submit" class="btn btn-mini">Filtrar</button>
                     <a href="index.php#tasks" class="btn btn-mini btn-ghost">Limpar</a>
                 </div>
+
+                <div class="task-filters-create">
+                    <button
+                        type="button"
+                        class="icon-gear-button task-filters-create-group"
+                        data-open-create-group-modal
+                        aria-label="Criar grupo"
+                    >
+                        <span aria-hidden="true">+</span>
+                    </button>
+                </div>
             </form>
 
             <datalist id="task-group-options">
@@ -142,6 +148,13 @@
                                     <h3 id="group-<?= e(md5((string) $groupName)) ?>"><?= e((string) $groupName) ?></h3>
                                 </div>
                                 <div class="task-group-head-actions">
+                                    <button
+                                        type="button"
+                                        class="group-add-button"
+                                        data-open-create-task-modal
+                                        data-create-group="<?= e((string) $groupName) ?>"
+                                        aria-label="Criar tarefa no grupo <?= e((string) $groupName) ?>"
+                                    >+</button>
                                     <?php if (mb_strtolower((string) $groupName) !== 'geral' && count($groupTasks) === 0): ?>
                                         <form method="post" class="task-group-delete-form" data-group-delete-form>
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
@@ -288,11 +301,11 @@
                                             <div class="task-line-details" id="task-details-<?= e((string) $taskId) ?>" hidden>
                                                 <div class="task-line-details-grid">
                                                     <label class="task-group-select-wrap">
-                                                        <span>Grupo</span>
                                                         <select
                                                             name="group_name"
                                                             class="tag-select group-tag-select"
                                                             data-task-group-select
+                                                            aria-label="Grupo"
                                                         >
                                                             <?php
                                                             $currentTaskGroup = normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral'));
@@ -341,26 +354,6 @@
                         </section>
                     <?php endforeach; ?>
                 <?php endif; ?>
-            </div>
-
-            <div class="task-fab-stack" data-task-fab-wrap>
-                <div class="task-fab-menu" data-task-fab-menu aria-hidden="true">
-                    <button type="button" class="task-fab-action" data-open-create-group-modal>
-                        <span class="task-fab-action-label">Criar grupo</span>
-                    </button>
-                    <button type="button" class="task-fab-action" data-open-create-task-modal>
-                        <span class="task-fab-action-label">Criar tarefa</span>
-                    </button>
-                </div>
-                <button
-                    type="button"
-                    class="task-fab-main icon-gear-button"
-                    data-task-fab-toggle
-                    aria-expanded="false"
-                    aria-label="Abrir menu de criacao"
-                >
-                    <span aria-hidden="true">+</span>
-                </button>
             </div>
         </section>
     </section>

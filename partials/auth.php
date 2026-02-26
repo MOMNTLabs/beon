@@ -3,7 +3,7 @@
         <div class="auth-card-glow" aria-hidden="true"></div>
 
         <div class="auth-brand-block">
-            <img src="assets/logo-lockup.svg?v=1" alt="WorkForm" class="auth-brand-lockup" width="260" height="88">
+            <img src="assets/logo-lockup.svg?v=2" alt="WorkForm" class="auth-brand-lockup" width="260" height="88">
         </div>
 
         <div class="auth-card-head">

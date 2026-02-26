@@ -177,6 +177,14 @@ textarea {
     font-weight: 700;
 }
 
+.brand-lockup {
+    width: clamp(120px, 12vw, 170px);
+    height: auto;
+    display: block;
+    filter: invert(1) brightness(1.06);
+    opacity: 0.96;
+}
+
 .nav-links {
     display: flex;
     justify-content: center;
@@ -831,9 +839,15 @@ textarea:focus {
 
 .sidebar-footer {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     margin-top: auto;
     padding-top: 8px;
+}
+
+.sidebar-settings-button {
+    width: 100%;
+    height: 40px;
+    border-radius: 14px;
 }
 
 .icon-gear-button {
@@ -1257,12 +1271,12 @@ textarea:focus {
 .tasklist-wrap {
     min-height: 720px;
     position: relative;
-    padding-bottom: 64px;
+    padding-bottom: 16px;
 }
 
 .task-filters {
     display: grid;
-    grid-template-columns: minmax(180px, 220px) minmax(200px, 240px) auto;
+    grid-template-columns: minmax(180px, 220px) minmax(200px, 240px) auto auto;
     gap: 8px;
     align-items: end;
     margin-bottom: 14px;
@@ -1300,6 +1314,22 @@ textarea:focus {
 
 .task-filters-actions .btn {
     min-height: 34px;
+}
+
+.task-filters-create {
+    justify-self: end;
+    align-self: end;
+}
+
+.task-filters-create-group {
+    width: 34px;
+    height: 34px;
+}
+
+.task-filters-create-group span {
+    line-height: 1;
+    font-size: 1.1rem;
+    transform: translateY(-1px);
 }
 
 .task-groups-list {
@@ -2105,11 +2135,16 @@ textarea:focus {
     }
 
     .task-filters {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr auto;
     }
 
     .task-filters-actions {
-        grid-column: 1 / -1;
+        grid-column: 1 / 3;
+    }
+
+    .task-filters-create {
+        grid-column: 3;
+        grid-row: 2;
     }
 
     .task-line-row {
@@ -2153,6 +2188,16 @@ textarea:focus {
 
     .task-filters {
         grid-template-columns: 1fr;
+    }
+
+    .task-filters-actions {
+        grid-column: auto;
+    }
+
+    .task-filters-create {
+        grid-column: auto;
+        grid-row: auto;
+        justify-self: end;
     }
 
     .task-line-row {
