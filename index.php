@@ -102,6 +102,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'Grupo criado.');
                 redirectTo('index.php#tasks');
 
+            case 'delete_group':
+                requireAuth();
+                $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
+                $existingGroupName = findTaskGroupByName($groupName);
+
+                if ($existingGroupName === null) {
+                    throw new RuntimeException('Grupo nao encontrado.');
+                }
+
+                if (mb_strtolower($existingGroupName) === 'geral') {
+                    throw new RuntimeException('O grupo Geral nao pode ser removido.');
+                }
+
+                $countStmt = $pdo->prepare('SELECT COUNT(*) FROM tasks WHERE group_name = :group_name');
+                $countStmt->execute([':group_name' => $existingGroupName]);
+                $taskCount = (int) $countStmt->fetchColumn();
+
+                if ($taskCount > 0) {
+                    throw new RuntimeException('So e possivel excluir grupos vazios.');
+                }
+
+                $deleteStmt = $pdo->prepare('DELETE FROM task_groups WHERE name = :name');
+                $deleteStmt->execute([':name' => $existingGroupName]);
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'group_name' => $existingGroupName,
+                    ]);
+                }
+
+                flash('success', 'Grupo removido.');
+                redirectTo('index.php#tasks');
+
             case 'create_task':
             case 'update_task':
                 $authUser = requireAuth();

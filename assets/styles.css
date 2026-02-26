@@ -1343,6 +1343,36 @@ textarea:focus {
     gap: 8px;
 }
 
+.task-group-delete-form {
+    margin: 0;
+    display: contents;
+}
+
+.task-group-delete {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.4);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    appearance: none;
+}
+
+.task-group-delete:hover,
+.task-group-delete:focus-visible {
+    color: rgba(255, 112, 134, 0.95);
+}
+
+.task-group-delete span {
+    line-height: 1;
+    font-size: 0.9rem;
+    transform: translateY(-1px);
+}
+
 .group-add-button {
     width: 26px;
     height: 26px;

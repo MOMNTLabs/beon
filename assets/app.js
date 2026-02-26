@@ -632,6 +632,29 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const groupDeleteButton = event.target.closest("[data-group-delete]");
+    if (groupDeleteButton) {
+      const deleteForm = groupDeleteButton.closest("[data-group-delete-form]");
+      const groupSection = groupDeleteButton.closest("[data-task-group]");
+      const groupName =
+        groupSection?.dataset.groupName?.trim() ||
+        deleteForm?.querySelector('[name="group_name"]')?.value?.trim() ||
+        "este grupo";
+
+      if (deleteForm instanceof HTMLFormElement) {
+        openConfirmModal({
+          title: "Excluir grupo",
+          message: `Remover o grupo ${groupName}?`,
+          confirmLabel: "Excluir",
+          confirmVariant: "danger",
+          onConfirm: async () => {
+            await submitDeleteGroup(deleteForm);
+          },
+        });
+      }
+      return;
+    }
+
     const toggleButton = event.target.closest("[data-task-expand]");
     if (!toggleButton) return;
 
@@ -745,6 +768,39 @@ window.addEventListener("DOMContentLoaded", () => {
       showClientFlash(
         "error",
         error instanceof Error ? error.message : "Falha ao remover tarefa."
+      );
+      throw error;
+    } finally {
+      delete deleteForm.dataset.submitting;
+    }
+  };
+
+  const submitDeleteGroup = async (deleteForm) => {
+    if (!(deleteForm instanceof HTMLFormElement)) return;
+    if (deleteForm.dataset.submitting === "1") return;
+
+    deleteForm.dataset.submitting = "1";
+    try {
+      await postFormJson(deleteForm);
+
+      const groupSection = deleteForm.closest("[data-task-group]");
+      const groupName =
+        groupSection?.dataset.groupName?.trim() ||
+        deleteForm.querySelector('[name="group_name"]')?.value?.trim() ||
+        "Grupo";
+
+      if (groupSection instanceof HTMLElement) {
+        groupSection.remove();
+      }
+
+      if (typeof syncTaskGroupInputs === "function") {
+        syncTaskGroupInputs();
+      }
+      showClientFlash("success", `Grupo ${groupName} removido.`);
+    } catch (error) {
+      showClientFlash(
+        "error",
+        error instanceof Error ? error.message : "Falha ao remover grupo."
       );
       throw error;
     } finally {

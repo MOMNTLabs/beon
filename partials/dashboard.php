@@ -142,6 +142,19 @@
                                     <h3 id="group-<?= e(md5((string) $groupName)) ?>"><?= e((string) $groupName) ?></h3>
                                 </div>
                                 <div class="task-group-head-actions">
+                                    <?php if (mb_strtolower((string) $groupName) !== 'geral' && count($groupTasks) === 0): ?>
+                                        <form method="post" class="task-group-delete-form" data-group-delete-form>
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                            <input type="hidden" name="action" value="delete_group">
+                                            <input type="hidden" name="group_name" value="<?= e((string) $groupName) ?>">
+                                            <button
+                                                type="button"
+                                                class="task-group-delete"
+                                                data-group-delete
+                                                aria-label="Excluir grupo <?= e((string) $groupName) ?>"
+                                            ><span aria-hidden="true">x</span></button>
+                                        </form>
+                                    <?php endif; ?>
                                     <span class="task-group-count"><?= e((string) count($groupTasks)) ?></span>
                                 </div>
                             </header>
