@@ -5,6 +5,25 @@ require __DIR__ . '/bootstrap.php';
 
 $pdo = db();
 
+function requestExpectsJson(): bool
+{
+    $xhr = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? ''));
+    if ($xhr === 'xmlhttprequest') {
+        return true;
+    }
+
+    $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+    return str_contains($accept, 'application/json');
+}
+
+function respondJson(array $payload, int $status = 200): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) ($_POST['action'] ?? '');
 
@@ -161,6 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          updated_at = :u
                      WHERE id = :id'
                 );
+                $updatedAt = nowIso();
                 $stmt->execute([
                     ':t' => $title,
                     ':d' => $description,
@@ -170,9 +190,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':at' => $assignedTo,
                     ':aj' => $assigneeIdsJson,
                     ':g' => $groupName,
-                    ':u' => nowIso(),
+                    ':u' => $updatedAt,
                     ':id' => $taskId,
                 ]);
+                if ($isAutosave && requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'task' => [
+                            'id' => $taskId,
+                            'group_name' => $groupName,
+                            'due_date' => $dueDate,
+                            'updated_at' => $updatedAt,
+                            'updated_at_label' => (new DateTimeImmutable($updatedAt))->format('d/m H:i'),
+                        ],
+                    ]);
+                }
                 if (!$isAutosave) {
                     flash('success', 'Tarefa atualizada.');
                 }
@@ -198,6 +230,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt = $pdo->prepare('DELETE FROM tasks WHERE id = :id');
                 $stmt->execute([':id' => $taskId]);
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'task_id' => $taskId,
+                    ]);
+                }
                 flash('success', 'Tarefa removida.');
                 redirectTo('index.php#tasks');
 
@@ -205,6 +243,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Ação inválida.');
         }
     } catch (Throwable $e) {
+        if (requestExpectsJson()) {
+            respondJson([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
         flash('error', $e->getMessage());
         redirectTo('index.php');
     }

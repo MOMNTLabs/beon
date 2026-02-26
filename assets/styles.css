@@ -1404,6 +1404,10 @@ textarea:focus {
     padding: 8px;
 }
 
+.task-list-form.is-saving {
+    opacity: 0.98;
+}
+
 .task-line-row {
     display: grid;
     grid-template-columns: minmax(220px, 1.9fr) 130px 120px 180px 138px 18px 20px;
@@ -1991,6 +1995,25 @@ textarea:focus {
     justify-content: flex-end;
     gap: 8px;
     margin-top: 4px;
+}
+
+.confirm-modal {
+    width: min(440px, 100%);
+}
+
+.confirm-modal-body {
+    padding: 2px 2px 4px;
+}
+
+.confirm-modal-body p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
+.btn.is-loading {
+    opacity: 0.75;
+    pointer-events: none;
 }
 
 @media (max-width: 1180px) {

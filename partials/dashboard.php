@@ -73,7 +73,7 @@
             </div>
 
             <footer class="sidebar-footer">
-                <button type="button" class="icon-gear-button" title="Configuracoes" aria-label="Configuracoes">
+                <button type="button" class="icon-gear-button" aria-label="Configuracoes">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
                         <circle cx="12" cy="12" r="3.2"></circle>
@@ -88,8 +88,8 @@
                     <h2>Lista de tarefas</h2>
                 </div>
                 <div class="board-summary">
-                    <span><?= e((string) count($tasks)) ?> visiveis</span>
-                    <span><?= e((string) $stats['total']) ?> total</span>
+                    <span data-board-visible-count><?= e((string) count($tasks)) ?> visiveis</span>
+                    <span data-board-total-count><?= e((string) $stats['total']) ?> total</span>
                 </div>
             </div>
 
@@ -217,7 +217,7 @@
 
                                                 <div class="tag-field assignee-tag-field">
                                                     <details class="assignee-picker row-assignee-picker">
-                                                        <summary title="<?= e($assigneeSummary) ?>"><?= e($assigneeSummary) ?></summary>
+                                                        <summary><?= e($assigneeSummary) ?></summary>
                                                         <div class="assignee-picker-menu">
                                                             <?php foreach ($users as $user): ?>
                                                                 <label class="assignee-option">
@@ -252,7 +252,7 @@
                                                 </div>
 
                                                 <button
-                                                    type="submit"
+                                                    type="button"
                                                     form="delete-task-<?= e((string) $taskId) ?>"
                                                     class="task-row-delete"
                                                     aria-label="Excluir tarefa"
@@ -267,7 +267,6 @@
                                                     aria-expanded="false"
                                                     aria-controls="task-details-<?= e((string) $taskId) ?>"
                                                     aria-label="Expandir detalhes"
-                                                    title="Expandir detalhes"
                                                 >
                                                     <span class="sr-only">Expandir detalhes</span>
                                                 </button>
@@ -310,7 +309,7 @@
                                                     <div class="task-line-meta">
                                                         <span>Criado por <?= e((string) $task['creator_name']) ?></span>
                                                         <?php if (!empty($task['updated_at'])): ?>
-                                                            <span>Atualizado em <?= e((new DateTimeImmutable((string) $task['updated_at']))->format('d/m H:i')) ?></span>
+                                                            <span data-task-updated-at>Atualizado em <?= e((new DateTimeImmutable((string) $task['updated_at']))->format('d/m H:i')) ?></span>
                                                         <?php endif; ?>
                                                     </div>
 
@@ -318,7 +317,7 @@
                                             </div>
                                         </form>
 
-                                        <form method="post" id="delete-task-<?= e((string) $taskId) ?>" class="task-delete-form" onsubmit="return confirm('Remover esta tarefa?');">
+                                        <form method="post" id="delete-task-<?= e((string) $taskId) ?>" class="task-delete-form">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="delete_task">
                                             <input type="hidden" name="task_id" value="<?= e((string) $taskId) ?>">
@@ -472,5 +471,26 @@
                 <button type="submit" class="btn btn-pill">Criar grupo</button>
             </div>
         </form>
+    </section>
+</div>
+
+<div class="modal-backdrop" data-confirm-modal hidden>
+    <div class="modal-scrim" data-close-confirm-modal></div>
+    <section class="modal-card confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <header class="modal-head">
+            <h2 id="confirm-modal-title">Confirmar</h2>
+            <button type="button" class="modal-close-button" data-close-confirm-modal aria-label="Fechar modal">
+                <span aria-hidden="true">×</span>
+            </button>
+        </header>
+
+        <div class="confirm-modal-body">
+            <p data-confirm-modal-message>Tem certeza?</p>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn btn-mini btn-ghost" data-close-confirm-modal>Cancelar</button>
+            <button type="button" class="btn btn-mini btn-danger" data-confirm-modal-submit>Confirmar</button>
+        </div>
     </section>
 </div>

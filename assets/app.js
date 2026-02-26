@@ -169,6 +169,8 @@ window.addEventListener("DOMContentLoaded", () => {
       summary.textContent = details.classList.contains("row-assignee-picker")
         ? "Sem responsável"
         : "Selecionar";
+      summary.removeAttribute("title");
+      summary.setAttribute("aria-label", summary.textContent || "");
       return;
     }
 
@@ -177,7 +179,8 @@ window.addEventListener("DOMContentLoaded", () => {
       details.classList.contains("row-assignee-picker") && text.length > 40
         ? `${text.slice(0, 37)}...`
         : text;
-    summary.title = checkedNames.join(", ");
+    summary.removeAttribute("title");
+    summary.setAttribute("aria-label", checkedNames.join(", "));
   };
 
   document.querySelectorAll(".assignee-picker").forEach((details) => {
@@ -191,9 +194,194 @@ window.addEventListener("DOMContentLoaded", () => {
     if (picker) updateAssigneePickerSummary(picker);
   });
 
+  const ensureFlashStack = () => {
+    let stack = document.querySelector(".flash-stack");
+    if (stack) return stack;
+
+    const appShell = document.querySelector(".app-shell");
+    if (!appShell) return null;
+
+    stack = document.createElement("div");
+    stack.className = "flash-stack";
+    stack.setAttribute("aria-live", "polite");
+    appShell.prepend(stack);
+    return stack;
+  };
+
+  const showClientFlash = (type, message) => {
+    if (!message) return;
+    const stack = ensureFlashStack();
+    if (!stack) return;
+
+    const item = document.createElement("div");
+    item.className = `flash flash-${type}`;
+    item.dataset.flash = "";
+    item.innerHTML =
+      `<span></span><button type="button" class="flash-close" data-flash-close aria-label="Fechar">×</button>`;
+    item.querySelector("span").textContent = message;
+    stack.append(item);
+
+    window.setTimeout(() => {
+      if (item.isConnected) item.remove();
+    }, 4500);
+  };
+
+  const updateBoardCountText = (selector, suffix, delta) => {
+    if (!delta) return;
+    const el = document.querySelector(selector);
+    if (!(el instanceof HTMLElement)) return;
+    const match = (el.textContent || "").trim().match(/^(\d+)/);
+    if (!match) return;
+    const current = Number.parseInt(match[1], 10) || 0;
+    const next = Math.max(0, current + delta);
+    el.textContent = `${next} ${suffix}`;
+  };
+
+  const adjustBoardSummaryCounts = ({ visible = 0, total = 0 } = {}) => {
+    updateBoardCountText("[data-board-visible-count]", "visiveis", visible);
+    updateBoardCountText("[data-board-total-count]", "total", total);
+  };
+
+  const createEmptyGroupRow = (groupName) => {
+    const row = document.createElement("div");
+    row.className = "task-group-empty-row";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "task-group-empty-add";
+    button.dataset.openCreateTaskModal = "";
+    button.dataset.createGroup = groupName || "Geral";
+    button.setAttribute("aria-label", `Criar tarefa no grupo ${groupName || "Geral"}`);
+    button.textContent = "+";
+
+    row.append(button);
+    return row;
+  };
+
+  const refreshTaskGroupSection = (groupSection) => {
+    if (!(groupSection instanceof HTMLElement)) return;
+    const dropzone = groupSection.querySelector("[data-task-dropzone]");
+    if (!(dropzone instanceof HTMLElement)) return;
+
+    const taskCount = dropzone.querySelectorAll("[data-task-item]").length;
+    const countEl = groupSection.querySelector(".task-group-count");
+    if (countEl) countEl.textContent = String(taskCount);
+
+    const emptyRow = dropzone.querySelector(".task-group-empty-row");
+    const groupName = (groupSection.dataset.groupName || "Geral").trim() || "Geral";
+
+    if (taskCount === 0) {
+      if (!emptyRow) dropzone.append(createEmptyGroupRow(groupName));
+    } else if (emptyRow) {
+      emptyRow.remove();
+    }
+  };
+
+  const moveTaskItemToGroupDom = (taskItem, groupName) => {
+    if (!(taskItem instanceof HTMLElement)) return false;
+    const nextGroup = (groupName || "").trim() || "Geral";
+    const targetDropzone = document.querySelector(
+      `[data-task-dropzone][data-group-name="${CSS.escape(nextGroup)}"]`
+    );
+    if (!(targetDropzone instanceof HTMLElement)) return false;
+
+    const sourceSection = taskItem.closest("[data-task-group]");
+    const targetSection = targetDropzone.closest("[data-task-group]");
+    targetDropzone.append(taskItem);
+    taskItem.dataset.groupName = nextGroup;
+
+    refreshTaskGroupSection(sourceSection);
+    if (targetSection !== sourceSection) {
+      refreshTaskGroupSection(targetSection);
+    } else {
+      refreshTaskGroupSection(sourceSection);
+    }
+    return true;
+  };
+
+  const refreshTaskUpdatedAtMeta = (form, updatedAtLabel) => {
+    if (!(form instanceof HTMLFormElement) || !updatedAtLabel) return;
+    const details = form.querySelector(".task-line-details");
+    if (!(details instanceof HTMLElement)) return;
+
+    let el = details.querySelector("[data-task-updated-at]");
+    if (!(el instanceof HTMLElement)) {
+      const meta = details.querySelector(".task-line-meta");
+      if (!(meta instanceof HTMLElement)) return;
+      el = document.createElement("span");
+      el.dataset.taskUpdatedAt = "";
+      meta.append(el);
+    }
+    el.textContent = `Atualizado em ${updatedAtLabel}`;
+  };
+
+  const postFormJson = async (form) => {
+    const response = await fetch(form.getAttribute("action") || window.location.href, {
+      method: "POST",
+      body: new FormData(form),
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        Accept: "application/json",
+      },
+      credentials: "same-origin",
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (e) {
+      data = null;
+    }
+
+    if (!response.ok || !data || data.ok !== true) {
+      const message =
+        (data && (data.error || data.message)) ||
+        "Nao foi possivel concluir a operacao.";
+      throw new Error(message);
+    }
+
+    return data;
+  };
+
   const autosaveTimers = new WeakMap();
+  const submitTaskAutosave = async (form) => {
+    if (!(form instanceof HTMLFormElement)) return;
+    if (form.dataset.autosaveSubmitting === "1") return;
+
+    form.dataset.autosaveSubmitting = "1";
+    form.classList.add("is-saving");
+
+    try {
+      const data = await postFormJson(form);
+      const task = data.task || {};
+      const taskItem = form.closest("[data-task-item]");
+
+      if (taskItem instanceof HTMLElement && typeof task.group_name === "string") {
+        moveTaskItemToGroupDom(taskItem, task.group_name);
+      }
+
+      refreshTaskUpdatedAtMeta(form, task.updated_at_label || "");
+      delete form.dataset.autosaveError;
+    } catch (error) {
+      form.dataset.autosaveError = "1";
+      showClientFlash("error", error instanceof Error ? error.message : "Falha ao salvar tarefa.");
+    } finally {
+      form.classList.remove("is-saving");
+      delete form.dataset.autosaveSubmitting;
+      if (form.dataset.autosavePending === "1") {
+        delete form.dataset.autosavePending;
+        scheduleTaskAutosave(form, 80);
+      }
+    }
+  };
+
   const scheduleTaskAutosave = (form, delay = 180) => {
-    if (!form || form.dataset.autosaveSubmitting === "1") return;
+    if (!(form instanceof HTMLFormElement)) return;
+
+    if (form.dataset.autosaveSubmitting === "1") {
+      form.dataset.autosavePending = "1";
+      return;
+    }
 
     const previousTimer = autosaveTimers.get(form);
     if (previousTimer) window.clearTimeout(previousTimer);
@@ -202,12 +390,7 @@ window.addEventListener("DOMContentLoaded", () => {
       if (typeof form.reportValidity === "function" && !form.reportValidity()) {
         return;
       }
-      form.dataset.autosaveSubmitting = "1";
-      if (typeof form.requestSubmit === "function") {
-        form.requestSubmit();
-      } else {
-        form.submit();
-      }
+      submitTaskAutosave(form);
     }, delay);
 
     autosaveTimers.set(form, nextTimer);
@@ -234,6 +417,13 @@ window.addEventListener("DOMContentLoaded", () => {
         'select, input[type="date"], input[type="text"], textarea'
       )
     ) {
+      if (target.matches("[data-task-group-select]")) {
+        const taskItem = target.closest("[data-task-item]");
+        if (taskItem instanceof HTMLElement) {
+          moveTaskItemToGroupDom(taskItem, target.value || "Geral");
+          syncTaskGroupInputs();
+        }
+      }
       scheduleTaskAutosave(form, 180);
     }
   });
@@ -245,6 +435,13 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!form || form.dataset.assigneeDirty !== "1") return;
       delete form.dataset.assigneeDirty;
       scheduleTaskAutosave(form, 120);
+    });
+  });
+
+  document.querySelectorAll("[data-task-autosave-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitTaskAutosave(form);
     });
   });
 
@@ -389,7 +586,8 @@ window.addEventListener("DOMContentLoaded", () => {
     draggedTaskItem.dataset.groupName = nextGroup;
 
     if (currentGroup !== nextGroup) {
-      dropzone.append(draggedTaskItem);
+      moveTaskItemToGroupDom(draggedTaskItem, nextGroup);
+      syncTaskGroupInputs();
       scheduleTaskAutosave(form, 60);
     }
   });
@@ -410,6 +608,30 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const deleteButton = event.target.closest(".task-row-delete");
+    if (deleteButton) {
+      const formId = deleteButton.getAttribute("form");
+      const deleteForm = formId ? document.getElementById(formId) : null;
+      const taskItem = deleteButton.closest("[data-task-item]");
+      const taskTitle =
+        taskItem?.querySelector('[name="title"]')?.value?.trim() ||
+        taskItem?.querySelector(".task-title-input")?.value?.trim() ||
+        "esta tarefa";
+
+      if (deleteForm instanceof HTMLFormElement) {
+        openConfirmModal({
+          title: "Excluir tarefa",
+          message: `Remover ${taskTitle}?`,
+          confirmLabel: "Excluir",
+          confirmVariant: "danger",
+          onConfirm: async () => {
+            await submitDeleteTask(deleteForm);
+          },
+        });
+      }
+      return;
+    }
+
     const toggleButton = event.target.closest("[data-task-expand]");
     if (!toggleButton) return;
 
@@ -422,10 +644,6 @@ window.addEventListener("DOMContentLoaded", () => {
     toggleButton.setAttribute("aria-expanded", isOpen ? "false" : "true");
     toggleButton.setAttribute(
       "aria-label",
-      isOpen ? "Expandir detalhes" : "Recolher detalhes"
-    );
-    toggleButton.setAttribute(
-      "title",
       isOpen ? "Expandir detalhes" : "Recolher detalhes"
     );
   });
@@ -449,6 +667,90 @@ window.addEventListener("DOMContentLoaded", () => {
   const createGroupModal = document.querySelector("[data-create-group-modal]");
   const createGroupNameInput = document.querySelector("[data-create-group-name-input]");
   const createGroupForm = document.querySelector("[data-create-group-form]");
+  const confirmModal = document.querySelector("[data-confirm-modal]");
+  const confirmModalTitle = document.querySelector("#confirm-modal-title");
+  const confirmModalMessage = document.querySelector("[data-confirm-modal-message]");
+  const confirmModalSubmit = document.querySelector("[data-confirm-modal-submit]");
+  let confirmModalAction = null;
+
+  const syncBodyModalLock = () => {
+    const hasOpenModal = [createTaskModal, createGroupModal, confirmModal].some(
+      (modal) => modal && !modal.hidden
+    );
+    document.body.classList.toggle("modal-open", hasOpenModal);
+  };
+
+  const closeConfirmModal = () => {
+    if (!confirmModal) return;
+    confirmModal.hidden = true;
+    confirmModalAction = null;
+    if (confirmModalSubmit instanceof HTMLButtonElement) {
+      confirmModalSubmit.disabled = false;
+      confirmModalSubmit.textContent = "Confirmar";
+      confirmModalSubmit.classList.remove("is-loading");
+    }
+    syncBodyModalLock();
+  };
+
+  const openConfirmModal = ({
+    title = "Confirmar",
+    message = "Tem certeza?",
+    confirmLabel = "Confirmar",
+    confirmVariant = "default",
+    onConfirm,
+  }) => {
+    if (!confirmModal) return;
+
+    if (confirmModalTitle) confirmModalTitle.textContent = title;
+    if (confirmModalMessage) confirmModalMessage.textContent = message;
+    if (confirmModalSubmit instanceof HTMLButtonElement) {
+      confirmModalSubmit.textContent = confirmLabel;
+      confirmModalSubmit.disabled = false;
+      confirmModalSubmit.classList.remove("is-loading", "btn-danger");
+      if (confirmVariant === "danger") {
+        confirmModalSubmit.classList.add("btn-danger");
+      }
+    }
+
+    confirmModalAction = typeof onConfirm === "function" ? onConfirm : null;
+    confirmModal.hidden = false;
+    syncBodyModalLock();
+  };
+
+  const submitDeleteTask = async (deleteForm) => {
+    if (!(deleteForm instanceof HTMLFormElement)) return;
+    if (deleteForm.dataset.submitting === "1") return;
+
+    deleteForm.dataset.submitting = "1";
+    try {
+      await postFormJson(deleteForm);
+
+      const taskIdField = deleteForm.querySelector('[name="task_id"]');
+      const taskId = taskIdField instanceof HTMLInputElement ? taskIdField.value : "";
+      const taskItem =
+        deleteForm.closest("[data-task-item]") ||
+        (taskId ? document.getElementById(`task-${taskId}`) : null);
+
+      const groupSection = taskItem?.closest("[data-task-group]");
+      if (taskItem instanceof HTMLElement) {
+        taskItem.remove();
+      }
+      refreshTaskGroupSection(groupSection);
+      adjustBoardSummaryCounts({ visible: -1, total: -1 });
+      if (typeof syncTaskGroupInputs === "function") {
+        syncTaskGroupInputs();
+      }
+      showClientFlash("success", "Tarefa removida.");
+    } catch (error) {
+      showClientFlash(
+        "error",
+        error instanceof Error ? error.message : "Falha ao remover tarefa."
+      );
+      throw error;
+    } finally {
+      delete deleteForm.dataset.submitting;
+    }
+  };
 
   const collectGroupNames = () => {
     const names = new Set(["Geral"]);
@@ -545,7 +847,7 @@ window.addEventListener("DOMContentLoaded", () => {
       createTaskGroupInput.value = nextGroup;
     }
     createTaskModal.hidden = false;
-    document.body.classList.add("modal-open");
+    syncBodyModalLock();
     window.setTimeout(() => {
       createTaskTitleInput?.focus();
     }, 20);
@@ -554,7 +856,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const closeCreateModal = () => {
     if (!createTaskModal) return;
     createTaskModal.hidden = true;
-    document.body.classList.remove("modal-open");
+    syncBodyModalLock();
   };
 
   const openCreateGroupModal = () => {
@@ -564,7 +866,7 @@ window.addEventListener("DOMContentLoaded", () => {
       createGroupForm.reset();
     }
     createGroupModal.hidden = false;
-    document.body.classList.add("modal-open");
+    syncBodyModalLock();
     window.setTimeout(() => {
       createGroupNameInput?.focus();
     }, 20);
@@ -573,9 +875,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const closeCreateGroupModal = () => {
     if (!createGroupModal) return;
     createGroupModal.hidden = true;
-    if (!createTaskModal || createTaskModal.hidden) {
-      document.body.classList.remove("modal-open");
-    }
+    syncBodyModalLock();
   };
 
   document.addEventListener("click", (event) => {
@@ -616,6 +916,32 @@ window.addEventListener("DOMContentLoaded", () => {
     const closeGroupTrigger = target.closest("[data-close-create-group-modal]");
     if (closeGroupTrigger) {
       closeCreateGroupModal();
+      return;
+    }
+
+    const closeConfirmTrigger = target.closest("[data-close-confirm-modal]");
+    if (closeConfirmTrigger) {
+      closeConfirmModal();
+      return;
+    }
+
+    const confirmSubmitTrigger = target.closest("[data-confirm-modal-submit]");
+    if (confirmSubmitTrigger) {
+      if (confirmModalSubmit instanceof HTMLButtonElement) {
+        confirmModalSubmit.disabled = true;
+        confirmModalSubmit.classList.add("is-loading");
+      }
+      Promise.resolve()
+        .then(() => (confirmModalAction ? confirmModalAction() : null))
+        .then(() => {
+          closeConfirmModal();
+        })
+        .catch(() => {
+          if (confirmModalSubmit instanceof HTMLButtonElement) {
+            confirmModalSubmit.disabled = false;
+            confirmModalSubmit.classList.remove("is-loading");
+          }
+        });
     }
   });
 
@@ -631,17 +957,20 @@ window.addEventListener("DOMContentLoaded", () => {
     if (createGroupModal && !createGroupModal.hidden) {
       closeCreateGroupModal();
     }
+    if (confirmModal && !confirmModal.hidden) {
+      closeConfirmModal();
+    }
   });
 
   if (createTaskForm) {
     createTaskForm.addEventListener("submit", () => {
-      document.body.classList.remove("modal-open");
+      syncBodyModalLock();
     });
   }
 
   if (createGroupForm) {
     createGroupForm.addEventListener("submit", () => {
-      document.body.classList.remove("modal-open");
+      syncBodyModalLock();
     });
   }
 });
