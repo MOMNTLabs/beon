@@ -207,7 +207,7 @@
                                     $dueDateUi = taskDueDatePresentation($dueDateValue);
                                     ?>
                                     <article
-                                        class="task-list-item"
+                                        class="task-list-item task-status-<?= e($statusKey) ?>"
                                         id="task-<?= e((string) $taskId) ?>"
                                         data-task-item
                                         data-group-name="<?= e((string) ($task['group_name'] ?? 'Geral')) ?>"

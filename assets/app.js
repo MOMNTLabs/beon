@@ -78,6 +78,24 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const syncTaskRowStatusOverlay = (select) => {
+    if (!(select instanceof HTMLSelectElement)) return;
+    if (!select.classList.contains("status-select")) return;
+
+    const taskItem = select.closest("[data-task-item]");
+    if (!(taskItem instanceof HTMLElement)) return;
+
+    Array.from(taskItem.classList).forEach((className) => {
+      if (className.startsWith("task-status-")) {
+        taskItem.classList.remove(className);
+      }
+    });
+
+    if (select.value) {
+      taskItem.classList.add(`task-status-${select.value}`);
+    }
+  };
+
   const syncSelectColor = (select) => {
     if (!select) return;
 
@@ -89,6 +107,7 @@ window.addEventListener("DOMContentLoaded", () => {
       });
       if (select.value) select.classList.add(`status-${select.value}`);
       syncStatusStepper(select);
+      syncTaskRowStatusOverlay(select);
     }
 
     if (select.classList.contains("priority-select")) {
