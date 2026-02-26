@@ -129,10 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Grupo nao encontrado.');
                 }
 
-                if (mb_strtolower($existingOldGroupName) === 'geral') {
-                    throw new RuntimeException('O grupo Geral nao pode ser renomeado.');
-                }
-
                 $existingTargetGroupName = findTaskGroupByName($newGroupName);
                 if (
                     $existingTargetGroupName !== null &&
@@ -147,22 +143,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $pdo->beginTransaction();
                 try {
-                    upsertTaskGroup($pdo, $newGroupName, (int) $authUser['id']);
-
-                    $renameTasksStmt = $pdo->prepare(
-                        'UPDATE tasks
-                         SET group_name = :new_group_name, updated_at = :updated_at
-                         WHERE group_name = :old_group_name'
-                    );
-                    $renameTasksStmt->execute([
-                        ':new_group_name' => $newGroupName,
-                        ':updated_at' => nowIso(),
-                        ':old_group_name' => $existingOldGroupName,
-                    ]);
-
                     if ($existingOldGroupName !== $newGroupName) {
-                        $deleteOldGroupStmt = $pdo->prepare('DELETE FROM task_groups WHERE name = :name');
-                        $deleteOldGroupStmt->execute([':name' => $existingOldGroupName]);
+                        $renameGroupStmt = $pdo->prepare(
+                            'UPDATE task_groups
+                             SET name = :new_group_name
+                             WHERE name = :old_group_name'
+                        );
+                        $renameGroupStmt->execute([
+                            ':new_group_name' => $newGroupName,
+                            ':old_group_name' => $existingOldGroupName,
+                        ]);
+                    }
+
+                    if ($affectedTaskCount > 0) {
+                        $renameTasksStmt = $pdo->prepare(
+                            'UPDATE tasks
+                             SET group_name = :new_group_name, updated_at = :updated_at
+                             WHERE group_name = :old_group_name'
+                        );
+                        $renameTasksStmt->execute([
+                            ':new_group_name' => $newGroupName,
+                            ':updated_at' => nowIso(),
+                            ':old_group_name' => $existingOldGroupName,
+                        ]);
                     }
 
                     $pdo->commit();
@@ -189,19 +192,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 requireAuth();
                 $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
                 $existingGroupName = findTaskGroupByName($groupName);
+                $fallbackGroupName = defaultTaskGroupName();
 
                 if ($existingGroupName === null) {
                     throw new RuntimeException('Grupo nao encontrado.');
                 }
 
-                if (mb_strtolower($existingGroupName) === 'geral') {
-                    throw new RuntimeException('O grupo Geral nao pode ser removido.');
+                if (isProtectedTaskGroupName($existingGroupName)) {
+                    throw new RuntimeException('Este grupo nao pode ser removido.');
                 }
 
                 $countStmt = $pdo->prepare('SELECT COUNT(*) FROM tasks WHERE group_name = :group_name');
                 $countStmt->execute([':group_name' => $existingGroupName]);
                 $taskCount = (int) $countStmt->fetchColumn();
-                $fallbackGroupName = findTaskGroupByName('Geral') ?? 'Geral';
                 upsertTaskGroup($pdo, $fallbackGroupName, null);
 
                 if ($taskCount > 0) {
@@ -229,7 +232,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
 
-                flash('success', $taskCount > 0 ? 'Grupo removido. Tarefas movidas para Geral.' : 'Grupo removido.');
+                flash(
+                    'success',
+                    $taskCount > 0
+                        ? sprintf('Grupo removido. Tarefas movidas para %s.', $fallbackGroupName)
+                        : 'Grupo removido.'
+                );
                 redirectTo('index.php#tasks');
 
             case 'create_task':
@@ -246,7 +254,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($action === 'create_task' && $dueDate === null) {
                     $dueDate = (new DateTimeImmutable('today'))->format('Y-m-d');
                 }
-                $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
+                $groupInputRaw = trim((string) ($_POST['group_name'] ?? ''));
+                $groupName = $groupInputRaw === ''
+                    ? defaultTaskGroupName()
+                    : normalizeTaskGroupName($groupInputRaw);
                 $existingGroupName = findTaskGroupByName($groupName);
                 if ($existingGroupName !== null) {
                     $groupName = $existingGroupName;
@@ -400,6 +411,22 @@ $assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilter
 $allTasks = $currentUser ? allTasks() : [];
 $tasks = $currentUser ? filterTasks($allTasks, $statusFilter, $assigneeFilterId) : [];
 $taskGroups = $currentUser ? taskGroupsList() : ['Geral'];
+$protectedGroupName = $currentUser ? defaultTaskGroupName() : 'Geral';
+if ($currentUser && $taskGroups) {
+    $protectedIndex = null;
+    foreach ($taskGroups as $index => $groupName) {
+        if (mb_strtolower((string) $groupName) === mb_strtolower($protectedGroupName)) {
+            $protectedIndex = $index;
+            break;
+        }
+    }
+    if ($protectedIndex !== null && $protectedIndex !== 0) {
+        $protected = $taskGroups[$protectedIndex];
+        unset($taskGroups[$protectedIndex]);
+        array_unshift($taskGroups, $protected);
+        $taskGroups = array_values($taskGroups);
+    }
+}
 $showEmptyGroups = $currentUser && $statusFilter === null && $assigneeFilterId === null;
 $tasksGroupedByGroup = $currentUser ? tasksByGroup($tasks, $showEmptyGroups ? $taskGroups : null) : [];
 $stats = $currentUser ? dashboardStats($allTasks) : ['total' => 0, 'done' => 0, 'due_today' => 0, 'urgent' => 0];
@@ -412,15 +439,15 @@ $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['to
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e(APP_NAME) ?></title>
-    <link rel="icon" type="image/svg+xml" href="assets/WorkForm - Logo (Negativa).svg?v=1">
-    <link rel="shortcut icon" href="assets/WorkForm - Logo (Negativa).svg?v=1">
+    <link rel="icon" type="image/svg+xml" href="assets/WorkForm - Símbolo.svg?v=1">
+    <link rel="shortcut icon" href="assets/WorkForm - Símbolo.svg?v=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=4">
+    <link rel="stylesheet" href="assets/styles.css?v=5">
     <script src="assets/app.js?v=2" defer></script>
 </head>
-<body class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>">
+<body class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>" data-default-group-name="<?= e((string) $protectedGroupName) ?>">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
     <div class="bg-layer bg-layer-two" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>

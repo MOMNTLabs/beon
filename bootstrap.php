@@ -332,7 +332,11 @@ function ensureTaskGroupsSchema(PDO $pdo): void
         );
     }
 
-    upsertTaskGroup($pdo, 'Geral', null);
+    $groupCountStmt = $pdo->query('SELECT COUNT(*) FROM task_groups');
+    $groupCount = $groupCountStmt ? (int) $groupCountStmt->fetchColumn() : 0;
+    if ($groupCount <= 0) {
+        upsertTaskGroup($pdo, 'Geral', null);
+    }
 }
 
 function tableHasColumn(PDO $pdo, string $table, string $column): bool
@@ -806,6 +810,39 @@ function findTaskGroupByName(string $groupName): ?string
     return null;
 }
 
+function defaultTaskGroupName(): string
+{
+    $pdo = db();
+
+    $row = $pdo->query('SELECT name FROM task_groups ORDER BY id ASC LIMIT 1')->fetch();
+    $groupName = trim((string) ($row['name'] ?? ''));
+    if ($groupName !== '') {
+        return normalizeTaskGroupName($groupName);
+    }
+
+    $taskRow = $pdo->query(
+        "SELECT group_name
+         FROM tasks
+         WHERE group_name IS NOT NULL AND group_name <> ''
+         ORDER BY id ASC
+         LIMIT 1"
+    )->fetch();
+    $taskGroupName = trim((string) ($taskRow['group_name'] ?? ''));
+    if ($taskGroupName !== '') {
+        $normalized = normalizeTaskGroupName($taskGroupName);
+        upsertTaskGroup($pdo, $normalized, null);
+        return $normalized;
+    }
+
+    upsertTaskGroup($pdo, 'Geral', null);
+    return 'Geral';
+}
+
+function isProtectedTaskGroupName(string $groupName): bool
+{
+    return mb_strtolower(normalizeTaskGroupName($groupName)) === mb_strtolower(defaultTaskGroupName());
+}
+
 function upsertTaskGroup(PDO $pdo, string $groupName, ?int $createdBy = null): string
 {
     $normalizedName = normalizeTaskGroupName($groupName);
@@ -964,6 +1001,7 @@ function filterTasks(array $tasks, ?string $statusFilter, ?int $assigneeFilterId
 function tasksByGroup(array $tasks, ?array $groupNames = null): array
 {
     $grouped = [];
+    $preserveOrder = $groupNames !== null;
 
     if ($groupNames !== null) {
         foreach ($groupNames as $groupName) {
@@ -980,7 +1018,9 @@ function tasksByGroup(array $tasks, ?array $groupNames = null): array
         $grouped[$group][] = $task;
     }
 
-    ksort($grouped, SORT_NATURAL | SORT_FLAG_CASE);
+    if (!$preserveOrder) {
+        ksort($grouped, SORT_NATURAL | SORT_FLAG_CASE);
+    }
 
     return $grouped;
 }

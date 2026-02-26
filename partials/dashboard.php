@@ -138,30 +138,27 @@
                     </div>
                 <?php else: ?>
                     <?php foreach ($tasksGroupedByGroup as $groupName => $groupTasks): ?>
+                        <?php $isProtectedGroup = isset($protectedGroupName) && mb_strtolower((string) $groupName) === mb_strtolower((string) $protectedGroupName); ?>
                         <section class="task-group" aria-labelledby="group-<?= e(md5((string) $groupName)) ?>" data-task-group data-group-name="<?= e((string) $groupName) ?>">
                             <header class="task-group-head">
                                 <div class="task-group-head-main">
-                                    <?php if (mb_strtolower((string) $groupName) !== 'geral'): ?>
-                                        <form method="post" class="task-group-rename-form" data-group-rename-form>
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                                            <input type="hidden" name="action" value="rename_group">
-                                            <input type="hidden" name="old_group_name" value="<?= e((string) $groupName) ?>">
-                                            <h3 id="group-<?= e(md5((string) $groupName)) ?>">
-                                                <input
-                                                    type="text"
-                                                    name="new_group_name"
-                                                    value="<?= e((string) $groupName) ?>"
-                                                    maxlength="60"
-                                                    class="task-group-name-input"
-                                                    data-group-name-input
-                                                    aria-label="Nome do grupo"
-                                                    spellcheck="false"
-                                                >
-                                            </h3>
-                                        </form>
-                                    <?php else: ?>
-                                        <h3 id="group-<?= e(md5((string) $groupName)) ?>"><?= e((string) $groupName) ?></h3>
-                                    <?php endif; ?>
+                                    <form method="post" class="task-group-rename-form" data-group-rename-form>
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                        <input type="hidden" name="action" value="rename_group">
+                                        <input type="hidden" name="old_group_name" value="<?= e((string) $groupName) ?>">
+                                        <h3 id="group-<?= e(md5((string) $groupName)) ?>">
+                                            <input
+                                                type="text"
+                                                name="new_group_name"
+                                                value="<?= e((string) $groupName) ?>"
+                                                maxlength="60"
+                                                class="task-group-name-input"
+                                                data-group-name-input
+                                                aria-label="Nome do grupo"
+                                                spellcheck="false"
+                                            >
+                                        </h3>
+                                    </form>
                                 </div>
                                 <div class="task-group-head-actions">
                                     <button
@@ -171,7 +168,7 @@
                                         data-create-group="<?= e((string) $groupName) ?>"
                                         aria-label="Criar tarefa no grupo <?= e((string) $groupName) ?>"
                                     >+</button>
-                                    <?php if (mb_strtolower((string) $groupName) !== 'geral'): ?>
+                                    <?php if (!$isProtectedGroup): ?>
                                         <form method="post" class="task-group-delete-form" data-group-delete-form>
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="delete_group">
@@ -401,7 +398,7 @@
                 <span>Grupo</span>
                 <select name="group_name" data-create-task-group-input>
                     <?php foreach ($taskGroups as $groupNameOption): ?>
-                        <option value="<?= e((string) $groupNameOption) ?>"<?= (string) $groupNameOption === 'Geral' ? ' selected' : '' ?>>
+                        <option value="<?= e((string) $groupNameOption) ?>"<?= (isset($protectedGroupName) && mb_strtolower((string) $groupNameOption) === mb_strtolower((string) $protectedGroupName)) ? ' selected' : '' ?>>
                             <?= e((string) $groupNameOption) ?>
                         </option>
                     <?php endforeach; ?>

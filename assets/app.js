@@ -705,7 +705,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const groupTaskCount = Number.parseInt(groupCountText, 10) || 0;
       const message =
         groupTaskCount > 0
-          ? `Remover o grupo ${groupName}? As tarefas serao movidas para Geral.`
+          ? `Remover o grupo ${groupName}? As tarefas serao movidas para ${getDefaultGroupName()}.`
           : `Remover o grupo ${groupName}?`;
 
       if (deleteForm instanceof HTMLFormElement) {
@@ -780,6 +780,22 @@ window.addEventListener("DOMContentLoaded", () => {
   const confirmModalSubmit = document.querySelector("[data-confirm-modal-submit]");
   let confirmModalAction = null;
   let taskDetailContext = null;
+
+  const getDefaultGroupName = () => {
+    const bodyDefault = document.body?.dataset?.defaultGroupName?.trim();
+    if (bodyDefault) return bodyDefault;
+
+    const firstGroupSection = document.querySelector("[data-task-group]");
+    const firstGroupName = firstGroupSection?.dataset?.groupName?.trim();
+    if (firstGroupName) return firstGroupName;
+
+    if (createTaskGroupInput instanceof HTMLSelectElement && createTaskGroupInput.options.length > 0) {
+      const optionName = createTaskGroupInput.options[0]?.value?.trim();
+      if (optionName) return optionName;
+    }
+
+    return "Geral";
+  };
 
   const setTaskDetailEditMode = (editing) => {
     if (!taskDetailModal) return;
@@ -1267,7 +1283,7 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const previousName = (oldNameField.value || "").trim() || "Geral";
+    const previousName = (oldNameField.value || "").trim() || "Grupo";
     const requestedName = (nameInput.value || "").trim();
     if (!requestedName) {
       nameInput.value = previousName;
@@ -1282,6 +1298,13 @@ window.addEventListener("DOMContentLoaded", () => {
       const data = await postFormJson(renameForm);
       const oldGroupName = (data.old_group_name || previousName).trim() || previousName;
       const nextGroupName = (data.group_name || requestedName).trim() || requestedName;
+      const currentDefaultGroupName = document.body?.dataset?.defaultGroupName?.trim() || "";
+      if (
+        currentDefaultGroupName &&
+        oldGroupName.localeCompare(currentDefaultGroupName, "pt-BR", { sensitivity: "base" }) === 0
+      ) {
+        document.body.dataset.defaultGroupName = nextGroupName;
+      }
 
       const groupSection = renameForm.closest("[data-task-group]");
       const dropzone = groupSection?.querySelector("[data-task-dropzone]");
@@ -1365,7 +1388,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const collectGroupNames = () => {
-    const names = new Set(["Geral"]);
+    const names = new Set();
 
     document.querySelectorAll("[data-task-group]").forEach((section) => {
       const text = section?.dataset?.groupName?.trim();
@@ -1417,7 +1440,7 @@ window.addEventListener("DOMContentLoaded", () => {
       }
 
       if (!createTaskGroupInput.value && createTaskGroupInput.options.length) {
-        createTaskGroupInput.value = "Geral";
+        createTaskGroupInput.value = groupNames[0] || getDefaultGroupName();
       }
     }
 
@@ -1444,7 +1467,7 @@ window.addEventListener("DOMContentLoaded", () => {
         .forEach(updateAssigneePickerSummary);
     }
     if (createTaskGroupInput) {
-      const nextGroup = (groupName || "").trim() || "Geral";
+      const nextGroup = (groupName || "").trim() || getDefaultGroupName();
       if (
         createTaskGroupInput instanceof HTMLSelectElement &&
         !Array.from(createTaskGroupInput.options).some(
@@ -1509,7 +1532,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const openTaskTrigger = target.closest("[data-open-create-task-modal]");
     if (openTaskTrigger) {
-      openCreateModal(openTaskTrigger.dataset.createGroup || "Geral");
+      openCreateModal(openTaskTrigger.dataset.createGroup || getDefaultGroupName());
       return;
     }
 
