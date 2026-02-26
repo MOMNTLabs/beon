@@ -234,16 +234,36 @@
                                                     >
                                                 </div>
 
-                                                <label class="tag-field tag-field-status">
-                                                    <span class="sr-only">Status</span>
-                                                    <select name="status" class="tag-select status-select status-<?= e($statusKey) ?>">
-                                                        <?php foreach ($statusOptions as $optionKey => $optionLabel): ?>
-                                                            <option value="<?= e($optionKey) ?>"<?= $optionKey === $statusKey ? ' selected' : '' ?>>
-                                                                <?= e($optionLabel) ?>
-                                                            </option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                </label>
+                                                <div class="status-stepper" data-status-stepper>
+                                                    <button
+                                                        type="button"
+                                                        class="status-stepper-btn"
+                                                        data-status-step="-1"
+                                                        aria-label="Status anterior"
+                                                    >
+                                                        <span aria-hidden="true">‹</span>
+                                                    </button>
+
+                                                    <label class="tag-field tag-field-status">
+                                                        <span class="sr-only">Status</span>
+                                                        <select name="status" class="tag-select status-select status-<?= e($statusKey) ?>">
+                                                            <?php foreach ($statusOptions as $optionKey => $optionLabel): ?>
+                                                                <option value="<?= e($optionKey) ?>"<?= $optionKey === $statusKey ? ' selected' : '' ?>>
+                                                                    <?= e($optionLabel) ?>
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </label>
+
+                                                    <button
+                                                        type="button"
+                                                        class="status-stepper-btn"
+                                                        data-status-step="1"
+                                                        aria-label="Próximo status"
+                                                    >
+                                                        <span aria-hidden="true">›</span>
+                                                    </button>
+                                                </div>
 
                                                 <label class="tag-field tag-field-priority">
                                                     <span class="sr-only">Prioridade</span>

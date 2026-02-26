@@ -53,6 +53,31 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const syncStatusStepper = (select) => {
+    if (!(select instanceof HTMLSelectElement)) return;
+
+    const stepper = select.closest("[data-status-stepper]");
+    if (!(stepper instanceof HTMLElement)) return;
+
+    const currentIndex = Math.max(0, select.selectedIndex);
+    const lastIndex = Math.max(0, select.options.length - 1);
+
+    const prevButton = stepper.querySelector('[data-status-step="-1"]');
+    const nextButton = stepper.querySelector('[data-status-step="1"]');
+
+    if (prevButton instanceof HTMLButtonElement) {
+      const atStart = currentIndex <= 0;
+      prevButton.hidden = atStart;
+      prevButton.disabled = atStart;
+    }
+
+    if (nextButton instanceof HTMLButtonElement) {
+      const atEnd = currentIndex >= lastIndex;
+      nextButton.hidden = atEnd;
+      nextButton.disabled = atEnd;
+    }
+  };
+
   const syncSelectColor = (select) => {
     if (!select) return;
 
@@ -63,6 +88,7 @@ window.addEventListener("DOMContentLoaded", () => {
         }
       });
       if (select.value) select.classList.add(`status-${select.value}`);
+      syncStatusStepper(select);
     }
 
     if (select.classList.contains("priority-select")) {
@@ -785,6 +811,27 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   document.addEventListener("click", (event) => {
+    const statusStepButton = event.target.closest("[data-status-step]");
+    if (statusStepButton) {
+      const stepper = statusStepButton.closest("[data-status-stepper]");
+      const statusSelect = stepper?.querySelector("select.status-select");
+      const step = Number.parseInt(statusStepButton.dataset.statusStep || "0", 10);
+
+      if (!(statusSelect instanceof HTMLSelectElement) || !step) {
+        return;
+      }
+
+      const nextIndex = statusSelect.selectedIndex + step;
+      if (nextIndex < 0 || nextIndex >= statusSelect.options.length) {
+        return;
+      }
+
+      statusSelect.selectedIndex = nextIndex;
+      syncSelectColor(statusSelect);
+      statusSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+
     const dueDisplay = event.target.closest("[data-due-date-display]");
     if (dueDisplay) {
       const wrap = dueDisplay.closest(".due-tag-field");

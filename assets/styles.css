@@ -308,9 +308,10 @@ textarea {
 
 .is-dashboard .dashboard-compact {
     gap: 10px;
+    display: flex;
+    flex-direction: column;
     height: 100%;
     min-height: 0;
-    grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .is-auth .app-shell {
@@ -602,6 +603,13 @@ textarea {
 
 .dashboard-stats .stat-cell strong {
     font-size: 0.96rem;
+}
+
+.is-dashboard .dashboard-stats {
+    width: fit-content;
+    max-width: 100%;
+    align-self: flex-start;
+    grid-template-columns: repeat(5, minmax(132px, max-content));
 }
 
 .stat-cell:last-child {
@@ -909,6 +917,7 @@ textarea:focus {
 }
 
 .is-dashboard .workspace-layout {
+    flex: 1;
     gap: 10px;
     height: 100%;
     min-height: 0;
@@ -1657,7 +1666,7 @@ textarea:focus {
 
 .task-line-row {
     display: grid;
-    grid-template-columns: minmax(220px, 1.9fr) 130px 120px 180px 138px 18px 20px;
+    grid-template-columns: minmax(220px, 1.9fr) 190px 168px 168px 138px 18px 20px;
     gap: 6px;
     align-items: center;
 }
@@ -1796,6 +1805,8 @@ textarea:focus {
 }
 
 .status-select {
+    text-align: center;
+    text-align-last: center;
     color: #d4e9ff;
     border-color: rgba(120, 190, 255, 0.22);
     background: rgba(80, 148, 255, 0.08);
@@ -1839,6 +1850,46 @@ textarea:focus {
 
 .assignee-tag-field {
     min-width: 0;
+}
+
+.status-stepper {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) 18px;
+    gap: 4px;
+    align-items: center;
+}
+
+.status-stepper .tag-field {
+    min-width: 0;
+}
+
+.status-stepper-btn {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.44);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.status-stepper-btn:hover,
+.status-stepper-btn:focus-visible {
+    color: rgba(255, 255, 255, 0.88);
+    outline: none;
+}
+
+.status-stepper-btn span {
+    display: block;
+    line-height: 1;
+    font-size: 0.9rem;
+    transform: translateY(-1px);
+    pointer-events: none;
 }
 
 .assignee-picker-wrap {
