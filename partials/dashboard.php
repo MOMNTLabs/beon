@@ -1,11 +1,7 @@
 ﻿<header class="top-nav dashboard-nav">
     <a href="index.php" class="brand" aria-label="WorkForm">
-        <img src="assets/logo-lockup.svg?v=2" alt="WorkForm" class="brand-lockup" width="170" height="42">
+        <img src="assets/logo-lockup.svg?v=3" alt="WorkForm" class="brand-lockup" width="116" height="29">
     </a>
-    <nav class="nav-links" aria-label="Navegação do dashboard">
-        <a href="#tasks">Tarefas</a>
-        <a href="#team">Time</a>
-    </nav>
     <div class="user-chip">
         <div class="avatar" aria-hidden="true"><?= e(strtoupper(substr((string) $currentUser['name'], 0, 1))) ?></div>
         <div>

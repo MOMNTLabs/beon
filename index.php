@@ -135,9 +135,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $countStmt = $pdo->prepare('SELECT COUNT(*) FROM tasks WHERE group_name = :group_name');
                 $countStmt->execute([':group_name' => $existingGroupName]);
                 $taskCount = (int) $countStmt->fetchColumn();
+                $fallbackGroupName = findTaskGroupByName('Geral') ?? 'Geral';
+                upsertTaskGroup($pdo, $fallbackGroupName, null);
 
                 if ($taskCount > 0) {
-                    throw new RuntimeException('So e possivel excluir grupos vazios.');
+                    $moveStmt = $pdo->prepare(
+                        'UPDATE tasks
+                         SET group_name = :target_group, updated_at = :updated_at
+                         WHERE group_name = :source_group'
+                    );
+                    $moveStmt->execute([
+                        ':target_group' => $fallbackGroupName,
+                        ':updated_at' => nowIso(),
+                        ':source_group' => $existingGroupName,
+                    ]);
                 }
 
                 $deleteStmt = $pdo->prepare('DELETE FROM task_groups WHERE name = :name');
@@ -147,10 +158,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     respondJson([
                         'ok' => true,
                         'group_name' => $existingGroupName,
+                        'moved_task_count' => $taskCount,
+                        'moved_to_group' => $fallbackGroupName,
                     ]);
                 }
 
-                flash('success', 'Grupo removido.');
+                flash('success', $taskCount > 0 ? 'Grupo removido. Tarefas movidas para Geral.' : 'Grupo removido.');
                 redirectTo('index.php#tasks');
 
             case 'create_task':
@@ -338,8 +351,8 @@ $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['to
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=1">
-    <script src="assets/app.js?v=1" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=3">
+    <script src="assets/app.js?v=2" defer></script>
 </head>
 <body class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>

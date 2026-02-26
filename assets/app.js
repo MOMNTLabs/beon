@@ -685,11 +685,18 @@ window.addEventListener("DOMContentLoaded", () => {
         groupSection?.dataset.groupName?.trim() ||
         deleteForm?.querySelector('[name="group_name"]')?.value?.trim() ||
         "este grupo";
+      const groupCountText =
+        groupSection?.querySelector(".task-group-count")?.textContent?.trim() || "0";
+      const groupTaskCount = Number.parseInt(groupCountText, 10) || 0;
+      const message =
+        groupTaskCount > 0
+          ? `Remover o grupo ${groupName}? As tarefas serao movidas para Geral.`
+          : `Remover o grupo ${groupName}?`;
 
       if (deleteForm instanceof HTMLFormElement) {
         openConfirmModal({
           title: "Excluir grupo",
-          message: `Remover o grupo ${groupName}?`,
+          message,
           confirmLabel: "Excluir",
           confirmVariant: "danger",
           onConfirm: async () => {
@@ -1158,13 +1165,58 @@ window.addEventListener("DOMContentLoaded", () => {
 
     deleteForm.dataset.submitting = "1";
     try {
-      await postFormJson(deleteForm);
+      const data = await postFormJson(deleteForm);
 
       const groupSection = deleteForm.closest("[data-task-group]");
       const groupName =
         groupSection?.dataset.groupName?.trim() ||
         deleteForm.querySelector('[name="group_name"]')?.value?.trim() ||
         "Grupo";
+      const movedTaskCount = Number.parseInt(data?.moved_task_count, 10) || 0;
+      const movedToGroup = (data?.moved_to_group || "Geral").trim() || "Geral";
+
+      if (groupSection instanceof HTMLElement && movedTaskCount > 0) {
+        const sourceDropzone = groupSection.querySelector("[data-task-dropzone]");
+        const targetDropzone = document.querySelector(
+          `[data-task-dropzone][data-group-name="${CSS.escape(movedToGroup)}"]`
+        );
+
+        if (
+          sourceDropzone instanceof HTMLElement &&
+          targetDropzone instanceof HTMLElement &&
+          targetDropzone !== sourceDropzone
+        ) {
+          const movedItems = Array.from(
+            sourceDropzone.querySelectorAll("[data-task-item]")
+          );
+
+          movedItems.forEach((taskItem) => {
+            if (!(taskItem instanceof HTMLElement)) return;
+
+            taskItem.dataset.groupName = movedToGroup;
+            const binding = getTaskGroupField(taskItem);
+            if (binding?.field instanceof HTMLSelectElement) {
+              if (!Array.from(binding.field.options).some((opt) => opt.value === movedToGroup)) {
+                const option = document.createElement("option");
+                option.value = movedToGroup;
+                option.textContent = movedToGroup;
+                binding.field.append(option);
+              }
+              binding.field.value = movedToGroup;
+            } else if (binding?.field instanceof HTMLInputElement) {
+              binding.field.value = movedToGroup;
+            }
+
+            targetDropzone.append(taskItem);
+          });
+
+          const targetSection = targetDropzone.closest("[data-task-group]");
+          refreshTaskGroupSection(targetSection);
+        } else if (movedTaskCount > 0) {
+          window.location.reload();
+          return;
+        }
+      }
 
       if (groupSection instanceof HTMLElement) {
         groupSection.remove();
@@ -1173,7 +1225,12 @@ window.addEventListener("DOMContentLoaded", () => {
       if (typeof syncTaskGroupInputs === "function") {
         syncTaskGroupInputs();
       }
-      showClientFlash("success", `Grupo ${groupName} removido.`);
+      showClientFlash(
+        "success",
+        movedTaskCount > 0
+          ? `Grupo ${groupName} removido. ${movedTaskCount} tarefa(s) movida(s) para ${movedToGroup}.`
+          : `Grupo ${groupName} removido.`
+      );
     } catch (error) {
       showClientFlash(
         "error",
