@@ -2714,6 +2714,54 @@ textarea:focus {
     justify-content: center;
 }
 
+.task-detail-view-tag.status-todo {
+    color: #d4e9ff;
+    border-color: rgba(120, 190, 255, 0.2);
+    background: rgba(80, 148, 255, 0.07);
+}
+
+.task-detail-view-tag.status-in_progress {
+    color: #ffd4a8;
+    border-color: rgba(255, 166, 92, 0.2);
+    background: rgba(255, 166, 92, 0.07);
+}
+
+.task-detail-view-tag.status-review {
+    color: #ddc8ff;
+    border-color: rgba(174, 118, 255, 0.2);
+    background: rgba(174, 118, 255, 0.07);
+}
+
+.task-detail-view-tag.status-done {
+    color: #b8ffe4;
+    border-color: rgba(70, 220, 168, 0.2);
+    background: rgba(70, 220, 168, 0.07);
+}
+
+.task-detail-view-tag.priority-low {
+    color: #a7d5ff;
+    border-color: rgba(111, 191, 255, 0.2);
+    background: rgba(75, 166, 255, 0.07);
+}
+
+.task-detail-view-tag.priority-medium {
+    color: #ffe08a;
+    border-color: rgba(255, 210, 93, 0.2);
+    background: rgba(255, 198, 65, 0.07);
+}
+
+.task-detail-view-tag.priority-high {
+    color: #ffb27f;
+    border-color: rgba(255, 154, 90, 0.2);
+    background: rgba(255, 138, 74, 0.07);
+}
+
+.task-detail-view-tag.priority-urgent {
+    color: #ff9f9f;
+    border-color: rgba(255, 105, 105, 0.2);
+    background: rgba(255, 84, 84, 0.07);
+}
+
 .task-detail-view-assignees {
     color: var(--muted);
     font-size: 0.84rem;

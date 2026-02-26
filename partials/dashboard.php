@@ -582,7 +582,6 @@
         <div class="task-detail-modal-body">
             <section class="task-detail-view" data-task-detail-view>
                 <div class="task-detail-view-block">
-                    <div class="task-detail-view-title" data-task-detail-view-title></div>
                     <div class="task-detail-view-tags">
                         <span class="task-detail-view-tag" data-task-detail-view-status></span>
                         <span class="task-detail-view-tag" data-task-detail-view-priority></span>

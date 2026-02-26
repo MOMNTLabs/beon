@@ -1371,6 +1371,23 @@ window.addEventListener("DOMContentLoaded", () => {
     );
   };
 
+  const syncTaskDetailViewStatusTag = (statusValue, statusLabel) => {
+    if (!(taskDetailViewStatus instanceof HTMLElement)) return;
+
+    Array.from(taskDetailViewStatus.classList).forEach((className) => {
+      if (className.startsWith("status-")) {
+        taskDetailViewStatus.classList.remove(className);
+      }
+    });
+
+    const normalizedStatus =
+      typeof statusValue === "string" && statusValue.trim()
+        ? statusValue.trim()
+        : "todo";
+    taskDetailViewStatus.classList.add(`status-${normalizedStatus}`);
+    taskDetailViewStatus.textContent = statusLabel || normalizedStatus;
+  };
+
   const populateTaskDetailModalFromRow = (context = taskDetailContext) => {
     if (!context) return;
     const {
@@ -1401,8 +1418,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const updatedAtText = metaRow?.querySelector("[data-task-updated-at]")?.textContent?.trim() || "";
 
     if (taskDetailTitle) taskDetailTitle.textContent = titleValue;
-    if (taskDetailViewTitle) taskDetailViewTitle.textContent = titleValue;
-    if (taskDetailViewStatus) taskDetailViewStatus.textContent = statusLabel;
+    syncTaskDetailViewStatusTag(statusSelect.value || "todo", statusLabel);
     syncTaskDetailViewPriorityTag(prioritySelect.value || "medium");
     if (taskDetailViewGroup) taskDetailViewGroup.textContent = groupLabel;
     if (taskDetailViewDue) taskDetailViewDue.textContent = dueMeta.display;
