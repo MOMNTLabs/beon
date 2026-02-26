@@ -76,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'create_task':
             case 'update_task':
                 $authUser = requireAuth();
+                $isAutosave = $action === 'update_task' && (string) ($_POST['autosave'] ?? '') === '1';
                 $usersById = usersMapById();
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 $title = trim((string) ($_POST['title'] ?? ''));
@@ -154,7 +155,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':u' => nowIso(),
                     ':id' => $taskId,
                 ]);
-                flash('success', 'Tarefa atualizada.');
+                if (!$isAutosave) {
+                    flash('success', 'Tarefa atualizada.');
+                }
                 redirectTo('index.php#task-' . $taskId);
 
             case 'move_task':

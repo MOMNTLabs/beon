@@ -122,6 +122,59 @@ window.addEventListener("DOMContentLoaded", () => {
     if (picker) updateAssigneePickerSummary(picker);
   });
 
+  const autosaveTimers = new WeakMap();
+  const scheduleTaskAutosave = (form, delay = 180) => {
+    if (!form || form.dataset.autosaveSubmitting === "1") return;
+
+    const previousTimer = autosaveTimers.get(form);
+    if (previousTimer) window.clearTimeout(previousTimer);
+
+    const nextTimer = window.setTimeout(() => {
+      if (typeof form.reportValidity === "function" && !form.reportValidity()) {
+        return;
+      }
+      form.dataset.autosaveSubmitting = "1";
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+      } else {
+        form.submit();
+      }
+    }, delay);
+
+    autosaveTimers.set(form, nextTimer);
+  };
+
+  document.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const form = target.closest("[data-task-autosave-form]");
+    if (!form) return;
+
+    if (target.matches('.row-assignee-picker input[type="checkbox"]')) {
+      form.dataset.assigneeDirty = "1";
+      return;
+    }
+
+    if (
+      target.matches(
+        'select, input[type="date"], input[type="text"], textarea'
+      )
+    ) {
+      scheduleTaskAutosave(form, 180);
+    }
+  });
+
+  document.querySelectorAll(".row-assignee-picker").forEach((picker) => {
+    picker.addEventListener("toggle", () => {
+      if (picker.open) return;
+      const form = picker.closest("[data-task-autosave-form]");
+      if (!form || form.dataset.assigneeDirty !== "1") return;
+      delete form.dataset.assigneeDirty;
+      scheduleTaskAutosave(form, 120);
+    });
+  });
+
   document.addEventListener("click", (event) => {
     const toggleButton = event.target.closest("[data-task-expand]");
     if (!toggleButton) return;
@@ -133,6 +186,13 @@ window.addEventListener("DOMContentLoaded", () => {
     const isOpen = !details.hidden;
     details.hidden = isOpen;
     toggleButton.setAttribute("aria-expanded", isOpen ? "false" : "true");
-    toggleButton.textContent = isOpen ? "Detalhes" : "Fechar";
+    toggleButton.setAttribute(
+      "aria-label",
+      isOpen ? "Expandir detalhes" : "Recolher detalhes"
+    );
+    toggleButton.setAttribute(
+      "title",
+      isOpen ? "Expandir detalhes" : "Recolher detalhes"
+    );
   });
 });

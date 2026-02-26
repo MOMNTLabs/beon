@@ -1258,7 +1258,7 @@ textarea:focus {
 
 .task-line-row {
     display: grid;
-    grid-template-columns: minmax(260px, 1.8fr) 150px 140px 210px 152px auto auto;
+    grid-template-columns: minmax(260px, 1.8fr) 150px 140px 210px 152px 28px;
     gap: 8px;
     align-items: center;
 }
@@ -1435,8 +1435,34 @@ textarea:focus {
     padding: 6px;
 }
 
-.task-expand-btn {
-    white-space: nowrap;
+.task-expand-toggle {
+    width: 24px;
+    height: 24px;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.58);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 auto;
+}
+
+.task-expand-toggle:hover,
+.task-expand-toggle:focus-visible {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.task-expand-toggle::before {
+    content: "‹";
+    font-size: 1.2rem;
+    line-height: 1;
+    transform: translateY(-1px);
+}
+
+.task-expand-toggle[aria-expanded="true"]::before {
+    content: "⌄";
+    transform: translateY(-3px);
 }
 
 .task-line-details {
@@ -1490,6 +1516,7 @@ textarea:focus {
 .task-line-actions {
     display: flex;
     gap: 8px;
+    justify-content: flex-end;
 }
 
 .task-delete-form {
