@@ -220,6 +220,11 @@ select optgroup {
 
 .dashboard-nav .brand-lockup {
     width: clamp(72px, 6.2vw, 92px);
+    filter:
+        brightness(0)
+        invert(1)
+        drop-shadow(0 0 10px rgba(44, 199, 255, 0.08));
+    opacity: 0.98;
 }
 
 .nav-links {
