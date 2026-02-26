@@ -308,6 +308,8 @@ textarea {
 
 .is-dashboard .dashboard-compact {
     gap: 10px;
+    height: 100%;
+    min-height: 0;
     grid-template-rows: auto auto minmax(0, 1fr);
 }
 
@@ -908,6 +910,7 @@ textarea:focus {
 
 .is-dashboard .workspace-layout {
     gap: 10px;
+    height: 100%;
     min-height: 0;
     align-items: stretch;
 }
@@ -1384,6 +1387,15 @@ textarea:focus {
 .tasklist-layout {
     grid-template-columns: 300px 1fr;
     align-items: stretch;
+    min-height: 0;
+}
+
+.is-dashboard .tasklist-layout {
+    height: 100%;
+}
+
+.is-dashboard .tasklist-layout > .panel {
+    height: 100%;
     min-height: 0;
 }
 
