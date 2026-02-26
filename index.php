@@ -71,6 +71,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'Sessão encerrada.');
                 redirectTo('index.php');
 
+            case 'create_group':
+                $authUser = requireAuth();
+                $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
+
+                if (findTaskGroupByName($groupName) !== null) {
+                    throw new RuntimeException('Este grupo jÃ¡ existe.');
+                }
+
+                upsertTaskGroup($pdo, $groupName, (int) $authUser['id']);
+                flash('success', 'Grupo criado.');
+                redirectTo('index.php#tasks');
+
             case 'create_task':
             case 'update_task':
                 $authUser = requireAuth();
@@ -83,6 +95,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $priority = normalizeTaskPriority((string) ($_POST['priority'] ?? 'medium'));
                 $dueDate = dueDateForStorage($_POST['due_date'] ?? null);
                 $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
+                $existingGroupName = findTaskGroupByName($groupName);
+                if ($existingGroupName !== null) {
+                    $groupName = $existingGroupName;
+                }
                 $rawAssigneeValues = $_POST['assigned_to'] ?? [];
                 if (!is_array($rawAssigneeValues)) {
                     $rawAssigneeValues = [$rawAssigneeValues];
@@ -91,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $assigneeIds = normalizeAssigneeIds($rawAssigneeValues, $usersById);
                 $assignedTo = $assigneeIds[0] ?? null;
                 $assigneeIdsJson = encodeAssigneeIds($assigneeIds);
+                upsertTaskGroup($pdo, $groupName, (int) $authUser['id']);
 
                 if ($title === '') {
                     throw new RuntimeException('O título da tarefa é obrigatório.');
@@ -203,8 +220,9 @@ $assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilter
 
 $allTasks = $currentUser ? allTasks() : [];
 $tasks = $currentUser ? filterTasks($allTasks, $statusFilter, $assigneeFilterId) : [];
-$tasksGroupedByGroup = $currentUser ? tasksByGroup($tasks) : [];
 $taskGroups = $currentUser ? taskGroupsList() : ['Geral'];
+$showEmptyGroups = $currentUser && $statusFilter === null && $assigneeFilterId === null;
+$tasksGroupedByGroup = $currentUser ? tasksByGroup($tasks, $showEmptyGroups ? $taskGroups : null) : [];
 $stats = $currentUser ? dashboardStats($allTasks) : ['total' => 0, 'done' => 0, 'due_today' => 0, 'urgent' => 0];
 $myOpenTasks = $currentUser ? countMyAssignedTasks($allTasks, (int) $currentUser['id']) : 0;
 $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;

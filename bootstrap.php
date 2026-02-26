@@ -151,6 +151,7 @@ function migrate(PDO $pdo): void
     }
 
     ensureTaskExtendedSchema($pdo);
+    ensureTaskGroupsSchema($pdo);
 }
 
 function migrateSqlite(PDO $pdo): void
@@ -181,6 +182,16 @@ function migrateSqlite(PDO $pdo): void
             updated_at TEXT NOT NULL,
             FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
+        )'
+    );
+
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS task_groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            created_by INTEGER DEFAULT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
         )'
     );
 
@@ -223,6 +234,15 @@ function migratePostgres(PDO $pdo): void
             assignee_ids_json TEXT NOT NULL DEFAULT \'[]\',
             created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
             updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+        )'
+    );
+
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS task_groups (
+            id BIGSERIAL PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+            created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
         )'
     );
 
@@ -271,6 +291,48 @@ function ensureTaskExtendedSchema(PDO $pdo): void
             ':id' => (int) $row['id'],
         ]);
     }
+}
+
+function ensureTaskGroupsSchema(PDO $pdo): void
+{
+    if (dbDriverName($pdo) === 'pgsql') {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS task_groups (
+                id BIGSERIAL PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+    } else {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS task_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                created_by INTEGER DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+    }
+
+    // Keep explicit groups in sync with task rows created before this table existed.
+    $rows = $pdo->query(
+        'SELECT DISTINCT group_name, MIN(created_by) AS created_by
+         FROM tasks
+         WHERE group_name IS NOT NULL AND group_name <> \'\'
+         GROUP BY group_name'
+    )->fetchAll();
+
+    foreach ($rows as $row) {
+        upsertTaskGroup(
+            $pdo,
+            (string) ($row['group_name'] ?? 'Geral'),
+            isset($row['created_by']) ? (int) $row['created_by'] : null
+        );
+    }
+
+    upsertTaskGroup($pdo, 'Geral', null);
 }
 
 function tableHasColumn(PDO $pdo, string $table, string $column): bool
@@ -731,20 +793,75 @@ function decodeAssigneeIds($jsonValue, ?int $fallbackAssignedTo = null): array
     return normalizeAssigneeIds($decoded);
 }
 
+function findTaskGroupByName(string $groupName): ?string
+{
+    $needle = mb_strtolower(normalizeTaskGroupName($groupName));
+
+    foreach (taskGroupsList() as $existingName) {
+        if (mb_strtolower($existingName) === $needle) {
+            return $existingName;
+        }
+    }
+
+    return null;
+}
+
+function upsertTaskGroup(PDO $pdo, string $groupName, ?int $createdBy = null): string
+{
+    $normalizedName = normalizeTaskGroupName($groupName);
+    $now = nowIso();
+    $driver = dbDriverName($pdo);
+
+    if ($driver === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO task_groups (name, created_by, created_at)
+             VALUES (:name, :created_by, :created_at)
+             ON CONFLICT (name) DO NOTHING'
+        );
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT OR IGNORE INTO task_groups (name, created_by, created_at)
+             VALUES (:name, :created_by, :created_at)'
+        );
+    }
+
+    $stmt->bindValue(':name', $normalizedName, PDO::PARAM_STR);
+    if ($createdBy !== null && $createdBy > 0) {
+        $stmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+    } else {
+        $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+    }
+    $stmt->bindValue(':created_at', $now, PDO::PARAM_STR);
+    $stmt->execute();
+
+    return $normalizedName;
+}
+
 function taskGroupsList(): array
 {
-    $rows = db()->query('SELECT DISTINCT group_name FROM tasks WHERE group_name IS NOT NULL AND group_name <> \'\' ORDER BY group_name ASC')->fetchAll();
+    $pdo = db();
     $groups = [];
 
+    $storedRows = $pdo->query('SELECT name FROM task_groups ORDER BY name ASC')->fetchAll();
+    foreach ($storedRows as $row) {
+        $groupName = normalizeTaskGroupName((string) ($row['name'] ?? 'Geral'));
+        $groups[$groupName] = $groupName;
+    }
+
+    $rows = $pdo->query('SELECT DISTINCT group_name FROM tasks WHERE group_name IS NOT NULL AND group_name <> \'\' ORDER BY group_name ASC')->fetchAll();
+
     foreach ($rows as $row) {
-        $groups[] = normalizeTaskGroupName((string) ($row['group_name'] ?? 'Geral'));
+        $groupName = normalizeTaskGroupName((string) ($row['group_name'] ?? 'Geral'));
+        $groups[$groupName] = $groupName;
     }
 
     if (!$groups) {
         return ['Geral'];
     }
 
-    return array_values(array_unique($groups));
+    $values = array_values($groups);
+    natcasesort($values);
+    return array_values($values);
 }
 
 function allTasks(): array
@@ -844,9 +961,16 @@ function filterTasks(array $tasks, ?string $statusFilter, ?int $assigneeFilterId
     return $filtered;
 }
 
-function tasksByGroup(array $tasks): array
+function tasksByGroup(array $tasks, ?array $groupNames = null): array
 {
     $grouped = [];
+
+    if ($groupNames !== null) {
+        foreach ($groupNames as $groupName) {
+            $group = normalizeTaskGroupName((string) $groupName);
+            $grouped[$group] = [];
+        }
+    }
 
     foreach ($tasks as $task) {
         $group = normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral'));

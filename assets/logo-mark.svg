@@ -1,20 +1,38 @@
 <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="wf-bg" x1="18" y1="18" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+    <linearGradient id="wf_grad" x1="22" y1="24" x2="106" y2="104" gradientUnits="userSpaceOnUse">
       <stop stop-color="#2CE58D"/>
       <stop offset="1" stop-color="#2CC7FF"/>
     </linearGradient>
-    <linearGradient id="wf-stroke" x1="14" y1="14" x2="114" y2="114" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#93FFD5" stop-opacity="0.7"/>
-      <stop offset="1" stop-color="#8BDFFF" stop-opacity="0.55"/>
+    <linearGradient id="wf_glow" x1="30" y1="22" x2="98" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B8FFE5" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#AEEBFF" stop-opacity="0.6"/>
     </linearGradient>
   </defs>
 
-  <rect x="14" y="14" width="100" height="100" rx="28" fill="#0B142A" />
-  <rect x="14.75" y="14.75" width="98.5" height="98.5" rx="27.25" stroke="url(#wf-stroke)" stroke-opacity="0.45" stroke-width="1.5" />
-  <path d="M29 34C29 31.239 31.239 29 34 29H94C96.761 29 99 31.239 99 34V94C99 96.761 96.761 99 94 99H34C31.239 99 29 96.761 29 94V34Z" fill="url(#wf-bg)" fill-opacity="0.08"/>
+  <g opacity="0.16" filter="url(#shadow)">
+    <circle cx="64" cy="64" r="46" stroke="url(#wf_grad)" stroke-width="6"/>
+  </g>
 
-  <path d="M36 44H46L52 73L60 52H68L76 73L82 44H92L82 84H73L64 62L55 84H46L36 44Z" fill="url(#wf-bg)"/>
-  <path d="M70 44H94V52H78V60H91V68H78V84H70V44Z" fill="url(#wf-bg)"/>
+  <g stroke="url(#wf_grad)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M34 42L64 25L94 42L94 86L64 103L34 86V42Z" opacity="0.75"/>
+    <path d="M42 64H86" opacity="0.65"/>
+    <path d="M50 78L61 89L81 56"/>
+  </g>
+
+  <g fill="#071223" stroke="url(#wf_glow)" stroke-width="4">
+    <circle cx="34" cy="42" r="5"/>
+    <circle cx="64" cy="25" r="5"/>
+    <circle cx="94" cy="42" r="5"/>
+    <circle cx="94" cy="86" r="5"/>
+    <circle cx="64" cy="103" r="5"/>
+    <circle cx="34" cy="86" r="5"/>
+  </g>
+
+  <defs>
+    <filter id="shadow" x="10" y="10" width="108" height="108" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#1FD8FF" flood-opacity="0.18"/>
+    </filter>
+  </defs>
 </svg>
 

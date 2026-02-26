@@ -9,7 +9,6 @@
     </a>
     <nav class="nav-links" aria-label="Navegação do dashboard">
         <a href="#tasks">Tarefas</a>
-        <a href="#new-task">Nova tarefa</a>
         <a href="#team">Time</a>
     </nav>
     <div class="user-chip">
@@ -51,92 +50,8 @@
     </section>
 
     <section class="workspace-layout tasklist-layout">
-        <aside class="sidebar-stack">
-            <section class="panel" id="new-task">
-                <div class="panel-header">
-                    <h2>Nova tarefa</h2>
-                </div>
-
-                <form method="post" class="form-stack">
-                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                    <input type="hidden" name="action" value="create_task">
-
-                    <label>
-                        <span>Titulo</span>
-                        <input type="text" name="title" maxlength="140" required>
-                    </label>
-
-                    <label>
-                        <span>Descricao</span>
-                        <textarea name="description" rows="4"></textarea>
-                    </label>
-
-                    <label>
-                        <span>Grupo</span>
-                        <input type="text" name="group_name" list="task-group-options" placeholder="Ex.: Administracao" value="Geral">
-                    </label>
-                    <datalist id="task-group-options">
-                        <?php foreach ($taskGroups as $groupNameOption): ?>
-                            <option value="<?= e((string) $groupNameOption) ?>"></option>
-                        <?php endforeach; ?>
-                    </datalist>
-
-                    <div class="form-row">
-                        <label>
-                            <span>Status</span>
-                            <select name="status">
-                                <?php foreach ($statusOptions as $key => $label): ?>
-                                    <option value="<?= e($key) ?>"><?= e($label) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
-
-                        <label>
-                            <span>Prioridade</span>
-                            <select name="priority">
-                                <?php foreach ($priorityOptions as $key => $label): ?>
-                                    <option value="<?= e($key) ?>"<?= $key === 'medium' ? ' selected' : '' ?>><?= e($label) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
-                    </div>
-
-                    <div class="form-row">
-                        <label>
-                            <span>Prazo</span>
-                            <input type="date" name="due_date">
-                        </label>
-
-                        <div class="assignee-picker-wrap">
-                            <span class="assignee-picker-label">Responsaveis</span>
-                            <details class="assignee-picker">
-                                <summary>Selecionar</summary>
-                                <div class="assignee-picker-menu">
-                                    <?php if (!$users): ?>
-                                        <p class="assignee-picker-empty">Nenhum usuario cadastrado.</p>
-                                    <?php else: ?>
-                                        <?php foreach ($users as $user): ?>
-                                            <label class="assignee-option">
-                                                <input
-                                                    type="checkbox"
-                                                    name="assigned_to[]"
-                                                    value="<?= e((string) $user['id']) ?>"
-                                                    <?= (int) $user['id'] === (int) $currentUser['id'] ? 'checked' : '' ?>
-                                                >
-                                                <span><?= e((string) $user['name']) ?></span>
-                                            </label>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </div>
-                            </details>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-pill">Adicionar tarefa</button>
-                </form>
-            </section>
-
-            <section class="panel" id="team">
+        <aside class="sidebar-stack users-sidebar">
+            <section class="panel users-panel" id="team">
                 <div class="panel-header">
                     <h2>Usuarios</h2>
                 </div>
@@ -156,6 +71,15 @@
                     <?php endif; ?>
                 </ul>
             </section>
+
+            <footer class="sidebar-footer">
+                <button type="button" class="icon-gear-button" title="Configuracoes" aria-label="Configuracoes">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
+                        <circle cx="12" cy="12" r="3.2"></circle>
+                    </svg>
+                </button>
+            </footer>
         </aside>
 
         <section class="tasklist-wrap panel" id="tasks">
@@ -198,20 +122,34 @@
                 </div>
             </form>
 
+            <datalist id="task-group-options">
+                <?php foreach ($taskGroups as $groupNameOption): ?>
+                    <option value="<?= e((string) $groupNameOption) ?>"></option>
+                <?php endforeach; ?>
+            </datalist>
+
             <div class="task-groups-list">
-                <?php if (empty($tasks)): ?>
+                <?php if (empty($tasksGroupedByGroup)): ?>
                     <div class="empty-card task-list-empty">
                         <p>Nenhuma tarefa encontrada com os filtros atuais.</p>
+                        <button type="button" class="btn btn-mini" data-open-create-task-modal>Nova tarefa</button>
                     </div>
                 <?php else: ?>
                     <?php foreach ($tasksGroupedByGroup as $groupName => $groupTasks): ?>
                         <section class="task-group" aria-labelledby="group-<?= e(md5((string) $groupName)) ?>">
                             <header class="task-group-head">
-                                <h3 id="group-<?= e(md5((string) $groupName)) ?>"><?= e((string) $groupName) ?></h3>
-                                <span><?= e((string) count($groupTasks)) ?></span>
+                                <div class="task-group-head-main">
+                                    <h3 id="group-<?= e(md5((string) $groupName)) ?>"><?= e((string) $groupName) ?></h3>
+                                </div>
+                                <div class="task-group-head-actions">
+                                    <span class="task-group-count"><?= e((string) count($groupTasks)) ?></span>
+                                </div>
                             </header>
 
                             <div class="task-list-rows">
+                                <?php if (!$groupTasks): ?>
+                                    <div class="task-group-empty-row">Sem tarefas neste grupo.</div>
+                                <?php endif; ?>
                                 <?php foreach ($groupTasks as $task): ?>
                                     <?php
                                     $taskId = (int) $task['id'];
@@ -349,3 +287,139 @@
         </section>
     </section>
 </main>
+
+<div class="task-fab-stack" data-task-fab-wrap>
+    <div class="task-fab-menu" data-task-fab-menu aria-hidden="true">
+        <button type="button" class="task-fab-action" data-open-create-group-modal>
+            <span class="task-fab-action-label">Criar grupo</span>
+        </button>
+        <button type="button" class="task-fab-action" data-open-create-task-modal>
+            <span class="task-fab-action-label">Criar tarefa</span>
+        </button>
+    </div>
+    <button
+        type="button"
+        class="task-fab-main"
+        data-task-fab-toggle
+        aria-expanded="false"
+        aria-label="Abrir menu de criacao"
+        title="Criar"
+    >
+        <span aria-hidden="true">+</span>
+    </button>
+</div>
+
+<div class="modal-backdrop" data-create-modal hidden>
+    <div class="modal-scrim" data-close-create-modal></div>
+    <section class="modal-card create-task-modal" role="dialog" aria-modal="true" aria-labelledby="create-task-title">
+        <header class="modal-head">
+            <h2 id="create-task-title">Nova tarefa</h2>
+            <button type="button" class="modal-close-button" data-close-create-modal aria-label="Fechar modal">
+                <span aria-hidden="true">×</span>
+            </button>
+        </header>
+
+        <form method="post" class="form-stack modal-form" data-create-task-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="create_task">
+
+            <label>
+                <span>Titulo</span>
+                <input type="text" name="title" maxlength="140" required data-create-task-title-input>
+            </label>
+
+            <label>
+                <span>Descricao</span>
+                <textarea name="description" rows="4"></textarea>
+            </label>
+
+            <label>
+                <span>Grupo</span>
+                <input type="text" name="group_name" list="task-group-options" value="Geral" data-create-task-group-input>
+            </label>
+
+            <div class="form-row">
+                <label>
+                    <span>Status</span>
+                    <select name="status">
+                        <?php foreach ($statusOptions as $key => $label): ?>
+                            <option value="<?= e($key) ?>"><?= e($label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Prioridade</span>
+                    <select name="priority">
+                        <?php foreach ($priorityOptions as $key => $label): ?>
+                            <option value="<?= e($key) ?>"<?= $key === 'medium' ? ' selected' : '' ?>><?= e($label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+            </div>
+
+            <div class="form-row">
+                <label>
+                    <span>Prazo</span>
+                    <input type="date" name="due_date">
+                </label>
+
+                <div class="assignee-picker-wrap">
+                    <span class="assignee-picker-label">Responsaveis</span>
+                    <details class="assignee-picker">
+                        <summary>Selecionar</summary>
+                        <div class="assignee-picker-menu">
+                            <?php if (!$users): ?>
+                                <p class="assignee-picker-empty">Nenhum usuario cadastrado.</p>
+                            <?php else: ?>
+                                <?php foreach ($users as $user): ?>
+                                    <label class="assignee-option">
+                                        <input
+                                            type="checkbox"
+                                            name="assigned_to[]"
+                                            value="<?= e((string) $user['id']) ?>"
+                                            <?= (int) $user['id'] === (int) $currentUser['id'] ? 'checked' : '' ?>
+                                        >
+                                        <span><?= e((string) $user['name']) ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-create-modal>Cancelar</button>
+                <button type="submit" class="btn btn-pill">Adicionar tarefa</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="modal-backdrop" data-create-group-modal hidden>
+    <div class="modal-scrim" data-close-create-group-modal></div>
+    <section class="modal-card create-group-modal" role="dialog" aria-modal="true" aria-labelledby="create-group-title">
+        <header class="modal-head">
+            <h2 id="create-group-title">Novo grupo</h2>
+            <button type="button" class="modal-close-button" data-close-create-group-modal aria-label="Fechar modal">
+                <span aria-hidden="true">×</span>
+            </button>
+        </header>
+
+        <form method="post" class="form-stack modal-form" data-create-group-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="create_group">
+
+            <label>
+                <span>Nome do grupo</span>
+                <input type="text" name="group_name" maxlength="60" required data-create-group-name-input>
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-create-group-modal>Cancelar</button>
+                <button type="submit" class="btn btn-pill">Criar grupo</button>
+            </div>
+        </form>
+    </section>
+</div>

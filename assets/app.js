@@ -195,4 +195,136 @@ window.addEventListener("DOMContentLoaded", () => {
       isOpen ? "Expandir detalhes" : "Recolher detalhes"
     );
   });
+
+  const fabWrap = document.querySelector("[data-task-fab-wrap]");
+  const fabToggleButton = document.querySelector("[data-task-fab-toggle]");
+  const fabMenu = document.querySelector("[data-task-fab-menu]");
+
+  const setFabMenuOpen = (open) => {
+    if (!fabWrap || !fabToggleButton || !fabMenu) return;
+    fabWrap.classList.toggle("is-open", open);
+    fabToggleButton.setAttribute("aria-expanded", open ? "true" : "false");
+    fabMenu.setAttribute("aria-hidden", open ? "false" : "true");
+  };
+
+  const createTaskModal = document.querySelector("[data-create-modal]");
+  const createTaskGroupInput = document.querySelector("[data-create-task-group-input]");
+  const createTaskTitleInput = document.querySelector("[data-create-task-title-input]");
+  const createTaskForm = document.querySelector("[data-create-task-form]");
+  const createGroupModal = document.querySelector("[data-create-group-modal]");
+  const createGroupNameInput = document.querySelector("[data-create-group-name-input]");
+  const createGroupForm = document.querySelector("[data-create-group-form]");
+
+  const openCreateModal = (groupName) => {
+    if (!createTaskModal) return;
+    setFabMenuOpen(false);
+    if (createTaskForm) {
+      createTaskForm.reset();
+      createTaskForm
+        .querySelectorAll(".assignee-picker")
+        .forEach(updateAssigneePickerSummary);
+    }
+    if (createTaskGroupInput) {
+      createTaskGroupInput.value = (groupName || "").trim() || "Geral";
+    }
+    createTaskModal.hidden = false;
+    document.body.classList.add("modal-open");
+    window.setTimeout(() => {
+      createTaskTitleInput?.focus();
+    }, 20);
+  };
+
+  const closeCreateModal = () => {
+    if (!createTaskModal) return;
+    createTaskModal.hidden = true;
+    document.body.classList.remove("modal-open");
+  };
+
+  const openCreateGroupModal = () => {
+    if (!createGroupModal) return;
+    setFabMenuOpen(false);
+    if (createGroupForm) {
+      createGroupForm.reset();
+    }
+    createGroupModal.hidden = false;
+    document.body.classList.add("modal-open");
+    window.setTimeout(() => {
+      createGroupNameInput?.focus();
+    }, 20);
+  };
+
+  const closeCreateGroupModal = () => {
+    if (!createGroupModal) return;
+    createGroupModal.hidden = true;
+    if (!createTaskModal || createTaskModal.hidden) {
+      document.body.classList.remove("modal-open");
+    }
+  };
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    if (
+      fabWrap &&
+      fabToggleButton &&
+      target.closest("[data-task-fab-toggle]")
+    ) {
+      setFabMenuOpen(!fabWrap.classList.contains("is-open"));
+      return;
+    }
+
+    if (fabWrap && fabWrap.classList.contains("is-open") && !target.closest("[data-task-fab-wrap]")) {
+      setFabMenuOpen(false);
+    }
+
+    const openTaskTrigger = target.closest("[data-open-create-task-modal]");
+    if (openTaskTrigger) {
+      openCreateModal(openTaskTrigger.dataset.createGroup || "Geral");
+      return;
+    }
+
+    const openGroupTrigger = target.closest("[data-open-create-group-modal]");
+    if (openGroupTrigger) {
+      openCreateGroupModal();
+      return;
+    }
+
+    const closeTrigger = target.closest("[data-close-create-modal]");
+    if (closeTrigger) {
+      closeCreateModal();
+      return;
+    }
+
+    const closeGroupTrigger = target.closest("[data-close-create-group-modal]");
+    if (closeGroupTrigger) {
+      closeCreateGroupModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+
+    if (fabWrap?.classList.contains("is-open")) {
+      setFabMenuOpen(false);
+    }
+    if (createTaskModal && !createTaskModal.hidden) {
+      closeCreateModal();
+    }
+    if (createGroupModal && !createGroupModal.hidden) {
+      closeCreateGroupModal();
+    }
+  });
+
+  if (createTaskForm) {
+    createTaskForm.addEventListener("submit", () => {
+      document.body.classList.remove("modal-open");
+    });
+  }
+
+  if (createGroupForm) {
+    createGroupForm.addEventListener("submit", () => {
+      document.body.classList.remove("modal-open");
+    });
+  }
 });

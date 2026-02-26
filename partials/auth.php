@@ -4,13 +4,11 @@
 
         <div class="auth-brand-block">
             <div class="auth-mark" aria-hidden="true">
-                <img src="assets/logo-mark.svg" alt="" width="72" height="72">
+                <img src="assets/logo-mark.svg" alt="" width="44" height="44">
             </div>
-            <div class="auth-brand-copy">
-                <strong class="brand-wordmark auth-wordmark">
-                    <span class="brand-wordmark-main">Workplace</span><span class="brand-wordmark-sub">Formula</span>
-                </strong>
-            </div>
+            <strong class="brand-wordmark auth-wordmark">
+                <span class="brand-wordmark-main">Workplace</span><span class="brand-wordmark-sub">Formula</span>
+            </strong>
         </div>
 
         <div class="auth-card-head">
