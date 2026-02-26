@@ -37,14 +37,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Este e-mail já está cadastrado.');
                 }
 
-                $stmt = $pdo->prepare('INSERT INTO users (name, email, password_hash, created_at) VALUES (:n, :e, :p, :c)');
-                $stmt->execute([
-                    ':n' => $name,
-                    ':e' => $email,
-                    ':p' => password_hash($password, PASSWORD_DEFAULT),
-                    ':c' => nowIso(),
-                ]);
-                $_SESSION['user_id'] = (int) $pdo->lastInsertId();
+                $_SESSION['user_id'] = createUser(
+                    $pdo,
+                    $name,
+                    $email,
+                    password_hash($password, PASSWORD_DEFAULT),
+                    nowIso()
+                );
                 session_regenerate_id(true);
                 flash('success', 'Conta criada com sucesso.');
                 redirectTo('index.php');
