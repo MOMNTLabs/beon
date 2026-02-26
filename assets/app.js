@@ -242,6 +242,44 @@ window.addEventListener("DOMContentLoaded", () => {
     updateBoardCountText("[data-board-total-count]", "total", total);
   };
 
+  const renderDashboardSummary = (dashboard) => {
+    if (!dashboard || typeof dashboard !== "object") return;
+
+    const total = Number.parseInt(dashboard.total, 10);
+    const done = Number.parseInt(dashboard.done, 10);
+    const completionRate = Number.parseInt(dashboard.completion_rate, 10);
+    const dueToday = Number.parseInt(dashboard.due_today, 10);
+    const urgent = Number.parseInt(dashboard.urgent, 10);
+    const myOpen = Number.parseInt(dashboard.my_open, 10);
+
+    const totalEl = document.querySelector("[data-dashboard-stat-total]");
+    const doneEl = document.querySelector("[data-dashboard-stat-done]");
+    const dueTodayEl = document.querySelector("[data-dashboard-stat-due-today]");
+    const urgentEl = document.querySelector("[data-dashboard-stat-urgent]");
+    const myOpenEl = document.querySelector("[data-dashboard-stat-my-open]");
+    const boardTotalEl = document.querySelector("[data-board-total-count]");
+
+    if (totalEl && Number.isFinite(total)) {
+      totalEl.textContent = String(total);
+    }
+    if (doneEl && Number.isFinite(done)) {
+      const rate = Number.isFinite(completionRate) ? completionRate : 0;
+      doneEl.textContent = `${done} (${rate}%)`;
+    }
+    if (dueTodayEl && Number.isFinite(dueToday)) {
+      dueTodayEl.textContent = String(dueToday);
+    }
+    if (urgentEl && Number.isFinite(urgent)) {
+      urgentEl.textContent = String(urgent);
+    }
+    if (myOpenEl && Number.isFinite(myOpen)) {
+      myOpenEl.textContent = String(myOpen);
+    }
+    if (boardTotalEl && Number.isFinite(total)) {
+      boardTotalEl.textContent = `${total} total`;
+    }
+  };
+
   const createEmptyGroupRow = (groupName) => {
     const row = document.createElement("div");
     row.className = "task-group-empty-row";
@@ -346,10 +384,11 @@ window.addEventListener("DOMContentLoaded", () => {
   const autosaveTimers = new WeakMap();
   const submitTaskAutosave = async (form) => {
     if (!(form instanceof HTMLFormElement)) return;
-    if (form.dataset.autosaveSubmitting === "1") return;
+    if (form.dataset.autosaveSubmitting === "1") return false;
 
     form.dataset.autosaveSubmitting = "1";
     form.classList.add("is-saving");
+    let success = false;
 
     try {
       const data = await postFormJson(form);
@@ -361,7 +400,12 @@ window.addEventListener("DOMContentLoaded", () => {
       }
 
       refreshTaskUpdatedAtMeta(form, task.updated_at_label || "");
+      renderDashboardSummary(data.dashboard);
+      if (taskDetailContext && taskDetailContext.form === form && taskDetailModal && !taskDetailModal.hidden) {
+        populateTaskDetailModalFromRow(taskDetailContext);
+      }
       delete form.dataset.autosaveError;
+      success = true;
     } catch (error) {
       form.dataset.autosaveError = "1";
       showClientFlash("error", error instanceof Error ? error.message : "Falha ao salvar tarefa.");
@@ -373,6 +417,7 @@ window.addEventListener("DOMContentLoaded", () => {
         scheduleTaskAutosave(form, 80);
       }
     }
+    return success;
   };
 
   const scheduleTaskAutosave = (form, delay = 180) => {
@@ -659,16 +704,8 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!toggleButton) return;
 
     const taskItem = toggleButton.closest("[data-task-item]");
-    const details = taskItem?.querySelector(".task-line-details");
-    if (!details) return;
-
-    const isOpen = !details.hidden;
-    details.hidden = isOpen;
-    toggleButton.setAttribute("aria-expanded", isOpen ? "false" : "true");
-    toggleButton.setAttribute(
-      "aria-label",
-      isOpen ? "Expandir detalhes" : "Recolher detalhes"
-    );
+    if (!(taskItem instanceof HTMLElement)) return;
+    openTaskDetailModal(taskItem);
   });
 
   const fabWrap = document.querySelector("[data-task-fab-wrap]");
@@ -690,14 +727,347 @@ window.addEventListener("DOMContentLoaded", () => {
   const createGroupModal = document.querySelector("[data-create-group-modal]");
   const createGroupNameInput = document.querySelector("[data-create-group-name-input]");
   const createGroupForm = document.querySelector("[data-create-group-form]");
+  const taskDetailModal = document.querySelector("[data-task-detail-modal]");
+  const taskDetailTitle = document.querySelector("[data-task-detail-title]");
+  const taskDetailViewPanel = document.querySelector("[data-task-detail-view]");
+  const taskDetailEditPanel = document.querySelector("[data-task-detail-edit-panel]");
+  const taskDetailViewTitle = document.querySelector("[data-task-detail-view-title]");
+  const taskDetailViewStatus = document.querySelector("[data-task-detail-view-status]");
+  const taskDetailViewPriority = document.querySelector("[data-task-detail-view-priority]");
+  const taskDetailViewGroup = document.querySelector("[data-task-detail-view-group]");
+  const taskDetailViewDue = document.querySelector("[data-task-detail-view-due]");
+  const taskDetailViewAssignees = document.querySelector("[data-task-detail-view-assignees]");
+  const taskDetailViewDescription = document.querySelector("[data-task-detail-view-description]");
+  const taskDetailViewCreatedBy = document.querySelector("[data-task-detail-view-created-by]");
+  const taskDetailViewUpdatedAt = document.querySelector("[data-task-detail-view-updated-at]");
+  const taskDetailEditTitle = document.querySelector("[data-task-detail-edit-title]");
+  const taskDetailEditStatus = document.querySelector("[data-task-detail-edit-status]");
+  const taskDetailEditPriority = document.querySelector("[data-task-detail-edit-priority]");
+  const taskDetailEditGroup = document.querySelector("[data-task-detail-edit-group]");
+  const taskDetailEditDueDate = document.querySelector("[data-task-detail-edit-due-date]");
+  const taskDetailEditDescription = document.querySelector("[data-task-detail-edit-description]");
+  const taskDetailEditAssignees = document.querySelector("[data-task-detail-edit-assignees]");
+  const taskDetailEditAssigneesMenu = document.querySelector("[data-task-detail-edit-assignees-menu]");
+  const taskDetailEditButton = document.querySelector("[data-task-detail-edit]");
+  const taskDetailSaveButton = document.querySelector("[data-task-detail-save]");
+  const taskDetailDeleteButton = document.querySelector("[data-task-detail-delete]");
+  const taskDetailCancelEditButton = document.querySelector("[data-task-detail-cancel-edit]");
   const confirmModal = document.querySelector("[data-confirm-modal]");
   const confirmModalTitle = document.querySelector("#confirm-modal-title");
   const confirmModalMessage = document.querySelector("[data-confirm-modal-message]");
   const confirmModalSubmit = document.querySelector("[data-confirm-modal-submit]");
   let confirmModalAction = null;
+  let taskDetailContext = null;
+
+  const setTaskDetailEditMode = (editing) => {
+    if (!taskDetailModal) return;
+    const isEditing = Boolean(editing);
+    taskDetailModal.classList.toggle("is-editing", isEditing);
+    if (taskDetailViewPanel instanceof HTMLElement) {
+      taskDetailViewPanel.hidden = isEditing;
+    }
+    if (taskDetailEditPanel instanceof HTMLElement) {
+      taskDetailEditPanel.hidden = !isEditing;
+    }
+    if (taskDetailEditButton instanceof HTMLButtonElement) {
+      taskDetailEditButton.hidden = isEditing;
+    }
+    if (taskDetailSaveButton instanceof HTMLButtonElement) {
+      taskDetailSaveButton.hidden = !isEditing;
+    }
+    if (taskDetailCancelEditButton instanceof HTMLButtonElement) {
+      taskDetailCancelEditButton.hidden = !isEditing;
+    }
+
+    if (isEditing) {
+      window.setTimeout(() => {
+        taskDetailEditTitle?.focus();
+      }, 20);
+    }
+  };
+
+  const getTaskDetailBindings = (taskItem) => {
+    if (!(taskItem instanceof HTMLElement)) return null;
+
+    const form = taskItem.querySelector("[data-task-autosave-form]");
+    const deleteForm = taskItem.querySelector(".task-delete-form");
+    if (!(form instanceof HTMLFormElement) || !(deleteForm instanceof HTMLFormElement)) {
+      return null;
+    }
+
+    const titleInput = form.querySelector('input[name="title"]');
+    const statusSelect = form.querySelector('select[name="status"]');
+    const prioritySelect = form.querySelector('select[name="priority"]');
+    const dueDateInput = form.querySelector('input[name="due_date"]');
+    const rowAssigneePicker = form.querySelector(".row-assignee-picker");
+    const groupSelect = form.querySelector('[name="group_name"]');
+    const descriptionField = form.querySelector('textarea[name="description"]');
+    const metaRow = form.querySelector(".task-line-meta");
+
+    if (
+      !(titleInput instanceof HTMLInputElement) ||
+      !(statusSelect instanceof HTMLSelectElement) ||
+      !(prioritySelect instanceof HTMLSelectElement) ||
+      !(dueDateInput instanceof HTMLInputElement) ||
+      !(rowAssigneePicker instanceof HTMLDetailsElement) ||
+      !(groupSelect instanceof HTMLSelectElement) ||
+      !(descriptionField instanceof HTMLTextAreaElement)
+    ) {
+      return null;
+    }
+
+    return {
+      taskItem,
+      form,
+      deleteForm,
+      titleInput,
+      statusSelect,
+      prioritySelect,
+      dueDateInput,
+      rowAssigneePicker,
+      groupSelect,
+      descriptionField,
+      metaRow,
+    };
+  };
+
+  const copySelectOptions = (sourceSelect, targetSelect) => {
+    if (!(sourceSelect instanceof HTMLSelectElement) || !(targetSelect instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const current = sourceSelect.value;
+    targetSelect.innerHTML = "";
+    Array.from(sourceSelect.options).forEach((option) => {
+      const next = document.createElement("option");
+      next.value = option.value;
+      next.textContent = option.textContent;
+      next.selected = option.value === current;
+      targetSelect.append(next);
+    });
+    targetSelect.value = current;
+  };
+
+  const copyAssigneesToTaskDetailModal = (rowAssigneePicker) => {
+    if (
+      !(rowAssigneePicker instanceof HTMLDetailsElement) ||
+      !(taskDetailEditAssignees instanceof HTMLDetailsElement) ||
+      !(taskDetailEditAssigneesMenu instanceof HTMLElement)
+    ) {
+      return;
+    }
+
+    taskDetailEditAssignees.open = false;
+    taskDetailEditAssigneesMenu.innerHTML = "";
+
+    const options = rowAssigneePicker.querySelectorAll(".assignee-option");
+    options.forEach((option) => {
+      const clone = option.cloneNode(true);
+      taskDetailEditAssigneesMenu.append(clone);
+    });
+
+    updateAssigneePickerSummary(taskDetailEditAssignees);
+  };
+
+  const getCheckedAssigneeNames = (picker) => {
+    if (!(picker instanceof HTMLElement)) return [];
+    return Array.from(picker.querySelectorAll('input[type="checkbox"]:checked'))
+      .map((checkbox) => checkbox.closest("label")?.querySelector("span")?.textContent?.trim())
+      .filter(Boolean);
+  };
+
+  const populateTaskDetailModalFromRow = (context = taskDetailContext) => {
+    if (!context) return;
+    const {
+      titleInput,
+      statusSelect,
+      prioritySelect,
+      dueDateInput,
+      rowAssigneePicker,
+      groupSelect,
+      descriptionField,
+      metaRow,
+    } = context;
+
+    const titleValue = (titleInput.value || "").trim() || "Tarefa";
+    const statusLabel =
+      statusSelect.options[statusSelect.selectedIndex]?.textContent?.trim() || statusSelect.value || "Status";
+    const priorityLabel =
+      prioritySelect.options[prioritySelect.selectedIndex]?.textContent?.trim() || prioritySelect.value || "Prioridade";
+    const groupLabel =
+      groupSelect.options[groupSelect.selectedIndex]?.textContent?.trim() || groupSelect.value || "Geral";
+    const dueMeta = dueDateMeta(dueDateInput.value || "");
+    const assigneeNames = getCheckedAssigneeNames(rowAssigneePicker);
+    const description = (descriptionField.value || "").trim();
+    const metaSpans = metaRow ? Array.from(metaRow.querySelectorAll("span")) : [];
+    const createdByText = metaSpans[0]?.textContent?.trim() || "";
+    const updatedAtText = metaRow?.querySelector("[data-task-updated-at]")?.textContent?.trim() || "";
+
+    if (taskDetailTitle) taskDetailTitle.textContent = titleValue;
+    if (taskDetailViewTitle) taskDetailViewTitle.textContent = titleValue;
+    if (taskDetailViewStatus) taskDetailViewStatus.textContent = statusLabel;
+    if (taskDetailViewPriority) taskDetailViewPriority.textContent = priorityLabel;
+    if (taskDetailViewGroup) taskDetailViewGroup.textContent = groupLabel;
+    if (taskDetailViewDue) taskDetailViewDue.textContent = dueMeta.display;
+    if (taskDetailViewAssignees) {
+      taskDetailViewAssignees.textContent = assigneeNames.length
+        ? `Responsaveis: ${assigneeNames.join(", ")}`
+        : "Sem responsavel";
+    }
+    if (taskDetailViewDescription) {
+      taskDetailViewDescription.textContent = description || "Sem descricao.";
+      taskDetailViewDescription.classList.toggle("is-empty", !description);
+    }
+    if (taskDetailViewCreatedBy) taskDetailViewCreatedBy.textContent = createdByText;
+    if (taskDetailViewUpdatedAt) {
+      taskDetailViewUpdatedAt.textContent = updatedAtText;
+      taskDetailViewUpdatedAt.hidden = !updatedAtText;
+    }
+
+    if (taskDetailEditTitle instanceof HTMLInputElement) {
+      taskDetailEditTitle.value = titleInput.value || "";
+    }
+    if (taskDetailEditStatus instanceof HTMLSelectElement) {
+      taskDetailEditStatus.value = statusSelect.value || "todo";
+      syncSelectColor(taskDetailEditStatus);
+    }
+    if (taskDetailEditPriority instanceof HTMLSelectElement) {
+      taskDetailEditPriority.value = prioritySelect.value || "medium";
+      syncSelectColor(taskDetailEditPriority);
+    }
+    if (taskDetailEditGroup instanceof HTMLSelectElement) {
+      copySelectOptions(groupSelect, taskDetailEditGroup);
+      if (typeof collectGroupNames === "function") {
+        const allGroupNames = collectGroupNames();
+        allGroupNames.forEach((name) => {
+          if (!Array.from(taskDetailEditGroup.options).some((opt) => opt.value === name)) {
+            const option = document.createElement("option");
+            option.value = name;
+            option.textContent = name;
+            taskDetailEditGroup.append(option);
+          }
+        });
+      }
+      taskDetailEditGroup.value = groupSelect.value || "Geral";
+    }
+    if (taskDetailEditDueDate instanceof HTMLInputElement) {
+      taskDetailEditDueDate.value = dueDateInput.value || "";
+    }
+    if (taskDetailEditDescription instanceof HTMLTextAreaElement) {
+      taskDetailEditDescription.value = descriptionField.value || "";
+    }
+    copyAssigneesToTaskDetailModal(rowAssigneePicker);
+  };
+
+  const openTaskDetailModal = (taskItem) => {
+    if (!taskDetailModal) return;
+    const bindings = getTaskDetailBindings(taskItem);
+    if (!bindings) return;
+
+    taskDetailContext = bindings;
+    populateTaskDetailModalFromRow(bindings);
+    setTaskDetailEditMode(false);
+    taskDetailModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      const closeButton = taskDetailModal.querySelector(".modal-close-button[data-close-task-detail-modal]");
+      if (closeButton instanceof HTMLElement) closeButton.focus();
+    }, 20);
+  };
+
+  const closeTaskDetailModal = () => {
+    if (!taskDetailModal) return;
+    taskDetailModal.hidden = true;
+    taskDetailContext = null;
+    setTaskDetailEditMode(false);
+    if (taskDetailSaveButton instanceof HTMLButtonElement) {
+      taskDetailSaveButton.disabled = false;
+      taskDetailSaveButton.classList.remove("is-loading");
+      taskDetailSaveButton.textContent = "Salvar";
+    }
+    syncBodyModalLock();
+  };
+
+  const copyTaskDetailModalToRow = (context = taskDetailContext) => {
+    if (!context) return false;
+    if (
+      !(taskDetailEditTitle instanceof HTMLInputElement) ||
+      !(taskDetailEditStatus instanceof HTMLSelectElement) ||
+      !(taskDetailEditPriority instanceof HTMLSelectElement) ||
+      !(taskDetailEditGroup instanceof HTMLSelectElement) ||
+      !(taskDetailEditDueDate instanceof HTMLInputElement) ||
+      !(taskDetailEditDescription instanceof HTMLTextAreaElement)
+    ) {
+      return false;
+    }
+
+    if (typeof taskDetailEditTitle.reportValidity === "function" && !taskDetailEditTitle.reportValidity()) {
+      return false;
+    }
+
+    context.titleInput.value = taskDetailEditTitle.value;
+    context.statusSelect.value = taskDetailEditStatus.value;
+    context.prioritySelect.value = taskDetailEditPriority.value;
+    context.dueDateInput.value = taskDetailEditDueDate.value;
+    context.descriptionField.value = taskDetailEditDescription.value;
+
+    const groupValue = (taskDetailEditGroup.value || "Geral").trim() || "Geral";
+    if (!Array.from(context.groupSelect.options).some((option) => option.value === groupValue)) {
+      const option = document.createElement("option");
+      option.value = groupValue;
+      option.textContent = groupValue;
+      context.groupSelect.append(option);
+    }
+    context.groupSelect.value = groupValue;
+
+    const selectedAssigneeIds = new Set(
+      Array.from(
+        taskDetailEditAssigneesMenu?.querySelectorAll('input[type="checkbox"]:checked') || []
+      )
+        .map((input) => String(input.value || "").trim())
+        .filter(Boolean)
+    );
+
+    context.rowAssigneePicker
+      .querySelectorAll('input[type="checkbox"][name="assigned_to[]"]')
+      .forEach((checkbox) => {
+        checkbox.checked = selectedAssigneeIds.has(String(checkbox.value));
+      });
+
+    syncSelectColor(context.statusSelect);
+    syncSelectColor(context.prioritySelect);
+    syncDueDateDisplay(context.dueDateInput);
+    updateAssigneePickerSummary(context.rowAssigneePicker);
+
+    return true;
+  };
+
+  const saveTaskDetailModal = async () => {
+    if (!taskDetailContext) return;
+    if (!copyTaskDetailModalToRow(taskDetailContext)) return;
+
+    if (taskDetailSaveButton instanceof HTMLButtonElement) {
+      taskDetailSaveButton.disabled = true;
+      taskDetailSaveButton.classList.add("is-loading");
+      taskDetailSaveButton.textContent = "Salvando";
+    }
+
+    const ok = await submitTaskAutosave(taskDetailContext.form);
+
+    if (taskDetailSaveButton instanceof HTMLButtonElement) {
+      taskDetailSaveButton.disabled = false;
+      taskDetailSaveButton.classList.remove("is-loading");
+      taskDetailSaveButton.textContent = "Salvar";
+    }
+
+    if (!ok) return;
+
+    populateTaskDetailModalFromRow(taskDetailContext);
+    setTaskDetailEditMode(false);
+  };
 
   const syncBodyModalLock = () => {
-    const hasOpenModal = [createTaskModal, createGroupModal, confirmModal].some(
+    const hasOpenModal = [createTaskModal, createGroupModal, taskDetailModal, confirmModal].some(
       (modal) => modal && !modal.hidden
     );
     document.body.classList.toggle("modal-open", hasOpenModal);
@@ -746,7 +1116,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     deleteForm.dataset.submitting = "1";
     try {
-      await postFormJson(deleteForm);
+      const data = await postFormJson(deleteForm);
 
       const taskIdField = deleteForm.querySelector('[name="task_id"]');
       const taskId = taskIdField instanceof HTMLInputElement ? taskIdField.value : "";
@@ -755,11 +1125,18 @@ window.addEventListener("DOMContentLoaded", () => {
         (taskId ? document.getElementById(`task-${taskId}`) : null);
 
       const groupSection = taskItem?.closest("[data-task-group]");
+      const removedActiveTask =
+        taskDetailContext &&
+        taskDetailContext.deleteForm === deleteForm;
       if (taskItem instanceof HTMLElement) {
         taskItem.remove();
       }
+      if (removedActiveTask) {
+        closeTaskDetailModal();
+      }
       refreshTaskGroupSection(groupSection);
       adjustBoardSummaryCounts({ visible: -1, total: -1 });
+      renderDashboardSummary(data.dashboard);
       if (typeof syncTaskGroupInputs === "function") {
         syncTaskGroupInputs();
       }
@@ -963,6 +1340,52 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const openTaskDetailEditTrigger = target.closest("[data-task-detail-edit]");
+    if (openTaskDetailEditTrigger) {
+      if (taskDetailContext) {
+        populateTaskDetailModalFromRow(taskDetailContext);
+        setTaskDetailEditMode(true);
+      }
+      return;
+    }
+
+    const cancelTaskDetailEditTrigger = target.closest("[data-task-detail-cancel-edit]");
+    if (cancelTaskDetailEditTrigger) {
+      if (taskDetailContext) {
+        populateTaskDetailModalFromRow(taskDetailContext);
+      }
+      setTaskDetailEditMode(false);
+      return;
+    }
+
+    const saveTaskDetailTrigger = target.closest("[data-task-detail-save]");
+    if (saveTaskDetailTrigger) {
+      saveTaskDetailModal().catch(() => {});
+      return;
+    }
+
+    const deleteTaskDetailTrigger = target.closest("[data-task-detail-delete]");
+    if (deleteTaskDetailTrigger) {
+      const ctx = taskDetailContext;
+      if (ctx?.deleteForm instanceof HTMLFormElement) {
+        const taskTitle =
+          ctx.titleInput?.value?.trim() ||
+          ctx.taskItem?.querySelector(".task-title-input")?.value?.trim() ||
+          "esta tarefa";
+
+        openConfirmModal({
+          title: "Excluir tarefa",
+          message: `Remover ${taskTitle}?`,
+          confirmLabel: "Excluir",
+          confirmVariant: "danger",
+          onConfirm: async () => {
+            await submitDeleteTask(ctx.deleteForm);
+          },
+        });
+      }
+      return;
+    }
+
     const closeTrigger = target.closest("[data-close-create-modal]");
     if (closeTrigger) {
       closeCreateModal();
@@ -972,6 +1395,12 @@ window.addEventListener("DOMContentLoaded", () => {
     const closeGroupTrigger = target.closest("[data-close-create-group-modal]");
     if (closeGroupTrigger) {
       closeCreateGroupModal();
+      return;
+    }
+
+    const closeTaskDetailTrigger = target.closest("[data-close-task-detail-modal]");
+    if (closeTaskDetailTrigger) {
+      closeTaskDetailModal();
       return;
     }
 
@@ -1012,6 +1441,9 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (createGroupModal && !createGroupModal.hidden) {
       closeCreateGroupModal();
+    }
+    if (taskDetailModal && !taskDetailModal.hidden) {
+      closeTaskDetailModal();
     }
     if (confirmModal && !confirmModal.hidden) {
       closeConfirmModal();

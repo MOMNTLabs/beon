@@ -178,7 +178,7 @@ textarea {
 }
 
 .brand-lockup {
-    width: clamp(120px, 12vw, 170px);
+    width: clamp(96px, 9.5vw, 138px);
     height: auto;
     display: block;
     filter: invert(1) brightness(1.06);
@@ -338,7 +338,7 @@ textarea {
 }
 
 .auth-brand-lockup {
-    width: min(240px, 78%);
+    width: min(220px, 72%);
     height: auto;
     display: block;
     filter: invert(1) brightness(1.06);
@@ -1775,15 +1775,10 @@ textarea:focus {
 }
 
 .task-expand-toggle::before {
-    content: "\2039";
-    font-size: 1.05rem;
+    content: "\2922";
+    font-size: 0.95rem;
     line-height: 1;
     transform: translateY(-1px);
-}
-
-.task-expand-toggle[aria-expanded="true"]::before {
-    content: "\2304";
-    transform: translateY(-2px);
 }
 
 .task-line-details {
@@ -2007,6 +2002,108 @@ textarea:focus {
     width: min(460px, 100%);
 }
 
+.task-detail-modal {
+    width: min(860px, 100%);
+    max-height: min(90vh, 860px);
+    overflow: auto;
+}
+
+.task-detail-modal-head {
+    align-items: flex-start;
+}
+
+.task-detail-modal-head-copy {
+    min-width: 0;
+}
+
+.task-detail-modal-head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    align-items: center;
+}
+
+.task-detail-modal-body {
+    display: grid;
+    gap: 12px;
+}
+
+.task-detail-view,
+.task-detail-edit {
+    display: grid;
+    gap: 12px;
+}
+
+.task-detail-view-block {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.task-detail-view-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--text);
+    word-break: break-word;
+}
+
+.task-detail-view-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.task-detail-view-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.task-detail-view-assignees {
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.task-detail-view-label {
+    font-size: 0.76rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.58);
+}
+
+.task-detail-view-description {
+    min-height: 72px;
+    color: rgba(255, 255, 255, 0.92);
+    white-space: pre-wrap;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.task-detail-view-description.is-empty {
+    color: var(--muted);
+}
+
+.task-detail-view-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    padding: 2px 2px 0;
+}
+
 .modal-head {
     display: flex;
     align-items: center;
@@ -2154,6 +2251,15 @@ textarea:focus {
     .assignee-tag-field,
     .due-tag-field {
         grid-column: span 1;
+    }
+
+    .task-detail-modal-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .task-detail-modal-head-actions {
+        justify-content: flex-start;
     }
 }
 

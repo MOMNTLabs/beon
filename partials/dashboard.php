@@ -24,23 +24,23 @@
     <section class="stats-strip dashboard-stats" aria-label="Indicadores do workspace">
         <div class="stat-cell">
             <span>Tarefas</span>
-            <strong><?= e((string) $stats['total']) ?></strong>
+            <strong data-dashboard-stat-total><?= e((string) $stats['total']) ?></strong>
         </div>
         <div class="stat-cell">
             <span>Concluidas</span>
-            <strong><?= e((string) $stats['done']) ?> (<?= e((string) $completionRate) ?>%)</strong>
+            <strong data-dashboard-stat-done><?= e((string) $stats['done']) ?> (<?= e((string) $completionRate) ?>%)</strong>
         </div>
         <div class="stat-cell">
             <span>Para hoje</span>
-            <strong><?= e((string) $stats['due_today']) ?></strong>
+            <strong data-dashboard-stat-due-today><?= e((string) $stats['due_today']) ?></strong>
         </div>
         <div class="stat-cell">
             <span>Urgentes</span>
-            <strong><?= e((string) $stats['urgent']) ?></strong>
+            <strong data-dashboard-stat-urgent><?= e((string) $stats['urgent']) ?></strong>
         </div>
         <div class="stat-cell">
             <span>Minhas abertas</span>
-            <strong><?= e((string) $myOpenTasks) ?></strong>
+            <strong data-dashboard-stat-my-open><?= e((string) $myOpenTasks) ?></strong>
         </div>
     </section>
 
@@ -155,7 +155,7 @@
                                         data-create-group="<?= e((string) $groupName) ?>"
                                         aria-label="Criar tarefa no grupo <?= e((string) $groupName) ?>"
                                     >+</button>
-                                    <?php if (mb_strtolower((string) $groupName) !== 'geral' && count($groupTasks) === 0): ?>
+                                    <?php if (mb_strtolower((string) $groupName) !== 'geral'): ?>
                                         <form method="post" class="task-group-delete-form" data-group-delete-form>
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="delete_group">
@@ -290,11 +290,9 @@
                                                     type="button"
                                                     class="task-expand-toggle"
                                                     data-task-expand
-                                                    aria-expanded="false"
-                                                    aria-controls="task-details-<?= e((string) $taskId) ?>"
-                                                    aria-label="Expandir detalhes"
+                                                    aria-label="Abrir tarefa"
                                                 >
-                                                    <span class="sr-only">Expandir detalhes</span>
+                                                    <span class="sr-only">Abrir tarefa</span>
                                                 </button>
                                             </div>
 
@@ -477,6 +475,105 @@
                 <button type="submit" class="btn btn-pill">Criar grupo</button>
             </div>
         </form>
+    </section>
+</div>
+
+<div class="modal-backdrop" data-task-detail-modal hidden>
+    <div class="modal-scrim" data-close-task-detail-modal></div>
+    <section class="modal-card task-detail-modal" role="dialog" aria-modal="true" aria-labelledby="task-detail-modal-title">
+        <header class="modal-head task-detail-modal-head">
+            <div class="task-detail-modal-head-copy">
+                <h2 id="task-detail-modal-title" data-task-detail-title>Tarefa</h2>
+            </div>
+            <div class="task-detail-modal-head-actions">
+                <button type="button" class="btn btn-mini btn-danger" data-task-detail-delete>Remover</button>
+                <button type="button" class="btn btn-mini btn-ghost" data-task-detail-edit>Editar</button>
+                <button type="button" class="btn btn-mini" data-task-detail-save hidden>Salvar</button>
+                <button type="button" class="btn btn-mini btn-ghost" data-task-detail-cancel-edit hidden>Cancelar</button>
+                <button type="button" class="modal-close-button" data-close-task-detail-modal aria-label="Fechar modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="task-detail-modal-body">
+            <section class="task-detail-view" data-task-detail-view>
+                <div class="task-detail-view-block">
+                    <div class="task-detail-view-title" data-task-detail-view-title></div>
+                    <div class="task-detail-view-tags">
+                        <span class="task-detail-view-tag" data-task-detail-view-status></span>
+                        <span class="task-detail-view-tag" data-task-detail-view-priority></span>
+                        <span class="task-detail-view-tag" data-task-detail-view-group></span>
+                        <span class="task-detail-view-tag" data-task-detail-view-due></span>
+                    </div>
+                    <div class="task-detail-view-assignees" data-task-detail-view-assignees></div>
+                </div>
+
+                <div class="task-detail-view-block">
+                    <div class="task-detail-view-label">Descricao</div>
+                    <div class="task-detail-view-description" data-task-detail-view-description></div>
+                </div>
+
+                <div class="task-detail-view-meta">
+                    <span data-task-detail-view-created-by></span>
+                    <span data-task-detail-view-updated-at></span>
+                </div>
+            </section>
+
+            <section class="task-detail-edit" data-task-detail-edit-panel hidden>
+                <div class="form-stack modal-form">
+                    <label>
+                        <span>Titulo</span>
+                        <input type="text" maxlength="140" required data-task-detail-edit-title>
+                    </label>
+
+                    <div class="form-row">
+                        <label>
+                            <span>Status</span>
+                            <select class="tag-select status-select" data-task-detail-edit-status>
+                                <?php foreach ($statusOptions as $key => $label): ?>
+                                    <option value="<?= e($key) ?>"><?= e($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <label>
+                            <span>Prioridade</span>
+                            <select class="tag-select priority-select" data-task-detail-edit-priority>
+                                <?php foreach ($priorityOptions as $key => $label): ?>
+                                    <option value="<?= e($key) ?>"><?= e($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="form-row">
+                        <label>
+                            <span>Grupo</span>
+                            <select data-task-detail-edit-group></select>
+                        </label>
+
+                        <label>
+                            <span>Prazo</span>
+                            <input type="date" data-task-detail-edit-due-date>
+                        </label>
+                    </div>
+
+                    <div class="assignee-picker-wrap">
+                        <span class="assignee-picker-label">Responsaveis</span>
+                        <details class="assignee-picker" data-task-detail-edit-assignees>
+                            <summary>Selecionar</summary>
+                            <div class="assignee-picker-menu" data-task-detail-edit-assignees-menu></div>
+                        </details>
+                    </div>
+
+                    <label>
+                        <span>Descricao</span>
+                        <textarea rows="5" data-task-detail-edit-description></textarea>
+                    </label>
+                </div>
+            </section>
+        </div>
     </section>
 </div>
 

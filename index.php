@@ -24,6 +24,23 @@ function respondJson(array $payload, int $status = 200): void
     exit;
 }
 
+function dashboardSummaryPayloadForUser(int $userId): array
+{
+    $allTasks = allTasks();
+    $stats = dashboardStats($allTasks);
+    $myOpenTasks = countMyAssignedTasks($allTasks, $userId);
+    $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
+
+    return [
+        'total' => (int) $stats['total'],
+        'done' => (int) $stats['done'],
+        'completion_rate' => $completionRate,
+        'due_today' => (int) $stats['due_today'],
+        'urgent' => (int) $stats['urgent'],
+        'my_open' => (int) $myOpenTasks,
+    ];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) ($_POST['action'] ?? '');
 
@@ -237,6 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'updated_at' => $updatedAt,
                             'updated_at_label' => (new DateTimeImmutable($updatedAt))->format('d/m H:i'),
                         ],
+                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id']),
                     ]);
                 }
                 if (!$isAutosave) {
@@ -257,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirectTo('index.php#task-' . $taskId);
 
             case 'delete_task':
-                requireAuth();
+                $authUser = requireAuth();
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 if ($taskId <= 0) {
                     throw new RuntimeException('Tarefa inválida.');
@@ -268,6 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     respondJson([
                         'ok' => true,
                         'task_id' => $taskId,
+                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id']),
                     ]);
                 }
                 flash('success', 'Tarefa removida.');
