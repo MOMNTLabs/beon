@@ -20,6 +20,7 @@
 
 html {
     scroll-behavior: smooth;
+    color-scheme: dark;
 }
 
 body {
@@ -60,6 +61,17 @@ select,
 textarea {
     font: inherit;
     color: inherit;
+}
+
+select,
+input[type="date"] {
+    color-scheme: dark;
+}
+
+select option,
+select optgroup {
+    background: #141b2b;
+    color: #e8eefc;
 }
 
 .bg-layer {
@@ -606,10 +618,11 @@ textarea {
 }
 
 .is-dashboard .dashboard-stats {
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
-    align-self: center;
+    align-self: stretch;
     margin-inline: auto;
+    justify-content: center;
     grid-template-columns: repeat(5, minmax(150px, max-content));
 }
 
@@ -963,10 +976,12 @@ textarea:focus {
     justify-content: center;
     margin-top: auto;
     padding-top: 8px;
+    padding-bottom: 10px;
 }
 
 .is-dashboard .sidebar-footer {
     padding-top: 4px;
+    padding-bottom: 14px;
 }
 
 .sidebar-settings-button {
@@ -1022,13 +1037,17 @@ textarea:focus {
 
 .team-list li {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 10px;
     align-items: center;
     padding: 8px;
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.team-user-meta {
+    min-width: 0;
 }
 
 .team-list strong {
@@ -1041,6 +1060,28 @@ textarea:focus {
     font-size: 0.76rem;
     color: var(--muted);
     word-break: break-word;
+}
+
+.team-user-settings-button {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    justify-self: end;
+    color: rgba(255, 255, 255, 0.56);
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.team-user-settings-button svg {
+    width: 14px;
+    height: 14px;
+}
+
+.team-user-settings-button:hover,
+.team-user-settings-button:focus-visible {
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(120, 204, 255, 0.25);
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .tip-box {
@@ -1641,6 +1682,21 @@ textarea:focus {
     padding: 8px;
 }
 
+.task-status-subgroup-divider {
+    height: 1px;
+    margin: 4px 6px 2px;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0),
+            rgba(255, 255, 255, 0.12) 14%,
+            rgba(255, 255, 255, 0.08) 86%,
+            rgba(255, 255, 255, 0)
+        );
+    opacity: 0.9;
+}
+
 .task-list-item {
     --task-status-rgb: 91, 141, 255;
     position: relative;
@@ -1761,6 +1817,12 @@ textarea:focus {
 .priority-select option {
     background: #1a2132;
     font-weight: 700;
+}
+
+.status-select option {
+    background: #1a2132;
+    color: #e8eefc;
+    font-weight: 500;
 }
 
 .priority-select option[value="low"] {
@@ -1900,6 +1962,7 @@ textarea:focus {
 
 .status-stepper .tag-field {
     min-width: 0;
+    grid-column: 2;
 }
 
 .status-stepper-btn {
@@ -1914,6 +1977,14 @@ textarea:focus {
     margin: 0;
     cursor: pointer;
     line-height: 1;
+}
+
+.status-stepper-btn[data-status-step="-1"] {
+    grid-column: 1;
+}
+
+.status-stepper-btn[data-status-step="1"] {
+    grid-column: 3;
 }
 
 .status-stepper-btn:hover,
@@ -2056,6 +2127,7 @@ textarea:focus {
     align-items: center;
     padding: 7px 8px;
     border-radius: 10px;
+    border: 1px solid transparent;
     cursor: pointer;
 }
 
@@ -2069,11 +2141,19 @@ textarea:focus {
     margin: 0;
     padding: 0;
     min-height: auto;
+    accent-color: #3ac7ff;
+    cursor: pointer;
 }
 
 .assignee-option span {
     font-size: 0.86rem;
     line-height: 1.2;
+}
+
+.assignee-option:has(input:checked) {
+    background:
+        linear-gradient(90deg, rgba(94, 146, 255, 0.12), rgba(56, 201, 255, 0.06));
+    border: 1px solid rgba(104, 184, 255, 0.16);
 }
 
 .assignee-picker-empty {

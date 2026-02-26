@@ -78,6 +78,57 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const getTaskItemStatusValue = (taskItem) => {
+    if (!(taskItem instanceof HTMLElement)) return "";
+    const select = taskItem.querySelector("select.status-select");
+    if (!(select instanceof HTMLSelectElement)) return "";
+    return (select.value || "").trim();
+  };
+
+  const syncGroupStatusDividers = (groupSectionOrDropzone) => {
+    let dropzone = groupSectionOrDropzone;
+
+    if (dropzone instanceof HTMLElement && !dropzone.matches("[data-task-dropzone]")) {
+      dropzone = dropzone.querySelector("[data-task-dropzone]");
+    }
+
+    if (!(dropzone instanceof HTMLElement)) return;
+
+    dropzone
+      .querySelectorAll("[data-task-status-divider]")
+      .forEach((divider) => divider.remove());
+
+    const taskItems = Array.from(dropzone.children).filter(
+      (child) => child instanceof HTMLElement && child.matches("[data-task-item]")
+    );
+
+    if (taskItems.length < 2) return;
+
+    const uniqueStatuses = new Set(
+      taskItems.map((taskItem) => getTaskItemStatusValue(taskItem)).filter(Boolean)
+    );
+
+    if (uniqueStatuses.size <= 1) return;
+
+    let previousStatus = getTaskItemStatusValue(taskItems[0]);
+
+    taskItems.slice(1).forEach((taskItem) => {
+      const currentStatus = getTaskItemStatusValue(taskItem);
+      if (!currentStatus || currentStatus === previousStatus) {
+        previousStatus = currentStatus || previousStatus;
+        return;
+      }
+
+      const divider = document.createElement("div");
+      divider.className = "task-status-subgroup-divider";
+      divider.dataset.taskStatusDivider = "";
+      divider.setAttribute("aria-hidden", "true");
+      dropzone.insertBefore(divider, taskItem);
+
+      previousStatus = currentStatus;
+    });
+  };
+
   const syncTaskRowStatusOverlay = (select) => {
     if (!(select instanceof HTMLSelectElement)) return;
     if (!select.classList.contains("status-select")) return;
@@ -93,6 +144,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (select.value) {
       taskItem.classList.add(`task-status-${select.value}`);
+    }
+
+    const groupSection = taskItem.closest("[data-task-group]");
+    if (groupSection instanceof HTMLElement) {
+      syncGroupStatusDividers(groupSection);
     }
   };
 
@@ -477,6 +533,8 @@ window.addEventListener("DOMContentLoaded", () => {
     } else if (emptyRow) {
       emptyRow.remove();
     }
+
+    syncGroupStatusDividers(dropzone);
   };
 
   const moveTaskItemToGroupDom = (taskItem, groupName) => {

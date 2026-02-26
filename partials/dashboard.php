@@ -53,10 +53,20 @@
                         <?php foreach ($users as $user): ?>
                             <li>
                                 <div class="avatar small" aria-hidden="true"><?= e(strtoupper(substr((string) $user['name'], 0, 1))) ?></div>
-                                <div>
+                                <div class="team-user-meta">
                                     <strong><?= e((string) $user['name']) ?></strong>
                                     <span><?= e((string) $user['email']) ?></span>
                                 </div>
+                                <button
+                                    type="button"
+                                    class="icon-gear-button team-user-settings-button"
+                                    aria-label="Configurar conta de <?= e((string) $user['name']) ?>"
+                                >
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
+                                        <circle cx="12" cy="12" r="3.2"></circle>
+                                    </svg>
+                                </button>
                             </li>
                         <?php endforeach; ?>
                     <?php endif; ?>
