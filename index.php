@@ -76,14 +76,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'create_task':
             case 'update_task':
                 $authUser = requireAuth();
+                $usersById = usersMapById();
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 $title = trim((string) ($_POST['title'] ?? ''));
                 $description = trim((string) ($_POST['description'] ?? ''));
                 $status = normalizeTaskStatus((string) ($_POST['status'] ?? 'todo'));
                 $priority = normalizeTaskPriority((string) ($_POST['priority'] ?? 'medium'));
                 $dueDate = dueDateForStorage($_POST['due_date'] ?? null);
-                $assignedTo = (int) ($_POST['assigned_to'] ?? 0);
-                $assignedTo = $assignedTo > 0 ? $assignedTo : null;
+                $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
+                $rawAssigneeValues = $_POST['assigned_to'] ?? [];
+                if (!is_array($rawAssigneeValues)) {
+                    $rawAssigneeValues = [$rawAssigneeValues];
+                }
+                $submittedAssigneeIds = normalizeAssigneeIds($rawAssigneeValues);
+                $assigneeIds = normalizeAssigneeIds($rawAssigneeValues, $usersById);
+                $assignedTo = $assigneeIds[0] ?? null;
+                $assigneeIdsJson = encodeAssigneeIds($assigneeIds);
 
                 if ($title === '') {
                     throw new RuntimeException('O título da tarefa é obrigatório.');
@@ -91,18 +99,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (mb_strlen($title) > 140) {
                     throw new RuntimeException('O título deve ter no máximo 140 caracteres.');
                 }
-                if ($assignedTo !== null) {
-                    $check = $pdo->prepare('SELECT id FROM users WHERE id = :id LIMIT 1');
-                    $check->execute([':id' => $assignedTo]);
-                    if (!$check->fetch()) {
-                        throw new RuntimeException('Responsável inválido.');
-                    }
+                if (count($submittedAssigneeIds) !== count($assigneeIds)) {
+                    throw new RuntimeException('Um ou mais responsáveis selecionados são inválidos.');
                 }
 
                 if ($action === 'create_task') {
                     $stmt = $pdo->prepare(
-                        'INSERT INTO tasks (title, description, status, priority, due_date, created_by, assigned_to, created_at, updated_at)
-                         VALUES (:t, :d, :s, :p, :dd, :cb, :at, :c, :u)'
+                        'INSERT INTO tasks (title, description, status, priority, due_date, created_by, assigned_to, assignee_ids_json, group_name, created_at, updated_at)
+                         VALUES (:t, :d, :s, :p, :dd, :cb, :at, :aj, :g, :c, :u)'
                     );
                     $now = nowIso();
                     $stmt->execute([
@@ -113,11 +117,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':dd' => $dueDate,
                         ':cb' => (int) $authUser['id'],
                         ':at' => $assignedTo,
+                        ':aj' => $assigneeIdsJson,
+                        ':g' => $groupName,
                         ':c' => $now,
                         ':u' => $now,
                     ]);
                     flash('success', 'Tarefa criada.');
-                    redirectTo('index.php#board');
+                    redirectTo('index.php#tasks');
                 }
 
                 if ($taskId <= 0) {
@@ -125,7 +131,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt = $pdo->prepare(
                     'UPDATE tasks
-                     SET title = :t, description = :d, status = :s, priority = :p, due_date = :dd, assigned_to = :at, updated_at = :u
+                     SET title = :t,
+                         description = :d,
+                         status = :s,
+                         priority = :p,
+                         due_date = :dd,
+                         assigned_to = :at,
+                         assignee_ids_json = :aj,
+                         group_name = :g,
+                         updated_at = :u
                      WHERE id = :id'
                 );
                 $stmt->execute([
@@ -135,6 +149,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':p' => $priority,
                     ':dd' => $dueDate,
                     ':at' => $assignedTo,
+                    ':aj' => $assigneeIdsJson,
+                    ':g' => $groupName,
                     ':u' => nowIso(),
                     ':id' => $taskId,
                 ]);
@@ -162,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare('DELETE FROM tasks WHERE id = :id');
                 $stmt->execute([':id' => $taskId]);
                 flash('success', 'Tarefa removida.');
-                redirectTo('index.php#board');
+                redirectTo('index.php#tasks');
 
             default:
                 throw new RuntimeException('Ação inválida.');
@@ -178,10 +194,18 @@ $flashes = getFlashes();
 $statusOptions = taskStatuses();
 $priorityOptions = taskPriorities();
 $users = usersList();
-$tasks = $currentUser ? allTasks() : [];
-$groupedTasks = $currentUser ? tasksByStatus($tasks) : [];
-$stats = $currentUser ? dashboardStats($tasks) : ['total' => 0, 'done' => 0, 'due_today' => 0, 'urgent' => 0];
-$myOpenTasks = $currentUser ? countMyAssignedTasks($tasks, (int) $currentUser['id']) : 0;
+$statusFilter = isset($_GET['status']) && trim((string) $_GET['status']) !== ''
+    ? normalizeTaskStatus((string) $_GET['status'])
+    : null;
+$assigneeFilterId = isset($_GET['assignee']) ? (int) $_GET['assignee'] : null;
+$assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilterId : null;
+
+$allTasks = $currentUser ? allTasks() : [];
+$tasks = $currentUser ? filterTasks($allTasks, $statusFilter, $assigneeFilterId) : [];
+$tasksGroupedByGroup = $currentUser ? tasksByGroup($tasks) : [];
+$taskGroups = $currentUser ? taskGroupsList() : ['Geral'];
+$stats = $currentUser ? dashboardStats($allTasks) : ['total' => 0, 'done' => 0, 'due_today' => 0, 'urgent' => 0];
+$myOpenTasks = $currentUser ? countMyAssignedTasks($allTasks, (int) $currentUser['id']) : 0;
 $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
 ?>
 <!DOCTYPE html>

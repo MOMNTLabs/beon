@@ -144,10 +144,11 @@ function migrate(PDO $pdo): void
 {
     if (dbDriverName($pdo) === 'pgsql') {
         migratePostgres($pdo);
-        return;
+    } else {
+        migrateSqlite($pdo);
     }
 
-    migrateSqlite($pdo);
+    ensureTaskExtendedSchema($pdo);
 }
 
 function migrateSqlite(PDO $pdo): void
@@ -172,6 +173,8 @@ function migrateSqlite(PDO $pdo): void
             due_date TEXT DEFAULT NULL,
             created_by INTEGER NOT NULL,
             assigned_to INTEGER DEFAULT NULL,
+            group_name TEXT NOT NULL DEFAULT \'Geral\',
+            assignee_ids_json TEXT NOT NULL DEFAULT \'[]\',
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
@@ -202,10 +205,78 @@ function migratePostgres(PDO $pdo): void
             due_date DATE DEFAULT NULL,
             created_by BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             assigned_to BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+            group_name TEXT NOT NULL DEFAULT \'Geral\',
+            assignee_ids_json TEXT NOT NULL DEFAULT \'[]\',
             created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
             updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
         )'
     );
+}
+
+function ensureTaskExtendedSchema(PDO $pdo): void
+{
+    if (!tableHasColumn($pdo, 'tasks', 'group_name')) {
+        $pdo->exec("ALTER TABLE tasks ADD COLUMN group_name TEXT NOT NULL DEFAULT 'Geral'");
+    }
+
+    if (!tableHasColumn($pdo, 'tasks', 'assignee_ids_json')) {
+        $pdo->exec("ALTER TABLE tasks ADD COLUMN assignee_ids_json TEXT NOT NULL DEFAULT '[]'");
+    }
+
+    $stmt = $pdo->query('SELECT id, assigned_to, group_name, assignee_ids_json FROM tasks');
+    $rows = $stmt ? $stmt->fetchAll() : [];
+
+    $update = $pdo->prepare(
+        'UPDATE tasks
+         SET group_name = :group_name,
+             assignee_ids_json = :assignee_ids_json
+         WHERE id = :id'
+    );
+
+    foreach ($rows as $row) {
+        $groupName = normalizeTaskGroupName((string) ($row['group_name'] ?? ''));
+        $assigneeIds = decodeAssigneeIds(
+            $row['assignee_ids_json'] ?? null,
+            isset($row['assigned_to']) ? (int) $row['assigned_to'] : null
+        );
+
+        $update->execute([
+            ':group_name' => $groupName,
+            ':assignee_ids_json' => encodeAssigneeIds($assigneeIds),
+            ':id' => (int) $row['id'],
+        ]);
+    }
+}
+
+function tableHasColumn(PDO $pdo, string $table, string $column): bool
+{
+    if (dbDriverName($pdo) === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'SELECT 1
+             FROM information_schema.columns
+             WHERE table_schema = current_schema()
+               AND table_name = :table
+               AND column_name = :column
+             LIMIT 1'
+        );
+        $stmt->execute([
+            ':table' => $table,
+            ':column' => $column,
+        ]);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    $stmt = $pdo->query('PRAGMA table_info(' . $table . ')');
+    $columns = $stmt ? $stmt->fetchAll() : [];
+
+    foreach ($columns as $info) {
+        if ((string) ($info['name'] ?? '') === $column) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function createUser(PDO $pdo, string $name, string $email, string $passwordHash, string $createdAt): int
@@ -322,6 +393,16 @@ function usersList(): array
     return db()->query('SELECT id, name, email FROM users ORDER BY name ASC')->fetchAll();
 }
 
+function usersMapById(): array
+{
+    $map = [];
+    foreach (usersList() as $user) {
+        $map[(int) $user['id']] = $user;
+    }
+
+    return $map;
+}
+
 function taskStatuses(): array
 {
     return [
@@ -363,18 +444,90 @@ function dueDateForStorage(?string $value): ?string
     return $date ? $date->format('Y-m-d') : null;
 }
 
+function normalizeTaskGroupName(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 'Geral';
+    }
+
+    $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+    if (mb_strlen($value) > 60) {
+        $value = mb_substr($value, 0, 60);
+    }
+
+    return $value;
+}
+
+function normalizeAssigneeIds(array $values, ?array $usersById = null): array
+{
+    $result = [];
+
+    foreach ($values as $value) {
+        $id = (int) $value;
+        if ($id <= 0) {
+            continue;
+        }
+        if ($usersById !== null && !isset($usersById[$id])) {
+            continue;
+        }
+        $result[$id] = $id;
+    }
+
+    return array_values($result);
+}
+
+function encodeAssigneeIds(array $ids): string
+{
+    $normalized = normalizeAssigneeIds($ids);
+    return json_encode($normalized, JSON_UNESCAPED_UNICODE) ?: '[]';
+}
+
+function decodeAssigneeIds($jsonValue, ?int $fallbackAssignedTo = null): array
+{
+    $raw = is_string($jsonValue) ? trim($jsonValue) : '';
+    $decoded = [];
+
+    if ($raw !== '') {
+        $value = json_decode($raw, true);
+        if (is_array($value)) {
+            $decoded = $value;
+        }
+    }
+
+    if (!$decoded && $fallbackAssignedTo !== null && $fallbackAssignedTo > 0) {
+        $decoded = [$fallbackAssignedTo];
+    }
+
+    return normalizeAssigneeIds($decoded);
+}
+
+function taskGroupsList(): array
+{
+    $rows = db()->query('SELECT DISTINCT group_name FROM tasks WHERE group_name IS NOT NULL AND group_name <> \'\' ORDER BY group_name ASC')->fetchAll();
+    $groups = [];
+
+    foreach ($rows as $row) {
+        $groups[] = normalizeTaskGroupName((string) ($row['group_name'] ?? 'Geral'));
+    }
+
+    if (!$groups) {
+        return ['Geral'];
+    }
+
+    return array_values(array_unique($groups));
+}
+
 function allTasks(): array
 {
     $sql = 'SELECT
                 t.*,
                 creator.name AS creator_name,
-                creator.email AS creator_email,
-                assignee.name AS assignee_name,
-                assignee.email AS assignee_email
+                creator.email AS creator_email
             FROM tasks t
             INNER JOIN users creator ON creator.id = t.created_by
-            LEFT JOIN users assignee ON assignee.id = t.assigned_to
             ORDER BY
+                t.group_name ASC,
                 CASE t.status
                     WHEN \'in_progress\' THEN 1
                     WHEN \'review\' THEN 2
@@ -382,9 +535,40 @@ function allTasks(): array
                     WHEN \'done\' THEN 4
                     ELSE 5
                 END,
+                CASE t.priority
+                    WHEN \'urgent\' THEN 1
+                    WHEN \'high\' THEN 2
+                    WHEN \'medium\' THEN 3
+                    WHEN \'low\' THEN 4
+                    ELSE 5
+                END,
+                CASE WHEN t.due_date IS NULL OR t.due_date = \'\' THEN 1 ELSE 0 END,
+                t.due_date ASC,
                 t.updated_at DESC';
 
-    return db()->query($sql)->fetchAll();
+    $tasks = db()->query($sql)->fetchAll();
+    $usersById = usersMapById();
+
+    foreach ($tasks as &$task) {
+        $task['group_name'] = normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral'));
+        $assigneeIds = decodeAssigneeIds(
+            $task['assignee_ids_json'] ?? null,
+            isset($task['assigned_to']) ? (int) $task['assigned_to'] : null
+        );
+        $assigneeIds = normalizeAssigneeIds($assigneeIds, $usersById);
+
+        $task['assignee_ids'] = $assigneeIds;
+        $task['assignees'] = [];
+
+        foreach ($assigneeIds as $id) {
+            if (isset($usersById[$id])) {
+                $task['assignees'][] = $usersById[$id];
+            }
+        }
+    }
+    unset($task);
+
+    return $tasks;
 }
 
 function tasksByStatus(array $tasks): array
@@ -400,6 +584,68 @@ function tasksByStatus(array $tasks): array
     }
 
     return $grouped;
+}
+
+function filterTasks(array $tasks, ?string $statusFilter, ?int $assigneeFilterId): array
+{
+    $statusFilter = $statusFilter ? normalizeTaskStatus($statusFilter) : null;
+    $assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilterId : null;
+
+    if ($statusFilter === null && $assigneeFilterId === null) {
+        return $tasks;
+    }
+
+    $filtered = [];
+
+    foreach ($tasks as $task) {
+        if ($statusFilter !== null && (string) $task['status'] !== $statusFilter) {
+            continue;
+        }
+
+        if ($assigneeFilterId !== null) {
+            $taskAssigneeIds = $task['assignee_ids'] ?? [];
+            if (!in_array($assigneeFilterId, $taskAssigneeIds, true)) {
+                continue;
+            }
+        }
+
+        $filtered[] = $task;
+    }
+
+    return $filtered;
+}
+
+function tasksByGroup(array $tasks): array
+{
+    $grouped = [];
+
+    foreach ($tasks as $task) {
+        $group = normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral'));
+        if (!isset($grouped[$group])) {
+            $grouped[$group] = [];
+        }
+        $grouped[$group][] = $task;
+    }
+
+    ksort($grouped, SORT_NATURAL | SORT_FLAG_CASE);
+
+    return $grouped;
+}
+
+function assigneeNamesSummary(array $task): string
+{
+    $names = [];
+    foreach (($task['assignees'] ?? []) as $assignee) {
+        $names[] = (string) ($assignee['name'] ?? '');
+    }
+
+    $names = array_values(array_filter($names, static fn ($name) => $name !== ''));
+
+    if (!$names) {
+        return 'Sem responsável';
+    }
+
+    return implode(', ', $names);
 }
 
 function dashboardStats(array $tasks): array
@@ -432,7 +678,8 @@ function countMyAssignedTasks(array $tasks, int $userId): int
 {
     $count = 0;
     foreach ($tasks as $task) {
-        if ((int) ($task['assigned_to'] ?? 0) === $userId && $task['status'] !== 'done') {
+        $taskAssigneeIds = $task['assignee_ids'] ?? [];
+        if (in_array($userId, $taskAssigneeIds, true) && $task['status'] !== 'done') {
             $count++;
         }
     }
