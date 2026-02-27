@@ -305,7 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? decodeReferenceUrlList((string) ($_POST['reference_links_json'] ?? '[]'))
                     : null;
                 $referenceImages = $referenceImagesPosted
-                    ? decodeReferenceUrlList((string) ($_POST['reference_images_json'] ?? '[]'))
+                    ? decodeReferenceImageList((string) ($_POST['reference_images_json'] ?? '[]'))
                     : null;
                 $overdueFlagPosted = array_key_exists('overdue_flag', $_POST);
                 $overdueFlag = $overdueFlagPosted
@@ -378,7 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':at' => $assignedTo,
                         ':aj' => $assigneeIdsJson,
                         ':rl' => encodeReferenceUrlList($referenceLinks),
-                        ':ri' => encodeReferenceUrlList($referenceImages),
+                        ':ri' => encodeReferenceImageList($referenceImages),
                         ':g' => $groupName,
                         ':c' => $now,
                         ':u' => $now,
@@ -437,7 +437,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $referenceLinks = decodeReferenceUrlList($existingTaskRow['reference_links_json'] ?? null);
                 }
                 if ($referenceImages === null) {
-                    $referenceImages = decodeReferenceUrlList($existingTaskRow['reference_images_json'] ?? null);
+                    $referenceImages = decodeReferenceImageList($existingTaskRow['reference_images_json'] ?? null);
                 }
                 if ($overdueFlag === null) {
                     $overdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
@@ -489,7 +489,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':at' => $assignedTo,
                     ':aj' => $assigneeIdsJson,
                     ':rl' => encodeReferenceUrlList($referenceLinks ?? []),
-                    ':ri' => encodeReferenceUrlList($referenceImages ?? []),
+                    ':ri' => encodeReferenceImageList($referenceImages ?? []),
                     ':g' => $groupName,
                     ':u' => $updatedAt,
                     ':id' => $taskId,
@@ -621,7 +621,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'overdue_since_date' => $overdueSinceDate,
                             'overdue_days' => $overdueDays,
                             'reference_links_json' => encodeReferenceUrlList($referenceLinks ?? []),
-                            'reference_images_json' => encodeReferenceUrlList($referenceImages ?? []),
+                            'reference_images_json' => encodeReferenceImageList($referenceImages ?? []),
                             'history' => $taskHistory,
                             'updated_at' => $updatedAt,
                             'updated_at_label' => (new DateTimeImmutable($updatedAt))->format('d/m H:i'),

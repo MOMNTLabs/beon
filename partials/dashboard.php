@@ -320,7 +320,7 @@
                                             <input type="hidden" name="task_id" value="<?= e((string) $taskId) ?>">
                                             <input type="hidden" name="autosave" value="1">
                                             <input type="hidden" name="reference_links_json" value="<?= e(encodeReferenceUrlList($task['reference_links'] ?? [])) ?>" data-task-reference-links-json>
-                                            <input type="hidden" name="reference_images_json" value="<?= e(encodeReferenceUrlList($task['reference_images'] ?? [])) ?>" data-task-reference-images-json>
+                                            <input type="hidden" name="reference_images_json" value="<?= e(encodeReferenceImageList($task['reference_images'] ?? [])) ?>" data-task-reference-images-json>
                                             <input type="hidden" name="overdue_flag" value="<?= $isOverdueMarked ? '1' : '0' ?>" data-task-overdue-flag>
                                             <input type="hidden" name="overdue_since_date" value="<?= e((string) ($task['overdue_since_date'] ?? '')) ?>" data-task-overdue-since-date>
                                             <input type="hidden" value="<?= e((string) (($task['overdue_days'] ?? 0))) ?>" data-task-overdue-days>
@@ -802,44 +802,50 @@
                         </label>
                     </div>
 
-                    <label>
-                        <span>Descricao</span>
-                        <div class="task-detail-edit-description-wrap" data-task-detail-edit-description-wrap>
-                            <div class="task-detail-edit-description-toolbar" data-task-detail-edit-description-toolbar hidden>
-                                <button type="button" data-task-detail-description-format="bold">Negrito</button>
-                                <button type="button" data-task-detail-description-format="italic">Italico</button>
+                    <div class="task-detail-edit-main-row">
+                        <label class="task-detail-edit-description-field">
+                            <span>Descricao</span>
+                            <div class="task-detail-edit-description-wrap" data-task-detail-edit-description-wrap>
+                                <div class="task-detail-edit-description-toolbar" data-task-detail-edit-description-toolbar hidden>
+                                    <button type="button" data-task-detail-description-format="bold">Negrito</button>
+                                    <button type="button" data-task-detail-description-format="italic">Italico</button>
+                                </div>
+                                <div
+                                    class="task-detail-edit-description-editor"
+                                    data-task-detail-edit-description-editor
+                                    contenteditable="true"
+                                    role="textbox"
+                                    aria-multiline="true"
+                                    aria-label="Descricao da tarefa"
+                                ></div>
                             </div>
-                            <div
-                                class="task-detail-edit-description-editor"
-                                data-task-detail-edit-description-editor
-                                contenteditable="true"
-                                role="textbox"
-                                aria-multiline="true"
-                                aria-label="Descricao da tarefa"
-                            ></div>
-                        </div>
-                        <textarea rows="5" data-task-detail-edit-description hidden></textarea>
-                    </label>
-
-                    <div class="task-detail-edit-references">
-                        <label>
-                            <span>Links de referencia</span>
-                            <textarea
-                                rows="1"
-                                class="task-detail-reference-input"
-                                data-task-detail-edit-links
-                            ></textarea>
+                            <textarea rows="5" data-task-detail-edit-description hidden></textarea>
                         </label>
 
-                        <label>
+                        <div class="task-detail-edit-images-field">
                             <span>Imagens de referencia</span>
-                            <textarea
-                                rows="1"
-                                class="task-detail-reference-input"
-                                data-task-detail-edit-images
-                            ></textarea>
-                        </label>
+                            <div class="task-detail-edit-image-picker" data-task-detail-image-picker tabindex="0" aria-label="Adicionar imagens de referencia">
+                                <input type="file" accept="image/*" multiple data-task-detail-image-input hidden>
+                                <div class="task-detail-edit-image-picker-actions">
+                                    <button type="button" class="btn btn-mini btn-ghost" data-task-detail-image-add>Adicionar imagem</button>
+                                    <span class="task-detail-edit-image-picker-hint">Clique ou cole uma imagem</span>
+                                </div>
+                                <div class="task-detail-edit-image-list" data-task-detail-image-list>
+                                    <p class="task-detail-edit-image-empty">Nenhuma imagem adicionada.</p>
+                                </div>
+                            </div>
+                            <textarea rows="1" data-task-detail-edit-images hidden></textarea>
+                        </div>
                     </div>
+
+                    <label class="task-detail-edit-links-field">
+                        <span>Links de referencia</span>
+                        <textarea
+                            rows="1"
+                            class="task-detail-reference-input"
+                            data-task-detail-edit-links
+                        ></textarea>
+                    </label>
                 </div>
             </section>
         </div>

@@ -378,12 +378,13 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!(target instanceof HTMLTextAreaElement)) return;
-    if (
-      target.matches("[data-task-detail-edit-description]") ||
-      target.matches("[data-task-detail-edit-links]") ||
-      target.matches("[data-task-detail-edit-images]")
-    ) {
+    if (target.matches("[data-task-detail-edit-description]")) {
       autoResizeTextarea(target);
+      return;
+    }
+
+    if (target.matches("[data-task-detail-edit-links]")) {
+      syncReferenceTextareaLayout(target);
     }
   });
 
@@ -415,11 +416,7 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (
-      target instanceof HTMLTextAreaElement &&
-      (target.matches("[data-task-detail-edit-links]") ||
-        target.matches("[data-task-detail-edit-images]"))
-    ) {
+    if (target instanceof HTMLTextAreaElement && target.matches("[data-task-detail-edit-links]")) {
       if (event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
         return;
       }
@@ -590,6 +587,21 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const autoResizeTextarea = (textarea) => {
     if (!(textarea instanceof HTMLTextAreaElement)) return;
+    textarea.style.height = "0px";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
+
+  const syncReferenceTextareaLayout = (textarea) => {
+    if (!(textarea instanceof HTMLTextAreaElement)) return;
+
+    const value = String(textarea.value || "").replace(/\r/g, "");
+    const lines = value.split("\n");
+    const lineCount = Math.max(1, lines.length);
+    const filledLineCount = lines.filter((line) => line.trim() !== "").length;
+    const targetRows = Math.max(lineCount, filledLineCount > 0 ? filledLineCount + 1 : 1);
+
+    textarea.rows = targetRows;
+    textarea.classList.toggle("has-multiple-rows", targetRows > 1);
     textarea.style.height = "0px";
     textarea.style.height = `${textarea.scrollHeight}px`;
   };
@@ -983,49 +995,109 @@ window.addEventListener("DOMContentLoaded", () => {
     return true;
   };
 
-  const parseReferenceLines = (value) => {
-    const seen = new Set();
-    return String(value || "")
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => {
-        if (!line) return false;
-        try {
-          const url = new URL(line);
-          if (!["http:", "https:"].includes(url.protocol)) return false;
-          const normalized = url.toString();
-          if (seen.has(normalized)) return false;
-          seen.add(normalized);
-          return true;
-        } catch (_error) {
-          return false;
-        }
-      })
-      .map((line) => {
-        try {
-          return new URL(line).toString();
-        } catch (_error) {
-          return line;
-        }
-      });
+  const maxReferenceItems = 20;
+  const maxReferenceImageChars = 2_000_000;
+
+  const parseReferenceRawList = (value) => {
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      const decoded = JSON.parse(raw);
+      if (Array.isArray(decoded)) {
+        return decoded;
+      }
+    } catch (_error) {
+      // Fallback to line-by-line parsing.
+    }
+
+    return raw.split(/\r?\n/);
   };
 
-  const readJsonUrlListField = (field) => {
+  const normalizeHttpReference = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+
+    try {
+      const parsed = new URL(raw);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        return null;
+      }
+      return parsed.toString();
+    } catch (_error) {
+      return null;
+    }
+  };
+
+  const normalizeImageReference = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+
+    if (/^data:image\//i.test(raw)) {
+      const compact = raw.replace(/\s+/g, "");
+      if (!/^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/]+=*$/i.test(compact)) {
+        return null;
+      }
+      if (compact.length > maxReferenceImageChars) {
+        return null;
+      }
+      return compact;
+    }
+
+    return normalizeHttpReference(raw);
+  };
+
+  const parseReferenceUrlLines = (value, maxItems = maxReferenceItems) => {
+    const seen = new Set();
+    const result = [];
+
+    parseReferenceRawList(value).forEach((item) => {
+      if (result.length >= maxItems) return;
+      const normalized = normalizeHttpReference(item);
+      if (!normalized || seen.has(normalized)) return;
+      seen.add(normalized);
+      result.push(normalized);
+    });
+
+    return result;
+  };
+
+  const parseReferenceImageItems = (value, maxItems = maxReferenceItems) => {
+    const seen = new Set();
+    const result = [];
+
+    parseReferenceRawList(value).forEach((item) => {
+      if (result.length >= maxItems) return;
+      const normalized = normalizeImageReference(item);
+      if (!normalized || seen.has(normalized)) return;
+      seen.add(normalized);
+      result.push(normalized);
+    });
+
+    return result;
+  };
+
+  const readJsonUrlListField = (field, parser = parseReferenceUrlLines) => {
     if (!(field instanceof HTMLInputElement)) return [];
     const raw = (field.value || "").trim();
     if (!raw) return [];
     try {
       const decoded = JSON.parse(raw);
-      if (!Array.isArray(decoded)) return [];
-      return parseReferenceLines(decoded.join("\n"));
+      return parser(Array.isArray(decoded) ? decoded : []);
     } catch (_error) {
-      return parseReferenceLines(raw);
+      return parser(raw);
     }
   };
 
-  const writeJsonUrlListField = (field, urls) => {
+  const writeJsonUrlListField = (field, values, parser = parseReferenceUrlLines) => {
     if (!(field instanceof HTMLInputElement)) return;
-    field.value = JSON.stringify(parseReferenceLines((urls || []).join("\n")));
+    field.value = JSON.stringify(parser(Array.isArray(values) ? values : [values]));
   };
 
   const readTaskHistoryField = (field) => {
@@ -1153,8 +1225,8 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const renderTaskDetailReferencesView = ({ links = [], images = [] } = {}) => {
-    const safeLinks = parseReferenceLines((links || []).join("\n"));
-    const safeImages = parseReferenceLines((images || []).join("\n"));
+    const safeLinks = parseReferenceUrlLines(links || []);
+    const safeImages = parseReferenceImageItems(images || []);
 
     if (taskDetailViewLinks instanceof HTMLElement) {
       taskDetailViewLinks.innerHTML = "";
@@ -2036,6 +2108,10 @@ window.addEventListener("DOMContentLoaded", () => {
   );
   const taskDetailEditLinks = document.querySelector("[data-task-detail-edit-links]");
   const taskDetailEditImages = document.querySelector("[data-task-detail-edit-images]");
+  const taskDetailImagePicker = document.querySelector("[data-task-detail-image-picker]");
+  const taskDetailImageInput = document.querySelector("[data-task-detail-image-input]");
+  const taskDetailImageAddButton = document.querySelector("[data-task-detail-image-add]");
+  const taskDetailImageList = document.querySelector("[data-task-detail-image-list]");
   const taskDetailEditAssignees = document.querySelector("[data-task-detail-edit-assignees]");
   const taskDetailEditAssigneesMenu = document.querySelector("[data-task-detail-edit-assignees-menu]");
   const taskDetailEditButton = document.querySelector("[data-task-detail-edit]");
@@ -2048,6 +2124,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const confirmModalSubmit = document.querySelector("[data-confirm-modal-submit]");
   let confirmModalAction = null;
   let taskDetailContext = null;
+  let taskDetailEditImageItems = [];
 
   const getDefaultGroupName = () => {
     const bodyDefault = document.body?.dataset?.defaultGroupName?.trim();
@@ -2064,6 +2141,161 @@ window.addEventListener("DOMContentLoaded", () => {
 
     return "Geral";
   };
+
+  const syncTaskDetailImageHiddenField = () => {
+    if (taskDetailEditImages instanceof HTMLTextAreaElement) {
+      taskDetailEditImages.value = taskDetailEditImageItems.join("\n");
+    }
+  };
+
+  const renderTaskDetailImageList = () => {
+    if (!(taskDetailImageList instanceof HTMLElement)) return;
+
+    taskDetailImageList.innerHTML = "";
+    if (!taskDetailEditImageItems.length) {
+      const empty = document.createElement("p");
+      empty.className = "task-detail-edit-image-empty";
+      empty.textContent = "Nenhuma imagem adicionada.";
+      taskDetailImageList.append(empty);
+      return;
+    }
+
+    taskDetailEditImageItems.forEach((imageValue, index) => {
+      const item = document.createElement("div");
+      item.className = "task-detail-edit-image-item";
+
+      const image = document.createElement("img");
+      image.src = imageValue;
+      image.alt = "Imagem de referencia";
+      image.className = "task-detail-edit-image-preview";
+      image.loading = "lazy";
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "task-detail-edit-image-remove";
+      removeButton.dataset.taskDetailImageRemove = String(index);
+      removeButton.setAttribute("aria-label", "Remover imagem de referencia");
+      removeButton.textContent = "x";
+
+      item.append(image, removeButton);
+      taskDetailImageList.append(item);
+    });
+  };
+
+  const setTaskDetailEditImageItems = (items) => {
+    taskDetailEditImageItems = parseReferenceImageItems(items || []);
+    syncTaskDetailImageHiddenField();
+    renderTaskDetailImageList();
+  };
+
+  const mergeTaskDetailEditImageItems = (items) => {
+    const merged = parseReferenceImageItems([...(taskDetailEditImageItems || []), ...(items || [])]);
+    taskDetailEditImageItems = merged;
+    syncTaskDetailImageHiddenField();
+    renderTaskDetailImageList();
+  };
+
+  const readFileAsDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      if (!(file instanceof File)) {
+        reject(new Error("Arquivo invalido."));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve(String(reader.result || ""));
+      };
+      reader.onerror = () => {
+        reject(reader.error || new Error("Falha ao ler imagem."));
+      };
+      reader.readAsDataURL(file);
+    });
+
+  const addTaskDetailImagesFromFiles = async (files) => {
+    const imageFiles = Array.from(files || []).filter(
+      (file) => file instanceof File && String(file.type || "").toLowerCase().startsWith("image/")
+    );
+    if (!imageFiles.length) return;
+
+    const nextValues = [];
+    for (const file of imageFiles) {
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        const normalized = normalizeImageReference(dataUrl);
+        if (normalized) {
+          nextValues.push(normalized);
+        }
+      } catch (_error) {
+        // Ignore invalid files and keep processing remaining images.
+      }
+    }
+
+    if (nextValues.length) {
+      mergeTaskDetailEditImageItems(nextValues);
+    }
+  };
+
+  if (taskDetailImageAddButton instanceof HTMLButtonElement && taskDetailImageInput instanceof HTMLInputElement) {
+    taskDetailImageAddButton.addEventListener("click", () => {
+      taskDetailImageInput.click();
+    });
+  }
+
+  if (taskDetailImageInput instanceof HTMLInputElement) {
+    taskDetailImageInput.addEventListener("change", () => {
+      const files = Array.from(taskDetailImageInput.files || []);
+      taskDetailImageInput.value = "";
+      void addTaskDetailImagesFromFiles(files);
+    });
+  }
+
+  if (taskDetailImagePicker instanceof HTMLElement) {
+    taskDetailImagePicker.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest("[data-task-detail-image-remove]")) return;
+      if (target.closest("[data-task-detail-image-add]")) return;
+      taskDetailImageInput?.click();
+    });
+
+    taskDetailImagePicker.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      taskDetailImageInput?.click();
+    });
+
+    taskDetailImagePicker.addEventListener("paste", (event) => {
+      const clipboardItems = Array.from(event.clipboardData?.items || []);
+      const files = clipboardItems
+        .map((item) =>
+          item.kind === "file" && String(item.type || "").toLowerCase().startsWith("image/")
+            ? item.getAsFile()
+            : null
+        )
+        .filter((file) => file instanceof File);
+
+      if (!files.length) return;
+      event.preventDefault();
+      void addTaskDetailImagesFromFiles(files);
+    });
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const removeButton = target.closest("[data-task-detail-image-remove]");
+    if (!(removeButton instanceof HTMLButtonElement)) return;
+
+    event.preventDefault();
+    const index = Number.parseInt(removeButton.dataset.taskDetailImageRemove || "-1", 10);
+    if (!Number.isFinite(index) || index < 0) return;
+    if (index >= taskDetailEditImageItems.length) return;
+
+    taskDetailEditImageItems = taskDetailEditImageItems.filter((_item, itemIndex) => itemIndex !== index);
+    syncTaskDetailImageHiddenField();
+    renderTaskDetailImageList();
+  });
 
   const setTaskDetailEditMode = (editing) => {
     if (!taskDetailModal) return;
@@ -2088,7 +2320,8 @@ window.addEventListener("DOMContentLoaded", () => {
     if (isEditing) {
       window.setTimeout(() => {
         syncTaskDetailDescriptionEditorFromTextarea();
-        [taskDetailEditLinks, taskDetailEditImages].forEach(autoResizeTextarea);
+        syncReferenceTextareaLayout(taskDetailEditLinks);
+        renderTaskDetailImageList();
         if (taskDetailEditDescriptionToolbar instanceof HTMLElement) {
           taskDetailEditDescriptionToolbar.hidden = true;
         }
@@ -2267,8 +2500,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const dueMeta = dueDateMeta(dueDateInput.value || "");
     const assigneeNames = getCheckedAssigneeNames(rowAssigneePicker);
     const description = (descriptionField.value || "").trim();
-    const referenceLinks = readJsonUrlListField(referenceLinksField);
-    const referenceImages = readJsonUrlListField(referenceImagesField);
+    const referenceLinks = readJsonUrlListField(referenceLinksField, parseReferenceUrlLines);
+    const referenceImages = readJsonUrlListField(referenceImagesField, parseReferenceImageItems);
     const overdueFlag =
       overdueFlagField instanceof HTMLInputElement && overdueFlagField.value === "1" ? 1 : 0;
     const overdueSinceDate =
@@ -2348,12 +2581,9 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (taskDetailEditLinks instanceof HTMLTextAreaElement) {
       taskDetailEditLinks.value = referenceLinks.join("\n");
-      autoResizeTextarea(taskDetailEditLinks);
+      syncReferenceTextareaLayout(taskDetailEditLinks);
     }
-    if (taskDetailEditImages instanceof HTMLTextAreaElement) {
-      taskDetailEditImages.value = referenceImages.join("\n");
-      autoResizeTextarea(taskDetailEditImages);
-    }
+    setTaskDetailEditImageItems(referenceImages);
     copyAssigneesToTaskDetailModal(rowAssigneePicker);
   };
 
@@ -2411,10 +2641,15 @@ window.addEventListener("DOMContentLoaded", () => {
     context.dueDateInput.value = taskDetailEditDueDate.value;
     context.descriptionField.value = taskDetailEditDescription.value;
     if (context.referenceLinksField instanceof HTMLInputElement && taskDetailEditLinks instanceof HTMLTextAreaElement) {
-      writeJsonUrlListField(context.referenceLinksField, parseReferenceLines(taskDetailEditLinks.value));
+      writeJsonUrlListField(
+        context.referenceLinksField,
+        parseReferenceUrlLines(taskDetailEditLinks.value),
+        parseReferenceUrlLines
+      );
     }
-    if (context.referenceImagesField instanceof HTMLInputElement && taskDetailEditImages instanceof HTMLTextAreaElement) {
-      writeJsonUrlListField(context.referenceImagesField, parseReferenceLines(taskDetailEditImages.value));
+    if (context.referenceImagesField instanceof HTMLInputElement) {
+      const referenceImages = parseReferenceImageItems(taskDetailEditImageItems);
+      writeJsonUrlListField(context.referenceImagesField, referenceImages, parseReferenceImageItems);
     }
 
     const groupValue = (taskDetailEditGroup.value || "Geral").trim() || "Geral";

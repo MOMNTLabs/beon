@@ -336,13 +336,13 @@ function ensureTaskExtendedSchema(PDO $pdo): void
             isset($row['assigned_to']) ? (int) $row['assigned_to'] : null
         );
         $referenceLinks = decodeReferenceUrlList($row['reference_links_json'] ?? null);
-        $referenceImages = decodeReferenceUrlList($row['reference_images_json'] ?? null);
+        $referenceImages = decodeReferenceImageList($row['reference_images_json'] ?? null);
 
         $update->execute([
             ':group_name' => $groupName,
             ':assignee_ids_json' => encodeAssigneeIds($assigneeIds),
             ':reference_links_json' => encodeReferenceUrlList($referenceLinks),
-            ':reference_images_json' => encodeReferenceUrlList($referenceImages),
+            ':reference_images_json' => encodeReferenceImageList($referenceImages),
             ':id' => (int) $row['id'],
         ]);
     }
@@ -1188,44 +1188,65 @@ function decodeAssigneeIds($jsonValue, ?int $fallbackAssignedTo = null): array
     return normalizeAssigneeIds($decoded);
 }
 
-function normalizeReferenceUrlList($value, int $maxItems = 20): array
+function referenceValueToList($value): array
 {
     if (is_string($value)) {
         $raw = trim($value);
         if ($raw === '') {
-            $value = [];
-        } else {
-            $decoded = json_decode($raw, true);
-            $value = is_array($decoded) ? $decoded : preg_split('/\R+/u', $raw);
+            return [];
         }
+
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        $split = preg_split('/\R+/u', $raw);
+        return is_array($split) ? $split : [];
     }
 
     if (!is_array($value)) {
-        $value = [$value];
+        return [$value];
     }
 
+    return $value;
+}
+
+function normalizeHttpReferenceValue(string $value): ?string
+{
+    $trimmed = trim($value);
+    if ($trimmed === '') {
+        return null;
+    }
+
+    if (mb_strlen($trimmed) > 1000) {
+        $trimmed = mb_substr($trimmed, 0, 1000);
+    }
+
+    $validated = filter_var($trimmed, FILTER_VALIDATE_URL);
+    if ($validated === false) {
+        return null;
+    }
+
+    $scheme = strtolower((string) parse_url($validated, PHP_URL_SCHEME));
+    if (!in_array($scheme, ['http', 'https'], true)) {
+        return null;
+    }
+
+    return $validated;
+}
+
+function normalizeReferenceUrlList($value, int $maxItems = 20): array
+{
     $result = [];
 
-    foreach ($value as $item) {
-        $url = trim((string) $item);
-        if ($url === '') {
-            continue;
-        }
-        if (mb_strlen($url) > 1000) {
-            $url = mb_substr($url, 0, 1000);
-        }
-
-        $validated = filter_var($url, FILTER_VALIDATE_URL);
-        if ($validated === false) {
+    foreach (referenceValueToList($value) as $item) {
+        $normalized = normalizeHttpReferenceValue((string) $item);
+        if ($normalized === null) {
             continue;
         }
 
-        $scheme = strtolower((string) parse_url($validated, PHP_URL_SCHEME));
-        if (!in_array($scheme, ['http', 'https'], true)) {
-            continue;
-        }
-
-        $result[$validated] = $validated;
+        $result[$normalized] = $normalized;
         if (count($result) >= $maxItems) {
             break;
         }
@@ -1245,6 +1266,59 @@ function encodeReferenceUrlList(array $urls): string
 function decodeReferenceUrlList($value): array
 {
     return normalizeReferenceUrlList($value);
+}
+
+function normalizeReferenceImageList($value, int $maxItems = 20, int $maxDataUrlLength = 2000000): array
+{
+    $result = [];
+
+    foreach (referenceValueToList($value) as $item) {
+        $raw = trim((string) $item);
+        if ($raw === '') {
+            continue;
+        }
+
+        if (preg_match('/^data:image\//i', $raw) === 1) {
+            $compact = (string) preg_replace('/\s+/u', '', $raw);
+            if ($compact === '') {
+                continue;
+            }
+            if (mb_strlen($compact) > $maxDataUrlLength) {
+                continue;
+            }
+            if (preg_match('/^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+\/=]+$/i', $compact) !== 1) {
+                continue;
+            }
+
+            $result[$compact] = $compact;
+        } else {
+            $normalizedUrl = normalizeHttpReferenceValue($raw);
+            if ($normalizedUrl === null) {
+                continue;
+            }
+
+            $result[$normalizedUrl] = $normalizedUrl;
+        }
+
+        if (count($result) >= $maxItems) {
+            break;
+        }
+    }
+
+    return array_values($result);
+}
+
+function encodeReferenceImageList(array $images): string
+{
+    return json_encode(
+        normalizeReferenceImageList($images),
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    ) ?: '[]';
+}
+
+function decodeReferenceImageList($value): array
+{
+    return normalizeReferenceImageList($value);
 }
 
 function findTaskGroupByName(string $groupName): ?string
@@ -1402,7 +1476,7 @@ function allTasks(): array
 
         $task['assignee_ids'] = $assigneeIds;
         $task['reference_links'] = decodeReferenceUrlList($task['reference_links_json'] ?? null);
-        $task['reference_images'] = decodeReferenceUrlList($task['reference_images_json'] ?? null);
+        $task['reference_images'] = decodeReferenceImageList($task['reference_images_json'] ?? null);
         $task['assignees'] = [];
 
         foreach ($assigneeIds as $id) {
