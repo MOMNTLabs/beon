@@ -94,31 +94,121 @@
                 </div>
             </div>
 
-            <form method="get" class="task-filters" id="task-filters">
+            <form method="get" class="task-filters" id="task-filters" data-task-filter-form>
                 <label>
                     <span>Status</span>
-                    <select name="status">
-                        <option value="">Todos</option>
-                        <?php foreach ($statusOptions as $key => $label): ?>
-                            <option value="<?= e($key) ?>"<?= $statusFilter === $key ? ' selected' : '' ?>><?= e($label) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php $statusFilterValue = (string) ($statusFilter ?? ''); ?>
+                    <div class="tag-field row-inline-picker-wrap">
+                        <details
+                            class="row-inline-picker status-inline-picker<?= $statusFilterValue !== '' ? ' status-' . e($statusFilterValue) : '' ?>"
+                            data-inline-select-picker
+                        >
+                            <summary aria-label="Filtrar por status">
+                                <span class="row-inline-picker-summary-text" data-inline-select-text>
+                                    <?php if ($statusFilterValue === ''): ?>
+                                        Todos
+                                    <?php else: ?>
+                                        <?= e((string) ($statusOptions[$statusFilterValue] ?? 'Todos')) ?>
+                                    <?php endif; ?>
+                                </span>
+                            </summary>
+                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Filtro de status">
+                                <button
+                                    type="button"
+                                    class="row-inline-picker-option<?= $statusFilterValue === '' ? ' is-active' : '' ?>"
+                                    data-inline-select-option
+                                    data-value=""
+                                    data-label="Todos"
+                                    role="option"
+                                    aria-selected="<?= $statusFilterValue === '' ? 'true' : 'false' ?>"
+                                >Todos</button>
+                                <?php foreach ($statusOptions as $key => $label): ?>
+                                    <button
+                                        type="button"
+                                        class="row-inline-picker-option status-<?= e($key) ?><?= $statusFilterValue === $key ? ' is-active' : '' ?>"
+                                        data-inline-select-option
+                                        data-value="<?= e($key) ?>"
+                                        data-label="<?= e($label) ?>"
+                                        role="option"
+                                        aria-selected="<?= $statusFilterValue === $key ? 'true' : 'false' ?>"
+                                    ><?= e($label) ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                        </details>
+                        <select
+                            name="status"
+                            class="tag-select status-select<?= $statusFilterValue !== '' ? ' status-' . e($statusFilterValue) : '' ?> row-inline-picker-native"
+                            data-inline-select-source
+                            hidden
+                        >
+                            <option value="">Todos</option>
+                            <?php foreach ($statusOptions as $key => $label): ?>
+                                <option value="<?= e($key) ?>"<?= $statusFilter === $key ? ' selected' : '' ?>><?= e($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </label>
 
                 <label>
                     <span>Responsavel</span>
-                    <select name="assignee">
-                        <option value="">Todos</option>
-                        <?php foreach ($users as $user): ?>
-                            <option value="<?= e((string) $user['id']) ?>"<?= $assigneeFilterId === (int) $user['id'] ? ' selected' : '' ?>>
-                                <?= e((string) $user['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php $assigneeFilterValue = $assigneeFilterId !== null ? (string) $assigneeFilterId : ''; ?>
+                    <div class="tag-field row-inline-picker-wrap">
+                        <details class="row-inline-picker filter-inline-picker" data-inline-select-picker>
+                            <summary aria-label="Filtrar por responsavel">
+                                <span class="row-inline-picker-summary-text" data-inline-select-text>
+                                    <?php if ($assigneeFilterValue === ''): ?>
+                                        Todos
+                                    <?php else: ?>
+                                        <?php
+                                        $assigneeLabel = 'Todos';
+                                        foreach ($users as $user) {
+                                            if ((string) ((int) $user['id']) === $assigneeFilterValue) {
+                                                $assigneeLabel = (string) $user['name'];
+                                                break;
+                                            }
+                                        }
+                                        ?>
+                                        <?= e($assigneeLabel) ?>
+                                    <?php endif; ?>
+                                </span>
+                            </summary>
+                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Filtro de responsavel">
+                                <button
+                                    type="button"
+                                    class="row-inline-picker-option<?= $assigneeFilterValue === '' ? ' is-active' : '' ?>"
+                                    data-inline-select-option
+                                    data-value=""
+                                    data-label="Todos"
+                                    role="option"
+                                    aria-selected="<?= $assigneeFilterValue === '' ? 'true' : 'false' ?>"
+                                >Todos</button>
+                                <?php foreach ($users as $user): ?>
+                                    <?php $optionValue = (string) ((int) $user['id']); ?>
+                                    <button
+                                        type="button"
+                                        class="row-inline-picker-option<?= $assigneeFilterValue === $optionValue ? ' is-active' : '' ?>"
+                                        data-inline-select-option
+                                        data-value="<?= e($optionValue) ?>"
+                                        data-label="<?= e((string) $user['name']) ?>"
+                                        role="option"
+                                        aria-selected="<?= $assigneeFilterValue === $optionValue ? 'true' : 'false' ?>"
+                                    ><?= e((string) $user['name']) ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                        </details>
+                        <select name="assignee" class="tag-select row-inline-picker-native" data-inline-select-source hidden>
+                            <option value="">Todos</option>
+                            <?php foreach ($users as $user): ?>
+                                <option value="<?= e((string) $user['id']) ?>"<?= $assigneeFilterId === (int) $user['id'] ? ' selected' : '' ?>>
+                                    <?= e((string) $user['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </label>
 
                 <div class="task-filters-actions">
-                    <button type="submit" class="btn btn-mini">Filtrar</button>
+                    <button type="submit" class="btn btn-mini" data-task-filter-submit>Filtrar</button>
                     <a href="index.php#tasks" class="btn btn-mini btn-ghost">Limpar</a>
                 </div>
 

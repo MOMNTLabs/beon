@@ -1385,6 +1385,9 @@ function allTasks(): array
     $historyByTaskId = taskHistoryByTaskIds(array_map(static fn ($task) => (int) ($task['id'] ?? 0), $tasks));
 
     foreach ($tasks as &$task) {
+        $task['status'] = normalizeTaskStatus((string) ($task['status'] ?? 'todo'));
+        $task['priority'] = normalizeTaskPriority((string) ($task['priority'] ?? 'medium'));
+        $task['due_date'] = dueDateForStorage((string) ($task['due_date'] ?? ''));
         $task['group_name'] = normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral'));
         $task['overdue_flag'] = ((int) ($task['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
         $task['overdue_since_date'] = dueDateForStorage((string) ($task['overdue_since_date'] ?? ''));

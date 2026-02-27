@@ -1577,6 +1577,32 @@ textarea:focus {
     font-size: 0.84rem;
 }
 
+.task-filters .row-inline-picker-wrap {
+    width: 100%;
+}
+
+.task-filters .row-inline-picker > summary {
+    min-height: 34px;
+    padding: 6px 30px 6px 10px;
+    border-radius: 12px;
+    font-size: 0.84rem;
+}
+
+.task-filters .row-inline-picker-summary-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-filters .row-inline-picker-menu {
+    min-width: 100%;
+}
+
+.task-filters .filter-inline-picker > .row-inline-picker-menu {
+    max-height: 220px;
+    overflow: auto;
+}
+
 .task-filters-actions {
     display: flex;
     gap: 8px;

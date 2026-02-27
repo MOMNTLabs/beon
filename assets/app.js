@@ -245,6 +245,17 @@ window.addEventListener("DOMContentLoaded", () => {
       });
   };
 
+  const closeOpenDropdownDetails = (targetNode = null) => {
+    document
+      .querySelectorAll('details[open].assignee-picker, details[open][data-inline-select-picker]')
+      .forEach((details) => {
+        if (!(details instanceof HTMLDetailsElement)) return;
+        if (targetNode instanceof Node && details.contains(targetNode)) return;
+        details.open = false;
+        syncTaskItemOverlayState(details);
+      });
+  };
+
   const syncInlineSelectPicker = (select) => {
     if (!(select instanceof HTMLSelectElement)) return;
     if (!select.matches("[data-inline-select-source]")) return;
@@ -1121,6 +1132,12 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     });
 
+  document.addEventListener("mousedown", (event) => {
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    closeOpenDropdownDetails(target);
+  });
+
   document.addEventListener("change", (event) => {
     const checkbox = event.target.closest('.assignee-picker input[type="checkbox"]');
     if (!checkbox) return;
@@ -1800,6 +1817,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const fabToggleButton = document.querySelector("[data-task-fab-toggle]");
   const fabMenu = document.querySelector("[data-task-fab-menu]");
   const taskGroupsDatalist = document.querySelector("#task-group-options");
+  const taskFilterForm = document.querySelector("[data-task-filter-form]");
 
   const setFabMenuOpen = (open) => {
     if (!fabWrap || !fabToggleButton || !fabMenu) return;
@@ -2876,6 +2894,26 @@ window.addEventListener("DOMContentLoaded", () => {
   if (createTaskForm) {
     createTaskForm.addEventListener("submit", () => {
       syncBodyModalLock();
+    });
+  }
+
+  if (taskFilterForm instanceof HTMLFormElement) {
+    taskFilterForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const params = new URLSearchParams();
+      const statusField = taskFilterForm.querySelector('select[name="status"]');
+      const assigneeField = taskFilterForm.querySelector('select[name="assignee"]');
+
+      if (statusField instanceof HTMLSelectElement && (statusField.value || "").trim() !== "") {
+        params.set("status", statusField.value.trim());
+      }
+      if (assigneeField instanceof HTMLSelectElement && (assigneeField.value || "").trim() !== "") {
+        params.set("assignee", assigneeField.value.trim());
+      }
+
+      const query = params.toString();
+      const target = query ? `index.php?${query}#tasks` : "index.php#tasks";
+      window.location.assign(target);
     });
   }
 
