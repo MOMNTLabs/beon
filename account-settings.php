@@ -40,9 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'account_delete_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
-                if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao pode ser removido.');
-                }
                 deleteWorkspaceOwnedByUser($pdo, $workspaceId, (int) $currentUser['id']);
                 ensureActiveWorkspaceSessionForUser((int) $currentUser['id']);
                 flash('success', 'Workspace removido.');
@@ -50,9 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'account_leave_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
-                if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite sair.');
-                }
                 leaveWorkspace($pdo, $workspaceId, (int) $currentUser['id']);
                 ensureActiveWorkspaceSessionForUser((int) $currentUser['id']);
                 flash('success', 'Voce saiu do workspace.');
@@ -83,7 +77,7 @@ $flashes = getFlashes();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=103">
+    <link rel="stylesheet" href="assets/styles.css?v=34">
 </head>
 <body class="is-dashboard is-workspace-settings">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
@@ -103,23 +97,9 @@ $flashes = getFlashes();
         <?php endif; ?>
 
         <header class="top-nav dashboard-nav">
-            <div class="top-nav-leading">
-                <a href="index.php#tasks" class="btn btn-mini btn-ghost nav-back-button" aria-label="Voltar para dashboard">
-                    <span aria-hidden="true">&#8592;</span>
-                    <span>Voltar</span>
-                </a>
-                <a href="index.php" class="brand" aria-label="WorkForm">
-                    <img
-                        src="assets/WorkForm - Logo.svg?v=2"
-                        data-theme-logo-light="assets/WorkForm - Logo.svg?v=2"
-                        data-theme-logo-dark="assets/WorkForm - Logo (Negativa).svg?v=1"
-                        alt="WorkForm"
-                        class="brand-lockup"
-                        width="116"
-                        height="29"
-                    >
-                </a>
-            </div>
+            <a href="index.php" class="brand" aria-label="WorkForm">
+                <img src="assets/WorkForm - Logo (Negativa).svg?v=1" alt="WorkForm" class="brand-lockup" width="116" height="29">
+            </a>
 
             <div class="user-chip">
                 <div class="avatar" aria-hidden="true"><?= e(strtoupper(substr((string) $currentUser['name'], 0, 1))) ?></div>
@@ -129,16 +109,7 @@ $flashes = getFlashes();
                 </div>
             </div>
             <div class="top-nav-actions">
-                <a
-                    href="account-settings.php"
-                    class="icon-gear-button top-account-settings-button"
-                    aria-label="Configuracoes da conta"
-                >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
-                        <circle cx="12" cy="12" r="3.2"></circle>
-                    </svg>
-                </a>
+                <a href="index.php#tasks" class="btn btn-mini btn-ghost">Voltar</a>
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                     <input type="hidden" name="action" value="logout">
@@ -209,42 +180,32 @@ $flashes = getFlashes();
                                 $workspaceRole = normalizeWorkspaceRole((string) ($workspaceItem['member_role'] ?? 'member'));
                                 $workspaceRoleLabel = workspaceRoles()[$workspaceRole] ?? 'Usuario';
                                 $isOwner = (bool) ($workspaceItem['is_owner'] ?? false);
-                                $isPersonalWorkspace = !empty($workspaceItem['is_personal']);
                                 $isActiveWorkspace = $currentWorkspaceId === $workspaceId;
                                 $memberCount = (int) ($workspaceItem['member_count'] ?? 0);
                                 $creatorName = trim((string) ($workspaceItem['creator_name'] ?? ''));
                                 ?>
-                                <li class="workspace-settings-member-item account-workspace-item<?= $isActiveWorkspace ? ' is-active-workspace' : '' ?><?= $isPersonalWorkspace ? ' is-personal-workspace' : '' ?>">
+                                <li class="workspace-settings-member-item">
                                     <div class="avatar small" aria-hidden="true"><?= e(strtoupper(substr($workspaceName, 0, 1))) ?></div>
-                                    <div class="workspace-settings-member-meta account-workspace-meta">
-                                        <div class="account-workspace-title-row">
-                                            <strong><?= e($workspaceName) ?></strong>
-                                            <div class="account-workspace-badges">
-                                                <?php if ($isActiveWorkspace): ?>
-                                                    <span class="account-workspace-badge account-workspace-badge-active">Workspace ativo</span>
-                                                <?php endif; ?>
-                                                <?php if ($isPersonalWorkspace): ?>
-                                                    <span class="account-workspace-badge account-workspace-badge-personal">Pessoal</span>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                        <div class="account-workspace-meta-row">
-                                            <span class="workspace-member-role workspace-role-<?= e($workspaceRole) ?>"><?= e($workspaceRoleLabel) ?></span>
-                                            <span class="account-workspace-meta-text">
+                                    <div class="workspace-settings-member-meta">
+                                        <strong><?= e($workspaceName) ?></strong>
+                                        <span class="workspace-member-role workspace-role-<?= e($workspaceRole) ?>"><?= e($workspaceRoleLabel) ?></span>
+                                        <span>
                                             <?= $isOwner ? 'Criado por voce' : ('Criado por ' . e($creatorName !== '' ? $creatorName : 'outro usuario')) ?>
-                                            &middot; <?= $isPersonalWorkspace ? 'Workspace pessoal' : (e((string) $memberCount) . ' membro(s)') ?>
-                                            </span>
-                                        </div>
+                                            &middot; <?= e((string) $memberCount) ?> membro(s)
+                                        </span>
+                                        <?php if ($isActiveWorkspace): ?>
+                                            <span class="account-workspace-active">Workspace ativo</span>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="account-workspace-actions">
-                                        <?php if (!$isPersonalWorkspace && $isOwner): ?>
+                                        <?php if ($isOwner): ?>
                                             <form method="post" class="workspace-settings-member-remove">
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                 <input type="hidden" name="action" value="account_delete_workspace">
                                                 <input type="hidden" name="workspace_id" value="<?= e((string) $workspaceId) ?>">
                                                 <button type="submit" class="btn btn-mini btn-danger">Remover</button>
                                             </form>
-                                        <?php elseif (!$isPersonalWorkspace): ?>
+                                        <?php else: ?>
                                             <form method="post" class="workspace-settings-member-remove">
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                 <input type="hidden" name="action" value="account_leave_workspace">

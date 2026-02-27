@@ -1324,6 +1324,295 @@ function removeWorkspaceMember(PDO $pdo, int $workspaceId, int $userId): void
     ]);
 }
 
+function normalizeUserDisplayName(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+
+    $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+    if (mb_strlen($value) > 80) {
+        $value = mb_substr($value, 0, 80);
+    }
+
+    return uppercaseFirstCharacter($value);
+}
+
+function updateUserDisplayName(PDO $pdo, int $userId, string $name): void
+{
+    if ($userId <= 0) {
+        throw new RuntimeException('Usuario invalido.');
+    }
+
+    $normalizedName = normalizeUserDisplayName($name);
+    if ($normalizedName === '') {
+        throw new RuntimeException('Informe um nome valido.');
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE users
+         SET name = :name
+         WHERE id = :id'
+    );
+    $stmt->execute([
+        ':name' => $normalizedName,
+        ':id' => $userId,
+    ]);
+}
+
+function updateUserPassword(PDO $pdo, int $userId, string $currentPassword, string $newPassword, string $confirmPassword): void
+{
+    if ($userId <= 0) {
+        throw new RuntimeException('Usuario invalido.');
+    }
+
+    if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+        throw new RuntimeException('Preencha os campos de senha.');
+    }
+
+    if ($newPassword !== $confirmPassword) {
+        throw new RuntimeException('A confirmacao da nova senha nao confere.');
+    }
+
+    if (mb_strlen($newPassword) < 6) {
+        throw new RuntimeException('A nova senha deve ter pelo menos 6 caracteres.');
+    }
+
+    $stmt = $pdo->prepare('SELECT password_hash FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $userId]);
+    $hash = (string) $stmt->fetchColumn();
+    if ($hash === '') {
+        throw new RuntimeException('Usuario nao encontrado.');
+    }
+
+    if (!password_verify($currentPassword, $hash)) {
+        throw new RuntimeException('Senha atual invalida.');
+    }
+
+    if (password_verify($newPassword, $hash)) {
+        throw new RuntimeException('A nova senha deve ser diferente da senha atual.');
+    }
+
+    $updateStmt = $pdo->prepare(
+        'UPDATE users
+         SET password_hash = :password_hash
+         WHERE id = :id'
+    );
+    $updateStmt->execute([
+        ':password_hash' => password_hash($newPassword, PASSWORD_DEFAULT),
+        ':id' => $userId,
+    ]);
+}
+
+function workspaceMembershipCount(int $workspaceId): int
+{
+    if ($workspaceId <= 0) {
+        return 0;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT COUNT(*)
+         FROM workspace_members
+         WHERE workspace_id = :workspace_id'
+    );
+    $stmt->execute([':workspace_id' => $workspaceId]);
+    return (int) $stmt->fetchColumn();
+}
+
+function deleteWorkspaceOwnedByUser(PDO $pdo, int $workspaceId, int $ownerUserId): void
+{
+    if ($workspaceId <= 0 || $ownerUserId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $workspaceStmt = $pdo->prepare(
+        'SELECT id, created_by
+         FROM workspaces
+         WHERE id = :workspace_id
+         LIMIT 1'
+    );
+    $workspaceStmt->execute([':workspace_id' => $workspaceId]);
+    $workspace = $workspaceStmt->fetch();
+    if (!$workspace) {
+        throw new RuntimeException('Workspace nao encontrado.');
+    }
+
+    if ((int) ($workspace['created_by'] ?? 0) !== $ownerUserId) {
+        throw new RuntimeException('Somente o criador pode remover este workspace.');
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $deleteHistoryStmt = $pdo->prepare(
+            'DELETE FROM task_history
+             WHERE task_id IN (
+                SELECT id
+                FROM tasks
+                WHERE workspace_id = :workspace_id
+             )'
+        );
+        $deleteHistoryStmt->execute([':workspace_id' => $workspaceId]);
+
+        $deleteTasksStmt = $pdo->prepare(
+            'DELETE FROM tasks
+             WHERE workspace_id = :workspace_id'
+        );
+        $deleteTasksStmt->execute([':workspace_id' => $workspaceId]);
+
+        $deleteGroupsStmt = $pdo->prepare(
+            'DELETE FROM task_groups
+             WHERE workspace_id = :workspace_id'
+        );
+        $deleteGroupsStmt->execute([':workspace_id' => $workspaceId]);
+
+        $deleteMembersStmt = $pdo->prepare(
+            'DELETE FROM workspace_members
+             WHERE workspace_id = :workspace_id'
+        );
+        $deleteMembersStmt->execute([':workspace_id' => $workspaceId]);
+
+        $deleteWorkspaceStmt = $pdo->prepare(
+            'DELETE FROM workspaces
+             WHERE id = :workspace_id
+               AND created_by = :owner_user_id'
+        );
+        $deleteWorkspaceStmt->execute([
+            ':workspace_id' => $workspaceId,
+            ':owner_user_id' => $ownerUserId,
+        ]);
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+}
+
+function leaveWorkspace(PDO $pdo, int $workspaceId, int $userId): void
+{
+    if ($workspaceId <= 0 || $userId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $workspaceStmt = $pdo->prepare(
+        'SELECT id, created_by
+         FROM workspaces
+         WHERE id = :workspace_id
+         LIMIT 1'
+    );
+    $workspaceStmt->execute([':workspace_id' => $workspaceId]);
+    $workspace = $workspaceStmt->fetch();
+    if (!$workspace) {
+        throw new RuntimeException('Workspace nao encontrado.');
+    }
+
+    if ((int) ($workspace['created_by'] ?? 0) === $userId) {
+        throw new RuntimeException('Voce criou este workspace. Use a opcao de remover workspace.');
+    }
+
+    $role = workspaceRoleForUser($userId, $workspaceId);
+    if ($role === null) {
+        throw new RuntimeException('Voce nao pertence a este workspace.');
+    }
+
+    $pdo->beginTransaction();
+    try {
+        if ($role === 'admin' && workspaceAdminCount($workspaceId) <= 1) {
+            $promoteStmt = $pdo->prepare(
+                'SELECT user_id
+                 FROM workspace_members
+                 WHERE workspace_id = :workspace_id
+                   AND user_id <> :user_id
+                 ORDER BY id ASC
+                 LIMIT 1'
+            );
+            $promoteStmt->execute([
+                ':workspace_id' => $workspaceId,
+                ':user_id' => $userId,
+            ]);
+            $nextAdminUserId = (int) $promoteStmt->fetchColumn();
+            if ($nextAdminUserId <= 0) {
+                throw new RuntimeException('Nao foi possivel sair deste workspace agora.');
+            }
+
+            $updateRoleStmt = $pdo->prepare(
+                'UPDATE workspace_members
+                 SET role = :role
+                 WHERE workspace_id = :workspace_id
+                   AND user_id = :user_id'
+            );
+            $updateRoleStmt->execute([
+                ':role' => 'admin',
+                ':workspace_id' => $workspaceId,
+                ':user_id' => $nextAdminUserId,
+            ]);
+        }
+
+        $removeStmt = $pdo->prepare(
+            'DELETE FROM workspace_members
+             WHERE workspace_id = :workspace_id
+               AND user_id = :user_id'
+        );
+        $removeStmt->execute([
+            ':workspace_id' => $workspaceId,
+            ':user_id' => $userId,
+        ]);
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+}
+
+function workspaceMembershipsDetailedForUser(int $userId): array
+{
+    if ($userId <= 0) {
+        return [];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT
+             w.id,
+             w.name,
+             w.slug,
+             w.created_by,
+             w.created_at,
+             w.updated_at,
+             wm.role AS member_role,
+             creator.name AS creator_name,
+             creator.email AS creator_email,
+             (
+                SELECT COUNT(*)
+                FROM workspace_members wm2
+                WHERE wm2.workspace_id = w.id
+             ) AS member_count
+         FROM workspaces w
+         INNER JOIN workspace_members wm ON wm.workspace_id = w.id
+         LEFT JOIN users creator ON creator.id = w.created_by
+         WHERE wm.user_id = :user_id
+         ORDER BY w.created_at ASC, w.id ASC'
+    );
+    $stmt->execute([':user_id' => $userId]);
+    $rows = $stmt->fetchAll();
+
+    foreach ($rows as &$row) {
+        $row['id'] = (int) ($row['id'] ?? 0);
+        $row['created_by'] = (int) ($row['created_by'] ?? 0);
+        $row['member_count'] = (int) ($row['member_count'] ?? 0);
+        $row['member_role'] = normalizeWorkspaceRole((string) ($row['member_role'] ?? 'member'));
+        $row['is_owner'] = ((int) $row['created_by']) === $userId;
+    }
+    unset($row);
+
+    return $rows;
+}
+
 function workspacesForUser(int $userId): array
 {
     if ($userId <= 0) {

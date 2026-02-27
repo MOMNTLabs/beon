@@ -1043,6 +1043,12 @@ textarea:focus {
     margin: 0;
 }
 
+.top-account-settings-button {
+    width: 36px;
+    height: 36px;
+    text-decoration: none;
+}
+
 .workspace-role-badge {
     display: inline-flex;
     align-items: center;
@@ -1478,6 +1484,33 @@ textarea:focus {
     border-radius: 12px;
     border: 1px dashed rgba(255, 255, 255, 0.16);
     color: var(--muted);
+}
+
+.account-settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-workspaces-card {
+    margin-top: 2px;
+}
+
+.account-workspace-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.account-workspace-active {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(120, 214, 255, 0.3);
+    background: rgba(18, 42, 72, 0.52);
+    color: rgba(214, 241, 255, 0.96);
+    font-size: 0.7rem;
 }
 
 .tip-box {
