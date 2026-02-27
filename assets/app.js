@@ -256,11 +256,16 @@ window.addEventListener("DOMContentLoaded", () => {
       });
   };
 
+  const getInlineSelectWrap = (node) => {
+    if (!(node instanceof Element)) return null;
+    return node.closest("[data-inline-select-wrap], .row-inline-picker-wrap");
+  };
+
   const syncInlineSelectPicker = (select) => {
     if (!(select instanceof HTMLSelectElement)) return;
     if (!select.matches("[data-inline-select-source]")) return;
 
-    const wrap = select.closest("[data-inline-select-wrap]");
+    const wrap = getInlineSelectWrap(select);
     if (!(wrap instanceof HTMLElement)) return;
 
     const details = wrap.querySelector("[data-inline-select-picker]");
@@ -1250,11 +1255,11 @@ window.addEventListener("DOMContentLoaded", () => {
     if (taskDetailViewImages instanceof HTMLElement) {
       taskDetailViewImages.innerHTML = "";
       safeImages.forEach((url) => {
-        const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noreferrer noopener";
-        a.className = "task-detail-ref-image-link";
+        const trigger = document.createElement("button");
+        trigger.type = "button";
+        trigger.className = "task-detail-ref-image-link";
+        trigger.dataset.taskRefImagePreview = url;
+        trigger.setAttribute("aria-label", "Ampliar imagem de referencia");
 
         const img = document.createElement("img");
         img.src = url;
@@ -1262,8 +1267,8 @@ window.addEventListener("DOMContentLoaded", () => {
         img.loading = "lazy";
         img.className = "task-detail-ref-image";
 
-        a.append(img);
-        taskDetailViewImages.append(a);
+        trigger.append(img);
+        taskDetailViewImages.append(trigger);
       });
     }
     if (taskDetailViewImagesWrap instanceof HTMLElement) {
@@ -1509,6 +1514,25 @@ window.addEventListener("DOMContentLoaded", () => {
 
     sortGroupTaskItemsByStatus(dropzone);
     syncGroupStatusDividers(dropzone);
+  };
+
+  const setTaskGroupCollapsed = (groupSection, collapsed) => {
+    if (!(groupSection instanceof HTMLElement)) return;
+    const dropzone = groupSection.querySelector("[data-task-dropzone]");
+    const toggleButton = groupSection.querySelector("[data-group-toggle]");
+    const shouldCollapse = Boolean(collapsed);
+
+    groupSection.classList.toggle("is-collapsed", shouldCollapse);
+    if (dropzone instanceof HTMLElement) {
+      dropzone.hidden = shouldCollapse;
+    }
+    if (toggleButton instanceof HTMLButtonElement) {
+      toggleButton.setAttribute("aria-expanded", shouldCollapse ? "false" : "true");
+      toggleButton.setAttribute(
+        "aria-label",
+        shouldCollapse ? "Expandir grupo" : "Retrair grupo"
+      );
+    }
   };
 
   const moveTaskItemToGroupDom = (taskItem, groupName) => {
@@ -1933,7 +1957,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const inlineSelectOption = event.target.closest("[data-inline-select-option]");
     if (inlineSelectOption) {
-      const wrap = inlineSelectOption.closest("[data-inline-select-wrap]");
+      const wrap = getInlineSelectWrap(inlineSelectOption);
       const details = inlineSelectOption.closest("[data-inline-select-picker]");
       const select = wrap?.querySelector("select[data-inline-select-source]");
       const nextValue = (inlineSelectOption.dataset.value || "").trim();
@@ -2047,11 +2071,48 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const toggleButton = event.target.closest("[data-task-expand]");
-    if (!toggleButton) return;
+    const groupToggleButton = event.target.closest("[data-group-toggle]");
+    if (groupToggleButton) {
+      const groupSection = groupToggleButton.closest("[data-task-group]");
+      if (groupSection instanceof HTMLElement) {
+        const isExpanded = groupToggleButton.getAttribute("aria-expanded") !== "false";
+        setTaskGroupCollapsed(groupSection, isExpanded);
+      }
+      return;
+    }
 
-    const taskItem = toggleButton.closest("[data-task-item]");
+    const taskItem = event.target.closest("[data-task-item]");
     if (!(taskItem instanceof HTMLElement)) return;
+
+    const toggleButton = event.target.closest("[data-task-expand]");
+    if (toggleButton) {
+      openTaskDetailModal(taskItem);
+      return;
+    }
+
+    const interactiveTarget = event.target.closest(
+      [
+        "a[href]",
+        "button",
+        "input",
+        "select",
+        "textarea",
+        "summary",
+        "label",
+        "details",
+        "[contenteditable='true']",
+        "[role='button']",
+        "[role='option']",
+        "[data-inline-select-option]",
+        "[data-inline-select-picker]",
+        "[data-task-overdue-badge]",
+      ].join(",")
+    );
+
+    if (interactiveTarget && taskItem.contains(interactiveTarget)) {
+      return;
+    }
+
     openTaskDetailModal(taskItem);
   });
 
@@ -2091,6 +2152,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const taskDetailViewLinks = document.querySelector("[data-task-detail-view-links]");
   const taskDetailViewImagesWrap = document.querySelector("[data-task-detail-view-images-wrap]");
   const taskDetailViewImages = document.querySelector("[data-task-detail-view-images]");
+  const taskImagePreviewModal = document.querySelector("[data-task-image-preview-modal]");
+  const taskImagePreviewImage = document.querySelector("[data-task-image-preview-img]");
   const taskDetailViewHistory = document.querySelector("[data-task-detail-view-history]");
   const taskDetailViewCreatedBy = document.querySelector("[data-task-detail-view-created-by]");
   const taskDetailViewUpdatedAt = document.querySelector("[data-task-detail-view-updated-at]");
@@ -2128,6 +2191,26 @@ window.addEventListener("DOMContentLoaded", () => {
   let confirmModalAction = null;
   let taskDetailContext = null;
   let taskDetailEditImageItems = [];
+
+  const closeTaskImagePreview = () => {
+    if (!(taskImagePreviewModal instanceof HTMLElement)) return;
+    taskImagePreviewModal.hidden = true;
+    if (taskImagePreviewImage instanceof HTMLImageElement) {
+      taskImagePreviewImage.removeAttribute("src");
+    }
+    syncBodyModalLock();
+  };
+
+  const openTaskImagePreview = (src) => {
+    const imageSrc = String(src || "").trim();
+    if (!(taskImagePreviewModal instanceof HTMLElement)) return;
+    if (!(taskImagePreviewImage instanceof HTMLImageElement)) return;
+    if (!imageSrc) return;
+
+    taskImagePreviewImage.src = imageSrc;
+    taskImagePreviewModal.hidden = false;
+    syncBodyModalLock();
+  };
 
   const getDefaultGroupName = () => {
     const bodyDefault = document.body?.dataset?.defaultGroupName?.trim();
@@ -2588,6 +2671,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const closeTaskDetailModal = () => {
     if (!taskDetailModal) return;
+    closeTaskImagePreview();
     taskDetailModal.hidden = true;
     taskDetailContext = null;
     setTaskDetailEditMode(false);
@@ -2722,7 +2806,13 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const syncBodyModalLock = () => {
-    const hasOpenModal = [createTaskModal, createGroupModal, taskDetailModal, confirmModal].some(
+    const hasOpenModal = [
+      createTaskModal,
+      createGroupModal,
+      taskDetailModal,
+      taskImagePreviewModal,
+      confirmModal,
+    ].some(
       (modal) => modal && !modal.hidden
     );
     document.body.classList.toggle("modal-open", hasOpenModal);
@@ -3072,6 +3162,9 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   syncTaskGroupInputs();
+  document.querySelectorAll("[data-task-group]").forEach((section) => {
+    setTaskGroupCollapsed(section, section.classList.contains("is-collapsed"));
+  });
 
   const openCreateModal = (groupName) => {
     if (!createTaskModal) return;
@@ -3156,6 +3249,12 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const previewImageTrigger = target.closest("[data-task-ref-image-preview]");
+    if (previewImageTrigger instanceof HTMLElement) {
+      openTaskImagePreview(previewImageTrigger.dataset.taskRefImagePreview || "");
+      return;
+    }
+
     const openGroupTrigger = target.closest("[data-open-create-group-modal]");
     if (openGroupTrigger) {
       openCreateGroupModal();
@@ -3232,6 +3331,12 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const closeImagePreviewTrigger = target.closest("[data-close-task-image-preview]");
+    if (closeImagePreviewTrigger) {
+      closeTaskImagePreview();
+      return;
+    }
+
     const confirmSubmitTrigger = target.closest("[data-confirm-modal-submit]");
     if (confirmSubmitTrigger) {
       if (confirmModalSubmit instanceof HTMLButtonElement) {
@@ -3270,6 +3375,10 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (createGroupModal && !createGroupModal.hidden) {
       closeCreateGroupModal();
+    }
+    if (taskImagePreviewModal && !taskImagePreviewModal.hidden) {
+      closeTaskImagePreview();
+      return;
     }
     if (taskDetailModal && !taskDetailModal.hidden) {
       closeTaskDetailModal();

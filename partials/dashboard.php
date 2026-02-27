@@ -98,7 +98,7 @@
                 <label>
                     <span>Status</span>
                     <?php $statusFilterValue = (string) ($statusFilter ?? ''); ?>
-                    <div class="tag-field row-inline-picker-wrap">
+                    <div class="tag-field row-inline-picker-wrap" data-inline-select-wrap>
                         <details
                             class="row-inline-picker status-inline-picker<?= $statusFilterValue !== '' ? ' status-' . e($statusFilterValue) : '' ?>"
                             data-inline-select-picker
@@ -152,7 +152,7 @@
                 <label>
                     <span>Responsavel</span>
                     <?php $assigneeFilterValue = $assigneeFilterId !== null ? (string) $assigneeFilterId : ''; ?>
-                    <div class="tag-field row-inline-picker-wrap">
+                    <div class="tag-field row-inline-picker-wrap" data-inline-select-wrap>
                         <details class="row-inline-picker filter-inline-picker" data-inline-select-picker>
                             <summary aria-label="Filtrar por responsavel">
                                 <span class="row-inline-picker-summary-text" data-inline-select-text>
@@ -261,6 +261,13 @@
                                     </form>
                                 </div>
                                 <div class="task-group-head-actions">
+                                    <button
+                                        type="button"
+                                        class="task-group-collapse"
+                                        data-group-toggle
+                                        aria-expanded="true"
+                                        aria-label="Retrair grupo"
+                                    ><span aria-hidden="true">▾</span></button>
                                     <button
                                         type="button"
                                         class="group-add-button"
@@ -705,14 +712,14 @@
                         <div class="task-detail-view-block" data-task-detail-view-references hidden>
                             <div class="task-detail-view-label">Referencias</div>
 
-                            <div class="task-detail-ref-section" data-task-detail-view-links-wrap hidden>
-                                <div class="task-detail-ref-title">Links</div>
-                                <div class="task-detail-ref-links" data-task-detail-view-links></div>
-                            </div>
-
                             <div class="task-detail-ref-section" data-task-detail-view-images-wrap hidden>
                                 <div class="task-detail-ref-title">Imagens</div>
                                 <div class="task-detail-ref-images" data-task-detail-view-images></div>
+                            </div>
+
+                            <div class="task-detail-ref-section" data-task-detail-view-links-wrap hidden>
+                                <div class="task-detail-ref-title">Links</div>
+                                <div class="task-detail-ref-links" data-task-detail-view-links></div>
                             </div>
                         </div>
 
@@ -845,6 +852,20 @@
                     </label>
                 </div>
             </section>
+        </div>
+    </section>
+</div>
+
+<div class="modal-backdrop task-image-preview-modal" data-task-image-preview-modal hidden>
+    <div class="modal-scrim" data-close-task-image-preview></div>
+    <section class="modal-card task-image-preview-card" role="dialog" aria-modal="true" aria-label="Imagem de referencia">
+        <header class="modal-head task-image-preview-head">
+            <button type="button" class="modal-close-button" data-close-task-image-preview aria-label="Fechar visualizacao da imagem">
+                <span aria-hidden="true">×</span>
+            </button>
+        </header>
+        <div class="task-image-preview-body">
+            <img src="" alt="Imagem de referencia ampliada" data-task-image-preview-img>
         </div>
     </section>
 </div>

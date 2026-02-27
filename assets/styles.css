@@ -1741,6 +1741,39 @@ textarea:focus {
     transform: translateY(-1px);
 }
 
+.task-group-collapse {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.02);
+    color: rgba(255, 255, 255, 0.72);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    cursor: pointer;
+    transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.task-group-collapse:hover,
+.task-group-collapse:focus-visible {
+    color: var(--text);
+    border-color: rgba(44, 199, 255, 0.24);
+    background: rgba(44, 199, 255, 0.07);
+    outline: none;
+}
+
+.task-group-collapse span {
+    line-height: 1;
+    font-size: 0.75rem;
+    transform: translateY(-1px) rotate(0deg);
+    transition: transform 160ms ease;
+}
+
+.task-group.is-collapsed .task-group-collapse span {
+    transform: translateY(-1px) rotate(-90deg);
+}
+
 .group-add-button {
     width: 26px;
     height: 26px;
@@ -3087,22 +3120,27 @@ textarea:focus {
 
 .task-detail-ref-images {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
 }
 
 .task-detail-ref-image-link {
+    appearance: none;
     display: block;
+    width: 100%;
+    padding: 0;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.02);
     overflow: hidden;
     aspect-ratio: 16 / 10;
+    cursor: zoom-in;
 }
 
 .task-detail-ref-image-link:hover,
 .task-detail-ref-image-link:focus-visible {
     border-color: rgba(77, 194, 255, 0.24);
+    box-shadow: 0 0 0 1px rgba(77, 194, 255, 0.16);
     outline: none;
 }
 
@@ -3404,6 +3442,43 @@ textarea:focus {
     overflow: hidden;
     font-size: 0.84rem;
     line-height: var(--reference-line-height);
+}
+
+.task-image-preview-modal {
+    z-index: 60;
+}
+
+.task-image-preview-card {
+    width: min(1180px, 100%);
+    max-height: min(94vh, 980px);
+    padding: 10px;
+}
+
+.task-image-preview-head {
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+.task-image-preview-body {
+    display: grid;
+    place-items: center;
+    min-height: 220px;
+    max-height: min(84vh, 860px);
+    overflow: auto;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(3, 6, 14, 0.88);
+    padding: 12px;
+}
+
+.task-image-preview-body img {
+    display: block;
+    max-width: 100%;
+    max-height: min(80vh, 820px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 10px;
 }
 
 .modal-head {
