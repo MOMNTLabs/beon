@@ -989,8 +989,8 @@ function allTasks(): array
                 CASE t.status
                     WHEN \'done\' THEN 1
                     WHEN \'todo\' THEN 2
-                    WHEN \'in_progress\' THEN 3
-                    WHEN \'review\' THEN 4
+                    WHEN \'review\' THEN 3
+                    WHEN \'in_progress\' THEN 4
                     ELSE 5
                 END,
                 CASE t.priority

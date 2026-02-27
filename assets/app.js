@@ -84,9 +84,9 @@ window.addEventListener("DOMContentLoaded", () => {
         return 1;
       case "todo":
         return 2;
-      case "in_progress":
-        return 3;
       case "review":
+        return 3;
+      case "in_progress":
         return 4;
       default:
         return 99;
