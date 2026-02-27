@@ -1223,7 +1223,10 @@ function normalizeHttpReferenceValue(string $value): ?string
         $trimmed = mb_substr($trimmed, 0, 1000);
     }
 
-    $validated = filter_var($trimmed, FILTER_VALIDATE_URL);
+    $hasExplicitScheme = preg_match('/^[a-z][a-z0-9+.-]*:\/\//i', $trimmed) === 1;
+    $candidate = $hasExplicitScheme ? $trimmed : ('https://' . $trimmed);
+
+    $validated = filter_var($candidate, FILTER_VALIDATE_URL);
     if ($validated === false) {
         return null;
     }

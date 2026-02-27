@@ -828,11 +828,8 @@
                                 <input type="file" accept="image/*" multiple data-task-detail-image-input hidden>
                                 <div class="task-detail-edit-image-picker-actions">
                                     <button type="button" class="btn btn-mini btn-ghost" data-task-detail-image-add>Adicionar imagem</button>
-                                    <span class="task-detail-edit-image-picker-hint">Clique ou cole uma imagem</span>
                                 </div>
-                                <div class="task-detail-edit-image-list" data-task-detail-image-list>
-                                    <p class="task-detail-edit-image-empty">Nenhuma imagem adicionada.</p>
-                                </div>
+                                <div class="task-detail-edit-image-list" data-task-detail-image-list></div>
                             </div>
                             <textarea rows="1" data-task-detail-edit-images hidden></textarea>
                         </div>

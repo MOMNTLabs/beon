@@ -3223,14 +3223,9 @@ textarea:focus {
 .task-detail-edit-image-picker-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 8px;
     flex-wrap: wrap;
-}
-
-.task-detail-edit-image-picker-hint {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.52);
 }
 
 .task-detail-edit-image-list {
@@ -3241,12 +3236,6 @@ textarea:focus {
     max-height: 182px;
     overflow: auto;
     padding-right: 2px;
-}
-
-.task-detail-edit-image-empty {
-    margin: 0;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.54);
 }
 
 .task-detail-edit-image-item {

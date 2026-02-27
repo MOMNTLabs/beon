@@ -1024,8 +1024,11 @@ window.addEventListener("DOMContentLoaded", () => {
     const raw = String(value || "").trim();
     if (!raw) return null;
 
+    const hasExplicitScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
+    const candidate = hasExplicitScheme ? raw : `https://${raw}`;
+
     try {
-      const parsed = new URL(raw);
+      const parsed = new URL(candidate);
       if (!["http:", "https:"].includes(parsed.protocol)) {
         return null;
       }
@@ -2152,13 +2155,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(taskDetailImageList instanceof HTMLElement)) return;
 
     taskDetailImageList.innerHTML = "";
-    if (!taskDetailEditImageItems.length) {
-      const empty = document.createElement("p");
-      empty.className = "task-detail-edit-image-empty";
-      empty.textContent = "Nenhuma imagem adicionada.";
-      taskDetailImageList.append(empty);
-      return;
-    }
+    if (!taskDetailEditImageItems.length) return;
 
     taskDetailEditImageItems.forEach((imageValue, index) => {
       const item = document.createElement("div");
@@ -2251,20 +2248,6 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   if (taskDetailImagePicker instanceof HTMLElement) {
-    taskDetailImagePicker.addEventListener("click", (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (target.closest("[data-task-detail-image-remove]")) return;
-      if (target.closest("[data-task-detail-image-add]")) return;
-      taskDetailImageInput?.click();
-    });
-
-    taskDetailImagePicker.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      taskDetailImageInput?.click();
-    });
-
     taskDetailImagePicker.addEventListener("paste", (event) => {
       const clipboardItems = Array.from(event.clipboardData?.items || []);
       const files = clipboardItems
