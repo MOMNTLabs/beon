@@ -24,9 +24,9 @@ function respondJson(array $payload, int $status = 200): void
     exit;
 }
 
-function dashboardSummaryPayloadForUser(int $userId): array
+function dashboardSummaryPayloadForUser(int $userId, ?int $workspaceId = null): array
 {
-    $allTasks = allTasks();
+    $allTasks = allTasks($workspaceId);
     $stats = dashboardStats($allTasks);
     $myOpenTasks = countMyAssignedTasks($allTasks, $userId);
     $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
@@ -107,29 +107,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'Sessão encerrada.');
                 redirectTo('index.php');
 
-            case 'create_group':
+            case 'switch_workspace':
                 $authUser = requireAuth();
-                $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
-
-                if (findTaskGroupByName($groupName) !== null) {
-                    throw new RuntimeException('Este grupo jÃ¡ existe.');
+                $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
+                if ($workspaceId <= 0 || !userHasWorkspaceAccess((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Workspace invalido.');
                 }
 
-                upsertTaskGroup($pdo, $groupName, (int) $authUser['id']);
+                setActiveWorkspaceId($workspaceId);
+                flash('success', 'Workspace atualizado.');
+                redirectTo('index.php#tasks');
+
+            case 'create_workspace':
+                $authUser = requireAuth();
+                $workspaceName = normalizeWorkspaceName((string) ($_POST['workspace_name'] ?? ''));
+                if ($workspaceName === '') {
+                    throw new RuntimeException('Informe um nome para o workspace.');
+                }
+
+                $workspaceId = createWorkspace($pdo, $workspaceName, (int) $authUser['id']);
+                if ($workspaceId <= 0) {
+                    throw new RuntimeException('Nao foi possivel criar o workspace.');
+                }
+
+                setActiveWorkspaceId($workspaceId);
+                flash('success', 'Workspace criado.');
+                redirectTo('index.php#tasks');
+
+            case 'add_workspace_member':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem adicionar usuarios ao workspace.');
+                }
+
+                $memberEmail = strtolower(trim((string) ($_POST['member_email'] ?? '')));
+                if ($memberEmail === '' || !filter_var($memberEmail, FILTER_VALIDATE_EMAIL)) {
+                    throw new RuntimeException('Informe um e-mail valido.');
+                }
+
+                $memberStmt = $pdo->prepare('SELECT id, name FROM users WHERE email = :email LIMIT 1');
+                $memberStmt->execute([':email' => $memberEmail]);
+                $memberRow = $memberStmt->fetch();
+                if (!$memberRow) {
+                    throw new RuntimeException('Usuario nao encontrado. Cadastre a conta antes de adicionar.');
+                }
+
+                $memberId = (int) ($memberRow['id'] ?? 0);
+                if ($memberId <= 0) {
+                    throw new RuntimeException('Usuario invalido.');
+                }
+
+                upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'member');
+                flash('success', 'Usuario adicionado ao workspace.');
+                redirectTo('index.php#tasks');
+
+            case 'create_group':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
+
+                if (findTaskGroupByName($groupName, $workspaceId) !== null) {
+                    throw new RuntimeException('Este grupo já existe.');
+                }
+
+                upsertTaskGroup($pdo, $groupName, (int) $authUser['id'], $workspaceId);
                 flash('success', 'Grupo criado.');
                 redirectTo('index.php#tasks');
 
             case 'rename_group':
                 $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
                 $oldGroupInput = normalizeTaskGroupName((string) ($_POST['old_group_name'] ?? ''));
                 $newGroupName = normalizeTaskGroupName((string) ($_POST['new_group_name'] ?? ''));
-                $existingOldGroupName = findTaskGroupByName($oldGroupInput);
+                $existingOldGroupName = findTaskGroupByName($oldGroupInput, $workspaceId);
 
                 if ($existingOldGroupName === null) {
                     throw new RuntimeException('Grupo nao encontrado.');
                 }
 
-                $existingTargetGroupName = findTaskGroupByName($newGroupName);
+                $existingTargetGroupName = findTaskGroupByName($newGroupName, $workspaceId);
                 if (
                     $existingTargetGroupName !== null &&
                     mb_strtolower($existingTargetGroupName) !== mb_strtolower($existingOldGroupName)
@@ -137,15 +203,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Ja existe um grupo com este nome.');
                 }
 
-                $taskCountStmt = $pdo->prepare('SELECT COUNT(*) FROM tasks WHERE group_name = :group_name');
-                $taskCountStmt->execute([':group_name' => $existingOldGroupName]);
+                $taskCountStmt = $pdo->prepare(
+                    'SELECT COUNT(*)
+                     FROM tasks
+                     WHERE workspace_id = :workspace_id
+                       AND group_name = :group_name'
+                );
+                $taskCountStmt->execute([
+                    ':workspace_id' => $workspaceId,
+                    ':group_name' => $existingOldGroupName,
+                ]);
                 $affectedTaskCount = (int) $taskCountStmt->fetchColumn();
                 $affectedTaskIds = [];
                 $renameUpdatedAt = nowIso();
 
                 if ($affectedTaskCount > 0 && $existingOldGroupName !== $newGroupName) {
-                    $taskIdsStmt = $pdo->prepare('SELECT id FROM tasks WHERE group_name = :group_name');
-                    $taskIdsStmt->execute([':group_name' => $existingOldGroupName]);
+                    $taskIdsStmt = $pdo->prepare(
+                        'SELECT id
+                         FROM tasks
+                         WHERE workspace_id = :workspace_id
+                           AND group_name = :group_name'
+                    );
+                    $taskIdsStmt->execute([
+                        ':workspace_id' => $workspaceId,
+                        ':group_name' => $existingOldGroupName,
+                    ]);
                     $affectedTaskIds = array_map(
                         'intval',
                         array_column($taskIdsStmt->fetchAll(), 'id')
@@ -158,10 +240,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $renameGroupStmt = $pdo->prepare(
                             'UPDATE task_groups
                              SET name = :new_group_name
-                             WHERE name = :old_group_name'
+                             WHERE workspace_id = :workspace_id
+                               AND name = :old_group_name'
                         );
                         $renameGroupStmt->execute([
                             ':new_group_name' => $newGroupName,
+                            ':workspace_id' => $workspaceId,
                             ':old_group_name' => $existingOldGroupName,
                         ]);
                     }
@@ -170,11 +254,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $renameTasksStmt = $pdo->prepare(
                             'UPDATE tasks
                              SET group_name = :new_group_name, updated_at = :updated_at
-                             WHERE group_name = :old_group_name'
+                             WHERE workspace_id = :workspace_id
+                               AND group_name = :old_group_name'
                         );
                         $renameTasksStmt->execute([
                             ':new_group_name' => $newGroupName,
                             ':updated_at' => $renameUpdatedAt,
+                            ':workspace_id' => $workspaceId,
                             ':old_group_name' => $existingOldGroupName,
                         ]);
 
@@ -216,42 +302,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'delete_group':
                 $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
                 $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
-                $existingGroupName = findTaskGroupByName($groupName);
-                $fallbackGroupName = defaultTaskGroupName();
+                $existingGroupName = findTaskGroupByName($groupName, $workspaceId);
+                $fallbackGroupName = defaultTaskGroupName($workspaceId);
 
                 if ($existingGroupName === null) {
                     throw new RuntimeException('Grupo nao encontrado.');
                 }
 
-                if (isProtectedTaskGroupName($existingGroupName)) {
+                if (isProtectedTaskGroupName($existingGroupName, $workspaceId)) {
                     throw new RuntimeException('Este grupo nao pode ser removido.');
                 }
 
-                $countStmt = $pdo->prepare('SELECT COUNT(*) FROM tasks WHERE group_name = :group_name');
-                $countStmt->execute([':group_name' => $existingGroupName]);
+                $countStmt = $pdo->prepare(
+                    'SELECT COUNT(*)
+                     FROM tasks
+                     WHERE workspace_id = :workspace_id
+                       AND group_name = :group_name'
+                );
+                $countStmt->execute([
+                    ':workspace_id' => $workspaceId,
+                    ':group_name' => $existingGroupName,
+                ]);
                 $taskCount = (int) $countStmt->fetchColumn();
                 $movedTaskIds = [];
                 $movedUpdatedAt = nowIso();
                 if ($taskCount > 0) {
-                    $taskIdsStmt = $pdo->prepare('SELECT id FROM tasks WHERE group_name = :group_name');
-                    $taskIdsStmt->execute([':group_name' => $existingGroupName]);
+                    $taskIdsStmt = $pdo->prepare(
+                        'SELECT id
+                         FROM tasks
+                         WHERE workspace_id = :workspace_id
+                           AND group_name = :group_name'
+                    );
+                    $taskIdsStmt->execute([
+                        ':workspace_id' => $workspaceId,
+                        ':group_name' => $existingGroupName,
+                    ]);
                     $movedTaskIds = array_map(
                         'intval',
                         array_column($taskIdsStmt->fetchAll(), 'id')
                     );
                 }
-                upsertTaskGroup($pdo, $fallbackGroupName, null);
+                upsertTaskGroup($pdo, $fallbackGroupName, null, $workspaceId);
 
                 if ($taskCount > 0) {
                     $moveStmt = $pdo->prepare(
                         'UPDATE tasks
                          SET group_name = :target_group, updated_at = :updated_at
-                         WHERE group_name = :source_group'
+                         WHERE workspace_id = :workspace_id
+                           AND group_name = :source_group'
                     );
                     $moveStmt->execute([
                         ':target_group' => $fallbackGroupName,
                         ':updated_at' => $movedUpdatedAt,
+                        ':workspace_id' => $workspaceId,
                         ':source_group' => $existingGroupName,
                     ]);
 
@@ -271,8 +379,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                $deleteStmt = $pdo->prepare('DELETE FROM task_groups WHERE name = :name');
-                $deleteStmt->execute([':name' => $existingGroupName]);
+                $deleteStmt = $pdo->prepare(
+                    'DELETE FROM task_groups
+                     WHERE workspace_id = :workspace_id
+                       AND name = :name'
+                );
+                $deleteStmt->execute([
+                    ':workspace_id' => $workspaceId,
+                    ':name' => $existingGroupName,
+                ]);
 
                 if (requestExpectsJson()) {
                     respondJson([
@@ -294,8 +409,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'create_task':
             case 'update_task':
                 $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
                 $isAutosave = $action === 'update_task' && (string) ($_POST['autosave'] ?? '') === '1';
-                $usersById = usersMapById();
+                $usersById = usersMapById($workspaceId);
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 $title = normalizeTaskTitle((string) ($_POST['title'] ?? ''));
                 $description = trim((string) ($_POST['description'] ?? ''));
@@ -320,9 +439,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $groupInputRaw = trim((string) ($_POST['group_name'] ?? ''));
                 $groupName = $groupInputRaw === ''
-                    ? defaultTaskGroupName()
+                    ? defaultTaskGroupName($workspaceId)
                     : normalizeTaskGroupName($groupInputRaw);
-                $existingGroupName = findTaskGroupByName($groupName);
+                $existingGroupName = findTaskGroupByName($groupName, $workspaceId);
                 if ($existingGroupName !== null) {
                     $groupName = $existingGroupName;
                 }
@@ -334,7 +453,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $assigneeIds = normalizeAssigneeIds($rawAssigneeValues, $usersById);
                 $assignedTo = $assigneeIds[0] ?? null;
                 $assigneeIdsJson = encodeAssigneeIds($assigneeIds);
-                upsertTaskGroup($pdo, $groupName, (int) $authUser['id']);
+                upsertTaskGroup($pdo, $groupName, (int) $authUser['id'], $workspaceId);
 
                 if ($title === '') {
                     throw new RuntimeException('O titulo da tarefa e obrigatorio.');
@@ -362,11 +481,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $referenceLinks ??= [];
                     $referenceImages ??= [];
                     $stmt = $pdo->prepare(
-                        'INSERT INTO tasks (title, description, status, priority, due_date, overdue_flag, overdue_since_date, created_by, assigned_to, assignee_ids_json, reference_links_json, reference_images_json, group_name, created_at, updated_at)
-                         VALUES (:t, :d, :s, :p, :dd, :of, :osd, :cb, :at, :aj, :rl, :ri, :g, :c, :u)'
+                        'INSERT INTO tasks (workspace_id, title, description, status, priority, due_date, overdue_flag, overdue_since_date, created_by, assigned_to, assignee_ids_json, reference_links_json, reference_images_json, group_name, created_at, updated_at)
+                         VALUES (:workspace_id, :t, :d, :s, :p, :dd, :of, :osd, :cb, :at, :aj, :rl, :ri, :g, :c, :u)'
                     );
                     $now = nowIso();
                     $stmt->execute([
+                        ':workspace_id' => $workspaceId,
                         ':t' => $title,
                         ':d' => $description,
                         ':s' => $status,
@@ -426,9 +546,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'SELECT title, status, priority, due_date, overdue_flag, overdue_since_date, assignee_ids_json, group_name, reference_links_json, reference_images_json
                      FROM tasks
                      WHERE id = :id
+                       AND workspace_id = :workspace_id
                      LIMIT 1'
                 );
-                $existingTaskStmt->execute([':id' => $taskId]);
+                $existingTaskStmt->execute([
+                    ':id' => $taskId,
+                    ':workspace_id' => $workspaceId,
+                ]);
                 $existingTaskRow = $existingTaskStmt->fetch();
                 if (!$existingTaskRow) {
                     throw new RuntimeException('Tarefa invalida.');
@@ -475,7 +599,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          reference_images_json = :ri,
                          group_name = :g,
                          updated_at = :u
-                     WHERE id = :id'
+                     WHERE id = :id
+                       AND workspace_id = :workspace_id'
                 );
                 $updatedAt = nowIso();
                 $stmt->execute([
@@ -493,6 +618,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':g' => $groupName,
                     ':u' => $updatedAt,
                     ':id' => $taskId,
+                    ':workspace_id' => $workspaceId,
                 ]);
 
                 $existingStatus = normalizeTaskStatus((string) ($existingTaskRow['status'] ?? 'todo'));
@@ -626,7 +752,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'updated_at' => $updatedAt,
                             'updated_at_label' => (new DateTimeImmutable($updatedAt))->format('d/m H:i'),
                         ],
-                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id']),
+                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id'], $workspaceId),
                     ]);
                 }
                 if (!$isAutosave) {
@@ -636,6 +762,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'move_task':
                 $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 if ($taskId <= 0) {
                     throw new RuntimeException('Tarefa invalida.');
@@ -645,9 +775,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'SELECT status, overdue_flag, overdue_since_date
                      FROM tasks
                      WHERE id = :id
+                       AND workspace_id = :workspace_id
                      LIMIT 1'
                 );
-                $existingTaskStmt->execute([':id' => $taskId]);
+                $existingTaskStmt->execute([
+                    ':id' => $taskId,
+                    ':workspace_id' => $workspaceId,
+                ]);
                 $existingTaskRow = $existingTaskStmt->fetch();
                 if (!$existingTaskRow) {
                     throw new RuntimeException('Tarefa invalida.');
@@ -664,13 +798,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          overdue_flag = CASE WHEN :s = :done THEN 0 ELSE overdue_flag END,
                          overdue_since_date = CASE WHEN :s = :done THEN NULL ELSE overdue_since_date END,
                          updated_at = :u
-                     WHERE id = :id'
+                     WHERE id = :id
+                       AND workspace_id = :workspace_id'
                 );
                 $stmt->execute([
                     ':s' => $status,
                     ':done' => 'done',
                     ':u' => $updatedAt,
                     ':id' => $taskId,
+                    ':workspace_id' => $workspaceId,
                 ]);
 
                 $statusOptions = taskStatuses();
@@ -709,7 +845,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'ok' => true,
                         'task_id' => $taskId,
                         'status' => $status,
-                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id']),
+                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id'], $workspaceId),
                     ]);
                 }
                 flash('success', 'Status atualizado.');
@@ -717,17 +853,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'delete_task':
                 $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 if ($taskId <= 0) {
                     throw new RuntimeException('Tarefa inválida.');
                 }
-                $stmt = $pdo->prepare('DELETE FROM tasks WHERE id = :id');
-                $stmt->execute([':id' => $taskId]);
+                $stmt = $pdo->prepare(
+                    'DELETE FROM tasks
+                     WHERE id = :id
+                       AND workspace_id = :workspace_id'
+                );
+                $stmt->execute([
+                    ':id' => $taskId,
+                    ':workspace_id' => $workspaceId,
+                ]);
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,
                         'task_id' => $taskId,
-                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id']),
+                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id'], $workspaceId),
                     ]);
                 }
                 flash('success', 'Tarefa removida.');
@@ -749,24 +896,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $currentUser = currentUser();
+$currentWorkspaceId = $currentUser ? activeWorkspaceId($currentUser) : null;
+$currentWorkspace = ($currentUser && $currentWorkspaceId !== null) ? activeWorkspace($currentUser) : null;
+$userWorkspaces = $currentUser ? workspacesForUser((int) $currentUser['id']) : [];
+$canManageWorkspace = ($currentUser && $currentWorkspaceId !== null)
+    ? userCanManageWorkspace((int) $currentUser['id'], $currentWorkspaceId)
+    : false;
+$workspaceRole = normalizeWorkspaceRole((string) ($currentWorkspace['member_role'] ?? 'member'));
 $flashes = getFlashes();
 $statusOptions = taskStatuses();
 $priorityOptions = taskPriorities();
-$users = usersList();
+$users = ($currentUser && $currentWorkspaceId !== null) ? usersList($currentWorkspaceId) : [];
+$workspaceMembers = ($currentUser && $currentWorkspaceId !== null) ? workspaceMembersList($currentWorkspaceId) : [];
 $statusFilter = isset($_GET['status']) && trim((string) $_GET['status']) !== ''
     ? normalizeTaskStatus((string) $_GET['status'])
     : null;
 $assigneeFilterId = isset($_GET['assignee']) ? (int) $_GET['assignee'] : null;
 $assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilterId : null;
 
-if ($currentUser) {
-    applyOverdueTaskPolicy();
+if ($currentUser && $currentWorkspaceId !== null) {
+    applyOverdueTaskPolicy($currentWorkspaceId);
 }
 
-$allTasks = $currentUser ? allTasks() : [];
+$allTasks = ($currentUser && $currentWorkspaceId !== null) ? allTasks($currentWorkspaceId) : [];
 $tasks = $currentUser ? filterTasks($allTasks, $statusFilter, $assigneeFilterId) : [];
-$taskGroups = $currentUser ? taskGroupsList() : ['Geral'];
-$protectedGroupName = $currentUser ? defaultTaskGroupName() : 'Geral';
+$taskGroups = ($currentUser && $currentWorkspaceId !== null) ? taskGroupsList($currentWorkspaceId) : ['Geral'];
+$protectedGroupName = ($currentUser && $currentWorkspaceId !== null) ? defaultTaskGroupName($currentWorkspaceId) : 'Geral';
 if ($currentUser && $taskGroups) {
     $protectedIndex = null;
     foreach ($taskGroups as $index => $groupName) {
@@ -799,10 +954,14 @@ $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['to
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=29">
+    <link rel="stylesheet" href="assets/styles.css?v=30">
     <script src="assets/app.js?v=13" defer></script>
 </head>
-<body class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>" data-default-group-name="<?= e((string) $protectedGroupName) ?>">
+<body
+    class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"
+    data-default-group-name="<?= e((string) $protectedGroupName) ?>"
+    data-workspace-id="<?= e((string) ($currentWorkspaceId ?? '')) ?>"
+>
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
     <div class="bg-layer bg-layer-two" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>

@@ -854,7 +854,36 @@ textarea:focus {
 }
 
 .dashboard-nav {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(220px, 1fr) auto auto;
+}
+
+.workspace-top-controls {
+    display: grid;
+    grid-template-columns: minmax(160px, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.workspace-switch-form select,
+.workspace-create-form input {
+    min-height: 34px;
+    border-radius: 11px;
+    padding: 0 10px;
+    font-size: 0.8rem;
+}
+
+.workspace-create-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.workspace-create-form label {
+    min-width: 0;
+}
+
+.workspace-create-form input {
+    width: 100%;
 }
 
 .user-chip {
@@ -892,8 +921,40 @@ textarea:focus {
     padding-inline: 13px;
 }
 
-.dashboard-nav form {
+.top-nav-actions {
+    display: flex;
+    align-items: center;
     justify-self: end;
+    gap: 8px;
+}
+
+.top-nav-actions form {
+    margin: 0;
+}
+
+.workspace-role-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(238, 246, 255, 0.9);
+}
+
+.workspace-role-admin {
+    border-color: rgba(255, 166, 95, 0.45);
+    color: rgba(255, 205, 149, 0.98);
+}
+
+.workspace-role-member {
+    border-color: rgba(120, 214, 255, 0.35);
+    color: rgba(192, 234, 255, 0.92);
 }
 
 .btn-logout {
@@ -1130,6 +1191,32 @@ textarea:focus {
     font-size: 0.76rem;
     color: var(--muted);
     word-break: break-word;
+}
+
+.workspace-member-form {
+    margin: 0 0 10px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+}
+
+.workspace-member-form input {
+    min-height: 34px;
+    border-radius: 10px;
+}
+
+.workspace-member-role {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
 .team-user-settings-button {
@@ -3595,6 +3682,20 @@ textarea:focus {
         justify-self: start;
     }
 
+    .workspace-top-controls {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .workspace-create-form {
+        grid-template-columns: 1fr auto;
+        display: grid;
+    }
+
+    .top-nav-actions {
+        justify-self: start;
+    }
+
     .stats-strip,
     .dashboard-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3686,6 +3787,10 @@ textarea:focus {
     }
 
     .task-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .workspace-member-form {
         grid-template-columns: 1fr;
     }
 

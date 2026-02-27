@@ -150,6 +150,7 @@ function migrate(PDO $pdo): void
         migrateSqlite($pdo);
     }
 
+    ensureWorkspaceSchema($pdo);
     ensureTaskExtendedSchema($pdo);
     ensureTaskGroupsSchema($pdo);
     ensureTaskHistorySchema($pdo);
@@ -291,6 +292,196 @@ function migratePostgres(PDO $pdo): void
     );
 }
 
+function ensureWorkspaceSchema(PDO $pdo): void
+{
+    $driver = dbDriverName($pdo);
+
+    if ($driver === 'pgsql') {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspaces (
+                id BIGSERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                slug TEXT NOT NULL UNIQUE,
+                created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_members (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                role VARCHAR(32) NOT NULL DEFAULT \'member\',
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                UNIQUE(workspace_id, user_id)
+            )'
+        );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_workspace_members_user_workspace
+             ON workspace_members(user_id, workspace_id)'
+        );
+    } else {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspaces (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                slug TEXT NOT NULL UNIQUE,
+                created_by INTEGER DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                role TEXT NOT NULL DEFAULT \'member\',
+                created_at TEXT NOT NULL,
+                UNIQUE(workspace_id, user_id),
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )'
+        );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_workspace_members_user_workspace
+             ON workspace_members(user_id, workspace_id)'
+        );
+    }
+
+    if (!tableHasColumn($pdo, 'tasks', 'workspace_id')) {
+        if ($driver === 'pgsql') {
+            $pdo->exec('ALTER TABLE tasks ADD COLUMN workspace_id BIGINT DEFAULT NULL');
+        } else {
+            $pdo->exec('ALTER TABLE tasks ADD COLUMN workspace_id INTEGER DEFAULT NULL');
+        }
+    }
+
+    if ($driver === 'pgsql' && !pgConstraintExists($pdo, 'tasks_workspace_id_fkey')) {
+        $pdo->exec(
+            'ALTER TABLE tasks
+             ADD CONSTRAINT tasks_workspace_id_fkey
+             FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE'
+        );
+    }
+
+    if ($driver === 'sqlite' && !tableHasColumn($pdo, 'task_groups', 'workspace_id')) {
+        $pdo->exec('ALTER TABLE task_groups RENAME TO task_groups_legacy');
+        $pdo->exec(
+            'CREATE TABLE task_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER DEFAULT NULL,
+                name TEXT NOT NULL,
+                created_by INTEGER DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+        $pdo->exec(
+            'INSERT INTO task_groups (id, workspace_id, name, created_by, created_at)
+             SELECT id, NULL, name, created_by, created_at
+             FROM task_groups_legacy'
+        );
+        $pdo->exec('DROP TABLE task_groups_legacy');
+    } elseif ($driver === 'pgsql' && !tableHasColumn($pdo, 'task_groups', 'workspace_id')) {
+        $pdo->exec('ALTER TABLE task_groups ADD COLUMN workspace_id BIGINT DEFAULT NULL');
+    }
+
+    if ($driver === 'pgsql') {
+        $pdo->exec('ALTER TABLE task_groups DROP CONSTRAINT IF EXISTS task_groups_name_key');
+
+        if (!pgConstraintExists($pdo, 'task_groups_workspace_id_fkey')) {
+            $pdo->exec(
+                'ALTER TABLE task_groups
+                 ADD CONSTRAINT task_groups_workspace_id_fkey
+                 FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE'
+            );
+        }
+    }
+
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_task_groups_workspace_name_unique
+         ON task_groups(workspace_id, name)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_task_groups_workspace
+         ON task_groups(workspace_id)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_workspace
+         ON tasks(workspace_id)'
+    );
+
+    $users = $pdo->query('SELECT id, name, email FROM users ORDER BY id ASC')->fetchAll();
+    if (!$users) {
+        return;
+    }
+
+    $workspaceRow = $pdo->query(
+        'SELECT id, name, created_by
+         FROM workspaces
+         ORDER BY id ASC
+         LIMIT 1'
+    )->fetch();
+
+    $defaultWorkspaceId = (int) ($workspaceRow['id'] ?? 0);
+    $createdDefaultWorkspace = false;
+    $adminUserId = (int) ($workspaceRow['created_by'] ?? 0);
+    if ($adminUserId <= 0) {
+        $adminUserId = guessPrimaryAdminUserId($pdo) ?? (int) ($users[0]['id'] ?? 0);
+    }
+
+    if ($defaultWorkspaceId <= 0) {
+        $defaultWorkspaceId = createWorkspace($pdo, 'Formula Online', $adminUserId);
+        $createdDefaultWorkspace = $defaultWorkspaceId > 0;
+    }
+
+    if ($defaultWorkspaceId <= 0) {
+        return;
+    }
+
+    $legacyTaskCountStmt = $pdo->query('SELECT COUNT(*) FROM tasks WHERE workspace_id IS NULL');
+    $legacyTaskCount = $legacyTaskCountStmt ? (int) $legacyTaskCountStmt->fetchColumn() : 0;
+
+    $legacyGroupCountStmt = $pdo->query('SELECT COUNT(*) FROM task_groups WHERE workspace_id IS NULL');
+    $legacyGroupCount = $legacyGroupCountStmt ? (int) $legacyGroupCountStmt->fetchColumn() : 0;
+
+    $updateTasksWorkspace = $pdo->prepare(
+        'UPDATE tasks
+         SET workspace_id = :workspace_id
+         WHERE workspace_id IS NULL'
+    );
+    if ($legacyTaskCount > 0) {
+        $updateTasksWorkspace->execute([':workspace_id' => $defaultWorkspaceId]);
+    }
+
+    $updateGroupsWorkspace = $pdo->prepare(
+        'UPDATE task_groups
+         SET workspace_id = :workspace_id
+         WHERE workspace_id IS NULL'
+    );
+    if ($legacyGroupCount > 0) {
+        $updateGroupsWorkspace->execute([':workspace_id' => $defaultWorkspaceId]);
+    }
+
+    // Legacy bootstrap: when creating the first workspace or migrating orphaned data,
+    // keep existing users together in the migrated "Formula Online" space.
+    if ($createdDefaultWorkspace || $legacyTaskCount > 0 || $legacyGroupCount > 0) {
+        foreach ($users as $user) {
+            $userId = (int) ($user['id'] ?? 0);
+            if ($userId <= 0) {
+                continue;
+            }
+
+            $role = $userId === $adminUserId ? 'admin' : 'member';
+            upsertWorkspaceMember($pdo, $defaultWorkspaceId, $userId, $role);
+        }
+    }
+}
+
 function ensureTaskExtendedSchema(PDO $pdo): void
 {
     if (!tableHasColumn($pdo, 'tasks', 'group_name')) {
@@ -392,7 +583,8 @@ function ensureTaskGroupsSchema(PDO $pdo): void
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS task_groups (
                 id BIGSERIAL PRIMARY KEY,
-                name TEXT NOT NULL UNIQUE,
+                workspace_id BIGINT DEFAULT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
                 created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
                 created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
             )'
@@ -401,34 +593,78 @@ function ensureTaskGroupsSchema(PDO $pdo): void
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS task_groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
+                workspace_id INTEGER DEFAULT NULL,
+                name TEXT NOT NULL,
                 created_by INTEGER DEFAULT NULL,
                 created_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
                 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
             )'
         );
     }
 
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_task_groups_workspace_name_unique
+         ON task_groups(workspace_id, name)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_task_groups_workspace
+         ON task_groups(workspace_id)'
+    );
+
     // Keep explicit groups in sync with task rows created before this table existed.
     $rows = $pdo->query(
-        'SELECT DISTINCT group_name, MIN(created_by) AS created_by
+        'SELECT workspace_id, group_name, MIN(created_by) AS created_by
          FROM tasks
-         WHERE group_name IS NOT NULL AND group_name <> \'\'
-         GROUP BY group_name'
+         WHERE workspace_id IS NOT NULL
+           AND group_name IS NOT NULL
+           AND group_name <> \'\'
+         GROUP BY workspace_id, group_name'
     )->fetchAll();
 
     foreach ($rows as $row) {
+        $workspaceId = (int) ($row['workspace_id'] ?? 0);
+        if ($workspaceId <= 0) {
+            continue;
+        }
+
         upsertTaskGroup(
             $pdo,
             (string) ($row['group_name'] ?? 'Geral'),
-            isset($row['created_by']) ? (int) $row['created_by'] : null
+            isset($row['created_by']) ? (int) $row['created_by'] : null,
+            $workspaceId
         );
     }
 
-    $groupCountStmt = $pdo->query('SELECT COUNT(*) FROM task_groups');
-    $groupCount = $groupCountStmt ? (int) $groupCountStmt->fetchColumn() : 0;
-    if ($groupCount <= 0) {
-        upsertTaskGroup($pdo, 'Geral', null);
+    $workspaceRows = $pdo->query(
+        'SELECT id, created_by
+         FROM workspaces
+         ORDER BY id ASC'
+    )->fetchAll();
+
+    foreach ($workspaceRows as $workspaceRow) {
+        $workspaceId = (int) ($workspaceRow['id'] ?? 0);
+        if ($workspaceId <= 0) {
+            continue;
+        }
+
+        $groupCountStmt = $pdo->prepare(
+            'SELECT COUNT(*)
+             FROM task_groups
+             WHERE workspace_id = :workspace_id'
+        );
+        $groupCountStmt->execute([':workspace_id' => $workspaceId]);
+        $groupCount = (int) $groupCountStmt->fetchColumn();
+        if ($groupCount > 0) {
+            continue;
+        }
+
+        upsertTaskGroup(
+            $pdo,
+            'Geral',
+            isset($workspaceRow['created_by']) ? (int) $workspaceRow['created_by'] : null,
+            $workspaceId
+        );
     }
 }
 
@@ -461,6 +697,23 @@ function tableHasColumn(PDO $pdo, string $table, string $column): bool
     }
 
     return false;
+}
+
+function pgConstraintExists(PDO $pdo, string $constraintName): bool
+{
+    if (dbDriverName($pdo) !== 'pgsql') {
+        return false;
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT 1
+         FROM pg_constraint
+         WHERE conname = :name
+         LIMIT 1'
+    );
+    $stmt->execute([':name' => $constraintName]);
+
+    return (bool) $stmt->fetchColumn();
 }
 
 function createUser(PDO $pdo, string $name, string $email, string $passwordHash, string $createdAt): int
@@ -499,6 +752,8 @@ function loginUser(int $userId, bool $remember = true): void
 {
     $_SESSION['user_id'] = $userId;
     session_regenerate_id(true);
+    ensureUserWorkspaceAccess($userId);
+    ensureActiveWorkspaceSessionForUser($userId);
 
     if ($remember) {
         issueRememberToken($userId);
@@ -510,6 +765,7 @@ function logoutUser(): void
     revokeRememberTokenByCookie();
     clearRememberCookie();
     unset($_SESSION['user_id']);
+    unset($_SESSION['workspace_id']);
     session_regenerate_id(true);
 }
 
@@ -742,6 +998,422 @@ function verifyCsrf(): void
     }
 }
 
+function workspaceRoles(): array
+{
+    return [
+        'admin' => 'Administrador',
+        'member' => 'Usuario',
+    ];
+}
+
+function normalizeWorkspaceRole(string $value): string
+{
+    $value = trim(mb_strtolower($value));
+    return array_key_exists($value, workspaceRoles()) ? $value : 'member';
+}
+
+function normalizeWorkspaceName(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 'Formula Online';
+    }
+
+    $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+    if (mb_strlen($value) > 80) {
+        $value = mb_substr($value, 0, 80);
+    }
+
+    return uppercaseFirstCharacter($value);
+}
+
+function workspaceSlugify(string $value): string
+{
+    $raw = trim($value);
+    if ($raw === '') {
+        return 'workspace';
+    }
+
+    if (function_exists('iconv')) {
+        $translit = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $raw);
+        if (is_string($translit) && $translit !== '') {
+            $raw = $translit;
+        }
+    }
+
+    $raw = mb_strtolower($raw);
+    $slug = preg_replace('/[^a-z0-9]+/u', '-', $raw) ?? '';
+    $slug = trim($slug, '-');
+
+    if ($slug === '') {
+        return 'workspace';
+    }
+
+    return mb_substr($slug, 0, 96);
+}
+
+function workspaceSlugExists(PDO $pdo, string $slug): bool
+{
+    $stmt = $pdo->prepare('SELECT 1 FROM workspaces WHERE slug = :slug LIMIT 1');
+    $stmt->execute([':slug' => $slug]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function generateWorkspaceSlug(PDO $pdo, string $workspaceName): string
+{
+    $base = workspaceSlugify($workspaceName);
+    $slug = $base;
+    $suffix = 2;
+
+    while (workspaceSlugExists($pdo, $slug)) {
+        $slug = mb_substr($base, 0, 90) . '-' . $suffix;
+        $suffix++;
+    }
+
+    return $slug;
+}
+
+function guessPrimaryAdminUserId(PDO $pdo): ?int
+{
+    $rows = $pdo->query('SELECT id, name, email FROM users ORDER BY id ASC')->fetchAll();
+    if (!$rows) {
+        return null;
+    }
+
+    foreach ($rows as $row) {
+        $userId = (int) ($row['id'] ?? 0);
+        if ($userId <= 0) {
+            continue;
+        }
+
+        $name = mb_strtolower(trim((string) ($row['name'] ?? '')));
+        $email = mb_strtolower(trim((string) ($row['email'] ?? '')));
+        if (str_contains($name, 'bruno') || str_contains($email, 'bruno')) {
+            continue;
+        }
+
+        return $userId;
+    }
+
+    return (int) ($rows[0]['id'] ?? 0) ?: null;
+}
+
+function workspaceById(int $workspaceId): ?array
+{
+    if ($workspaceId <= 0) {
+        return null;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT id, name, slug, created_by, created_at, updated_at
+         FROM workspaces
+         WHERE id = :id
+         LIMIT 1'
+    );
+    $stmt->execute([':id' => $workspaceId]);
+    $workspace = $stmt->fetch();
+
+    return $workspace ?: null;
+}
+
+function workspaceRoleForUser(int $userId, int $workspaceId): ?string
+{
+    if ($userId <= 0 || $workspaceId <= 0) {
+        return null;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT role
+         FROM workspace_members
+         WHERE workspace_id = :workspace_id
+           AND user_id = :user_id
+         LIMIT 1'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':user_id' => $userId,
+    ]);
+    $role = $stmt->fetchColumn();
+    if (!is_string($role) || trim($role) === '') {
+        return null;
+    }
+
+    return normalizeWorkspaceRole($role);
+}
+
+function userHasWorkspaceAccess(int $userId, int $workspaceId): bool
+{
+    return workspaceRoleForUser($userId, $workspaceId) !== null;
+}
+
+function userCanManageWorkspace(int $userId, int $workspaceId): bool
+{
+    return workspaceRoleForUser($userId, $workspaceId) === 'admin';
+}
+
+function upsertWorkspaceMember(PDO $pdo, int $workspaceId, int $userId, string $role = 'member'): void
+{
+    if ($workspaceId <= 0 || $userId <= 0) {
+        return;
+    }
+
+    $normalizedRole = normalizeWorkspaceRole($role);
+
+    $existingStmt = $pdo->prepare(
+        'SELECT role
+         FROM workspace_members
+         WHERE workspace_id = :workspace_id
+           AND user_id = :user_id
+         LIMIT 1'
+    );
+    $existingStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':user_id' => $userId,
+    ]);
+    $existingRole = $existingStmt->fetchColumn();
+    if (is_string($existingRole) && trim($existingRole) !== '') {
+        $existingRole = normalizeWorkspaceRole($existingRole);
+
+        if ($existingRole === 'admin' && $normalizedRole !== 'admin') {
+            return;
+        }
+
+        if ($existingRole !== $normalizedRole) {
+            $updateStmt = $pdo->prepare(
+                'UPDATE workspace_members
+                 SET role = :role
+                 WHERE workspace_id = :workspace_id
+                   AND user_id = :user_id'
+            );
+            $updateStmt->execute([
+                ':role' => $normalizedRole,
+                ':workspace_id' => $workspaceId,
+                ':user_id' => $userId,
+            ]);
+        }
+
+        return;
+    }
+
+    $insertStmt = $pdo->prepare(
+        'INSERT INTO workspace_members (workspace_id, user_id, role, created_at)
+         VALUES (:workspace_id, :user_id, :role, :created_at)'
+    );
+    $insertStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':user_id' => $userId,
+        ':role' => $normalizedRole,
+        ':created_at' => nowIso(),
+    ]);
+}
+
+function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy): int
+{
+    $createdBy = (int) $createdBy;
+    if ($createdBy <= 0) {
+        throw new RuntimeException('Criador do workspace invalido.');
+    }
+
+    $name = normalizeWorkspaceName($workspaceName);
+    $slug = generateWorkspaceSlug($pdo, $name);
+    $now = nowIso();
+
+    if (dbDriverName($pdo) === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO workspaces (name, slug, created_by, created_at, updated_at)
+             VALUES (:name, :slug, :created_by, :created_at, :updated_at)
+             RETURNING id'
+        );
+        $stmt->execute([
+            ':name' => $name,
+            ':slug' => $slug,
+            ':created_by' => $createdBy,
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+        $workspaceId = (int) $stmt->fetchColumn();
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT INTO workspaces (name, slug, created_by, created_at, updated_at)
+             VALUES (:name, :slug, :created_by, :created_at, :updated_at)'
+        );
+        $stmt->execute([
+            ':name' => $name,
+            ':slug' => $slug,
+            ':created_by' => $createdBy,
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+        $workspaceId = (int) $pdo->lastInsertId();
+    }
+
+    upsertWorkspaceMember($pdo, $workspaceId, $createdBy, 'admin');
+    upsertTaskGroup($pdo, 'Geral', $createdBy, $workspaceId);
+
+    return $workspaceId;
+}
+
+function workspacesForUser(int $userId): array
+{
+    if ($userId <= 0) {
+        return [];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT
+             w.id,
+             w.name,
+             w.slug,
+             w.created_by,
+             w.created_at,
+             w.updated_at,
+             wm.role AS member_role
+         FROM workspaces w
+         INNER JOIN workspace_members wm ON wm.workspace_id = w.id
+         WHERE wm.user_id = :user_id
+         ORDER BY w.created_at ASC, w.id ASC'
+    );
+    $stmt->execute([':user_id' => $userId]);
+    $rows = $stmt->fetchAll();
+
+    foreach ($rows as &$row) {
+        $row['member_role'] = normalizeWorkspaceRole((string) ($row['member_role'] ?? 'member'));
+    }
+    unset($row);
+
+    return $rows;
+}
+
+function workspaceMembersList(int $workspaceId): array
+{
+    if ($workspaceId <= 0) {
+        return [];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT
+             u.id,
+             u.name,
+             u.email,
+             wm.role AS workspace_role
+         FROM workspace_members wm
+         INNER JOIN users u ON u.id = wm.user_id
+         WHERE wm.workspace_id = :workspace_id
+         ORDER BY
+             CASE wm.role WHEN \'admin\' THEN 1 ELSE 2 END,
+             u.name ASC'
+    );
+    $stmt->execute([':workspace_id' => $workspaceId]);
+    $members = $stmt->fetchAll();
+
+    foreach ($members as &$member) {
+        $member['workspace_role'] = normalizeWorkspaceRole((string) ($member['workspace_role'] ?? 'member'));
+    }
+    unset($member);
+
+    return $members;
+}
+
+function setActiveWorkspaceId(?int $workspaceId): void
+{
+    if ($workspaceId !== null && $workspaceId > 0) {
+        $_SESSION['workspace_id'] = $workspaceId;
+        return;
+    }
+
+    unset($_SESSION['workspace_id']);
+}
+
+function ensureUserWorkspaceAccess(int $userId): void
+{
+    if ($userId <= 0) {
+        return;
+    }
+
+    $workspaceCountStmt = db()->prepare(
+        'SELECT COUNT(*)
+         FROM workspace_members
+         WHERE user_id = :user_id'
+    );
+    $workspaceCountStmt->execute([':user_id' => $userId]);
+    $workspaceCount = (int) $workspaceCountStmt->fetchColumn();
+    if ($workspaceCount > 0) {
+        return;
+    }
+
+    $userStmt = db()->prepare('SELECT name FROM users WHERE id = :id LIMIT 1');
+    $userStmt->execute([':id' => $userId]);
+    $userRow = $userStmt->fetch();
+    $userName = trim((string) ($userRow['name'] ?? ''));
+    $workspaceName = $userName !== '' ? ('Espaco de ' . $userName) : 'Formula Online';
+    $workspaceId = createWorkspace(db(), $workspaceName, $userId);
+    if ($workspaceId > 0) {
+        setActiveWorkspaceId($workspaceId);
+    }
+}
+
+function ensureActiveWorkspaceSessionForUser(int $userId): void
+{
+    if ($userId <= 0) {
+        setActiveWorkspaceId(null);
+        return;
+    }
+
+    $sessionWorkspaceId = (int) ($_SESSION['workspace_id'] ?? 0);
+    if ($sessionWorkspaceId > 0 && userHasWorkspaceAccess($userId, $sessionWorkspaceId)) {
+        return;
+    }
+
+    $workspaces = workspacesForUser($userId);
+    if (!$workspaces) {
+        setActiveWorkspaceId(null);
+        return;
+    }
+
+    setActiveWorkspaceId((int) ($workspaces[0]['id'] ?? 0));
+}
+
+function activeWorkspaceId(?array $user = null): ?int
+{
+    $user ??= currentUser();
+    if (!$user) {
+        return null;
+    }
+
+    $userId = (int) ($user['id'] ?? 0);
+    if ($userId <= 0) {
+        return null;
+    }
+
+    ensureUserWorkspaceAccess($userId);
+    ensureActiveWorkspaceSessionForUser($userId);
+
+    $workspaceId = (int) ($_SESSION['workspace_id'] ?? 0);
+    return $workspaceId > 0 ? $workspaceId : null;
+}
+
+function activeWorkspace(?array $user = null): ?array
+{
+    $workspaceId = activeWorkspaceId($user);
+    if ($workspaceId === null) {
+        return null;
+    }
+
+    $workspace = workspaceById($workspaceId);
+    if (!$workspace) {
+        return null;
+    }
+
+    $user ??= currentUser();
+    if ($user) {
+        $workspace['member_role'] = workspaceRoleForUser((int) ($user['id'] ?? 0), $workspaceId) ?? 'member';
+    } else {
+        $workspace['member_role'] = 'member';
+    }
+
+    return $workspace;
+}
+
 function currentUser(): ?array
 {
     if (empty($_SESSION['user_id'])) {
@@ -762,6 +1434,9 @@ function currentUser(): ?array
         return null;
     }
 
+    ensureUserWorkspaceAccess((int) $user['id']);
+    ensureActiveWorkspaceSessionForUser((int) $user['id']);
+
     return $user;
 }
 
@@ -776,15 +1451,27 @@ function requireAuth(): array
     return $user;
 }
 
-function usersList(): array
+function usersList(?int $workspaceId = null): array
 {
-    return db()->query('SELECT id, name, email FROM users ORDER BY name ASC')->fetchAll();
+    if ($workspaceId === null) {
+        return db()->query('SELECT id, name, email FROM users ORDER BY name ASC')->fetchAll();
+    }
+
+    $stmt = db()->prepare(
+        'SELECT u.id, u.name, u.email
+         FROM workspace_members wm
+         INNER JOIN users u ON u.id = wm.user_id
+         WHERE wm.workspace_id = :workspace_id
+         ORDER BY u.name ASC'
+    );
+    $stmt->execute([':workspace_id' => $workspaceId]);
+    return $stmt->fetchAll();
 }
 
-function usersMapById(): array
+function usersMapById(?int $workspaceId = null): array
 {
     $map = [];
-    foreach (usersList() as $user) {
+    foreach (usersList($workspaceId) as $user) {
         $map[(int) $user['id']] = $user;
     }
 
@@ -1085,20 +1772,26 @@ function taskHistoryByTaskIds(array $taskIds, int $limitPerTask = 80): array
     return $grouped;
 }
 
-function applyOverdueTaskPolicy(): int
+function applyOverdueTaskPolicy(?int $workspaceId = null): int
 {
     $pdo = db();
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return 0;
+    }
     $today = (new DateTimeImmutable('today'))->format('Y-m-d');
     $updatedAt = nowIso();
 
     $select = $pdo->prepare(
         'SELECT id, due_date, overdue_flag, overdue_since_date
          FROM tasks
-         WHERE status <> :done
+         WHERE workspace_id = :workspace_id
+           AND status <> :done
            AND COALESCE(NULLIF(CAST(due_date AS TEXT), \'\'), \'\') <> \'\'
            AND CAST(due_date AS TEXT) < :today'
     );
     $select->execute([
+        ':workspace_id' => $workspaceId,
         ':done' => 'done',
         ':today' => $today,
     ]);
@@ -1115,7 +1808,8 @@ function applyOverdueTaskPolicy(): int
              overdue_flag = 1,
              overdue_since_date = :overdue_since_date,
              updated_at = :updated_at
-         WHERE id = :id'
+         WHERE id = :id
+           AND workspace_id = :workspace_id'
     );
 
     $changed = 0;
@@ -1138,6 +1832,7 @@ function applyOverdueTaskPolicy(): int
             ':overdue_since_date' => $overdueSinceDate,
             ':updated_at' => $updatedAt,
             ':id' => $taskId,
+            ':workspace_id' => $workspaceId,
         ]);
 
         $changed += $update->rowCount();
@@ -1356,11 +2051,16 @@ function decodeReferenceImageList($value): array
     return normalizeReferenceImageList($value);
 }
 
-function findTaskGroupByName(string $groupName): ?string
+function findTaskGroupByName(string $groupName, ?int $workspaceId = null): ?string
 {
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return null;
+    }
+
     $needle = mb_strtolower(normalizeTaskGroupName($groupName));
 
-    foreach (taskGroupsList() as $existingName) {
+    foreach (taskGroupsList($workspaceId) as $existingName) {
         if (mb_strtolower($existingName) === $needle) {
             return $existingName;
         }
@@ -1369,58 +2069,80 @@ function findTaskGroupByName(string $groupName): ?string
     return null;
 }
 
-function defaultTaskGroupName(): string
+function defaultTaskGroupName(?int $workspaceId = null): string
 {
     $pdo = db();
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return 'Geral';
+    }
 
-    $row = $pdo->query('SELECT name FROM task_groups ORDER BY id ASC LIMIT 1')->fetch();
+    $rowStmt = $pdo->prepare(
+        'SELECT name
+         FROM task_groups
+         WHERE workspace_id = :workspace_id
+         ORDER BY id ASC
+         LIMIT 1'
+    );
+    $rowStmt->execute([':workspace_id' => $workspaceId]);
+    $row = $rowStmt->fetch();
     $groupName = trim((string) ($row['name'] ?? ''));
     if ($groupName !== '') {
         return normalizeTaskGroupName($groupName);
     }
 
-    $taskRow = $pdo->query(
+    $taskStmt = $pdo->prepare(
         "SELECT group_name
          FROM tasks
-         WHERE group_name IS NOT NULL AND group_name <> ''
+         WHERE workspace_id = :workspace_id
+           AND group_name IS NOT NULL
+           AND group_name <> ''
          ORDER BY id ASC
          LIMIT 1"
-    )->fetch();
+    );
+    $taskStmt->execute([':workspace_id' => $workspaceId]);
+    $taskRow = $taskStmt->fetch();
     $taskGroupName = trim((string) ($taskRow['group_name'] ?? ''));
     if ($taskGroupName !== '') {
         $normalized = normalizeTaskGroupName($taskGroupName);
-        upsertTaskGroup($pdo, $normalized, null);
+        upsertTaskGroup($pdo, $normalized, null, $workspaceId);
         return $normalized;
     }
 
-    upsertTaskGroup($pdo, 'Geral', null);
+    upsertTaskGroup($pdo, 'Geral', null, $workspaceId);
     return 'Geral';
 }
 
-function isProtectedTaskGroupName(string $groupName): bool
+function isProtectedTaskGroupName(string $groupName, ?int $workspaceId = null): bool
 {
-    return mb_strtolower(normalizeTaskGroupName($groupName)) === mb_strtolower(defaultTaskGroupName());
+    return mb_strtolower(normalizeTaskGroupName($groupName)) === mb_strtolower(defaultTaskGroupName($workspaceId));
 }
 
-function upsertTaskGroup(PDO $pdo, string $groupName, ?int $createdBy = null): string
+function upsertTaskGroup(PDO $pdo, string $groupName, ?int $createdBy = null, ?int $workspaceId = null): string
 {
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        throw new RuntimeException('Workspace ativo nao encontrado para salvar grupo.');
+    }
+
     $normalizedName = normalizeTaskGroupName($groupName);
     $now = nowIso();
     $driver = dbDriverName($pdo);
 
     if ($driver === 'pgsql') {
         $stmt = $pdo->prepare(
-            'INSERT INTO task_groups (name, created_by, created_at)
-             VALUES (:name, :created_by, :created_at)
-             ON CONFLICT (name) DO NOTHING'
+            'INSERT INTO task_groups (workspace_id, name, created_by, created_at)
+             VALUES (:workspace_id, :name, :created_by, :created_at)
+             ON CONFLICT (workspace_id, name) DO NOTHING'
         );
     } else {
         $stmt = $pdo->prepare(
-            'INSERT OR IGNORE INTO task_groups (name, created_by, created_at)
-             VALUES (:name, :created_by, :created_at)'
+            'INSERT OR IGNORE INTO task_groups (workspace_id, name, created_by, created_at)
+             VALUES (:workspace_id, :name, :created_by, :created_at)'
         );
     }
 
+    $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
     $stmt->bindValue(':name', $normalizedName, PDO::PARAM_STR);
     if ($createdBy !== null && $createdBy > 0) {
         $stmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
@@ -1433,18 +2155,39 @@ function upsertTaskGroup(PDO $pdo, string $groupName, ?int $createdBy = null): s
     return $normalizedName;
 }
 
-function taskGroupsList(): array
+function taskGroupsList(?int $workspaceId = null): array
 {
     $pdo = db();
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return ['Geral'];
+    }
+
     $groups = [];
 
-    $storedRows = $pdo->query('SELECT name FROM task_groups ORDER BY name ASC')->fetchAll();
+    $storedStmt = $pdo->prepare(
+        'SELECT name
+         FROM task_groups
+         WHERE workspace_id = :workspace_id
+         ORDER BY name ASC'
+    );
+    $storedStmt->execute([':workspace_id' => $workspaceId]);
+    $storedRows = $storedStmt->fetchAll();
     foreach ($storedRows as $row) {
         $groupName = normalizeTaskGroupName((string) ($row['name'] ?? 'Geral'));
         $groups[$groupName] = $groupName;
     }
 
-    $rows = $pdo->query('SELECT DISTINCT group_name FROM tasks WHERE group_name IS NOT NULL AND group_name <> \'\' ORDER BY group_name ASC')->fetchAll();
+    $rowsStmt = $pdo->prepare(
+        'SELECT DISTINCT group_name
+         FROM tasks
+         WHERE workspace_id = :workspace_id
+           AND group_name IS NOT NULL
+           AND group_name <> \'\'
+         ORDER BY group_name ASC'
+    );
+    $rowsStmt->execute([':workspace_id' => $workspaceId]);
+    $rows = $rowsStmt->fetchAll();
 
     foreach ($rows as $row) {
         $groupName = normalizeTaskGroupName((string) ($row['group_name'] ?? 'Geral'));
@@ -1460,14 +2203,20 @@ function taskGroupsList(): array
     return array_values($values);
 }
 
-function allTasks(): array
+function allTasks(?int $workspaceId = null): array
 {
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return [];
+    }
+
     $sql = 'SELECT
                 t.*,
                 creator.name AS creator_name,
                 creator.email AS creator_email
             FROM tasks t
             INNER JOIN users creator ON creator.id = t.created_by
+            WHERE t.workspace_id = :workspace_id
             ORDER BY
                 t.group_name ASC,
                 CASE t.status
@@ -1489,8 +2238,10 @@ function allTasks(): array
                 t.updated_at DESC';
 
     $pdo = db();
-    $tasks = $pdo->query($sql)->fetchAll();
-    $usersById = usersMapById();
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':workspace_id' => $workspaceId]);
+    $tasks = $stmt->fetchAll();
+    $usersById = usersMapById($workspaceId);
     $historyByTaskId = taskHistoryByTaskIds(array_map(static fn ($task) => (int) ($task['id'] ?? 0), $tasks));
 
     foreach ($tasks as &$task) {
