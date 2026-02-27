@@ -124,8 +124,6 @@ if ($currentWorkspaceId === null) {
 }
 
 $currentWorkspace = activeWorkspace($currentUser);
-$userWorkspaces = workspacesForUser((int) $currentUser['id']);
-$workspaceRole = normalizeWorkspaceRole((string) ($currentWorkspace['member_role'] ?? 'member'));
 $canManageWorkspace = userCanManageWorkspace((int) $currentUser['id'], $currentWorkspaceId);
 $workspaceMembers = workspaceMembersList($currentWorkspaceId);
 $flashes = getFlashes();
@@ -141,7 +139,7 @@ $flashes = getFlashes();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=34">
+    <link rel="stylesheet" href="assets/styles.css?v=37">
 </head>
 <body class="is-dashboard is-workspace-settings" data-workspace-id="<?= e((string) $currentWorkspaceId) ?>">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
@@ -165,34 +163,6 @@ $flashes = getFlashes();
                 <img src="assets/WorkForm - Logo (Negativa).svg?v=1" alt="WorkForm" class="brand-lockup" width="116" height="29">
             </a>
 
-            <div class="workspace-top-controls">
-                <form method="post" class="workspace-switch-form">
-                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                    <input type="hidden" name="action" value="switch_workspace">
-                    <label>
-                        <span class="sr-only">Workspace ativo</span>
-                        <select name="workspace_id" onchange="this.form.submit()">
-                            <?php foreach ($userWorkspaces as $workspaceOption): ?>
-                                <?php $workspaceOptionId = (int) ($workspaceOption['id'] ?? 0); ?>
-                                <option value="<?= e((string) $workspaceOptionId) ?>"<?= $currentWorkspaceId === $workspaceOptionId ? ' selected' : '' ?>>
-                                    <?= e((string) ($workspaceOption['name'] ?? 'Workspace')) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                </form>
-
-                <form method="post" class="workspace-create-form">
-                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                    <input type="hidden" name="action" value="create_workspace">
-                    <label>
-                        <span class="sr-only">Novo workspace</span>
-                        <input type="text" name="workspace_name" maxlength="80" placeholder="Novo workspace" required>
-                    </label>
-                    <button type="submit" class="btn btn-mini btn-ghost">Criar</button>
-                </form>
-            </div>
-
             <div class="user-chip">
                 <div class="avatar" aria-hidden="true"><?= e(strtoupper(substr((string) $currentUser['name'], 0, 1))) ?></div>
                 <div>
@@ -201,10 +171,16 @@ $flashes = getFlashes();
                 </div>
             </div>
             <div class="top-nav-actions">
-                <span class="workspace-role-badge workspace-role-<?= e((string) $workspaceRole) ?>">
-                    <?= e((string) (workspaceRoles()[$workspaceRole] ?? 'Usuario')) ?>
-                </span>
-                <a href="index.php#tasks" class="btn btn-mini btn-ghost workspace-settings-back">Voltar</a>
+                <a
+                    href="account-settings.php"
+                    class="icon-gear-button top-account-settings-button"
+                    aria-label="Configuracoes da conta"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
+                        <circle cx="12" cy="12" r="3.2"></circle>
+                    </svg>
+                </a>
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                     <input type="hidden" name="action" value="logout">

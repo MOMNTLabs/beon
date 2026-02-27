@@ -329,7 +329,7 @@ select optgroup {
 }
 
 .is-dashboard .dashboard-compact {
-    gap: 10px;
+    gap: 14px;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -828,6 +828,8 @@ select optgroup {
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    letter-spacing: -0.01em;
     text-shadow: 0 0 16px rgba(145, 203, 255, 0.18);
 }
 
@@ -965,7 +967,12 @@ textarea:focus {
 }
 
 .dashboard-nav {
-    grid-template-columns: auto minmax(220px, 1fr) auto auto;
+    grid-template-columns: auto 1fr auto;
+    padding: 8px 20px;
+}
+
+.dashboard-nav .brand {
+    padding-left: 6px;
 }
 
 .workspace-top-controls {
@@ -1331,15 +1338,22 @@ textarea:focus {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 24px;
+    min-height: 20px;
     padding: 0 10px;
     margin-top: 1px;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.04);
-    font-size: 0.68rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 0.62rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
+}
+
+.team-list .workspace-role-admin,
+.team-list .workspace-role-member {
+    color: rgba(244, 247, 255, 0.44);
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .team-user-settings-button {
@@ -1366,13 +1380,14 @@ textarea:focus {
 
 .workspace-settings-page {
     display: grid;
-    gap: 12px;
+    gap: 16px;
+    margin-top: 8px;
 }
 
 .workspace-settings-panel {
-    padding: 14px;
+    padding: 18px;
     display: grid;
-    gap: 12px;
+    gap: 16px;
 }
 
 .workspace-settings-header p {
@@ -1384,16 +1399,16 @@ textarea:focus {
 .workspace-settings-grid {
     display: grid;
     grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.25fr);
-    gap: 12px;
+    gap: 16px;
 }
 
 .workspace-settings-card {
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(8, 22, 44, 0.56);
-    padding: 12px;
+    padding: 16px;
     display: grid;
-    gap: 10px;
+    gap: 12px;
     align-content: start;
 }
 
@@ -1436,7 +1451,7 @@ textarea:focus {
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 8px;
+    gap: 12px;
 }
 
 .workspace-settings-member-item {

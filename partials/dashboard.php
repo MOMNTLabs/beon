@@ -82,15 +82,6 @@
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                             </div>
-                            <form method="post" class="workspace-sidebar-create-form">
-                                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                                <input type="hidden" name="action" value="create_workspace">
-                                <label>
-                                    <span class="sr-only">Novo workspace</span>
-                                    <input type="text" name="workspace_name" maxlength="80" placeholder="Novo workspace" required>
-                                </label>
-                                <button type="submit" class="btn btn-mini btn-ghost">Criar</button>
-                            </form>
                         </div>
                     </details>
                     <p>Equipe do workspace</p>
