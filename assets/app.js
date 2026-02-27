@@ -108,6 +108,48 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const forceFirstLetterUppercase = (value) => {
+    const raw = String(value || "");
+    if (!raw) return raw;
+
+    const match = raw.match(/^(\s*)([\s\S]*)$/u);
+    if (!match) return raw;
+
+    const leading = match[1] || "";
+    const content = match[2] || "";
+    if (!content) return raw;
+
+    const chars = Array.from(content);
+    if (!chars.length) return raw;
+
+    chars[0] = chars[0].toLocaleUpperCase("pt-BR");
+    return `${leading}${chars.join("")}`;
+  };
+
+  const applyFirstLetterUppercaseToInput = (field) => {
+    if (!(field instanceof HTMLInputElement)) return false;
+    const currentValue = String(field.value || "");
+    const normalizedValue = forceFirstLetterUppercase(currentValue);
+    if (normalizedValue === currentValue) return false;
+
+    const selectionStart = Number.isFinite(field.selectionStart) ? field.selectionStart : null;
+    const selectionEnd = Number.isFinite(field.selectionEnd) ? field.selectionEnd : null;
+    field.value = normalizedValue;
+    if (selectionStart !== null && selectionEnd !== null) {
+      field.setSelectionRange(selectionStart, selectionEnd);
+    }
+
+    return true;
+  };
+
+  const uppercaseRequiredInputSelector = [
+    ".task-title-input",
+    "[data-create-task-title-input]",
+    "[data-task-detail-edit-title]",
+    "[data-group-name-input]",
+    "[data-create-group-name-input]",
+  ].join(", ");
+
   const getTaskItemStatusValue = (taskItem) => {
     if (!(taskItem instanceof HTMLElement)) return "";
     const select = taskItem.querySelector("select.status-select");
@@ -372,6 +414,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
   document.addEventListener("input", (event) => {
     const target = event.target;
+    if (target instanceof HTMLInputElement && target.matches(uppercaseRequiredInputSelector)) {
+      applyFirstLetterUppercaseToInput(target);
+    }
     if (
       target instanceof HTMLElement &&
       target.matches("[data-task-detail-edit-description-editor]")
@@ -1148,25 +1193,26 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const taskHistoryMessage = (eventType, payload = {}) => {
+    const transitionSymbol = "➜";
     switch (String(eventType || "").trim()) {
       case "created":
         return "Tarefa criada";
       case "title_changed":
         return "Titulo atualizado";
       case "status_changed":
-        return `Status: ${payload.old_label || payload.old || "-"} -> ${
+        return `Status: ${payload.old_label || payload.old || "-"} ${transitionSymbol} ${
           payload.new_label || payload.new || "-"
         }`;
       case "priority_changed":
-        return `Prioridade: ${payload.old_label || payload.old || "-"} -> ${
+        return `Prioridade: ${payload.old_label || payload.old || "-"} ${transitionSymbol} ${
           payload.new_label || payload.new || "-"
         }`;
       case "due_date_changed":
-        return `Prazo: ${formatHistoryDate(payload.old || "")} -> ${formatHistoryDate(
+        return `Prazo: ${formatHistoryDate(payload.old || "")} ${transitionSymbol} ${formatHistoryDate(
           payload.new || ""
         )}`;
       case "group_changed":
-        return `Grupo: ${payload.old || "-"} -> ${payload.new || "-"}`;
+        return `Grupo: ${payload.old || "-"} ${transitionSymbol} ${payload.new || "-"}`;
       case "assignees_changed":
         return "Responsaveis atualizados";
       case "overdue_started":
@@ -1725,6 +1771,10 @@ window.addEventListener("DOMContentLoaded", () => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
+    if (target instanceof HTMLInputElement && target.matches(uppercaseRequiredInputSelector)) {
+      applyFirstLetterUppercaseToInput(target);
+    }
+
     if (target.matches("[data-group-name-input]")) {
       const renameForm = target.closest("[data-group-rename-form]");
       if (renameForm instanceof HTMLFormElement) {
@@ -1960,9 +2010,17 @@ window.addEventListener("DOMContentLoaded", () => {
       const wrap = getInlineSelectWrap(inlineSelectOption);
       const details = inlineSelectOption.closest("[data-inline-select-picker]");
       const select = wrap?.querySelector("select[data-inline-select-source]");
-      const nextValue = (inlineSelectOption.dataset.value || "").trim();
+      const hasValueAttr = Object.prototype.hasOwnProperty.call(
+        inlineSelectOption.dataset,
+        "value"
+      );
+      const nextValue = (inlineSelectOption.dataset.value ?? "").trim();
 
-      if (!(select instanceof HTMLSelectElement) || !nextValue) {
+      if (!(select instanceof HTMLSelectElement) || !hasValueAttr) {
+        return;
+      }
+
+      if (!Array.from(select.options).some((option) => option.value === nextValue)) {
         return;
       }
 
@@ -1975,6 +2033,11 @@ window.addEventListener("DOMContentLoaded", () => {
       }
 
       if (changed) {
+        const filterForm = select.closest("[data-task-filter-form]");
+        if (filterForm instanceof HTMLFormElement) {
+          applyTaskFilterForm(filterForm);
+          return;
+        }
         select.dispatchEvent(new Event("change", { bubbles: true }));
       }
       return;
@@ -2700,6 +2763,7 @@ window.addEventListener("DOMContentLoaded", () => {
       return false;
     }
 
+    applyFirstLetterUppercaseToInput(taskDetailEditTitle);
     syncTaskDetailDescriptionTextareaFromEditor();
 
     context.titleInput.value = taskDetailEditTitle.value;
@@ -2990,6 +3054,7 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    applyFirstLetterUppercaseToInput(nameInput);
     const previousName = (oldNameField.value || "").trim() || "Grupo";
     const requestedName = (nameInput.value || "").trim();
     if (!requestedName) {
@@ -3390,32 +3455,51 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (createTaskForm) {
     createTaskForm.addEventListener("submit", () => {
+      if (createTaskTitleInput instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(createTaskTitleInput);
+      }
       syncBodyModalLock();
     });
   }
 
+  const applyTaskFilterForm = (form) => {
+    if (!(form instanceof HTMLFormElement)) return;
+    const params = new URLSearchParams();
+    const statusField = form.querySelector('select[name="status"]');
+    const assigneeField = form.querySelector('select[name="assignee"]');
+
+    if (statusField instanceof HTMLSelectElement && (statusField.value || "").trim() !== "") {
+      params.set("status", statusField.value.trim());
+    }
+    if (assigneeField instanceof HTMLSelectElement && (assigneeField.value || "").trim() !== "") {
+      params.set("assignee", assigneeField.value.trim());
+    }
+
+    const query = params.toString();
+    const target = query ? `index.php?${query}#tasks` : "index.php#tasks";
+    window.location.assign(target);
+  };
+
   if (taskFilterForm instanceof HTMLFormElement) {
     taskFilterForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      const params = new URLSearchParams();
-      const statusField = taskFilterForm.querySelector('select[name="status"]');
-      const assigneeField = taskFilterForm.querySelector('select[name="assignee"]');
+      applyTaskFilterForm(taskFilterForm);
+    });
 
-      if (statusField instanceof HTMLSelectElement && (statusField.value || "").trim() !== "") {
-        params.set("status", statusField.value.trim());
-      }
-      if (assigneeField instanceof HTMLSelectElement && (assigneeField.value || "").trim() !== "") {
-        params.set("assignee", assigneeField.value.trim());
-      }
-
-      const query = params.toString();
-      const target = query ? `index.php?${query}#tasks` : "index.php#tasks";
-      window.location.assign(target);
+    taskFilterForm.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const select = target.closest('select[name="status"], select[name="assignee"]');
+      if (!(select instanceof HTMLSelectElement)) return;
+      applyTaskFilterForm(taskFilterForm);
     });
   }
 
   if (createGroupForm) {
     createGroupForm.addEventListener("submit", () => {
+      if (createGroupNameInput instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(createGroupNameInput);
+      }
       syncBodyModalLock();
     });
   }

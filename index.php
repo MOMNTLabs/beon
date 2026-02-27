@@ -297,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $isAutosave = $action === 'update_task' && (string) ($_POST['autosave'] ?? '') === '1';
                 $usersById = usersMapById();
                 $taskId = (int) ($_POST['task_id'] ?? 0);
-                $title = trim((string) ($_POST['title'] ?? ''));
+                $title = normalizeTaskTitle((string) ($_POST['title'] ?? ''));
                 $description = trim((string) ($_POST['description'] ?? ''));
                 $referenceLinksPosted = array_key_exists('reference_links_json', $_POST);
                 $referenceImagesPosted = array_key_exists('reference_images_json', $_POST);
@@ -497,7 +497,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $existingStatus = normalizeTaskStatus((string) ($existingTaskRow['status'] ?? 'todo'));
                 $existingPriority = normalizeTaskPriority((string) ($existingTaskRow['priority'] ?? 'medium'));
-                $existingTitle = trim((string) ($existingTaskRow['title'] ?? ''));
+                $existingTitle = normalizeTaskTitle((string) ($existingTaskRow['title'] ?? ''));
                 $existingDueDate = dueDateForStorage((string) ($existingTaskRow['due_date'] ?? ''));
                 $existingGroup = normalizeTaskGroupName((string) ($existingTaskRow['group_name'] ?? 'Geral'));
                 $existingOverdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;

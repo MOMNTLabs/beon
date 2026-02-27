@@ -821,6 +821,38 @@ function normalizeTaskPriority(string $value): string
     return array_key_exists($value, taskPriorities()) ? $value : 'medium';
 }
 
+function uppercaseFirstCharacter(string $value): string
+{
+    if ($value === '') {
+        return '';
+    }
+
+    if (preg_match('/^(\s*)(.+)$/us', $value, $parts) !== 1) {
+        return $value;
+    }
+
+    $leading = (string) ($parts[1] ?? '');
+    $content = (string) ($parts[2] ?? '');
+    if ($content === '') {
+        return $value;
+    }
+
+    $first = mb_substr($content, 0, 1);
+    $rest = mb_substr($content, 1);
+
+    return $leading . mb_strtoupper($first) . $rest;
+}
+
+function normalizeTaskTitle(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+
+    return uppercaseFirstCharacter($value);
+}
+
 function dueDateForStorage(?string $value): ?string
 {
     $value = trim((string) $value);
@@ -1142,7 +1174,7 @@ function normalizeTaskGroupName(string $value): string
         $value = mb_substr($value, 0, 60);
     }
 
-    return $value;
+    return uppercaseFirstCharacter($value);
 }
 
 function normalizeAssigneeIds(array $values, ?array $usersById = null): array
@@ -1462,6 +1494,7 @@ function allTasks(): array
     $historyByTaskId = taskHistoryByTaskIds(array_map(static fn ($task) => (int) ($task['id'] ?? 0), $tasks));
 
     foreach ($tasks as &$task) {
+        $task['title'] = normalizeTaskTitle((string) ($task['title'] ?? ''));
         $task['status'] = normalizeTaskStatus((string) ($task['status'] ?? 'todo'));
         $task['priority'] = normalizeTaskPriority((string) ($task['priority'] ?? 'medium'));
         $task['due_date'] = dueDateForStorage((string) ($task['due_date'] ?? ''));

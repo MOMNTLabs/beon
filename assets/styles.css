@@ -1541,7 +1541,7 @@ textarea:focus {
 
 .task-filters {
     display: grid;
-    grid-template-columns: minmax(180px, 220px) minmax(200px, 240px) auto auto;
+    grid-template-columns: minmax(180px, 220px) minmax(200px, 240px) auto;
     gap: 8px;
     align-items: end;
     margin-bottom: 14px;
@@ -3618,7 +3618,7 @@ textarea:focus {
 
     .task-filters-create {
         grid-column: 3;
-        grid-row: 2;
+        grid-row: 1;
     }
 
     .task-line-row {

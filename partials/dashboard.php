@@ -207,11 +207,6 @@
                     </div>
                 </label>
 
-                <div class="task-filters-actions">
-                    <button type="submit" class="btn btn-mini" data-task-filter-submit>Filtrar</button>
-                    <a href="index.php#tasks" class="btn btn-mini btn-ghost">Limpar</a>
-                </div>
-
                 <div class="task-filters-create">
                     <button
                         type="button"
