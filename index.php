@@ -324,6 +324,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'Item salvo no cofre.');
                 redirectTo('index.php#vault');
 
+            case 'rename_vault_entry_label':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $entryId = (int) ($_POST['entry_id'] ?? 0);
+                $label = (string) ($_POST['label'] ?? '');
+                updateWorkspaceVaultEntryLabel($pdo, $workspaceId, $entryId, $label);
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'entry_id' => $entryId,
+                        'label' => normalizeVaultEntryLabel($label),
+                    ]);
+                }
+
+                flash('success', 'Nome do acesso atualizado.');
+                redirectTo('index.php#vault');
+
             case 'update_vault_entry':
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
@@ -1156,8 +1178,8 @@ $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['to
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=39">
-    <script src="assets/app.js?v=15" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=40">
+    <script src="assets/app.js?v=16" defer></script>
 </head>
 <body
     class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"

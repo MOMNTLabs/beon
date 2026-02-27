@@ -1985,79 +1985,19 @@ textarea:focus {
     padding-bottom: 6px;
 }
 
-.vault-header p {
-    margin: 4px 0 0;
-    color: rgba(236, 242, 255, 0.58);
-    font-size: 0.78rem;
+.vault-summary {
+    align-items: center;
 }
 
-.vault-toolbar {
-    display: grid;
-    gap: 8px;
-    margin-bottom: 10px;
+.vault-summary-button {
+    width: 32px;
+    height: 32px;
 }
 
-.vault-group-create-form {
-    display: grid;
-    grid-template-columns: minmax(220px, 340px) auto;
-    gap: 8px;
-    padding: 8px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.vault-group-create-form input {
-    min-height: 34px;
-    border-radius: 11px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(6, 10, 22, 0.86);
-    color: var(--text);
-    padding: 8px 10px;
-    font-size: 0.84rem;
-}
-
-.vault-create-form {
-    display: grid;
-    grid-template-columns: minmax(140px, 190px) minmax(150px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) auto;
-    gap: 8px;
-    padding: 8px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.02);
-    align-items: end;
-}
-
-.vault-create-form label,
-.vault-row-form label {
-    display: grid;
-    gap: 5px;
-}
-
-.vault-create-form label > span,
-.vault-row-form label > span {
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.58);
-}
-
-.vault-create-form input,
-.vault-create-form select,
-.vault-row-form input,
-.vault-row-form select {
-    min-height: 34px;
-    border-radius: 11px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(6, 10, 22, 0.86);
-    color: var(--text);
-    padding: 8px 10px;
-    font-size: 0.84rem;
-}
-
-.vault-create-actions {
-    display: flex;
-    justify-content: flex-end;
+.vault-summary-button span {
+    font-size: 1.06rem;
+    line-height: 1;
+    transform: translateY(-1px);
 }
 
 .vault-groups-list {
@@ -2079,76 +2019,131 @@ textarea:focus {
     padding: 10px;
 }
 
-.vault-row {
+.vault-entry-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: start;
+    gap: 6px;
     padding: 8px;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(5, 8, 18, 0.52);
 }
 
-.vault-row-form {
+.vault-entry-name-form,
+.vault-entry-delete-form {
     margin: 0;
+}
+
+.vault-entry-line {
     display: grid;
+    grid-template-columns: minmax(190px, 1.2fr) minmax(210px, 1fr) minmax(220px, 1fr) auto;
     gap: 8px;
+    align-items: center;
+}
+
+.vault-entry-name {
     min-width: 0;
 }
 
-.vault-row-grid {
-    display: grid;
-    grid-template-columns: minmax(150px, 1fr) minmax(180px, 1fr) minmax(170px, 1fr) minmax(140px, 190px);
-    gap: 8px;
+.vault-entry-title-input {
+    min-height: 34px;
 }
 
-.vault-password-wrap {
-    min-width: 0;
-}
-
-.vault-password-field {
+.vault-entry-value {
+    min-height: 34px;
+    border-radius: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(6, 10, 22, 0.86);
+    padding: 6px 8px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 6px;
     align-items: center;
 }
 
-.vault-password-toggle {
-    min-height: 34px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.03);
-    color: rgba(242, 246, 255, 0.86);
-    padding: 0 10px;
-    font-size: 0.76rem;
-    cursor: pointer;
+.vault-entry-password {
+    grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
-.vault-password-toggle:hover,
-.vault-password-toggle:focus-visible {
-    border-color: rgba(120, 204, 255, 0.28);
-    background: rgba(58, 148, 255, 0.14);
+.vault-entry-value-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    color: rgba(244, 248, 255, 0.9);
 }
 
-.vault-row-footer {
-    display: flex;
-    justify-content: space-between;
+.vault-entry-tools {
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 6px;
 }
 
-.vault-row-meta {
+.vault-icon-button {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(238, 243, 255, 0.8);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.vault-icon-button svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.vault-icon-button:hover,
+.vault-icon-button:focus-visible {
+    border-color: rgba(120, 204, 255, 0.26);
+    background: rgba(66, 156, 255, 0.15);
+    color: rgba(248, 251, 255, 0.95);
+}
+
+.vault-icon-button:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
+.vault-entry-delete-button {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.42);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 auto;
+    appearance: none;
+}
+
+.vault-entry-delete-button:hover,
+.vault-entry-delete-button:focus-visible {
+    color: rgba(255, 112, 134, 0.95);
+}
+
+.vault-entry-delete-button span {
+    line-height: 1;
+    font-size: 0.95rem;
+    transform: translateY(-1px);
+}
+
+.vault-entry-meta {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     color: rgba(233, 238, 249, 0.62);
     font-size: 0.73rem;
-}
-
-.vault-row-delete-form {
-    margin: 0;
 }
 
 .task-filters {
@@ -4285,13 +4280,12 @@ textarea:focus {
         max-height: 260px;
     }
 
-    .vault-create-form,
-    .vault-row-grid {
+    .vault-entry-line {
         grid-template-columns: 1fr 1fr;
     }
 
-    .vault-group-create-form {
-        grid-template-columns: 1fr auto;
+    .vault-entry-tools {
+        justify-self: end;
     }
 }
 
@@ -4384,14 +4378,12 @@ textarea:focus {
         width: 100%;
     }
 
-    .vault-group-create-form,
-    .vault-create-form,
-    .vault-row-grid {
+    .vault-entry-line {
         grid-template-columns: 1fr;
     }
 
-    .vault-row {
-        grid-template-columns: 1fr;
+    .vault-entry-tools {
+        justify-self: start;
     }
 }
 

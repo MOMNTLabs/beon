@@ -148,6 +148,10 @@ window.addEventListener("DOMContentLoaded", () => {
     "[data-task-detail-edit-title]",
     "[data-group-name-input]",
     "[data-create-group-name-input]",
+    "[data-vault-entry-label-input]",
+    "[data-vault-entry-label]",
+    "[data-vault-entry-edit-label]",
+    "[data-vault-group-name-input]",
   ].join(", ");
 
   const getTaskItemStatusValue = (taskItem) => {
@@ -406,6 +410,13 @@ window.addEventListener("DOMContentLoaded", () => {
     .forEach(syncSelectColor);
 
   document.addEventListener("change", (event) => {
+    const vaultLabelInput = event.target.closest("[data-vault-entry-label-input]");
+    if (vaultLabelInput instanceof HTMLInputElement) {
+      const renameForm = vaultLabelInput.closest("[data-vault-entry-name-form]");
+      void submitVaultEntryNameForm(renameForm);
+      return;
+    }
+
     const select = event.target.closest(".status-select, .priority-select");
     if (select) {
       syncSelectColor(select);
@@ -2241,6 +2252,10 @@ window.addEventListener("DOMContentLoaded", () => {
       const buttonView = normalizeDashboardView(button.dataset.view || "");
       const isActive = buttonView === view;
       button.classList.toggle("is-active", isActive);
+      const label = button.querySelector(".sidebar-view-toggle-label");
+      if (label instanceof HTMLElement) {
+        label.textContent = view === "vault" ? "Lista de tarefas" : "Cofre de acessos";
+      }
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
       button.setAttribute(
         "aria-label",
@@ -2274,6 +2289,22 @@ window.addEventListener("DOMContentLoaded", () => {
   const createGroupModal = document.querySelector("[data-create-group-modal]");
   const createGroupNameInput = document.querySelector("[data-create-group-name-input]");
   const createGroupForm = document.querySelector("[data-create-group-form]");
+  const vaultGroupModal = document.querySelector("[data-vault-group-modal]");
+  const vaultGroupForm = document.querySelector("[data-vault-group-form]");
+  const vaultGroupNameInput = document.querySelector("[data-vault-group-name-input]");
+  const vaultEntryModal = document.querySelector("[data-vault-entry-modal]");
+  const vaultEntryForm = document.querySelector("[data-vault-entry-form]");
+  const vaultEntryGroupField = document.querySelector("[data-vault-entry-group]");
+  const vaultEntryLabelField = document.querySelector("[data-vault-entry-label]");
+  const vaultEntryLoginField = document.querySelector("[data-vault-entry-login]");
+  const vaultEntryPasswordField = document.querySelector("[data-vault-entry-password]");
+  const vaultEntryEditModal = document.querySelector("[data-vault-entry-edit-modal]");
+  const vaultEntryEditForm = document.querySelector("[data-vault-entry-edit-form]");
+  const vaultEntryEditIdField = document.querySelector("[data-vault-entry-edit-id]");
+  const vaultEntryEditGroupField = document.querySelector("[data-vault-entry-edit-group]");
+  const vaultEntryEditLabelField = document.querySelector("[data-vault-entry-edit-label]");
+  const vaultEntryEditLoginField = document.querySelector("[data-vault-entry-edit-login]");
+  const vaultEntryEditPasswordField = document.querySelector("[data-vault-entry-edit-password]");
   const taskDetailModal = document.querySelector("[data-task-detail-modal]");
   const taskDetailTitle = document.querySelector("[data-task-detail-title]");
   const taskDetailViewPanel = document.querySelector("[data-task-detail-view]");
@@ -2948,6 +2979,9 @@ window.addEventListener("DOMContentLoaded", () => {
     const hasOpenModal = [
       createTaskModal,
       createGroupModal,
+      vaultGroupModal,
+      vaultEntryModal,
+      vaultEntryEditModal,
       taskDetailModal,
       taskImagePreviewModal,
       confirmModal,
@@ -3033,6 +3067,43 @@ window.addEventListener("DOMContentLoaded", () => {
       throw error;
     } finally {
       delete deleteForm.dataset.submitting;
+    }
+  };
+
+  const submitVaultEntryNameForm = async (renameForm) => {
+    if (!(renameForm instanceof HTMLFormElement)) return;
+    if (renameForm.dataset.submitting === "1") return;
+
+    const labelInput = renameForm.querySelector("[data-vault-entry-label-input]");
+    if (!(labelInput instanceof HTMLInputElement)) return;
+
+    applyFirstLetterUppercaseToInput(labelInput);
+    const nextLabel = (labelInput.value || "").trim();
+    if (!nextLabel) {
+      return;
+    }
+
+    const row = renameForm.closest("[data-vault-entry]");
+    if (!(row instanceof HTMLElement)) return;
+    const previousLabel = (row.dataset.entryLabel || "").trim();
+    if (previousLabel !== "" && previousLabel === nextLabel) {
+      return;
+    }
+
+    renameForm.dataset.submitting = "1";
+    try {
+      const data = await postFormJson(renameForm);
+      const normalizedLabel = String(data?.label || nextLabel).trim() || nextLabel;
+      row.dataset.entryLabel = normalizedLabel;
+      labelInput.value = normalizedLabel;
+    } catch (error) {
+      labelInput.value = previousLabel || labelInput.value;
+      showClientFlash(
+        "error",
+        error instanceof Error ? error.message : "Falha ao atualizar nome do acesso."
+      );
+    } finally {
+      delete renameForm.dataset.submitting;
     }
   };
 
@@ -3282,6 +3353,9 @@ window.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-vault-group]").forEach((section) => {
     setVaultGroupCollapsed(section, section.classList.contains("is-collapsed"));
   });
+  document.querySelectorAll("[data-vault-password-cell]").forEach((cell) => {
+    syncVaultPasswordCell(cell, false);
+  });
 
   const openCreateModal = (groupName) => {
     if (!createTaskModal) return;
@@ -3343,6 +3417,138 @@ window.addEventListener("DOMContentLoaded", () => {
     syncBodyModalLock();
   };
 
+  const setVaultGroupSelectValue = (select, value) => {
+    if (!(select instanceof HTMLSelectElement)) return;
+    const next = (value || "").trim();
+    if (!next) return;
+    if (!Array.from(select.options).some((option) => option.value === next)) return;
+    select.value = next;
+  };
+
+  const openVaultGroupModal = () => {
+    if (!(vaultGroupModal instanceof HTMLElement)) return;
+    if (vaultGroupForm instanceof HTMLFormElement) {
+      vaultGroupForm.reset();
+    }
+    vaultGroupModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      vaultGroupNameInput?.focus();
+    }, 20);
+  };
+
+  const closeVaultGroupModal = () => {
+    if (!(vaultGroupModal instanceof HTMLElement)) return;
+    vaultGroupModal.hidden = true;
+    syncBodyModalLock();
+  };
+
+  const openVaultEntryModal = (groupName = "") => {
+    if (!(vaultEntryModal instanceof HTMLElement)) return;
+    if (vaultEntryForm instanceof HTMLFormElement) {
+      vaultEntryForm.reset();
+    }
+    if (vaultEntryGroupField instanceof HTMLSelectElement) {
+      setVaultGroupSelectValue(vaultEntryGroupField, groupName);
+    }
+    vaultEntryModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      vaultEntryLabelField?.focus();
+    }, 20);
+  };
+
+  const closeVaultEntryModal = () => {
+    if (!(vaultEntryModal instanceof HTMLElement)) return;
+    vaultEntryModal.hidden = true;
+    syncBodyModalLock();
+  };
+
+  const openVaultEntryEditModalFromRow = (entryRow) => {
+    if (!(entryRow instanceof HTMLElement)) return;
+    if (!(vaultEntryEditModal instanceof HTMLElement)) return;
+    if (!(vaultEntryEditForm instanceof HTMLFormElement)) return;
+
+    const entryId = (entryRow.dataset.entryId || "").trim();
+    const labelInput = entryRow.querySelector("[data-vault-entry-label-input]");
+    const label = labelInput instanceof HTMLInputElement ? labelInput.value : (entryRow.dataset.entryLabel || "");
+    const login = entryRow.dataset.entryLogin || "";
+    const password = entryRow.dataset.entryPassword || "";
+    const groupName = entryRow.dataset.entryGroup || "";
+
+    if (!(vaultEntryEditIdField instanceof HTMLInputElement)) return;
+    vaultEntryEditForm.reset();
+    vaultEntryEditIdField.value = entryId;
+    if (vaultEntryEditLabelField instanceof HTMLInputElement) {
+      vaultEntryEditLabelField.value = label;
+    }
+    if (vaultEntryEditLoginField instanceof HTMLInputElement) {
+      vaultEntryEditLoginField.value = login;
+    }
+    if (vaultEntryEditPasswordField instanceof HTMLInputElement) {
+      vaultEntryEditPasswordField.value = password;
+    }
+    if (vaultEntryEditGroupField instanceof HTMLSelectElement) {
+      setVaultGroupSelectValue(vaultEntryEditGroupField, groupName);
+    }
+
+    vaultEntryEditModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      vaultEntryEditLabelField?.focus();
+    }, 20);
+  };
+
+  const closeVaultEntryEditModal = () => {
+    if (!(vaultEntryEditModal instanceof HTMLElement)) return;
+    vaultEntryEditModal.hidden = true;
+    syncBodyModalLock();
+  };
+
+  const copyTextToClipboard = async (value) => {
+    const text = String(value || "");
+    if (text.trim() === "") return false;
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+
+    const helper = document.createElement("textarea");
+    helper.value = text;
+    helper.setAttribute("readonly", "readonly");
+    helper.style.position = "fixed";
+    helper.style.opacity = "0";
+    document.body.append(helper);
+    helper.focus();
+    helper.select();
+    const ok = document.execCommand("copy");
+    helper.remove();
+    return ok;
+  };
+
+  const maskedVaultPassword = (value) => {
+    const text = String(value || "");
+    return text ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : "-";
+  };
+
+  const syncVaultPasswordCell = (cell, show) => {
+    if (!(cell instanceof HTMLElement)) return;
+    const value = cell.dataset.passwordValue || "";
+    const visible = Boolean(show) && value !== "";
+    const textEl = cell.querySelector("[data-vault-password-text]");
+    const toggleButton = cell.querySelector("[data-vault-toggle-password]");
+
+    cell.dataset.visible = visible ? "true" : "false";
+    if (textEl instanceof HTMLElement) {
+      textEl.textContent = visible ? value : maskedVaultPassword(value);
+    }
+    if (toggleButton instanceof HTMLButtonElement) {
+      toggleButton.setAttribute("aria-label", visible ? "Ocultar senha" : "Mostrar senha");
+      toggleButton.classList.toggle("is-active", visible);
+    }
+  };
+
   document.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
@@ -3371,34 +3577,68 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const vaultPasswordToggle = target.closest("[data-vault-password-toggle]");
-    if (vaultPasswordToggle instanceof HTMLButtonElement) {
-      const fieldWrap = vaultPasswordToggle.closest(".vault-password-field");
-      const passwordInput = fieldWrap?.querySelector("[data-vault-password-input]");
-      if (passwordInput instanceof HTMLInputElement) {
-        const showPassword = passwordInput.type === "password";
-        passwordInput.type = showPassword ? "text" : "password";
-        vaultPasswordToggle.textContent = showPassword ? "Ocultar" : "Ver";
-        vaultPasswordToggle.setAttribute(
-          "aria-label",
-          showPassword ? "Ocultar senha" : "Mostrar senha"
-        );
+    const openVaultGroupTrigger = target.closest("[data-open-vault-group-modal]");
+    if (openVaultGroupTrigger) {
+      openVaultGroupModal();
+      return;
+    }
+
+    const openVaultEntryTrigger = target.closest("[data-open-vault-entry-modal]");
+    if (openVaultEntryTrigger instanceof HTMLElement) {
+      openVaultEntryModal((openVaultEntryTrigger.dataset.createGroup || "").trim());
+      return;
+    }
+
+    const openVaultEditTrigger = target.closest("[data-open-vault-edit-modal]");
+    if (openVaultEditTrigger instanceof HTMLElement) {
+      const row = openVaultEditTrigger.closest("[data-vault-entry]");
+      openVaultEntryEditModalFromRow(row);
+      return;
+    }
+
+    const vaultCopyTrigger = target.closest("[data-vault-copy]");
+    if (vaultCopyTrigger instanceof HTMLButtonElement) {
+      const text = vaultCopyTrigger.dataset.vaultCopy || "";
+      void copyTextToClipboard(text)
+        .then((ok) => {
+          if (ok) {
+            showClientFlash("success", "Copiado.");
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
+    const vaultPasswordToggleTrigger = target.closest("[data-vault-toggle-password]");
+    if (vaultPasswordToggleTrigger instanceof HTMLButtonElement) {
+      const cell = vaultPasswordToggleTrigger.closest("[data-vault-password-cell]");
+      if (cell instanceof HTMLElement) {
+        const visible = (cell.dataset.visible || "false") === "true";
+        syncVaultPasswordCell(cell, !visible);
       }
       return;
     }
 
-    const openVaultCreateTrigger = target.closest("[data-open-vault-create]");
-    if (openVaultCreateTrigger instanceof HTMLElement) {
-      const groupName = (openVaultCreateTrigger.dataset.createGroup || "").trim();
-      const createGroupSelect = document.querySelector("[data-vault-create-group-select]");
-      const createLabelInput = document.querySelector("[data-vault-create-label-input]");
-      if (createGroupSelect instanceof HTMLSelectElement && groupName) {
-        if (Array.from(createGroupSelect.options).some((option) => option.value === groupName)) {
-          createGroupSelect.value = groupName;
-        }
-      }
-      if (createLabelInput instanceof HTMLInputElement) {
-        createLabelInput.focus();
+    const vaultDeleteTrigger = target.closest("[data-vault-delete-entry]");
+    if (vaultDeleteTrigger instanceof HTMLElement) {
+      const formId = vaultDeleteTrigger.dataset.deleteFormId || "";
+      const deleteForm = formId ? document.getElementById(formId) : null;
+      const row = vaultDeleteTrigger.closest("[data-vault-entry]");
+      const labelInput = row?.querySelector("[data-vault-entry-label-input]");
+      const label =
+        (labelInput instanceof HTMLInputElement ? labelInput.value : row?.dataset?.entryLabel || "").trim() ||
+        "este dado de acesso";
+
+      if (deleteForm instanceof HTMLFormElement) {
+        openConfirmModal({
+          title: "Excluir dado de acesso",
+          message: `Remover ${label}?`,
+          confirmLabel: "Excluir",
+          confirmVariant: "danger",
+          onConfirm: async () => {
+            deleteForm.submit();
+          },
+        });
       }
       return;
     }
@@ -3489,6 +3729,24 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const closeVaultGroupTrigger = target.closest("[data-close-vault-group-modal]");
+    if (closeVaultGroupTrigger) {
+      closeVaultGroupModal();
+      return;
+    }
+
+    const closeVaultEntryTrigger = target.closest("[data-close-vault-entry-modal]");
+    if (closeVaultEntryTrigger) {
+      closeVaultEntryModal();
+      return;
+    }
+
+    const closeVaultEntryEditTrigger = target.closest("[data-close-vault-entry-edit-modal]");
+    if (closeVaultEntryEditTrigger) {
+      closeVaultEntryEditModal();
+      return;
+    }
+
     const closeTaskDetailTrigger = target.closest("[data-close-task-detail-modal]");
     if (closeTaskDetailTrigger) {
       closeTaskDetailModal();
@@ -3529,6 +3787,17 @@ window.addEventListener("DOMContentLoaded", () => {
 
   document.addEventListener("keydown", (event) => {
     const target = event.target;
+    if (
+      event.key === "Enter" &&
+      target instanceof HTMLElement &&
+      target.matches("[data-vault-entry-label-input]")
+    ) {
+      event.preventDefault();
+      const renameForm = target.closest("[data-vault-entry-name-form]");
+      void submitVaultEntryNameForm(renameForm);
+      return;
+    }
+
     if (event.key === "Enter" && target instanceof HTMLElement && target.matches("[data-group-name-input]")) {
       event.preventDefault();
       target.blur();
@@ -3545,6 +3814,15 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (createGroupModal && !createGroupModal.hidden) {
       closeCreateGroupModal();
+    }
+    if (vaultGroupModal && !vaultGroupModal.hidden) {
+      closeVaultGroupModal();
+    }
+    if (vaultEntryModal && !vaultEntryModal.hidden) {
+      closeVaultEntryModal();
+    }
+    if (vaultEntryEditModal && !vaultEntryEditModal.hidden) {
+      closeVaultEntryEditModal();
     }
     if (taskImagePreviewModal && !taskImagePreviewModal.hidden) {
       closeTaskImagePreview();
@@ -3608,4 +3886,39 @@ window.addEventListener("DOMContentLoaded", () => {
       syncBodyModalLock();
     });
   }
+
+  if (vaultGroupForm instanceof HTMLFormElement) {
+    vaultGroupForm.addEventListener("submit", () => {
+      if (vaultGroupNameInput instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(vaultGroupNameInput);
+      }
+      syncBodyModalLock();
+    });
+  }
+
+  if (vaultEntryForm instanceof HTMLFormElement) {
+    vaultEntryForm.addEventListener("submit", () => {
+      if (vaultEntryLabelField instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(vaultEntryLabelField);
+      }
+      syncBodyModalLock();
+    });
+  }
+
+  if (vaultEntryEditForm instanceof HTMLFormElement) {
+    vaultEntryEditForm.addEventListener("submit", () => {
+      if (vaultEntryEditLabelField instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(vaultEntryEditLabelField);
+      }
+      syncBodyModalLock();
+    });
+  }
+
+  document.querySelectorAll("[data-vault-entry-name-form]").forEach((form) => {
+    if (!(form instanceof HTMLFormElement)) return;
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void submitVaultEntryNameForm(form);
+    });
+  });
 });

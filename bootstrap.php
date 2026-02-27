@@ -2363,6 +2363,53 @@ function updateWorkspaceVaultEntry(
     }
 }
 
+function updateWorkspaceVaultEntryLabel(
+    PDO $pdo,
+    int $workspaceId,
+    int $entryId,
+    string $label
+): void {
+    if ($workspaceId <= 0 || $entryId <= 0) {
+        throw new RuntimeException('Registro invalido.');
+    }
+
+    $label = normalizeVaultEntryLabel($label);
+    if ($label === '') {
+        throw new RuntimeException('Informe um nome para o acesso.');
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_vault_entries
+         SET label = :label,
+             updated_at = :updated_at
+         WHERE id = :id
+           AND workspace_id = :workspace_id'
+    );
+    $stmt->execute([
+        ':label' => $label,
+        ':updated_at' => nowIso(),
+        ':id' => $entryId,
+        ':workspace_id' => $workspaceId,
+    ]);
+
+    if ($stmt->rowCount() <= 0) {
+        $existsStmt = $pdo->prepare(
+            'SELECT 1
+             FROM workspace_vault_entries
+             WHERE id = :id
+               AND workspace_id = :workspace_id
+             LIMIT 1'
+        );
+        $existsStmt->execute([
+            ':id' => $entryId,
+            ':workspace_id' => $workspaceId,
+        ]);
+        if (!$existsStmt->fetchColumn()) {
+            throw new RuntimeException('Registro nao encontrado.');
+        }
+    }
+}
+
 function deleteWorkspaceVaultEntry(PDO $pdo, int $workspaceId, int $entryId): void
 {
     if ($workspaceId <= 0 || $entryId <= 0) {
