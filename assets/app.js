@@ -1336,7 +1336,7 @@ window.addEventListener("DOMContentLoaded", () => {
       case "assignees_changed":
         return "Responsaveis atualizados";
       case "subtasks_changed":
-        return `Etapas: ${Number(payload.old_completed) || 0}/${Number(payload.old_total) || 0} âžœ ${
+        return `Etapas: ${Number(payload.old_completed) || 0}/${Number(payload.old_total) || 0} ${transitionSymbol} ${
           Number(payload.new_completed) || 0
         }/${Number(payload.new_total) || 0}`;
       case "overdue_started":
