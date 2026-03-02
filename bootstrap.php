@@ -2065,18 +2065,57 @@ function setActiveWorkspaceId(?int $workspaceId): void
     unset($_SESSION['workspace_id']);
 }
 
+function personalWorkspaceDefaultName(int $userId): string
+{
+    if ($userId <= 0) {
+        return '(Usuario) Workspace';
+    }
+
+    $stmt = db()->prepare(
+        'SELECT name
+         FROM users
+         WHERE id = :user_id
+         LIMIT 1'
+    );
+    $stmt->execute([':user_id' => $userId]);
+    $userName = normalizeUserDisplayName((string) $stmt->fetchColumn());
+    if ($userName === '') {
+        $userName = 'Usuario';
+    }
+
+    return '(' . $userName . ') Workspace';
+}
+
 function ensurePersonalWorkspaceForUser(int $userId): ?int
 {
     if ($userId <= 0) {
         return null;
     }
 
+    $pdo = db();
+    $personalName = personalWorkspaceDefaultName($userId);
     $existingPersonal = personalWorkspaceForUserId($userId);
     if ($existingPersonal) {
-        return (int) ($existingPersonal['id'] ?? 0);
+        $workspaceId = (int) ($existingPersonal['id'] ?? 0);
+        $existingName = trim((string) ($existingPersonal['name'] ?? ''));
+        if ($workspaceId > 0 && $existingName !== $personalName) {
+            $renameStmt = $pdo->prepare(
+                'UPDATE workspaces
+                 SET name = :name,
+                     updated_at = :updated_at
+                 WHERE id = :workspace_id'
+            );
+            $renameStmt->execute([
+                ':name' => $personalName,
+                ':updated_at' => nowIso(),
+                ':workspace_id' => $workspaceId,
+            ]);
+        }
+
+        return $workspaceId > 0 ? $workspaceId : null;
     }
 
-    $workspaceId = createWorkspace(db(), 'Pessoal', $userId, true);
+    $workspaceId = createWorkspace($pdo, $personalName, $userId, true);
     return $workspaceId > 0 ? $workspaceId : null;
 }
 

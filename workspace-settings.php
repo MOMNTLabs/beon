@@ -53,6 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
                 }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('O nome do workspace pessoal e definido automaticamente.');
+                }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar o workspace.');
                 }
@@ -203,7 +206,7 @@ $flashes = getFlashes();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=55">
+    <link rel="stylesheet" href="assets/styles.css?v=56">
 </head>
 <body class="is-dashboard is-workspace-settings" data-workspace-id="<?= e((string) $currentWorkspaceId) ?>">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
@@ -269,7 +272,7 @@ $flashes = getFlashes();
                 <div class="workspace-settings-grid">
                     <section class="workspace-settings-card">
                         <h3>Dados do workspace</h3>
-                        <?php if ($canManageWorkspace): ?>
+                        <?php if ($canManageWorkspace && !$isPersonalWorkspace): ?>
                             <form method="post" class="workspace-settings-form">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                 <input type="hidden" name="action" value="workspace_update_name">

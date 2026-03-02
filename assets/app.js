@@ -2466,6 +2466,9 @@ window.addEventListener("DOMContentLoaded", () => {
   const createTaskGroupInput = document.querySelector("[data-create-task-group-input]");
   const createTaskTitleInput = document.querySelector("[data-create-task-title-input]");
   const createTaskForm = document.querySelector("[data-create-task-form]");
+  const workspaceCreateModal = document.querySelector("[data-workspace-create-modal]");
+  const workspaceCreateForm = document.querySelector("[data-workspace-create-form]");
+  const workspaceCreateNameInput = document.querySelector("[data-workspace-create-name-input]");
   const createGroupModal = document.querySelector("[data-create-group-modal]");
   const createGroupNameInput = document.querySelector("[data-create-group-name-input]");
   const createGroupForm = document.querySelector("[data-create-group-form]");
@@ -3374,6 +3377,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const syncBodyModalLock = () => {
     const hasOpenModal = [
       createTaskModal,
+      workspaceCreateModal,
       createGroupModal,
       vaultGroupModal,
       vaultEntryModal,
@@ -3814,6 +3818,24 @@ window.addEventListener("DOMContentLoaded", () => {
     syncBodyModalLock();
   };
 
+  const openWorkspaceCreateModal = () => {
+    if (!(workspaceCreateModal instanceof HTMLElement)) return;
+    if (workspaceCreateForm instanceof HTMLFormElement) {
+      workspaceCreateForm.reset();
+    }
+    workspaceCreateModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      workspaceCreateNameInput?.focus();
+    }, 20);
+  };
+
+  const closeWorkspaceCreateModal = () => {
+    if (!(workspaceCreateModal instanceof HTMLElement)) return;
+    workspaceCreateModal.hidden = true;
+    syncBodyModalLock();
+  };
+
   const openCreateGroupModal = () => {
     if (!createGroupModal) return;
     setFabMenuOpen(false);
@@ -4030,6 +4052,12 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const openWorkspaceCreateTrigger = target.closest("[data-open-workspace-create-modal]");
+    if (openWorkspaceCreateTrigger) {
+      openWorkspaceCreateModal();
+      return;
+    }
+
     const openVaultGroupTrigger = target.closest("[data-open-vault-group-modal]");
     if (openVaultGroupTrigger) {
       openVaultGroupModal();
@@ -4186,6 +4214,12 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const closeWorkspaceCreateTrigger = target.closest("[data-close-workspace-create-modal]");
+    if (closeWorkspaceCreateTrigger) {
+      closeWorkspaceCreateModal();
+      return;
+    }
+
     const closeGroupTrigger = target.closest("[data-close-create-group-modal]");
     if (closeGroupTrigger) {
       closeCreateGroupModal();
@@ -4284,6 +4318,9 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (createTaskModal && !createTaskModal.hidden) {
       closeCreateModal();
+    }
+    if (workspaceCreateModal && !workspaceCreateModal.hidden) {
+      closeWorkspaceCreateModal();
     }
     if (createGroupModal && !createGroupModal.hidden) {
       closeCreateGroupModal();

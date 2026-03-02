@@ -71,35 +71,28 @@
                                     <?php
                                     $workspaceOptionId = (int) ($workspaceOption['id'] ?? 0);
                                     $workspaceOptionName = (string) ($workspaceOption['name'] ?? 'Workspace');
-                                    $workspaceOptionIsPersonal = !empty($workspaceOption['is_personal']);
-                                    $workspaceOptionLabel = $workspaceOptionName . ($workspaceOptionIsPersonal ? ' · Pessoal' : '');
                                     $isCurrentWorkspace = $currentWorkspaceId === $workspaceOptionId;
                                     ?>
                                     <?php if ($isCurrentWorkspace): ?>
-                                        <span class="workspace-sidebar-picker-current"><?= e($workspaceOptionLabel) ?></span>
+                                        <span class="workspace-sidebar-picker-current"><?= e($workspaceOptionName) ?></span>
                                     <?php else: ?>
                                         <form method="post" class="workspace-sidebar-picker-form">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="switch_workspace">
                                             <input type="hidden" name="workspace_id" value="<?= e((string) $workspaceOptionId) ?>">
-                                            <button type="submit" class="workspace-sidebar-picker-option"><?= e($workspaceOptionLabel) ?></button>
+                                            <button type="submit" class="workspace-sidebar-picker-option"><?= e($workspaceOptionName) ?></button>
                                         </form>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                             </div>
-                            <form method="post" class="workspace-sidebar-create-form">
-                                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                                <input type="hidden" name="action" value="create_workspace">
-                                <input
-                                    type="text"
-                                    name="workspace_name"
-                                    maxlength="80"
-                                    placeholder="Novo workspace"
-                                    aria-label="Nome do novo workspace"
-                                    required
-                                >
-                                <button type="submit" class="btn btn-mini">Criar</button>
-                            </form>
+                            <button
+                                type="button"
+                                class="workspace-sidebar-create-trigger"
+                                data-open-workspace-create-modal
+                            >
+                                <span aria-hidden="true">+</span>
+                                <span>Criar workspace</span>
+                            </button>
                         </div>
                     </details>
                     <p>Menu</p>
@@ -1033,6 +1026,32 @@
     </section>
 </main>
 
+<div class="modal-backdrop" data-workspace-create-modal hidden>
+    <div class="modal-scrim" data-close-workspace-create-modal></div>
+    <section class="modal-card create-group-modal" role="dialog" aria-modal="true" aria-labelledby="workspace-create-title">
+        <header class="modal-head">
+            <h2 id="workspace-create-title">Novo workspace</h2>
+            <button type="button" class="modal-close-button" data-close-workspace-create-modal aria-label="Fechar modal">
+                <span aria-hidden="true">&#10005;</span>
+            </button>
+        </header>
+
+        <form method="post" class="form-stack modal-form" data-workspace-create-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="create_workspace">
+
+            <label>
+                <span>Nome do workspace</span>
+                <input type="text" name="workspace_name" maxlength="80" required data-workspace-create-name-input>
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-workspace-create-modal>Cancelar</button>
+                <button type="submit" class="btn btn-pill">Criar workspace</button>
+            </div>
+        </form>
+    </section>
+</div>
 <div class="modal-backdrop" data-create-modal hidden>
     <div class="modal-scrim" data-close-create-modal></div>
     <section class="modal-card create-task-modal" role="dialog" aria-modal="true" aria-labelledby="create-task-title">
