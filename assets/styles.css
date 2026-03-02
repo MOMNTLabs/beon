@@ -1621,7 +1621,7 @@ textarea:focus {
     flex-wrap: wrap;
 }
 
-.board-summary span {
+.board-summary > span {
     display: inline-flex;
     align-items: center;
     min-height: 32px;
