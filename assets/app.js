@@ -162,6 +162,9 @@ window.addEventListener("DOMContentLoaded", () => {
     "[data-vault-entry-label]",
     "[data-vault-entry-edit-label]",
     "[data-vault-group-name-input]",
+    "[data-due-entry-label]",
+    "[data-due-entry-edit-label]",
+    "[data-due-group-name-input]",
   ].join(", ");
 
   const getTaskItemStatusValue = (taskItem) => {
@@ -1626,6 +1629,25 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const setDueGroupCollapsed = (groupSection, collapsed) => {
+    if (!(groupSection instanceof HTMLElement)) return;
+    const rows = groupSection.querySelector("[data-due-group-rows]");
+    const toggleButton = groupSection.querySelector("[data-due-group-toggle]");
+    const shouldCollapse = Boolean(collapsed);
+
+    groupSection.classList.toggle("is-collapsed", shouldCollapse);
+    if (rows instanceof HTMLElement) {
+      rows.hidden = shouldCollapse;
+    }
+    if (toggleButton instanceof HTMLButtonElement) {
+      toggleButton.setAttribute("aria-expanded", shouldCollapse ? "false" : "true");
+      toggleButton.setAttribute(
+        "aria-label",
+        shouldCollapse ? "Expandir grupo de vencimentos" : "Retrair grupo de vencimentos"
+      );
+    }
+  };
+
   const moveTaskItemToGroupDom = (taskItem, groupName) => {
     if (!(taskItem instanceof HTMLElement)) return false;
     const nextGroup = (groupName || "").trim() || "Geral";
@@ -2390,7 +2412,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const normalizeDashboardViewCandidate = (value) => {
     const normalized = String(value || "").trim().toLowerCase();
-    return normalized === "tasks" || normalized === "vault" || normalized === "users"
+    return normalized === "tasks" ||
+      normalized === "vault" ||
+      normalized === "dues" ||
+      normalized === "users"
       ? normalized
       : "";
   };
@@ -2488,6 +2513,22 @@ window.addEventListener("DOMContentLoaded", () => {
   const vaultEntryEditLabelField = document.querySelector("[data-vault-entry-edit-label]");
   const vaultEntryEditLoginField = document.querySelector("[data-vault-entry-edit-login]");
   const vaultEntryEditPasswordField = document.querySelector("[data-vault-entry-edit-password]");
+  const dueGroupModal = document.querySelector("[data-due-group-modal]");
+  const dueGroupForm = document.querySelector("[data-due-group-form]");
+  const dueGroupNameInput = document.querySelector("[data-due-group-name-input]");
+  const dueEntryModal = document.querySelector("[data-due-entry-modal]");
+  const dueEntryForm = document.querySelector("[data-due-entry-form]");
+  const dueEntryGroupField = document.querySelector("[data-due-entry-group]");
+  const dueEntryLabelField = document.querySelector("[data-due-entry-label]");
+  const dueEntryDateField = document.querySelector("[data-due-entry-date]");
+  const dueEntryNotesField = document.querySelector("[data-due-entry-notes]");
+  const dueEntryEditModal = document.querySelector("[data-due-entry-edit-modal]");
+  const dueEntryEditForm = document.querySelector("[data-due-entry-edit-form]");
+  const dueEntryEditIdField = document.querySelector("[data-due-entry-edit-id]");
+  const dueEntryEditGroupField = document.querySelector("[data-due-entry-edit-group]");
+  const dueEntryEditLabelField = document.querySelector("[data-due-entry-edit-label]");
+  const dueEntryEditDateField = document.querySelector("[data-due-entry-edit-date]");
+  const dueEntryEditNotesField = document.querySelector("[data-due-entry-edit-notes]");
   const taskDetailModal = document.querySelector("[data-task-detail-modal]");
   const taskDetailTitle = document.querySelector("[data-task-detail-title]");
   const taskDetailViewPanel = document.querySelector("[data-task-detail-view]");
@@ -3382,6 +3423,9 @@ window.addEventListener("DOMContentLoaded", () => {
       vaultGroupModal,
       vaultEntryModal,
       vaultEntryEditModal,
+      dueGroupModal,
+      dueEntryModal,
+      dueEntryEditModal,
       taskDetailModal,
       taskImagePreviewModal,
       confirmModal,
@@ -3770,6 +3814,9 @@ window.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-vault-group]").forEach((section) => {
     setVaultGroupCollapsed(section, section.classList.contains("is-collapsed"));
   });
+  document.querySelectorAll("[data-due-group]").forEach((section) => {
+    setDueGroupCollapsed(section, section.classList.contains("is-collapsed"));
+  });
   document.querySelectorAll("[data-vault-password-cell]").forEach((cell) => {
     syncVaultPasswordCell(cell, false);
   });
@@ -3891,6 +3938,14 @@ window.addEventListener("DOMContentLoaded", () => {
     select.value = next;
   };
 
+  const setDueGroupSelectValue = (select, value) => {
+    if (!(select instanceof HTMLSelectElement)) return;
+    const next = (value || "").trim();
+    if (!next) return;
+    if (!Array.from(select.options).some((option) => option.value === next)) return;
+    select.value = next;
+  };
+
   const openVaultGroupModal = () => {
     if (!(vaultGroupModal instanceof HTMLElement)) return;
     if (vaultGroupForm instanceof HTMLFormElement) {
@@ -3974,6 +4029,97 @@ window.addEventListener("DOMContentLoaded", () => {
   const closeVaultEntryEditModal = () => {
     if (!(vaultEntryEditModal instanceof HTMLElement)) return;
     vaultEntryEditModal.hidden = true;
+    syncBodyModalLock();
+  };
+
+  const openDueGroupModal = () => {
+    if (!(dueGroupModal instanceof HTMLElement)) return;
+    if (dueGroupForm instanceof HTMLFormElement) {
+      dueGroupForm.reset();
+    }
+    dueGroupModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      dueGroupNameInput?.focus();
+    }, 20);
+  };
+
+  const closeDueGroupModal = () => {
+    if (!(dueGroupModal instanceof HTMLElement)) return;
+    dueGroupModal.hidden = true;
+    syncBodyModalLock();
+  };
+
+  const openDueEntryModal = (groupName = "") => {
+    if (!(dueEntryModal instanceof HTMLElement)) return;
+    if (dueEntryGroupField instanceof HTMLSelectElement && dueEntryGroupField.disabled) {
+      return;
+    }
+    if (dueEntryForm instanceof HTMLFormElement) {
+      dueEntryForm.reset();
+    }
+    if (dueEntryGroupField instanceof HTMLSelectElement) {
+      setDueGroupSelectValue(dueEntryGroupField, groupName);
+    }
+    if (dueEntryDateField instanceof HTMLInputElement && !dueEntryDateField.value) {
+      dueEntryDateField.value = new Date().toISOString().slice(0, 10);
+    }
+    if (dueEntryNotesField instanceof HTMLTextAreaElement && dueEntryNotesField.value === "") {
+      dueEntryNotesField.value = "";
+    }
+    dueEntryModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      dueEntryLabelField?.focus();
+    }, 20);
+  };
+
+  const closeDueEntryModal = () => {
+    if (!(dueEntryModal instanceof HTMLElement)) return;
+    dueEntryModal.hidden = true;
+    syncBodyModalLock();
+  };
+
+  const openDueEntryEditModalFromRow = (entryRow) => {
+    if (!(entryRow instanceof HTMLElement)) return;
+    if (!(dueEntryEditModal instanceof HTMLElement)) return;
+    if (!(dueEntryEditForm instanceof HTMLFormElement)) return;
+    if (dueEntryEditGroupField instanceof HTMLSelectElement && dueEntryEditGroupField.disabled) {
+      return;
+    }
+
+    const entryId = (entryRow.dataset.entryId || "").trim();
+    const label = (entryRow.dataset.entryLabel || "").trim();
+    const dueDate = (entryRow.dataset.entryDate || "").trim();
+    const groupName = (entryRow.dataset.entryGroup || "").trim();
+    const notes = entryRow.dataset.entryNotes || "";
+
+    if (!(dueEntryEditIdField instanceof HTMLInputElement)) return;
+    dueEntryEditForm.reset();
+    dueEntryEditIdField.value = entryId;
+    if (dueEntryEditLabelField instanceof HTMLInputElement) {
+      dueEntryEditLabelField.value = label;
+    }
+    if (dueEntryEditDateField instanceof HTMLInputElement) {
+      dueEntryEditDateField.value = dueDate;
+    }
+    if (dueEntryEditNotesField instanceof HTMLTextAreaElement) {
+      dueEntryEditNotesField.value = notes;
+    }
+    if (dueEntryEditGroupField instanceof HTMLSelectElement) {
+      setDueGroupSelectValue(dueEntryEditGroupField, groupName);
+    }
+
+    dueEntryEditModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      dueEntryEditLabelField?.focus();
+    }, 20);
+  };
+
+  const closeDueEntryEditModal = () => {
+    if (!(dueEntryEditModal instanceof HTMLElement)) return;
+    dueEntryEditModal.hidden = true;
     syncBodyModalLock();
   };
 
@@ -4064,9 +4210,21 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const openDueGroupTrigger = target.closest("[data-open-due-group-modal]");
+    if (openDueGroupTrigger) {
+      openDueGroupModal();
+      return;
+    }
+
     const openVaultEntryTrigger = target.closest("[data-open-vault-entry-modal]");
     if (openVaultEntryTrigger instanceof HTMLElement) {
       openVaultEntryModal((openVaultEntryTrigger.dataset.createGroup || "").trim());
+      return;
+    }
+
+    const openDueEntryTrigger = target.closest("[data-open-due-entry-modal]");
+    if (openDueEntryTrigger instanceof HTMLElement) {
+      openDueEntryModal((openDueEntryTrigger.dataset.createGroup || "").trim());
       return;
     }
 
@@ -4074,6 +4232,13 @@ window.addEventListener("DOMContentLoaded", () => {
     if (openVaultEditTrigger instanceof HTMLElement) {
       const row = openVaultEditTrigger.closest("[data-vault-entry]");
       openVaultEntryEditModalFromRow(row);
+      return;
+    }
+
+    const openDueEditTrigger = target.closest("[data-open-due-edit-modal]");
+    if (openDueEditTrigger instanceof HTMLElement) {
+      const row = openDueEditTrigger.closest("[data-due-entry]");
+      openDueEntryEditModalFromRow(row);
       return;
     }
 
@@ -4124,12 +4289,43 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const dueDeleteTrigger = target.closest("[data-due-delete-entry]");
+    if (dueDeleteTrigger instanceof HTMLElement) {
+      const formId = dueDeleteTrigger.dataset.deleteFormId || "";
+      const deleteForm = formId ? document.getElementById(formId) : null;
+      const row = dueDeleteTrigger.closest("[data-due-entry]");
+      const label = (row?.dataset?.entryLabel || "").trim() || "este vencimento";
+
+      if (deleteForm instanceof HTMLFormElement) {
+        openConfirmModal({
+          title: "Excluir vencimento",
+          message: `Remover ${label}?`,
+          confirmLabel: "Excluir",
+          confirmVariant: "danger",
+          onConfirm: async () => {
+            deleteForm.submit();
+          },
+        });
+      }
+      return;
+    }
+
     const vaultGroupToggleButton = target.closest("[data-vault-group-toggle]");
     if (vaultGroupToggleButton instanceof HTMLElement) {
       const groupSection = vaultGroupToggleButton.closest("[data-vault-group]");
       if (groupSection instanceof HTMLElement) {
         const isExpanded = vaultGroupToggleButton.getAttribute("aria-expanded") !== "false";
         setVaultGroupCollapsed(groupSection, isExpanded);
+      }
+      return;
+    }
+
+    const dueGroupToggleButton = target.closest("[data-due-group-toggle]");
+    if (dueGroupToggleButton instanceof HTMLElement) {
+      const groupSection = dueGroupToggleButton.closest("[data-due-group]");
+      if (groupSection instanceof HTMLElement) {
+        const isExpanded = dueGroupToggleButton.getAttribute("aria-expanded") !== "false";
+        setDueGroupCollapsed(groupSection, isExpanded);
       }
       return;
     }
@@ -4242,15 +4438,33 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const closeDueGroupTrigger = target.closest("[data-close-due-group-modal]");
+    if (closeDueGroupTrigger) {
+      closeDueGroupModal();
+      return;
+    }
+
     const closeVaultEntryTrigger = target.closest("[data-close-vault-entry-modal]");
     if (closeVaultEntryTrigger) {
       closeVaultEntryModal();
       return;
     }
 
+    const closeDueEntryTrigger = target.closest("[data-close-due-entry-modal]");
+    if (closeDueEntryTrigger) {
+      closeDueEntryModal();
+      return;
+    }
+
     const closeVaultEntryEditTrigger = target.closest("[data-close-vault-entry-edit-modal]");
     if (closeVaultEntryEditTrigger) {
       closeVaultEntryEditModal();
+      return;
+    }
+
+    const closeDueEntryEditTrigger = target.closest("[data-close-due-entry-edit-modal]");
+    if (closeDueEntryEditTrigger) {
+      closeDueEntryEditModal();
       return;
     }
 
@@ -4328,11 +4542,20 @@ window.addEventListener("DOMContentLoaded", () => {
     if (vaultGroupModal && !vaultGroupModal.hidden) {
       closeVaultGroupModal();
     }
+    if (dueGroupModal && !dueGroupModal.hidden) {
+      closeDueGroupModal();
+    }
     if (vaultEntryModal && !vaultEntryModal.hidden) {
       closeVaultEntryModal();
     }
+    if (dueEntryModal && !dueEntryModal.hidden) {
+      closeDueEntryModal();
+    }
     if (vaultEntryEditModal && !vaultEntryEditModal.hidden) {
       closeVaultEntryEditModal();
+    }
+    if (dueEntryEditModal && !dueEntryEditModal.hidden) {
+      closeDueEntryEditModal();
     }
     if (taskImagePreviewModal && !taskImagePreviewModal.hidden) {
       closeTaskImagePreview();
@@ -4409,6 +4632,15 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (dueGroupForm instanceof HTMLFormElement) {
+    dueGroupForm.addEventListener("submit", () => {
+      if (dueGroupNameInput instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(dueGroupNameInput);
+      }
+      syncBodyModalLock();
+    });
+  }
+
   if (vaultEntryForm instanceof HTMLFormElement) {
     vaultEntryForm.addEventListener("submit", () => {
       if (vaultEntryLabelField instanceof HTMLInputElement) {
@@ -4418,10 +4650,28 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (dueEntryForm instanceof HTMLFormElement) {
+    dueEntryForm.addEventListener("submit", () => {
+      if (dueEntryLabelField instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(dueEntryLabelField);
+      }
+      syncBodyModalLock();
+    });
+  }
+
   if (vaultEntryEditForm instanceof HTMLFormElement) {
     vaultEntryEditForm.addEventListener("submit", () => {
       if (vaultEntryEditLabelField instanceof HTMLInputElement) {
         applyFirstLetterUppercaseToInput(vaultEntryEditLabelField);
+      }
+      syncBodyModalLock();
+    });
+  }
+
+  if (dueEntryEditForm instanceof HTMLFormElement) {
+    dueEntryEditForm.addEventListener("submit", () => {
+      if (dueEntryEditLabelField instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(dueEntryEditLabelField);
       }
       syncBodyModalLock();
     });

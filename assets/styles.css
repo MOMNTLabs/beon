@@ -2065,6 +2065,21 @@ textarea:focus {
     padding-bottom: 6px;
 }
 
+.due-wrap {
+    min-height: 720px;
+    position: relative;
+    padding-bottom: 16px;
+}
+
+.is-dashboard .due-wrap {
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 6px;
+}
+
 .users-wrap {
     min-height: 720px;
     position: relative;
@@ -2105,6 +2120,10 @@ textarea:focus {
 }
 
 .vault-summary {
+    align-items: center;
+}
+
+.due-summary {
     align-items: center;
 }
 
@@ -2174,7 +2193,24 @@ textarea:focus {
     padding-right: 2px;
 }
 
+.due-groups-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: grid;
+    align-content: start;
+    grid-auto-rows: max-content;
+    gap: 10px;
+    padding-right: 2px;
+}
+
 .vault-group-rows {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+}
+
+.due-group-rows {
     display: grid;
     gap: 8px;
     padding: 10px;
@@ -2187,6 +2223,48 @@ textarea:focus {
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(5, 8, 18, 0.52);
+}
+
+.due-entry-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(5, 8, 18, 0.52);
+}
+
+.due-entry-row .vault-entry-delete-form {
+    display: none;
+}
+
+.due-entry-main {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.due-entry-title {
+    font-size: 0.92rem;
+    color: rgba(244, 248, 255, 0.96);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.due-entry-date {
+    font-size: 0.8rem;
+    color: rgba(156, 216, 255, 0.88);
+}
+
+.due-entry-notes {
+    font-size: 0.78rem;
+    color: rgba(232, 238, 249, 0.66);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .vault-entry-name-form,
@@ -2561,7 +2639,8 @@ textarea:focus {
 }
 
 .task-group.is-collapsed .task-list-rows,
-.vault-group.is-collapsed .vault-group-rows {
+.vault-group.is-collapsed .vault-group-rows,
+.due-group.is-collapsed .due-group-rows {
     display: none;
 }
 
@@ -3362,6 +3441,8 @@ textarea:focus {
 
 .is-dashboard .team-list,
 .is-dashboard .task-groups-list,
+.vault-groups-list,
+.due-groups-list,
 .users-wrap .workspace-settings-members,
 .assignee-picker-menu,
 .create-task-modal,
@@ -3372,6 +3453,8 @@ textarea:focus {
 
 .is-dashboard .team-list::-webkit-scrollbar,
 .is-dashboard .task-groups-list::-webkit-scrollbar,
+.vault-groups-list::-webkit-scrollbar,
+.due-groups-list::-webkit-scrollbar,
 .users-wrap .workspace-settings-members::-webkit-scrollbar,
 .assignee-picker-menu::-webkit-scrollbar,
 .create-task-modal::-webkit-scrollbar,
@@ -3382,6 +3465,8 @@ textarea:focus {
 
 .is-dashboard .team-list::-webkit-scrollbar-track,
 .is-dashboard .task-groups-list::-webkit-scrollbar-track,
+.vault-groups-list::-webkit-scrollbar-track,
+.due-groups-list::-webkit-scrollbar-track,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-track,
 .assignee-picker-menu::-webkit-scrollbar-track,
 .create-task-modal::-webkit-scrollbar-track,
@@ -3392,6 +3477,8 @@ textarea:focus {
 
 .is-dashboard .team-list::-webkit-scrollbar-thumb,
 .is-dashboard .task-groups-list::-webkit-scrollbar-thumb,
+.vault-groups-list::-webkit-scrollbar-thumb,
+.due-groups-list::-webkit-scrollbar-thumb,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb,
 .assignee-picker-menu::-webkit-scrollbar-thumb,
 .create-task-modal::-webkit-scrollbar-thumb,
@@ -3404,6 +3491,8 @@ textarea:focus {
 
 .is-dashboard .team-list::-webkit-scrollbar-thumb:hover,
 .is-dashboard .task-groups-list::-webkit-scrollbar-thumb:hover,
+.vault-groups-list::-webkit-scrollbar-thumb:hover,
+.due-groups-list::-webkit-scrollbar-thumb:hover,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb:hover,
 .assignee-picker-menu::-webkit-scrollbar-thumb:hover,
 .create-task-modal::-webkit-scrollbar-thumb:hover,
@@ -4814,6 +4903,10 @@ textarea:focus {
     .vault-entry-tools {
         justify-self: end;
     }
+
+    .due-entry-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
 }
 
 @media (max-width: 640px) {
@@ -4919,6 +5012,14 @@ textarea:focus {
 
     .vault-entry-tools {
         justify-self: start;
+    }
+
+    .due-entry-row {
+        grid-template-columns: 1fr;
+    }
+
+    .due-entry-notes {
+        white-space: normal;
     }
 }
 

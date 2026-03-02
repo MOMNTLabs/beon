@@ -152,6 +152,7 @@ function migrate(PDO $pdo): void
 
     ensureWorkspaceSchema($pdo);
     ensureWorkspaceVaultSchema($pdo);
+    ensureWorkspaceDueSchema($pdo);
     ensureTaskExtendedSchema($pdo);
     ensureTaskGroupsSchema($pdo);
     ensureTaskHistorySchema($pdo);
@@ -835,6 +836,168 @@ function ensureWorkspaceVaultSchema(PDO $pdo): void
     }
 }
 
+function ensureWorkspaceDueSchema(PDO $pdo): void
+{
+    if (dbDriverName($pdo) === 'pgsql') {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_due_entries (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                label TEXT NOT NULL,
+                due_date DATE DEFAULT NULL,
+                group_name TEXT NOT NULL DEFAULT \'Geral\',
+                notes TEXT NOT NULL DEFAULT \'\',
+                created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_due_groups (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+    } else {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_due_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                label TEXT NOT NULL,
+                due_date TEXT DEFAULT NULL,
+                group_name TEXT NOT NULL DEFAULT \'Geral\',
+                notes TEXT NOT NULL DEFAULT \'\',
+                created_by INTEGER DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_due_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                created_by INTEGER DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+    }
+
+    if (!tableHasColumn($pdo, 'workspace_due_entries', 'group_name')) {
+        $pdo->exec("ALTER TABLE workspace_due_entries ADD COLUMN group_name TEXT NOT NULL DEFAULT 'Geral'");
+    }
+    if (!tableHasColumn($pdo, 'workspace_due_entries', 'due_date')) {
+        if (dbDriverName($pdo) === 'pgsql') {
+            $pdo->exec("ALTER TABLE workspace_due_entries ADD COLUMN due_date DATE DEFAULT NULL");
+        } else {
+            $pdo->exec("ALTER TABLE workspace_due_entries ADD COLUMN due_date TEXT DEFAULT NULL");
+        }
+    }
+    if (!tableHasColumn($pdo, 'workspace_due_entries', 'notes')) {
+        $pdo->exec("ALTER TABLE workspace_due_entries ADD COLUMN notes TEXT NOT NULL DEFAULT ''");
+    }
+
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_due_entries_workspace
+         ON workspace_due_entries(workspace_id)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_due_entries_workspace_due
+         ON workspace_due_entries(workspace_id, due_date)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_due_entries_workspace_group
+         ON workspace_due_entries(workspace_id, group_name)'
+    );
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_due_groups_workspace_name_unique
+         ON workspace_due_groups(workspace_id, name)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_due_groups_workspace
+         ON workspace_due_groups(workspace_id)'
+    );
+
+    $rows = $pdo->query(
+        'SELECT id, label, due_date, group_name
+         FROM workspace_due_entries'
+    )->fetchAll();
+    if ($rows) {
+        $normalizeStmt = $pdo->prepare(
+            'UPDATE workspace_due_entries
+             SET label = :label,
+                 due_date = :due_date,
+                 group_name = :group_name
+             WHERE id = :id'
+        );
+        foreach ($rows as $row) {
+            $normalizeStmt->execute([
+                ':label' => normalizeDueEntryLabel((string) ($row['label'] ?? '')),
+                ':due_date' => dueDateForStorage((string) ($row['due_date'] ?? '')),
+                ':group_name' => normalizeDueGroupName((string) ($row['group_name'] ?? 'Geral')),
+                ':id' => (int) ($row['id'] ?? 0),
+            ]);
+        }
+    }
+
+    $entryGroups = $pdo->query(
+        'SELECT workspace_id, group_name, MIN(created_by) AS created_by
+         FROM workspace_due_entries
+         WHERE workspace_id IS NOT NULL
+         GROUP BY workspace_id, group_name'
+    )->fetchAll();
+    foreach ($entryGroups as $entryGroupRow) {
+        $workspaceId = (int) ($entryGroupRow['workspace_id'] ?? 0);
+        if ($workspaceId <= 0) {
+            continue;
+        }
+
+        upsertDueGroup(
+            $pdo,
+            (string) ($entryGroupRow['group_name'] ?? 'Geral'),
+            isset($entryGroupRow['created_by']) ? (int) $entryGroupRow['created_by'] : null,
+            $workspaceId
+        );
+    }
+
+    $workspaceRows = $pdo->query(
+        'SELECT id, created_by
+         FROM workspaces
+         ORDER BY id ASC'
+    )->fetchAll();
+    foreach ($workspaceRows as $workspaceRow) {
+        $workspaceId = (int) ($workspaceRow['id'] ?? 0);
+        if ($workspaceId <= 0) {
+            continue;
+        }
+
+        $groupCountStmt = $pdo->prepare(
+            'SELECT COUNT(*)
+             FROM workspace_due_groups
+             WHERE workspace_id = :workspace_id'
+        );
+        $groupCountStmt->execute([':workspace_id' => $workspaceId]);
+        $groupCount = (int) $groupCountStmt->fetchColumn();
+        if ($groupCount > 0) {
+            continue;
+        }
+
+        upsertDueGroup(
+            $pdo,
+            'Geral',
+            isset($workspaceRow['created_by']) ? (int) $workspaceRow['created_by'] : null,
+            $workspaceId
+        );
+    }
+}
+
 function ensureGroupPermissionSchema(PDO $pdo): void
 {
     $driver = dbDriverName($pdo);
@@ -853,6 +1016,17 @@ function ensureGroupPermissionSchema(PDO $pdo): void
         );
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS workspace_vault_group_permissions (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                group_name TEXT NOT NULL,
+                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                can_view SMALLINT NOT NULL DEFAULT 1,
+                can_access SMALLINT NOT NULL DEFAULT 1,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_due_group_permissions (
                 id BIGSERIAL PRIMARY KEY,
                 workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
                 group_name TEXT NOT NULL,
@@ -889,6 +1063,19 @@ function ensureGroupPermissionSchema(PDO $pdo): void
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )'
         );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_due_group_permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                group_name TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                can_view INTEGER NOT NULL DEFAULT 1,
+                can_access INTEGER NOT NULL DEFAULT 1,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )'
+        );
     }
 
     $pdo->exec(
@@ -907,10 +1094,19 @@ function ensureGroupPermissionSchema(PDO $pdo): void
         'CREATE INDEX IF NOT EXISTS idx_vault_group_permissions_workspace_user
          ON workspace_vault_group_permissions(workspace_id, user_id)'
     );
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_due_group_permissions_workspace_group_user
+         ON workspace_due_group_permissions(workspace_id, group_name, user_id)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_due_group_permissions_workspace_user
+         ON workspace_due_group_permissions(workspace_id, user_id)'
+    );
 
     $normalizers = [
         'task_group_permissions' => 'normalizeTaskGroupName',
         'workspace_vault_group_permissions' => 'normalizeVaultGroupName',
+        'workspace_due_group_permissions' => 'normalizeDueGroupName',
     ];
 
     foreach ($normalizers as $tableName => $normalizeFn) {
@@ -2713,6 +2909,417 @@ function deleteWorkspaceVaultEntry(PDO $pdo, int $workspaceId, int $entryId): vo
     }
 }
 
+function workspaceDueEntriesList(?int $workspaceId = null): array
+{
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return [];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT de.id,
+                de.workspace_id,
+                de.label,
+                de.due_date,
+                de.group_name,
+                de.notes,
+                de.created_by,
+                de.created_at,
+                de.updated_at,
+                u.name AS created_by_name
+         FROM workspace_due_entries de
+         LEFT JOIN users u ON u.id = de.created_by
+         WHERE de.workspace_id = :workspace_id
+         ORDER BY de.group_name ASC, de.due_date ASC, de.updated_at DESC, de.id DESC'
+    );
+    $stmt->execute([':workspace_id' => $workspaceId]);
+    $rows = $stmt->fetchAll();
+
+    foreach ($rows as &$row) {
+        $row['id'] = (int) ($row['id'] ?? 0);
+        $row['workspace_id'] = (int) ($row['workspace_id'] ?? 0);
+        $row['created_by'] = isset($row['created_by']) ? (int) $row['created_by'] : null;
+        $row['label'] = normalizeDueEntryLabel((string) ($row['label'] ?? ''));
+        $row['due_date'] = dueDateForStorage((string) ($row['due_date'] ?? ''));
+        $row['group_name'] = normalizeDueGroupName((string) ($row['group_name'] ?? 'Geral'));
+        $row['notes'] = normalizeDueEntryNotes((string) ($row['notes'] ?? ''));
+    }
+    unset($row);
+
+    return $rows;
+}
+
+function normalizeDueGroupName(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 'Geral';
+    }
+
+    $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+    if (mb_strlen($value) > 60) {
+        $value = mb_substr($value, 0, 60);
+    }
+
+    return uppercaseFirstCharacter($value);
+}
+
+function normalizeDueEntryLabel(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+
+    if (mb_strlen($value) > 120) {
+        $value = mb_substr($value, 0, 120);
+    }
+
+    return uppercaseFirstCharacter($value);
+}
+
+function normalizeDueEntryNotes(string $value): string
+{
+    $value = trim($value);
+    if (mb_strlen($value) > 1000) {
+        $value = mb_substr($value, 0, 1000);
+    }
+
+    return $value;
+}
+
+function findDueGroupByName(string $groupName, ?int $workspaceId = null): ?string
+{
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return null;
+    }
+
+    $needle = mb_strtolower(normalizeDueGroupName($groupName));
+    foreach (dueGroupsList($workspaceId) as $existingName) {
+        if (mb_strtolower($existingName) === $needle) {
+            return $existingName;
+        }
+    }
+
+    return null;
+}
+
+function defaultDueGroupName(?int $workspaceId = null): string
+{
+    $pdo = db();
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return 'Geral';
+    }
+
+    $rowStmt = $pdo->prepare(
+        'SELECT name
+         FROM workspace_due_groups
+         WHERE workspace_id = :workspace_id
+         ORDER BY id ASC
+         LIMIT 1'
+    );
+    $rowStmt->execute([':workspace_id' => $workspaceId]);
+    $row = $rowStmt->fetch();
+    $groupName = trim((string) ($row['name'] ?? ''));
+    if ($groupName !== '') {
+        return normalizeDueGroupName($groupName);
+    }
+
+    $entryStmt = $pdo->prepare(
+        "SELECT group_name
+         FROM workspace_due_entries
+         WHERE workspace_id = :workspace_id
+           AND group_name IS NOT NULL
+           AND group_name <> ''
+         ORDER BY id ASC
+         LIMIT 1"
+    );
+    $entryStmt->execute([':workspace_id' => $workspaceId]);
+    $entryRow = $entryStmt->fetch();
+    $entryGroupName = trim((string) ($entryRow['group_name'] ?? ''));
+    if ($entryGroupName !== '') {
+        $normalized = normalizeDueGroupName($entryGroupName);
+        upsertDueGroup($pdo, $normalized, null, $workspaceId);
+        return $normalized;
+    }
+
+    upsertDueGroup($pdo, 'Geral', null, $workspaceId);
+    return 'Geral';
+}
+
+function upsertDueGroup(PDO $pdo, string $groupName, ?int $createdBy = null, ?int $workspaceId = null): string
+{
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        throw new RuntimeException('Workspace ativo nao encontrado.');
+    }
+
+    $normalized = normalizeDueGroupName($groupName);
+    $createdAt = nowIso();
+
+    if (dbDriverName($pdo) === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO workspace_due_groups (workspace_id, name, created_by, created_at)
+             VALUES (:workspace_id, :name, :created_by, :created_at)
+             ON CONFLICT (workspace_id, name) DO NOTHING'
+        );
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT OR IGNORE INTO workspace_due_groups (workspace_id, name, created_by, created_at)
+             VALUES (:workspace_id, :name, :created_by, :created_at)'
+        );
+    }
+
+    $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
+    $stmt->bindValue(':name', $normalized, PDO::PARAM_STR);
+    if ($createdBy !== null && $createdBy > 0) {
+        $stmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+    } else {
+        $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+    }
+    $stmt->bindValue(':created_at', $createdAt, PDO::PARAM_STR);
+    $stmt->execute();
+
+    return $normalized;
+}
+
+function dueGroupsList(?int $workspaceId = null): array
+{
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return ['Geral'];
+    }
+
+    $groups = [];
+
+    $storedSql = dbDriverName(db()) === 'pgsql'
+        ? 'SELECT name
+           FROM workspace_due_groups
+           WHERE workspace_id = :workspace_id
+           ORDER BY LOWER(name) ASC'
+        : 'SELECT name
+           FROM workspace_due_groups
+           WHERE workspace_id = :workspace_id
+           ORDER BY name COLLATE NOCASE ASC';
+
+    $storedStmt = db()->prepare($storedSql);
+    $storedStmt->execute([':workspace_id' => $workspaceId]);
+    foreach ($storedStmt->fetchAll() as $row) {
+        $groupName = normalizeDueGroupName((string) ($row['name'] ?? ''));
+        $groups[$groupName] = $groupName;
+    }
+
+    $entryStmt = db()->prepare(
+        'SELECT DISTINCT group_name
+         FROM workspace_due_entries
+         WHERE workspace_id = :workspace_id'
+    );
+    $entryStmt->execute([':workspace_id' => $workspaceId]);
+    foreach ($entryStmt->fetchAll() as $row) {
+        $groupName = normalizeDueGroupName((string) ($row['group_name'] ?? ''));
+        $groups[$groupName] = $groupName;
+    }
+
+    if (!$groups) {
+        $default = defaultDueGroupName($workspaceId);
+        return [$default];
+    }
+
+    $values = array_values($groups);
+    usort($values, static fn ($a, $b) => strcasecmp($a, $b));
+
+    return $values;
+}
+
+function dueEntriesByGroup(array $entries, ?array $groupNames = null): array
+{
+    $groups = [];
+    if ($groupNames !== null) {
+        foreach ($groupNames as $groupName) {
+            $normalized = normalizeDueGroupName((string) $groupName);
+            $groups[$normalized] = [];
+        }
+    }
+
+    foreach ($entries as $entry) {
+        $groupName = normalizeDueGroupName((string) ($entry['group_name'] ?? 'Geral'));
+        if (!array_key_exists($groupName, $groups)) {
+            $groups[$groupName] = [];
+        }
+        $groups[$groupName][] = $entry;
+    }
+
+    return $groups;
+}
+
+function createWorkspaceDueEntry(
+    PDO $pdo,
+    int $workspaceId,
+    string $label,
+    ?string $dueDate,
+    string $groupName = 'Geral',
+    string $notes = '',
+    ?int $createdBy = null
+): int {
+    if ($workspaceId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $label = normalizeDueEntryLabel($label);
+    if ($label === '') {
+        throw new RuntimeException('Informe um nome para o vencimento.');
+    }
+
+    $dueDate = dueDateForStorage($dueDate);
+    if ($dueDate === null) {
+        throw new RuntimeException('Informe uma data de vencimento valida.');
+    }
+
+    $groupName = normalizeDueGroupName($groupName);
+    $notes = normalizeDueEntryNotes($notes);
+    upsertDueGroup($pdo, $groupName, $createdBy, $workspaceId);
+
+    $createdAt = nowIso();
+    $updatedAt = $createdAt;
+
+    if (dbDriverName($pdo) === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO workspace_due_entries (
+                workspace_id, label, due_date, group_name, notes, created_by, created_at, updated_at
+            ) VALUES (
+                :workspace_id, :label, :due_date, :group_name, :notes, :created_by, :created_at, :updated_at
+            )
+            RETURNING id'
+        );
+        $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
+        $stmt->bindValue(':label', $label, PDO::PARAM_STR);
+        $stmt->bindValue(':due_date', $dueDate, PDO::PARAM_STR);
+        $stmt->bindValue(':group_name', $groupName, PDO::PARAM_STR);
+        $stmt->bindValue(':notes', $notes, PDO::PARAM_STR);
+        if ($createdBy !== null && $createdBy > 0) {
+            $stmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+        }
+        $stmt->bindValue(':created_at', $createdAt, PDO::PARAM_STR);
+        $stmt->bindValue(':updated_at', $updatedAt, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO workspace_due_entries (
+            workspace_id, label, due_date, group_name, notes, created_by, created_at, updated_at
+        ) VALUES (
+            :workspace_id, :label, :due_date, :group_name, :notes, :created_by, :created_at, :updated_at
+        )'
+    );
+    $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
+    $stmt->bindValue(':label', $label, PDO::PARAM_STR);
+    $stmt->bindValue(':due_date', $dueDate, PDO::PARAM_STR);
+    $stmt->bindValue(':group_name', $groupName, PDO::PARAM_STR);
+    $stmt->bindValue(':notes', $notes, PDO::PARAM_STR);
+    if ($createdBy !== null && $createdBy > 0) {
+        $stmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+    } else {
+        $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+    }
+    $stmt->bindValue(':created_at', $createdAt, PDO::PARAM_STR);
+    $stmt->bindValue(':updated_at', $updatedAt, PDO::PARAM_STR);
+    $stmt->execute();
+
+    return (int) $pdo->lastInsertId();
+}
+
+function updateWorkspaceDueEntry(
+    PDO $pdo,
+    int $workspaceId,
+    int $entryId,
+    string $label,
+    ?string $dueDate,
+    string $groupName = 'Geral',
+    string $notes = ''
+): void {
+    if ($workspaceId <= 0 || $entryId <= 0) {
+        throw new RuntimeException('Registro invalido.');
+    }
+
+    $label = normalizeDueEntryLabel($label);
+    if ($label === '') {
+        throw new RuntimeException('Informe um nome para o vencimento.');
+    }
+
+    $dueDate = dueDateForStorage($dueDate);
+    if ($dueDate === null) {
+        throw new RuntimeException('Informe uma data de vencimento valida.');
+    }
+
+    $groupName = normalizeDueGroupName($groupName);
+    $notes = normalizeDueEntryNotes($notes);
+    upsertDueGroup($pdo, $groupName, null, $workspaceId);
+
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_due_entries
+         SET label = :label,
+             due_date = :due_date,
+             group_name = :group_name,
+             notes = :notes,
+             updated_at = :updated_at
+         WHERE id = :id
+           AND workspace_id = :workspace_id'
+    );
+    $stmt->execute([
+        ':label' => $label,
+        ':due_date' => $dueDate,
+        ':group_name' => $groupName,
+        ':notes' => $notes,
+        ':updated_at' => nowIso(),
+        ':id' => $entryId,
+        ':workspace_id' => $workspaceId,
+    ]);
+
+    if ($stmt->rowCount() <= 0) {
+        $existsStmt = $pdo->prepare(
+            'SELECT 1
+             FROM workspace_due_entries
+             WHERE id = :id
+               AND workspace_id = :workspace_id
+             LIMIT 1'
+        );
+        $existsStmt->execute([
+            ':id' => $entryId,
+            ':workspace_id' => $workspaceId,
+        ]);
+        if (!$existsStmt->fetchColumn()) {
+            throw new RuntimeException('Registro nao encontrado.');
+        }
+    }
+}
+
+function deleteWorkspaceDueEntry(PDO $pdo, int $workspaceId, int $entryId): void
+{
+    if ($workspaceId <= 0 || $entryId <= 0) {
+        throw new RuntimeException('Registro invalido.');
+    }
+
+    $stmt = $pdo->prepare(
+        'DELETE FROM workspace_due_entries
+         WHERE id = :id
+           AND workspace_id = :workspace_id'
+    );
+    $stmt->execute([
+        ':id' => $entryId,
+        ':workspace_id' => $workspaceId,
+    ]);
+
+    if ($stmt->rowCount() <= 0) {
+        throw new RuntimeException('Registro nao encontrado.');
+    }
+}
+
 function taskStatuses(): array
 {
     return [
@@ -3465,6 +4072,50 @@ function vaultGroupPermissionOverridesForUser(int $workspaceId, int $userId): ar
     return $map;
 }
 
+function dueGroupPermissionOverridesForUser(int $workspaceId, int $userId): array
+{
+    if ($workspaceId <= 0 || $userId <= 0) {
+        return [];
+    }
+
+    $role = workspaceRoleForUser($userId, $workspaceId);
+    if ($role === null || $role === 'admin') {
+        return [];
+    }
+
+    static $cache = [];
+    $cacheKey = $workspaceId . ':' . $userId;
+    if (array_key_exists($cacheKey, $cache)) {
+        return $cache[$cacheKey];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT group_name, can_view, can_access
+         FROM workspace_due_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND user_id = :user_id'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':user_id' => $userId,
+    ]);
+    $rows = $stmt->fetchAll();
+
+    $map = [];
+    foreach ($rows as $row) {
+        $groupKey = mb_strtolower(normalizeDueGroupName((string) ($row['group_name'] ?? 'Geral')));
+        $canView = normalizePermissionFlag($row['can_view'] ?? 1);
+        $canAccess = $canView === 1 ? normalizePermissionFlag($row['can_access'] ?? 1) : 0;
+        $map[$groupKey] = [
+            'can_view' => $canView === 1,
+            'can_access' => $canAccess === 1,
+        ];
+    }
+
+    $cache[$cacheKey] = $map;
+    return $map;
+}
+
 function taskGroupPermissionForUser(int $workspaceId, string $groupName, int $userId): array
 {
     if ($workspaceId <= 0 || $userId <= 0) {
@@ -3511,6 +4162,29 @@ function vaultGroupPermissionForUser(int $workspaceId, string $groupName, int $u
     return ['can_view' => $canView, 'can_access' => $canAccess];
 }
 
+function dueGroupPermissionForUser(int $workspaceId, string $groupName, int $userId): array
+{
+    if ($workspaceId <= 0 || $userId <= 0) {
+        return ['can_view' => false, 'can_access' => false];
+    }
+
+    $role = workspaceRoleForUser($userId, $workspaceId);
+    if ($role === null) {
+        return ['can_view' => false, 'can_access' => false];
+    }
+    if ($role === 'admin') {
+        return ['can_view' => true, 'can_access' => true];
+    }
+
+    $groupKey = mb_strtolower(normalizeDueGroupName($groupName));
+    $overrides = dueGroupPermissionOverridesForUser($workspaceId, $userId);
+    $permission = $overrides[$groupKey] ?? ['can_view' => true, 'can_access' => true];
+    $canView = !empty($permission['can_view']);
+    $canAccess = $canView && !empty($permission['can_access']);
+
+    return ['can_view' => $canView, 'can_access' => $canAccess];
+}
+
 function userCanViewTaskGroup(int $userId, int $workspaceId, string $groupName): bool
 {
     return taskGroupPermissionForUser($workspaceId, $groupName, $userId)['can_view'];
@@ -3529,6 +4203,16 @@ function userCanViewVaultGroup(int $userId, int $workspaceId, string $groupName)
 function userCanAccessVaultGroup(int $userId, int $workspaceId, string $groupName): bool
 {
     return vaultGroupPermissionForUser($workspaceId, $groupName, $userId)['can_access'];
+}
+
+function userCanViewDueGroup(int $userId, int $workspaceId, string $groupName): bool
+{
+    return dueGroupPermissionForUser($workspaceId, $groupName, $userId)['can_view'];
+}
+
+function userCanAccessDueGroup(int $userId, int $workspaceId, string $groupName): bool
+{
+    return dueGroupPermissionForUser($workspaceId, $groupName, $userId)['can_access'];
 }
 
 function taskGroupPermissionsByUser(int $workspaceId, string $groupName): array
@@ -3577,6 +4261,42 @@ function vaultGroupPermissionsByUser(int $workspaceId, string $groupName): array
     $stmt = db()->prepare(
         'SELECT user_id, can_view, can_access
          FROM workspace_vault_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $groupName,
+    ]);
+    $rows = $stmt->fetchAll();
+
+    $map = [];
+    foreach ($rows as $row) {
+        $userId = (int) ($row['user_id'] ?? 0);
+        if ($userId <= 0) {
+            continue;
+        }
+        $canView = normalizePermissionFlag($row['can_view'] ?? 1);
+        $canAccess = $canView === 1 ? normalizePermissionFlag($row['can_access'] ?? 1) : 0;
+        $map[$userId] = [
+            'can_view' => $canView === 1,
+            'can_access' => $canAccess === 1,
+        ];
+    }
+
+    return $map;
+}
+
+function dueGroupPermissionsByUser(int $workspaceId, string $groupName): array
+{
+    if ($workspaceId <= 0) {
+        return [];
+    }
+
+    $groupName = normalizeDueGroupName($groupName);
+    $stmt = db()->prepare(
+        'SELECT user_id, can_view, can_access
+         FROM workspace_due_group_permissions
          WHERE workspace_id = :workspace_id
            AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
     );
@@ -3719,6 +4439,64 @@ function saveVaultGroupPermissions(
     }
 }
 
+function saveDueGroupPermissions(
+    PDO $pdo,
+    int $workspaceId,
+    string $groupName,
+    array $permissionsByUserId,
+    array $workspaceRolesByUserId
+): void {
+    if ($workspaceId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $groupName = normalizeDueGroupName($groupName);
+
+    $deleteStmt = $pdo->prepare(
+        'DELETE FROM workspace_due_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
+    );
+    $deleteStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $groupName,
+    ]);
+
+    $insertStmt = $pdo->prepare(
+        'INSERT INTO workspace_due_group_permissions (workspace_id, group_name, user_id, can_view, can_access, updated_at)
+         VALUES (:workspace_id, :group_name, :user_id, :can_view, :can_access, :updated_at)'
+    );
+    $updatedAt = nowIso();
+
+    foreach ($permissionsByUserId as $rawUserId => $permissionRow) {
+        $userId = (int) $rawUserId;
+        if ($userId <= 0 || !isset($workspaceRolesByUserId[$userId])) {
+            continue;
+        }
+
+        $role = normalizeWorkspaceRole((string) $workspaceRolesByUserId[$userId]);
+        if ($role === 'admin') {
+            continue;
+        }
+
+        $canView = normalizePermissionFlag($permissionRow['can_view'] ?? 1);
+        $canAccess = $canView === 1 ? normalizePermissionFlag($permissionRow['can_access'] ?? 1) : 0;
+
+        if ($canView === 1 && $canAccess === 1) {
+            continue;
+        }
+
+        $insertStmt->execute([
+            ':workspace_id' => $workspaceId,
+            ':group_name' => $groupName,
+            ':user_id' => $userId,
+            ':can_view' => $canView,
+            ':can_access' => $canAccess,
+            ':updated_at' => $updatedAt,
+        ]);
+    }
+}
+
 function renameTaskGroupPermissions(PDO $pdo, int $workspaceId, string $oldGroupName, string $newGroupName): void
 {
     if ($workspaceId <= 0) {
@@ -3773,6 +4551,33 @@ function renameVaultGroupPermissions(PDO $pdo, int $workspaceId, string $oldGrou
     ]);
 }
 
+function renameDueGroupPermissions(PDO $pdo, int $workspaceId, string $oldGroupName, string $newGroupName): void
+{
+    if ($workspaceId <= 0) {
+        return;
+    }
+
+    $oldGroupName = normalizeDueGroupName($oldGroupName);
+    $newGroupName = normalizeDueGroupName($newGroupName);
+    if (mb_strtolower($oldGroupName) === mb_strtolower($newGroupName)) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_due_group_permissions
+         SET group_name = :new_group_name,
+             updated_at = :updated_at
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:old_group_name))'
+    );
+    $stmt->execute([
+        ':new_group_name' => $newGroupName,
+        ':updated_at' => nowIso(),
+        ':workspace_id' => $workspaceId,
+        ':old_group_name' => $oldGroupName,
+    ]);
+}
+
 function deleteTaskGroupPermissions(PDO $pdo, int $workspaceId, string $groupName): void
 {
     if ($workspaceId <= 0) {
@@ -3804,6 +4609,23 @@ function deleteVaultGroupPermissions(PDO $pdo, int $workspaceId, string $groupNa
     $stmt->execute([
         ':workspace_id' => $workspaceId,
         ':group_name' => normalizeVaultGroupName($groupName),
+    ]);
+}
+
+function deleteDueGroupPermissions(PDO $pdo, int $workspaceId, string $groupName): void
+{
+    if ($workspaceId <= 0) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'DELETE FROM workspace_due_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => normalizeDueGroupName($groupName),
     ]);
 }
 

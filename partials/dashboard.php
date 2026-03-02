@@ -132,6 +132,24 @@
                         </span>
                         <span class="sidebar-view-toggle-label">Gerenciador de acessos</span>
                     </button>
+                    <button
+                        type="button"
+                        class="sidebar-view-toggle"
+                        data-dashboard-view-toggle
+                        data-view="dues"
+                        aria-pressed="false"
+                    >
+                        <span class="sidebar-view-toggle-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <rect x="4" y="5" width="16" height="15" rx="2"></rect>
+                                <path d="M8 3v4"></path>
+                                <path d="M16 3v4"></path>
+                                <path d="M4 9h16"></path>
+                                <path d="M8 13h3"></path>
+                            </svg>
+                        </span>
+                        <span class="sidebar-view-toggle-label">Vencimentos</span>
+                    </button>
                     <?php if (!empty($showUsersDashboardTab)): ?>
                         <button
                             type="button"
@@ -928,6 +946,209 @@
             </div>
         </section>
 
+        <section class="due-wrap panel" id="dues" data-dashboard-view-panel="dues" hidden>
+            <div class="panel-header board-header due-header">
+                <div>
+                    <h2>Vencimentos</h2>
+                </div>
+                <div class="board-summary due-summary">
+                    <button
+                        type="button"
+                        class="icon-gear-button vault-summary-button"
+                        data-open-due-group-modal
+                        aria-label="Criar grupo de vencimentos"
+                    >
+                        <span class="vault-summary-button-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M3 8a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"></path>
+                                <path d="M12 11v5"></path>
+                                <path d="M9.5 13.5h5"></path>
+                            </svg>
+                        </span>
+                        <span class="vault-summary-button-label">Novo grupo</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="icon-gear-button vault-summary-button"
+                        data-open-due-entry-modal
+                        aria-label="Adicionar vencimento"
+                        <?= empty($dueGroupsWithAccess) ? 'disabled' : '' ?>
+                    >
+                        <span class="vault-summary-button-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M8 6v4"></path>
+                                <path d="M16 6v4"></path>
+                                <rect x="4" y="8" width="16" height="12" rx="2"></rect>
+                                <path d="M4 12h16"></path>
+                                <path d="M12 14v4"></path>
+                                <path d="M10 16h4"></path>
+                            </svg>
+                        </span>
+                        <span class="vault-summary-button-label">Novo vencimento</span>
+                    </button>
+                    <span><?= e((string) count($dueEntries)) ?> item(ns)</span>
+                </div>
+            </div>
+
+            <div class="due-groups-list">
+                <?php if (empty($dueEntriesByGroup)): ?>
+                    <div class="empty-card">
+                        <p>Nenhum vencimento cadastrado ainda.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($dueEntriesByGroup as $dueGroupName => $groupDueEntries): ?>
+                        <?php
+                        $dueGroupPermission = $dueGroupPermissions[$dueGroupName] ?? ['can_view' => true, 'can_access' => true];
+                        $dueGroupCanAccess = !empty($dueGroupPermission['can_access']);
+                        $dueGroupPermissionsModalKey = 'due-group-perm-' . md5((string) $dueGroupName);
+                        ?>
+                        <section class="task-group due-group<?= $dueGroupCanAccess ? '' : ' task-group-readonly' ?>" data-due-group data-group-name="<?= e((string) $dueGroupName) ?>">
+                            <header class="task-group-head">
+                                <div class="task-group-head-main">
+                                    <form method="post" class="task-group-rename-form">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                        <input type="hidden" name="action" value="rename_due_group">
+                                        <input type="hidden" name="old_group_name" value="<?= e((string) $dueGroupName) ?>">
+                                        <h3>
+                                            <input
+                                                type="text"
+                                                name="new_group_name"
+                                                value="<?= e((string) $dueGroupName) ?>"
+                                                maxlength="60"
+                                                class="task-group-name-input"
+                                                aria-label="Nome do grupo de vencimentos"
+                                                spellcheck="false"
+                                                <?= $dueGroupCanAccess ? '' : 'readonly' ?>
+                                            >
+                                        </h3>
+                                        <button type="submit" class="sr-only">Salvar grupo</button>
+                                    </form>
+                                </div>
+                                <div class="task-group-head-actions">
+                                    <button
+                                        type="button"
+                                        class="task-group-collapse"
+                                        data-due-group-toggle
+                                        aria-expanded="true"
+                                        aria-label="Retrair grupo de vencimentos"
+                                    ><span aria-hidden="true">&#9662;</span></button>
+                                    <?php if (!empty($canManageWorkspace)): ?>
+                                        <button
+                                            type="button"
+                                            class="group-permissions-button"
+                                            data-open-group-permissions-modal="<?= e($dueGroupPermissionsModalKey) ?>"
+                                            aria-label="Gerenciar acesso do grupo de vencimentos <?= e((string) $dueGroupName) ?>"
+                                        >
+                                            Acesso
+                                        </button>
+                                    <?php endif; ?>
+                                    <?php if ($dueGroupCanAccess): ?>
+                                        <button
+                                            type="button"
+                                            class="group-add-button"
+                                            data-open-due-entry-modal
+                                            data-create-group="<?= e((string) $dueGroupName) ?>"
+                                            aria-label="Adicionar vencimento no grupo <?= e((string) $dueGroupName) ?>"
+                                        >+</button>
+                                        <form method="post" class="task-group-delete-form">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                            <input type="hidden" name="action" value="delete_due_group">
+                                            <input type="hidden" name="group_name" value="<?= e((string) $dueGroupName) ?>">
+                                            <button
+                                                type="submit"
+                                                class="task-group-delete"
+                                                aria-label="Excluir grupo de vencimentos <?= e((string) $dueGroupName) ?>"
+                                            ><span aria-hidden="true">&#10005;</span></button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <?php if (!$dueGroupCanAccess): ?>
+                                        <span class="task-group-readonly-tag">Somente leitura</span>
+                                    <?php endif; ?>
+                                    <span class="task-group-count"><?= e((string) count($groupDueEntries)) ?></span>
+                                </div>
+                            </header>
+
+                            <div class="due-group-rows" data-due-group-rows>
+                                <?php if (!$groupDueEntries): ?>
+                                    <div class="task-group-empty-row">
+                                        <?php if ($dueGroupCanAccess): ?>
+                                            <button
+                                                type="button"
+                                                class="task-group-empty-add"
+                                                data-open-due-entry-modal
+                                                data-create-group="<?= e((string) $dueGroupName) ?>"
+                                                aria-label="Adicionar vencimento no grupo <?= e((string) $dueGroupName) ?>"
+                                            >+</button>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php foreach ($groupDueEntries as $dueEntry): ?>
+                                    <?php
+                                    $dueEntryId = (int) ($dueEntry['id'] ?? 0);
+                                    $dueLabel = (string) ($dueEntry['label'] ?? '');
+                                    $dueDateValue = dueDateForStorage((string) ($dueEntry['due_date'] ?? ''));
+                                    $dueDatePresentation = taskDueDatePresentation($dueDateValue);
+                                    $dueDateDisplay = (string) ($dueDatePresentation['display'] ?? '-');
+                                    $dueGroupValue = (string) ($dueEntry['group_name'] ?? $dueGroupName);
+                                    $dueNotes = trim((string) ($dueEntry['notes'] ?? ''));
+                                    ?>
+                                    <article
+                                        class="due-entry-row"
+                                        data-due-entry
+                                        data-entry-id="<?= e((string) $dueEntryId) ?>"
+                                        data-entry-label="<?= e($dueLabel) ?>"
+                                        data-entry-date="<?= e((string) ($dueDateValue ?? '')) ?>"
+                                        data-entry-group="<?= e($dueGroupValue) ?>"
+                                        data-entry-notes="<?= e($dueNotes) ?>"
+                                    >
+                                        <div class="due-entry-main">
+                                            <strong class="due-entry-title"><?= e($dueLabel) ?></strong>
+                                            <span class="due-entry-date"><?= e($dueDateDisplay) ?></span>
+                                            <?php if ($dueNotes !== ''): ?>
+                                                <span class="due-entry-notes"><?= e($dueNotes) ?></span>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <div class="vault-entry-tools">
+                                            <?php if ($dueGroupCanAccess): ?>
+                                                <button
+                                                    type="button"
+                                                    class="vault-icon-button"
+                                                    data-open-due-edit-modal
+                                                    aria-label="Editar vencimento"
+                                                >
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                        <path d="M4 20h4l10-10-4-4L4 16v4Z"></path>
+                                                        <path d="m12 6 4 4"></path>
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="vault-entry-delete-button"
+                                                    data-due-delete-entry
+                                                    data-delete-form-id="delete-due-entry-<?= e((string) $dueEntryId) ?>"
+                                                    aria-label="Excluir vencimento"
+                                                >
+                                                    <span aria-hidden="true">&#10005;</span>
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <form method="post" id="delete-due-entry-<?= e((string) $dueEntryId) ?>" class="vault-entry-delete-form">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                            <input type="hidden" name="action" value="delete_due_entry">
+                                            <input type="hidden" name="entry_id" value="<?= e((string) $dueEntryId) ?>">
+                                        </form>
+                                    </article>
+                                <?php endforeach; ?>
+                            </div>
+                        </section>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </section>
+
         <?php if (!empty($showUsersDashboardTab)): ?>
             <section class="users-wrap panel" id="users" data-dashboard-view-panel="users" hidden>
                 <div class="panel-header board-header users-board-header">
@@ -1305,6 +1526,134 @@
     </section>
 </div>
 
+<div class="modal-backdrop" data-due-group-modal hidden>
+    <div class="modal-scrim" data-close-due-group-modal></div>
+    <section class="modal-card create-group-modal" role="dialog" aria-modal="true" aria-labelledby="due-group-modal-title">
+        <header class="modal-head">
+            <h2 id="due-group-modal-title">Novo grupo de vencimentos</h2>
+            <button type="button" class="modal-close-button" data-close-due-group-modal aria-label="Fechar modal">
+                <span aria-hidden="true">&#10005;</span>
+            </button>
+        </header>
+
+        <form method="post" class="form-stack modal-form" data-due-group-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="create_due_group">
+
+            <label>
+                <span>Nome do grupo</span>
+                <input type="text" name="group_name" maxlength="60" required data-due-group-name-input>
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-due-group-modal>Cancelar</button>
+                <button type="submit" class="btn btn-pill">Criar grupo</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="modal-backdrop" data-due-entry-modal hidden>
+    <div class="modal-scrim" data-close-due-entry-modal></div>
+    <section class="modal-card create-task-modal" role="dialog" aria-modal="true" aria-labelledby="due-entry-modal-title">
+        <header class="modal-head">
+            <h2 id="due-entry-modal-title">Novo vencimento</h2>
+            <button type="button" class="modal-close-button" data-close-due-entry-modal aria-label="Fechar modal">
+                <span aria-hidden="true">&#10005;</span>
+            </button>
+        </header>
+
+        <form method="post" class="form-stack modal-form" data-due-entry-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="create_due_entry">
+
+            <label>
+                <span>Grupo</span>
+                <select name="group_name" data-due-entry-group <?= empty($dueGroupsWithAccess) ? 'disabled' : '' ?>>
+                    <?php if (!$dueGroupsWithAccess): ?>
+                        <option value="">Sem grupo com acesso</option>
+                    <?php else: ?>
+                        <?php foreach ($dueGroupsWithAccess as $dueGroupOption): ?>
+                            <option value="<?= e((string) $dueGroupOption) ?>"><?= e((string) $dueGroupOption) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </label>
+
+            <label>
+                <span>Nome</span>
+                <input type="text" name="label" maxlength="120" required data-due-entry-label>
+            </label>
+
+            <label>
+                <span>Data de vencimento</span>
+                <input type="date" name="due_date" required data-due-entry-date>
+            </label>
+
+            <label>
+                <span>Observacao (opcional)</span>
+                <textarea name="notes" rows="3" maxlength="1000" data-due-entry-notes></textarea>
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-due-entry-modal>Cancelar</button>
+                <button type="submit" class="btn btn-pill" <?= empty($dueGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="modal-backdrop" data-due-entry-edit-modal hidden>
+    <div class="modal-scrim" data-close-due-entry-edit-modal></div>
+    <section class="modal-card create-task-modal" role="dialog" aria-modal="true" aria-labelledby="due-entry-edit-modal-title">
+        <header class="modal-head">
+            <h2 id="due-entry-edit-modal-title">Editar vencimento</h2>
+            <button type="button" class="modal-close-button" data-close-due-entry-edit-modal aria-label="Fechar modal">
+                <span aria-hidden="true">&#10005;</span>
+            </button>
+        </header>
+
+        <form method="post" class="form-stack modal-form" data-due-entry-edit-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="update_due_entry">
+            <input type="hidden" name="entry_id" value="" data-due-entry-edit-id>
+
+            <label>
+                <span>Grupo</span>
+                <select name="group_name" data-due-entry-edit-group <?= empty($dueGroupsWithAccess) ? 'disabled' : '' ?>>
+                    <?php if (!$dueGroupsWithAccess): ?>
+                        <option value="">Sem grupo com acesso</option>
+                    <?php else: ?>
+                        <?php foreach ($dueGroupsWithAccess as $dueGroupOption): ?>
+                            <option value="<?= e((string) $dueGroupOption) ?>"><?= e((string) $dueGroupOption) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </label>
+
+            <label>
+                <span>Nome</span>
+                <input type="text" name="label" maxlength="120" required data-due-entry-edit-label>
+            </label>
+
+            <label>
+                <span>Data de vencimento</span>
+                <input type="date" name="due_date" required data-due-entry-edit-date>
+            </label>
+
+            <label>
+                <span>Observacao (opcional)</span>
+                <textarea name="notes" rows="3" maxlength="1000" data-due-entry-edit-notes></textarea>
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-due-entry-edit-modal>Cancelar</button>
+                <button type="submit" class="btn btn-pill" <?= empty($dueGroupsWithAccess) ? 'disabled' : '' ?>>Salvar</button>
+            </div>
+        </form>
+    </section>
+</div>
+
 <?php if (!empty($canManageWorkspace)): ?>
     <?php foreach ($taskGroups as $taskGroupPermissionsName): ?>
         <?php
@@ -1495,6 +1844,110 @@
                                                 name="permissions[<?= e((string) $vaultPermissionRow['id']) ?>][enabled]"
                                                 value="1"
                                                 <?= !empty($vaultPermissionRow['enabled']) ? 'checked' : '' ?>
+                                                data-permission-enabled-checkbox
+                                            >
+                                            <span>Permitido</span>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </details>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-mini btn-ghost" data-close-group-permissions-modal>Cancelar</button>
+                        <button type="submit" class="btn btn-pill">Salvar permissoes</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    <?php endforeach; ?>
+
+    <?php foreach ($dueGroups as $dueGroupPermissionsName): ?>
+        <?php
+        $dueGroupPermissionsModalKey = 'due-group-perm-' . md5((string) $dueGroupPermissionsName);
+        $duePermissionsByUser = $dueGroupPermissionsByUserMap[$dueGroupPermissionsName] ?? [];
+        ?>
+        <div class="modal-backdrop" data-group-permissions-modal="<?= e($dueGroupPermissionsModalKey) ?>" hidden>
+            <div class="modal-scrim" data-close-group-permissions-modal></div>
+            <section class="modal-card group-permissions-modal-card" role="dialog" aria-modal="true" aria-labelledby="due-group-perm-title-<?= e(md5((string) $dueGroupPermissionsName)) ?>">
+                <header class="modal-head">
+                    <h2 id="due-group-perm-title-<?= e(md5((string) $dueGroupPermissionsName)) ?>">Acesso do grupo de vencimentos: <?= e((string) $dueGroupPermissionsName) ?></h2>
+                    <button type="button" class="modal-close-button" data-close-group-permissions-modal aria-label="Fechar modal">
+                        <span aria-hidden="true">&#10005;</span>
+                    </button>
+                </header>
+
+                <form method="post" class="form-stack modal-form group-permissions-form">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="update_due_group_permissions">
+                    <input type="hidden" name="group_name" value="<?= e((string) $dueGroupPermissionsName) ?>">
+
+                    <?php
+                    $duePermissionRows = [];
+                    $dueEnabledCount = 0;
+                    foreach ($workspaceMembers as $workspaceMember) {
+                        $memberId = (int) ($workspaceMember['id'] ?? 0);
+                        if ($memberId <= 0) {
+                            continue;
+                        }
+                        $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+                        if ($memberRole === 'admin') {
+                            continue;
+                        }
+                        $memberPermission = $duePermissionsByUser[$memberId] ?? [];
+                        $memberEnabled = (bool) ($memberPermission['can_view'] ?? true)
+                            && (bool) ($memberPermission['can_access'] ?? true);
+                        if ($memberEnabled) {
+                            $dueEnabledCount++;
+                        }
+                        $duePermissionRows[] = [
+                            'id' => $memberId,
+                            'name' => (string) ($workspaceMember['name'] ?? 'Usuario'),
+                            'email' => (string) ($workspaceMember['email'] ?? ''),
+                            'enabled' => $memberEnabled,
+                        ];
+                    }
+                    $dueTotalCount = count($duePermissionRows);
+                    $dueAllEnabled = $dueTotalCount > 0 && $dueEnabledCount === $dueTotalCount;
+                    $dueCounterLabel = $dueEnabledCount . '/' . $dueTotalCount;
+                    ?>
+
+                    <div class="group-permissions-scope" data-group-permissions-scope>
+                        <label class="group-permissions-toggle group-permissions-toggle-master">
+                            <input
+                                type="checkbox"
+                                data-permission-all-checkbox
+                                <?= $dueAllEnabled ? 'checked' : '' ?>
+                                <?= $dueTotalCount === 0 ? 'disabled' : '' ?>
+                            >
+                            <span>Aplicar a todos</span>
+                        </label>
+                        <span class="group-permissions-counter" data-permission-counter><?= e($dueCounterLabel) ?> permitidos</span>
+                    </div>
+
+                    <details class="group-permissions-members" open>
+                        <summary>
+                            <span>Usuarios do workspace</span>
+                            <span class="group-permissions-summary-count" data-permission-summary-count><?= e($dueCounterLabel) ?></span>
+                        </summary>
+                        <div class="group-permissions-list">
+                            <?php if (!$duePermissionRows): ?>
+                                <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
+                            <?php else: ?>
+                                <?php foreach ($duePermissionRows as $duePermissionRow): ?>
+                                    <div class="group-permissions-row">
+                                        <input type="hidden" name="member_ids[]" value="<?= e((string) $duePermissionRow['id']) ?>">
+                                        <div class="group-permissions-user">
+                                            <strong><?= e((string) $duePermissionRow['name']) ?></strong>
+                                            <span><?= e((string) $duePermissionRow['email']) ?></span>
+                                        </div>
+                                        <label class="group-permissions-toggle">
+                                            <input
+                                                type="checkbox"
+                                                name="permissions[<?= e((string) $duePermissionRow['id']) ?>][enabled]"
+                                                value="1"
+                                                <?= !empty($duePermissionRow['enabled']) ? 'checked' : '' ?>
                                                 data-permission-enabled-checkbox
                                             >
                                             <span>Permitido</span>
