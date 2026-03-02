@@ -2286,6 +2286,12 @@ textarea:focus {
     color: rgba(228, 236, 255, 0.9);
 }
 
+.due-entry-schedule.is-annual {
+    border-color: rgba(145, 215, 201, 0.34);
+    background: rgba(12, 45, 44, 0.48);
+    color: rgba(198, 243, 234, 0.92);
+}
+
 .due-entry-notes {
     font-size: 0.78rem;
     color: rgba(232, 238, 249, 0.66);

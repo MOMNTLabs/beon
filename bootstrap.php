@@ -3086,7 +3086,14 @@ function normalizeDueEntryNotes(string $value): string
 function normalizeDueRecurrenceType(string $value): string
 {
     $normalized = mb_strtolower(trim($value));
-    return $normalized === 'fixed' ? 'fixed' : 'monthly';
+    if ($normalized === 'fixed') {
+        return 'fixed';
+    }
+    if ($normalized === 'annual') {
+        return 'annual';
+    }
+
+    return 'monthly';
 }
 
 function normalizeDueMonthlyDay($value): ?int
@@ -3149,6 +3156,37 @@ function dueNextMonthlyDate(?int $monthlyDay, ?DateTimeImmutable $fromDate = nul
     return $candidate->format('Y-m-d');
 }
 
+function dueNextAnnualDate(?string $dueDate, ?DateTimeImmutable $fromDate = null): ?string
+{
+    $normalizedDate = dueDateForStorage($dueDate);
+    if ($normalizedDate === null) {
+        return null;
+    }
+
+    $referenceDate = DateTimeImmutable::createFromFormat('Y-m-d', $normalizedDate);
+    if (!$referenceDate) {
+        return null;
+    }
+
+    $baseDate = $fromDate instanceof DateTimeImmutable ? $fromDate : new DateTimeImmutable('today');
+    $referenceMonth = (int) $referenceDate->format('n');
+    $referenceDay = (int) $referenceDate->format('j');
+    $baseYear = (int) $baseDate->format('Y');
+
+    $currentYearAnchor = $baseDate->setDate($baseYear, $referenceMonth, 1);
+    $currentYearTargetDay = min($referenceDay, (int) $currentYearAnchor->format('t'));
+    $candidate = $currentYearAnchor->setDate($baseYear, $referenceMonth, $currentYearTargetDay);
+
+    if ($candidate->format('Y-m-d') < $baseDate->format('Y-m-d')) {
+        $nextYear = $baseYear + 1;
+        $nextYearAnchor = $currentYearAnchor->setDate($nextYear, $referenceMonth, 1);
+        $nextYearTargetDay = min($referenceDay, (int) $nextYearAnchor->format('t'));
+        $candidate = $nextYearAnchor->setDate($nextYear, $referenceMonth, $nextYearTargetDay);
+    }
+
+    return $candidate->format('Y-m-d');
+}
+
 function dueNextDueDate(string $recurrenceType, ?int $monthlyDay, ?string $dueDate): ?string
 {
     $recurrenceType = normalizeDueRecurrenceType($recurrenceType);
@@ -3157,6 +3195,9 @@ function dueNextDueDate(string $recurrenceType, ?int $monthlyDay, ?string $dueDa
 
     if ($recurrenceType === 'fixed') {
         return $dueDate;
+    }
+    if ($recurrenceType === 'annual') {
+        return dueNextAnnualDate($dueDate);
     }
 
     if ($monthlyDay === null && $dueDate !== null) {
@@ -3364,6 +3405,15 @@ function createWorkspaceDueEntry(
             throw new RuntimeException('Informe um dia valido para o vencimento mensal.');
         }
         $dueDate = dueNextMonthlyDate($monthlyDay);
+    } elseif ($recurrenceType === 'annual') {
+        if ($dueDate === null) {
+            throw new RuntimeException('Informe uma data valida para o vencimento anual.');
+        }
+        $dueDate = dueNextAnnualDate($dueDate);
+        if ($dueDate === null) {
+            throw new RuntimeException('Informe uma data valida para o vencimento anual.');
+        }
+        $monthlyDay = null;
     } else {
         if ($dueDate === null) {
             throw new RuntimeException('Informe uma data de vencimento valida.');
@@ -3472,6 +3522,15 @@ function updateWorkspaceDueEntry(
             throw new RuntimeException('Informe um dia valido para o vencimento mensal.');
         }
         $dueDate = dueNextMonthlyDate($monthlyDay);
+    } elseif ($recurrenceType === 'annual') {
+        if ($dueDate === null) {
+            throw new RuntimeException('Informe uma data valida para o vencimento anual.');
+        }
+        $dueDate = dueNextAnnualDate($dueDate);
+        if ($dueDate === null) {
+            throw new RuntimeException('Informe uma data valida para o vencimento anual.');
+        }
+        $monthlyDay = null;
     } else {
         if ($dueDate === null) {
             throw new RuntimeException('Informe uma data de vencimento valida.');

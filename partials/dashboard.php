@@ -1106,8 +1106,19 @@
                                             : '--';
                                         $dueScheduleLabel = 'Mensal - dia ' . $dueMonthlyDayLabel . ' - Prox.: ' . $dueNextDisplay;
                                         $dueScheduleTitle = 'Vencimento mensal no dia ' . $dueMonthlyDayLabel . '. Proximo: ' . $dueNextTitle;
+                                    } elseif ($dueRecurrenceType === 'annual') {
+                                        $dueAnnualReferenceDate = $dueDateValue ?? $dueNextDateValue;
+                                        $dueAnnualMonthDayLabel = '--/--';
+                                        if ($dueAnnualReferenceDate !== null) {
+                                            $dueAnnualDateObj = DateTimeImmutable::createFromFormat('Y-m-d', $dueAnnualReferenceDate);
+                                            if ($dueAnnualDateObj) {
+                                                $dueAnnualMonthDayLabel = $dueAnnualDateObj->format('d/m');
+                                            }
+                                        }
+                                        $dueScheduleLabel = 'Anual - ' . $dueAnnualMonthDayLabel . ' - Prox.: ' . $dueNextDisplay;
+                                        $dueScheduleTitle = 'Vencimento anual em ' . $dueAnnualMonthDayLabel . '. Proximo: ' . $dueNextTitle;
                                     } else {
-                                        $dueScheduleLabel = 'Data definida - ' . $dueNextDisplay;
+                                        $dueScheduleLabel = 'Sem recorrencia - ' . $dueNextDisplay;
                                         $dueScheduleTitle = 'Vencimento em ' . $dueNextTitle;
                                     }
                                     $dueGroupValue = (string) ($dueEntry['group_name'] ?? $dueGroupName);
@@ -1129,7 +1140,7 @@
                                             <div class="due-entry-headline">
                                                 <strong class="due-entry-title"><?= e($dueLabel) ?></strong>
                                                 <span
-                                                    class="due-entry-schedule<?= $dueRecurrenceType === 'monthly' ? ' is-monthly' : ' is-fixed' ?>"
+                                                    class="due-entry-schedule<?= $dueRecurrenceType === 'monthly' ? ' is-monthly' : ($dueRecurrenceType === 'annual' ? ' is-annual' : ' is-fixed') ?>"
                                                     title="<?= e($dueScheduleTitle) ?>"
                                                 ><?= e($dueScheduleLabel) ?></span>
                                             </div>
@@ -1667,7 +1678,8 @@
                 <span>Recorrencia</span>
                 <select name="recurrence_type" data-due-entry-recurrence>
                     <option value="monthly" selected>Mensal</option>
-                    <option value="fixed">Data definida (nao periodica)</option>
+                    <option value="annual">Anual</option>
+                    <option value="fixed">Sem recorrencia</option>
                 </select>
             </label>
 
@@ -1678,7 +1690,7 @@
                 </label>
 
                 <label data-due-entry-fixed-wrap hidden>
-                    <span>Data definida</span>
+                    <span>Data de vencimento</span>
                     <input type="date" name="due_date" data-due-entry-date>
                 </label>
             </div>
@@ -1733,7 +1745,8 @@
                 <span>Recorrencia</span>
                 <select name="recurrence_type" data-due-entry-edit-recurrence>
                     <option value="monthly">Mensal</option>
-                    <option value="fixed">Data definida (nao periodica)</option>
+                    <option value="annual">Anual</option>
+                    <option value="fixed">Sem recorrencia</option>
                 </select>
             </label>
 
@@ -1744,7 +1757,7 @@
                 </label>
 
                 <label data-due-entry-edit-fixed-wrap hidden>
-                    <span>Data definida</span>
+                    <span>Data de vencimento</span>
                     <input type="date" name="due_date" data-due-entry-edit-date>
                 </label>
             </div>

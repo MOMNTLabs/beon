@@ -4216,25 +4216,25 @@ window.addEventListener("DOMContentLoaded", () => {
       recurrenceField instanceof HTMLSelectElement
         ? String(recurrenceField.value || "monthly").trim().toLowerCase()
         : "monthly";
-    const isFixed = recurrenceValue === "fixed";
+    const usesDateField = recurrenceValue === "fixed" || recurrenceValue === "annual";
 
     if (monthlyWrap instanceof HTMLElement) {
-      monthlyWrap.hidden = isFixed;
+      monthlyWrap.hidden = usesDateField;
     }
     if (fixedWrap instanceof HTMLElement) {
-      fixedWrap.hidden = !isFixed;
+      fixedWrap.hidden = !usesDateField;
     }
 
     if (monthlyDayField instanceof HTMLInputElement) {
-      monthlyDayField.disabled = isFixed;
-      monthlyDayField.required = !isFixed;
+      monthlyDayField.disabled = usesDateField;
+      monthlyDayField.required = !usesDateField;
 
       const normalizedDay = normalizeDueMonthlyDayInput(monthlyDayField.value);
       if (normalizedDay) {
         monthlyDayField.value = normalizedDay;
       }
 
-      if (!isFixed && !monthlyDayField.value) {
+      if (!usesDateField && !monthlyDayField.value) {
         const dayFromDate =
           dueDateField instanceof HTMLInputElement ? monthlyDayFromIsoDate(dueDateField.value) : "";
         monthlyDayField.value = dayFromDate || String(new Date().getDate());
@@ -4242,9 +4242,9 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (dueDateField instanceof HTMLInputElement) {
-      dueDateField.disabled = !isFixed;
-      dueDateField.required = isFixed;
-      if (isFixed && !dueDateField.value) {
+      dueDateField.disabled = !usesDateField;
+      dueDateField.required = usesDateField;
+      if (usesDateField && !dueDateField.value) {
         dueDateField.value = todayIsoDate();
       }
     }
@@ -4330,7 +4330,13 @@ window.addEventListener("DOMContentLoaded", () => {
       dueEntryEditLabelField.value = label;
     }
     if (dueEntryEditRecurrenceField instanceof HTMLSelectElement) {
-      dueEntryEditRecurrenceField.value = recurrenceType === "fixed" ? "fixed" : "monthly";
+      if (recurrenceType === "annual") {
+        dueEntryEditRecurrenceField.value = "annual";
+      } else if (recurrenceType === "fixed") {
+        dueEntryEditRecurrenceField.value = "fixed";
+      } else {
+        dueEntryEditRecurrenceField.value = "monthly";
+      }
     }
     if (dueEntryEditMonthlyDayField instanceof HTMLInputElement) {
       const normalizedDay = normalizeDueMonthlyDayInput(monthlyDayRaw);
