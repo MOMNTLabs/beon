@@ -3545,12 +3545,12 @@ window.addEventListener("DOMContentLoaded", () => {
     return ok;
   };
 
-  const maskedVaultPassword = (value) => {
+  function maskedVaultPassword(value) {
     const text = String(value || "");
     return text ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : "-";
-  };
+  }
 
-  const syncVaultPasswordCell = (cell, show) => {
+  function syncVaultPasswordCell(cell, show) {
     if (!(cell instanceof HTMLElement)) return;
     const value = cell.dataset.passwordValue || "";
     const visible = Boolean(show) && value !== "";
@@ -3565,7 +3565,7 @@ window.addEventListener("DOMContentLoaded", () => {
       toggleButton.setAttribute("aria-label", visible ? "Ocultar senha" : "Mostrar senha");
       toggleButton.classList.toggle("is-active", visible);
     }
-  };
+  }
 
   document.addEventListener("click", (event) => {
     const target =
