@@ -2828,7 +2828,7 @@ window.addEventListener("DOMContentLoaded", () => {
   let createTaskImageItems = [];
   let createTaskSubtaskItems = [];
 
-  const renderTaskRowSubtasksProgress = (taskItem, subtasks) => {
+  function renderTaskRowSubtasksProgress(taskItem, subtasks) {
     if (!(taskItem instanceof HTMLElement)) return;
     const progressWrap = taskItem.querySelector("[data-task-subtasks-progress]");
     if (!(progressWrap instanceof HTMLElement)) return;
@@ -2865,9 +2865,9 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     textEl.textContent = `${progress.completed}/${progress.total} etapas`;
-  };
+  }
 
-  const syncTaskRowSubtasksFromField = (form, explicitTaskItem = null) => {
+  function syncTaskRowSubtasksFromField(form, explicitTaskItem = null) {
     if (!(form instanceof HTMLFormElement)) return;
     const subtasksField = form.querySelector("[data-task-subtasks-json]");
     if (!(subtasksField instanceof HTMLInputElement)) return;
@@ -2881,7 +2881,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const subtasks = readTaskSubtasksField(subtasksField);
     writeTaskSubtasksField(subtasksField, subtasks);
     renderTaskRowSubtasksProgress(taskItem, subtasks);
-  };
+  }
 
   const renderTaskSubtasksViewList = ({ subtasks = [], readOnly = false, editable = true } = {}) => {
     if (!(taskDetailViewSubtasks instanceof HTMLElement)) return;
