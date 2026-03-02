@@ -1327,7 +1327,7 @@
 </div>
 <div class="modal-backdrop" data-create-modal hidden>
     <div class="modal-scrim" data-close-create-modal></div>
-    <section class="modal-card create-task-modal" role="dialog" aria-modal="true" aria-labelledby="create-task-title">
+    <section class="modal-card create-task-modal task-create-modal-large" role="dialog" aria-modal="true" aria-labelledby="create-task-title">
         <header class="modal-head">
             <h2 id="create-task-title">Nova tarefa</h2>
             <button type="button" class="modal-close-button" data-close-create-modal aria-label="Fechar modal">

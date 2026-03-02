@@ -3899,6 +3899,12 @@ textarea:focus {
     overflow: auto;
 }
 
+.create-task-modal.task-create-modal-large {
+    width: min(1040px, 100%);
+    max-height: min(94vh, 980px);
+    padding: 20px;
+}
+
 .create-group-modal {
     width: min(460px, 100%);
 }
