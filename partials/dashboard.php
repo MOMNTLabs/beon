@@ -1131,7 +1131,6 @@
                                     $dueGroupValue = (string) ($dueEntry['group_name'] ?? $dueGroupName);
                                     $dueAmountCents = normalizeDueAmountCents($dueEntry['amount_cents'] ?? null) ?? 0;
                                     $dueAmountDisplay = dueAmountLabelFromCents($dueAmountCents);
-                                    $dueAmountBadgeLabel = 'Valor: ' . $dueAmountDisplay;
                                     ?>
                                     <article
                                         class="due-entry-row"
@@ -1146,19 +1145,20 @@
                                         data-entry-group="<?= e($dueGroupValue) ?>"
                                     >
                                         <div class="due-entry-main">
-                                            <div class="due-entry-headline">
-                                                <strong class="due-entry-title"><?= e($dueLabel) ?></strong>
-                                            </div>
-                                            <div class="due-entry-meta">
+                                            <div class="due-entry-line">
+                                                <span class="due-entry-title"><?= e($dueLabel) ?></span>
                                                 <span
                                                     class="due-entry-schedule<?= $dueRecurrenceType === 'monthly' ? ' is-monthly' : ($dueRecurrenceType === 'annual' ? ' is-annual' : ' is-fixed') ?>"
                                                     title="<?= e($dueScheduleTitle) ?>"
                                                 ><?= e($dueScheduleLabel) ?></span>
-                                                <span class="due-entry-next-block" title="Proximo vencimento: <?= e($dueNextTitle) ?>">
-                                                    <span class="due-entry-next-caption">Proxima data</span>
+                                                <span class="due-entry-next" title="Proximo vencimento: <?= e($dueNextTitle) ?>">
+                                                    <span class="due-entry-inline-label">Prox.:</span>
                                                     <strong class="due-entry-next-date"><?= e($dueNextDateLabel) ?></strong>
                                                 </span>
-                                                <span class="due-entry-amount" title="Valor a pagar"><?= e($dueAmountBadgeLabel) ?></span>
+                                                <span class="due-entry-amount" title="Valor a pagar">
+                                                    <span class="due-entry-inline-label">Valor:</span>
+                                                    <strong class="due-entry-amount-number"><?= e($dueAmountDisplay) ?></strong>
+                                                </span>
                                             </div>
                                         </div>
 

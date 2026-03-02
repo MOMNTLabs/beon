@@ -2242,29 +2242,22 @@ textarea:focus {
 
 .due-entry-main {
     min-width: 0;
-    display: grid;
-    gap: 4px;
+    display: block;
 }
 
-.due-entry-headline {
+.due-entry-line {
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.due-entry-meta {
-    display: flex;
-    align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .due-entry-title {
     min-width: 0;
-    flex: 1 1 220px;
+    flex: 1 1 auto;
     font-size: 0.92rem;
+    font-weight: 500;
     color: rgba(244, 248, 255, 0.96);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2280,35 +2273,34 @@ textarea:focus {
     border: 1px solid rgba(120, 195, 255, 0.34);
     background: rgba(13, 28, 50, 0.6);
     font-size: 0.74rem;
-    font-weight: 700;
+    font-weight: 500;
     color: rgba(180, 224, 255, 0.92);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.due-entry-next-block {
-    display: grid;
-    gap: 1px;
-    padding: 4px 10px 5px;
-    border-radius: 11px;
+.due-entry-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
     border: 1px solid rgba(162, 203, 255, 0.4);
     background: rgba(10, 26, 48, 0.72);
-    min-width: 126px;
+    color: rgba(190, 220, 255, 0.92);
+    white-space: nowrap;
 }
 
-.due-entry-next-caption {
-    font-size: 0.63rem;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: rgba(164, 203, 255, 0.78);
+.due-entry-inline-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(205, 222, 247, 0.86);
 }
 
 .due-entry-next-date {
-    font-size: 0.95rem;
-    line-height: 1.1;
-    letter-spacing: 0.01em;
+    font-size: 0.88rem;
+    font-weight: 700;
     color: rgba(236, 246, 255, 0.98);
 }
 
@@ -2327,21 +2319,20 @@ textarea:focus {
 .due-entry-amount {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     padding: 5px 10px;
     border-radius: 999px;
     border: 1px solid rgba(255, 212, 133, 0.42);
     background: rgba(64, 44, 17, 0.45);
     font-size: 0.8rem;
-    font-weight: 700;
     color: rgba(255, 233, 184, 0.98);
+    white-space: nowrap;
 }
 
-.due-entry-notes {
-    font-size: 0.78rem;
-    color: rgba(232, 238, 249, 0.66);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.due-entry-amount-number {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: rgba(255, 236, 196, 0.99);
 }
 
 .due-entry-schedule-grid {
@@ -5123,24 +5114,14 @@ textarea:focus {
         grid-template-columns: 1fr;
     }
 
-    .due-entry-headline {
-        flex-direction: column;
+    .due-entry-line {
+        width: 100%;
+        flex-wrap: wrap;
         align-items: flex-start;
-        gap: 6px;
-    }
-
-    .due-entry-meta {
-        width: 100%;
-    }
-
-    .due-entry-next-block {
-        min-width: 0;
-        width: 100%;
     }
 
     .due-entry-title {
-        width: 100%;
-        flex-basis: auto;
+        flex-basis: 100%;
     }
 
     .due-entry-schedule-grid {
@@ -5149,10 +5130,6 @@ textarea:focus {
 
     .due-entry-annual-grid {
         grid-template-columns: 1fr;
-    }
-
-    .due-entry-notes {
-        white-space: normal;
     }
 }
 
