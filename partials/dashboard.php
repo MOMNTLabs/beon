@@ -1100,12 +1100,19 @@
                                     $dueNextPresentation = taskDueDatePresentation($dueNextDateValue);
                                     $dueNextDisplay = (string) ($dueNextPresentation['display'] ?? '-');
                                     $dueNextTitle = (string) ($dueNextPresentation['title'] ?? $dueNextDisplay);
+                                    $dueNextDateLabel = $dueNextDisplay;
+                                    if ($dueNextDateValue !== null) {
+                                        $dueNextDateObject = DateTimeImmutable::createFromFormat('Y-m-d', $dueNextDateValue);
+                                        if ($dueNextDateObject) {
+                                            $dueNextDateLabel = $dueNextDateObject->format('d/m/Y');
+                                        }
+                                    }
                                     if ($dueRecurrenceType === 'monthly') {
                                         $dueMonthlyDayLabel = $dueMonthlyDay !== null
                                             ? str_pad((string) $dueMonthlyDay, 2, '0', STR_PAD_LEFT)
                                             : '--';
-                                        $dueScheduleLabel = 'Mensal - dia ' . $dueMonthlyDayLabel . ' - Prox.: ' . $dueNextDisplay;
-                                        $dueScheduleTitle = 'Vencimento mensal no dia ' . $dueMonthlyDayLabel . '. Proximo: ' . $dueNextTitle;
+                                        $dueScheduleLabel = 'Mensal - dia ' . $dueMonthlyDayLabel;
+                                        $dueScheduleTitle = 'Vencimento mensal no dia ' . $dueMonthlyDayLabel . '.';
                                     } elseif ($dueRecurrenceType === 'annual') {
                                         $dueAnnualReferenceDate = $dueDateValue ?? $dueNextDateValue;
                                         $dueAnnualMonthDayLabel = '--/--';
@@ -1115,14 +1122,13 @@
                                                 $dueAnnualMonthDayLabel = $dueAnnualDateObj->format('d/m');
                                             }
                                         }
-                                        $dueScheduleLabel = 'Anual - ' . $dueAnnualMonthDayLabel . ' - Prox.: ' . $dueNextDisplay;
-                                        $dueScheduleTitle = 'Vencimento anual em ' . $dueAnnualMonthDayLabel . '. Proximo: ' . $dueNextTitle;
+                                        $dueScheduleLabel = 'Anual - ' . $dueAnnualMonthDayLabel;
+                                        $dueScheduleTitle = 'Vencimento anual em ' . $dueAnnualMonthDayLabel . '.';
                                     } else {
-                                        $dueScheduleLabel = 'Sem recorrencia - ' . $dueNextDisplay;
+                                        $dueScheduleLabel = 'Sem recorrencia';
                                         $dueScheduleTitle = 'Vencimento em ' . $dueNextTitle;
                                     }
                                     $dueGroupValue = (string) ($dueEntry['group_name'] ?? $dueGroupName);
-                                    $dueNotes = trim((string) ($dueEntry['notes'] ?? ''));
                                     $dueAmountCents = normalizeDueAmountCents($dueEntry['amount_cents'] ?? null) ?? 0;
                                     $dueAmountDisplay = dueAmountLabelFromCents($dueAmountCents);
                                     $dueAmountBadgeLabel = 'Valor: ' . $dueAmountDisplay;
@@ -1138,22 +1144,22 @@
                                         data-entry-monthly-day="<?= e((string) ($dueMonthlyDay ?? '')) ?>"
                                         data-entry-amount-cents="<?= e((string) $dueAmountCents) ?>"
                                         data-entry-group="<?= e($dueGroupValue) ?>"
-                                        data-entry-notes="<?= e($dueNotes) ?>"
                                     >
                                         <div class="due-entry-main">
                                             <div class="due-entry-headline">
                                                 <strong class="due-entry-title"><?= e($dueLabel) ?></strong>
-                                                <div class="due-entry-meta">
-                                                    <span
-                                                        class="due-entry-schedule<?= $dueRecurrenceType === 'monthly' ? ' is-monthly' : ($dueRecurrenceType === 'annual' ? ' is-annual' : ' is-fixed') ?>"
-                                                        title="<?= e($dueScheduleTitle) ?>"
-                                                    ><?= e($dueScheduleLabel) ?></span>
-                                                    <span class="due-entry-amount" title="Valor a pagar"><?= e($dueAmountBadgeLabel) ?></span>
-                                                </div>
                                             </div>
-                                            <?php if ($dueNotes !== ''): ?>
-                                                <span class="due-entry-notes"><?= e($dueNotes) ?></span>
-                                            <?php endif; ?>
+                                            <div class="due-entry-meta">
+                                                <span
+                                                    class="due-entry-schedule<?= $dueRecurrenceType === 'monthly' ? ' is-monthly' : ($dueRecurrenceType === 'annual' ? ' is-annual' : ' is-fixed') ?>"
+                                                    title="<?= e($dueScheduleTitle) ?>"
+                                                ><?= e($dueScheduleLabel) ?></span>
+                                                <span class="due-entry-next-block" title="Proximo vencimento: <?= e($dueNextTitle) ?>">
+                                                    <span class="due-entry-next-caption">Proxima data</span>
+                                                    <strong class="due-entry-next-date"><?= e($dueNextDateLabel) ?></strong>
+                                                </span>
+                                                <span class="due-entry-amount" title="Valor a pagar"><?= e($dueAmountBadgeLabel) ?></span>
+                                            </div>
                                         </div>
 
                                         <div class="vault-entry-tools">
@@ -1725,11 +1731,6 @@
             </div>
             <input type="hidden" name="due_date" data-due-entry-date>
 
-            <label>
-                <span>Observacao (opcional)</span>
-                <textarea name="notes" rows="3" maxlength="1000" data-due-entry-notes></textarea>
-            </label>
-
             <div class="modal-actions">
                 <button type="button" class="btn btn-mini btn-ghost" data-close-due-entry-modal>Cancelar</button>
                 <button type="submit" class="btn btn-pill" <?= empty($dueGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar</button>
@@ -1814,11 +1815,6 @@
                 </div>
             </div>
             <input type="hidden" name="due_date" data-due-entry-edit-date>
-
-            <label>
-                <span>Observacao (opcional)</span>
-                <textarea name="notes" rows="3" maxlength="1000" data-due-entry-edit-notes></textarea>
-            </label>
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-mini btn-ghost" data-close-due-entry-edit-modal>Cancelar</button>

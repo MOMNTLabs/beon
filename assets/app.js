@@ -2536,7 +2536,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const dueEntryAnnualMonthField = document.querySelector("[data-due-entry-annual-month]");
   const dueEntryAnnualDayField = document.querySelector("[data-due-entry-annual-day]");
   const dueEntryDateField = document.querySelector("[data-due-entry-date]");
-  const dueEntryNotesField = document.querySelector("[data-due-entry-notes]");
   const dueEntryEditModal = document.querySelector("[data-due-entry-edit-modal]");
   const dueEntryEditForm = document.querySelector("[data-due-entry-edit-form]");
   const dueEntryEditIdField = document.querySelector("[data-due-entry-edit-id]");
@@ -2552,7 +2551,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const dueEntryEditAnnualMonthField = document.querySelector("[data-due-entry-edit-annual-month]");
   const dueEntryEditAnnualDayField = document.querySelector("[data-due-entry-edit-annual-day]");
   const dueEntryEditDateField = document.querySelector("[data-due-entry-edit-date]");
-  const dueEntryEditNotesField = document.querySelector("[data-due-entry-edit-notes]");
   const taskDetailModal = document.querySelector("[data-task-detail-modal]");
   const taskDetailTitle = document.querySelector("[data-task-detail-title]");
   const taskDetailViewPanel = document.querySelector("[data-task-detail-view]");
@@ -4424,9 +4422,6 @@ window.addEventListener("DOMContentLoaded", () => {
     if (dueEntryDateField instanceof HTMLInputElement) {
       dueEntryDateField.value = "";
     }
-    if (dueEntryNotesField instanceof HTMLTextAreaElement && dueEntryNotesField.value === "") {
-      dueEntryNotesField.value = "";
-    }
     syncDueCreateRecurrenceFields();
     dueEntryModal.hidden = false;
     syncBodyModalLock();
@@ -4456,7 +4451,6 @@ window.addEventListener("DOMContentLoaded", () => {
     const monthlyDayRaw = (entryRow.dataset.entryMonthlyDay || "").trim();
     const amountCents = (entryRow.dataset.entryAmountCents || "").trim();
     const groupName = (entryRow.dataset.entryGroup || "").trim();
-    const notes = entryRow.dataset.entryNotes || "";
 
     if (!(dueEntryEditIdField instanceof HTMLInputElement)) return;
     dueEntryEditForm.reset();
@@ -4494,9 +4488,6 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (dueEntryEditDateField instanceof HTMLInputElement) {
       dueEntryEditDateField.value = dueDate;
-    }
-    if (dueEntryEditNotesField instanceof HTMLTextAreaElement) {
-      dueEntryEditNotesField.value = notes;
     }
     if (dueEntryEditGroupField instanceof HTMLSelectElement) {
       setDueGroupSelectValue(dueEntryEditGroupField, groupName);

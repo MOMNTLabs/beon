@@ -2255,9 +2255,9 @@ textarea:focus {
 }
 
 .due-entry-meta {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
@@ -2287,6 +2287,31 @@ textarea:focus {
     text-overflow: ellipsis;
 }
 
+.due-entry-next-block {
+    display: grid;
+    gap: 1px;
+    padding: 4px 10px 5px;
+    border-radius: 11px;
+    border: 1px solid rgba(162, 203, 255, 0.4);
+    background: rgba(10, 26, 48, 0.72);
+    min-width: 126px;
+}
+
+.due-entry-next-caption {
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: rgba(164, 203, 255, 0.78);
+}
+
+.due-entry-next-date {
+    font-size: 0.95rem;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+    color: rgba(236, 246, 255, 0.98);
+}
+
 .due-entry-schedule.is-fixed {
     border-color: rgba(177, 193, 230, 0.34);
     background: rgba(17, 26, 46, 0.6);
@@ -2302,11 +2327,11 @@ textarea:focus {
 .due-entry-amount {
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
+    padding: 5px 10px;
     border-radius: 999px;
     border: 1px solid rgba(255, 212, 133, 0.42);
     background: rgba(64, 44, 17, 0.45);
-    font-size: 0.76rem;
+    font-size: 0.8rem;
     font-weight: 700;
     color: rgba(255, 233, 184, 0.98);
 }
@@ -5105,6 +5130,11 @@ textarea:focus {
     }
 
     .due-entry-meta {
+        width: 100%;
+    }
+
+    .due-entry-next-block {
+        min-width: 0;
         width: 100%;
     }
 
