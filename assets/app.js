@@ -2491,6 +2491,12 @@ window.addEventListener("DOMContentLoaded", () => {
   const createTaskGroupInput = document.querySelector("[data-create-task-group-input]");
   const createTaskTitleInput = document.querySelector("[data-create-task-title-input]");
   const createTaskForm = document.querySelector("[data-create-task-form]");
+  const createTaskLinksField = document.querySelector("[data-create-task-links]");
+  const createTaskImagesField = document.querySelector("[data-create-task-images]");
+  const createTaskImagePicker = document.querySelector("[data-create-task-image-picker]");
+  const createTaskImageInput = document.querySelector("[data-create-task-image-input]");
+  const createTaskImageAddButton = document.querySelector("[data-create-task-image-add]");
+  const createTaskImageList = document.querySelector("[data-create-task-image-list]");
   const workspaceCreateModal = document.querySelector("[data-workspace-create-modal]");
   const workspaceCreateForm = document.querySelector("[data-workspace-create-form]");
   const workspaceCreateNameInput = document.querySelector("[data-workspace-create-name-input]");
@@ -2587,6 +2593,7 @@ window.addEventListener("DOMContentLoaded", () => {
   let confirmModalAction = null;
   let taskDetailContext = null;
   let taskDetailEditImageItems = [];
+  let createTaskImageItems = [];
 
   const closeTaskImagePreview = () => {
     if (!(taskImagePreviewModal instanceof HTMLElement)) return;
@@ -2833,6 +2840,12 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const syncCreateTaskImageHiddenField = () => {
+    if (createTaskImagesField instanceof HTMLTextAreaElement) {
+      createTaskImagesField.value = createTaskImageItems.join("\n");
+    }
+  };
+
   const renderTaskDetailImageList = () => {
     if (!(taskDetailImageList instanceof HTMLElement)) return;
 
@@ -2861,6 +2874,34 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  const renderCreateTaskImageList = () => {
+    if (!(createTaskImageList instanceof HTMLElement)) return;
+
+    createTaskImageList.innerHTML = "";
+    if (!createTaskImageItems.length) return;
+
+    createTaskImageItems.forEach((imageValue, index) => {
+      const item = document.createElement("div");
+      item.className = "task-detail-edit-image-item";
+
+      const image = document.createElement("img");
+      image.src = imageValue;
+      image.alt = "Imagem de referencia";
+      image.className = "task-detail-edit-image-preview";
+      image.loading = "lazy";
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "task-detail-edit-image-remove";
+      removeButton.dataset.createTaskImageRemove = String(index);
+      removeButton.setAttribute("aria-label", "Remover imagem de referencia");
+      removeButton.textContent = "x";
+
+      item.append(image, removeButton);
+      createTaskImageList.append(item);
+    });
+  };
+
   const setTaskDetailEditImageItems = (items) => {
     taskDetailEditImageItems = parseReferenceImageItems(items || []);
     syncTaskDetailImageHiddenField();
@@ -2872,6 +2913,19 @@ window.addEventListener("DOMContentLoaded", () => {
     taskDetailEditImageItems = merged;
     syncTaskDetailImageHiddenField();
     renderTaskDetailImageList();
+  };
+
+  const setCreateTaskImageItems = (items) => {
+    createTaskImageItems = parseReferenceImageItems(items || []);
+    syncCreateTaskImageHiddenField();
+    renderCreateTaskImageList();
+  };
+
+  const mergeCreateTaskImageItems = (items) => {
+    const merged = parseReferenceImageItems([...(createTaskImageItems || []), ...(items || [])]);
+    createTaskImageItems = merged;
+    syncCreateTaskImageHiddenField();
+    renderCreateTaskImageList();
   };
 
   const readFileAsDataUrl = (file) =>
@@ -2915,9 +2969,39 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const addCreateTaskImagesFromFiles = async (files) => {
+    const imageFiles = Array.from(files || []).filter(
+      (file) => file instanceof File && String(file.type || "").toLowerCase().startsWith("image/")
+    );
+    if (!imageFiles.length) return;
+
+    const nextValues = [];
+    for (const file of imageFiles) {
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        const normalized = normalizeImageReference(dataUrl);
+        if (normalized) {
+          nextValues.push(normalized);
+        }
+      } catch (_error) {
+        // Ignore invalid files and keep processing remaining images.
+      }
+    }
+
+    if (nextValues.length) {
+      mergeCreateTaskImageItems(nextValues);
+    }
+  };
+
   if (taskDetailImageAddButton instanceof HTMLButtonElement && taskDetailImageInput instanceof HTMLInputElement) {
     taskDetailImageAddButton.addEventListener("click", () => {
       taskDetailImageInput.click();
+    });
+  }
+
+  if (createTaskImageAddButton instanceof HTMLButtonElement && createTaskImageInput instanceof HTMLInputElement) {
+    createTaskImageAddButton.addEventListener("click", () => {
+      createTaskImageInput.click();
     });
   }
 
@@ -2926,6 +3010,14 @@ window.addEventListener("DOMContentLoaded", () => {
       const files = Array.from(taskDetailImageInput.files || []);
       taskDetailImageInput.value = "";
       void addTaskDetailImagesFromFiles(files);
+    });
+  }
+
+  if (createTaskImageInput instanceof HTMLInputElement) {
+    createTaskImageInput.addEventListener("change", () => {
+      const files = Array.from(createTaskImageInput.files || []);
+      createTaskImageInput.value = "";
+      void addCreateTaskImagesFromFiles(files);
     });
   }
 
@@ -2946,6 +3038,23 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (createTaskImagePicker instanceof HTMLElement) {
+    createTaskImagePicker.addEventListener("paste", (event) => {
+      const clipboardItems = Array.from(event.clipboardData?.items || []);
+      const files = clipboardItems
+        .map((item) =>
+          item.kind === "file" && String(item.type || "").toLowerCase().startsWith("image/")
+            ? item.getAsFile()
+            : null
+        )
+        .filter((file) => file instanceof File);
+
+      if (!files.length) return;
+      event.preventDefault();
+      void addCreateTaskImagesFromFiles(files);
+    });
+  }
+
   document.addEventListener("click", (event) => {
     const target = getEventTargetElement(event);
     if (!(target instanceof Element)) return;
@@ -2960,6 +3069,22 @@ window.addEventListener("DOMContentLoaded", () => {
     taskDetailEditImageItems = taskDetailEditImageItems.filter((_item, itemIndex) => itemIndex !== index);
     syncTaskDetailImageHiddenField();
     renderTaskDetailImageList();
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof Element)) return;
+    const removeButton = target.closest("[data-create-task-image-remove]");
+    if (!(removeButton instanceof HTMLButtonElement)) return;
+
+    event.preventDefault();
+    const index = Number.parseInt(removeButton.dataset.createTaskImageRemove || "-1", 10);
+    if (!Number.isFinite(index) || index < 0) return;
+    if (index >= createTaskImageItems.length) return;
+
+    createTaskImageItems = createTaskImageItems.filter((_item, itemIndex) => itemIndex !== index);
+    syncCreateTaskImageHiddenField();
+    renderCreateTaskImageList();
   });
 
   const setTaskDetailEditMode = (editing) => {
@@ -3830,6 +3955,10 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (createTaskForm) {
       createTaskForm.reset();
+      setCreateTaskImageItems([]);
+      if (createTaskLinksField instanceof HTMLTextAreaElement) {
+        createTaskLinksField.value = "";
+      }
       createTaskForm
         .querySelectorAll(".assignee-picker")
         .forEach(updateAssigneePickerSummary);
@@ -4577,6 +4706,19 @@ window.addEventListener("DOMContentLoaded", () => {
       if (createTaskTitleInput instanceof HTMLInputElement) {
         applyFirstLetterUppercaseToInput(createTaskTitleInput);
       }
+
+      if (createTaskLinksField instanceof HTMLTextAreaElement) {
+        createTaskLinksField.value = JSON.stringify(
+          parseReferenceUrlLines(createTaskLinksField.value || "")
+        );
+      }
+
+      if (createTaskImagesField instanceof HTMLTextAreaElement) {
+        createTaskImagesField.value = JSON.stringify(
+          parseReferenceImageItems(createTaskImageItems || [])
+        );
+      }
+
       syncBodyModalLock();
     });
   }

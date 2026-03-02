@@ -1292,55 +1292,10 @@
                 <input type="text" name="title" maxlength="140" required data-create-task-title-input>
             </label>
 
-            <label>
-                <span>Descricao</span>
-                <textarea name="description" rows="4"></textarea>
-            </label>
-
-            <label>
-                <span>Grupo</span>
-                <select name="group_name" data-create-task-group-input <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>>
-                    <?php if (!$taskGroupsWithAccess): ?>
-                        <option value="">Sem grupo com acesso</option>
-                    <?php else: ?>
-                        <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
-                            <option value="<?= e((string) $groupNameOption) ?>">
-                                <?= e((string) $groupNameOption) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </select>
-            </label>
-
-            <div class="form-row">
-                <label>
-                    <span>Status</span>
-                    <select name="status">
-                        <?php foreach ($statusOptions as $key => $label): ?>
-                            <option value="<?= e($key) ?>"><?= e($label) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-
-                <label>
-                    <span>Prioridade</span>
-                    <select name="priority" class="priority-select priority-medium" aria-label="Prioridade">
-                        <?php foreach ($priorityOptions as $key => $label): ?>
-                            <option value="<?= e($key) ?>"<?= $key === 'medium' ? ' selected' : '' ?>>&#9873;</option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-            </div>
-
-            <div class="form-row">
-                <label>
-                    <span>Prazo</span>
-                    <input type="date" name="due_date" value="<?= e((new DateTimeImmutable('today'))->format('Y-m-d')) ?>">
-                </label>
-
-                <div class="assignee-picker-wrap">
+            <div class="task-detail-inline-controls">
+                <div class="assignee-picker-wrap task-detail-inline-field task-detail-inline-assignees">
                     <span class="assignee-picker-label">Responsaveis</span>
-                    <details class="assignee-picker">
+                    <details class="assignee-picker task-detail-inline-assignee-picker">
                         <summary>Selecionar</summary>
                         <div class="assignee-picker-menu">
                             <?php if (!$users): ?>
@@ -1361,7 +1316,102 @@
                         </div>
                     </details>
                 </div>
+
+                <div class="task-detail-inline-field task-detail-inline-status">
+                    <span>Status</span>
+                    <div class="status-stepper task-detail-status-stepper" data-status-stepper>
+                        <button
+                            type="button"
+                            class="status-stepper-btn"
+                            data-status-step="-1"
+                            aria-label="Status anterior"
+                        >
+                            <span aria-hidden="true">&#8249;</span>
+                        </button>
+
+                        <label class="tag-field tag-field-status">
+                            <span class="sr-only">Status</span>
+                            <select name="status" class="tag-select status-select">
+                                <?php foreach ($statusOptions as $key => $label): ?>
+                                    <option value="<?= e($key) ?>"><?= e($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <button
+                            type="button"
+                            class="status-stepper-btn"
+                            data-status-step="1"
+                            aria-label="Proximo status"
+                        >
+                            <span aria-hidden="true">&#8250;</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="task-detail-inline-field task-detail-inline-priority">
+                    <span>Prioridade</span>
+                    <label class="tag-field">
+                        <span class="sr-only">Prioridade</span>
+                        <select name="priority" class="tag-select priority-select priority-medium" aria-label="Prioridade">
+                            <?php foreach ($priorityOptions as $key => $label): ?>
+                                <option value="<?= e($key) ?>"<?= $key === 'medium' ? ' selected' : '' ?>>&#9873;</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                </div>
             </div>
+
+            <div class="form-row">
+                <label>
+                    <span>Grupo</span>
+                    <select name="group_name" data-create-task-group-input <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>>
+                        <?php if (!$taskGroupsWithAccess): ?>
+                            <option value="">Sem grupo com acesso</option>
+                        <?php else: ?>
+                            <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
+                                <option value="<?= e((string) $groupNameOption) ?>">
+                                    <?= e((string) $groupNameOption) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Prazo</span>
+                    <input type="date" name="due_date" value="<?= e((new DateTimeImmutable('today'))->format('Y-m-d')) ?>">
+                </label>
+            </div>
+
+            <div class="task-detail-edit-main-row">
+                <label class="task-detail-edit-description-field">
+                    <span>Descricao</span>
+                    <textarea name="description" rows="5"></textarea>
+                </label>
+
+                <div class="task-detail-edit-images-field">
+                    <span>Imagens de referencia</span>
+                    <div class="task-detail-edit-image-picker" data-create-task-image-picker tabindex="0" aria-label="Adicionar imagens de referencia">
+                        <input type="file" accept="image/*" multiple data-create-task-image-input hidden>
+                        <div class="task-detail-edit-image-picker-actions">
+                            <button type="button" class="btn btn-mini btn-ghost" data-create-task-image-add>Adicionar imagem</button>
+                        </div>
+                        <div class="task-detail-edit-image-list" data-create-task-image-list></div>
+                    </div>
+                    <textarea name="reference_images_json" rows="1" data-create-task-images hidden></textarea>
+                </div>
+            </div>
+
+            <label class="task-detail-edit-links-field">
+                <span>Links de referencia</span>
+                <textarea
+                    name="reference_links_json"
+                    rows="1"
+                    class="task-detail-reference-input"
+                    data-create-task-links
+                ></textarea>
+            </label>
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-mini btn-ghost" data-close-create-modal>Cancelar</button>
