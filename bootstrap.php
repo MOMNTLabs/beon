@@ -847,6 +847,7 @@ function ensureWorkspaceDueSchema(PDO $pdo): void
                 recurrence_type VARCHAR(16) NOT NULL DEFAULT \'monthly\',
                 monthly_day SMALLINT DEFAULT NULL,
                 due_date DATE DEFAULT NULL,
+                amount_cents BIGINT NOT NULL DEFAULT 0,
                 group_name TEXT NOT NULL DEFAULT \'Geral\',
                 notes TEXT NOT NULL DEFAULT \'\',
                 created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
@@ -872,6 +873,7 @@ function ensureWorkspaceDueSchema(PDO $pdo): void
                 recurrence_type TEXT NOT NULL DEFAULT \'monthly\',
                 monthly_day INTEGER DEFAULT NULL,
                 due_date TEXT DEFAULT NULL,
+                amount_cents INTEGER NOT NULL DEFAULT 0,
                 group_name TEXT NOT NULL DEFAULT \'Geral\',
                 notes TEXT NOT NULL DEFAULT \'\',
                 created_by INTEGER DEFAULT NULL,
@@ -918,6 +920,13 @@ function ensureWorkspaceDueSchema(PDO $pdo): void
             $pdo->exec("ALTER TABLE workspace_due_entries ADD COLUMN monthly_day INTEGER DEFAULT NULL");
         }
     }
+    if (!tableHasColumn($pdo, 'workspace_due_entries', 'amount_cents')) {
+        if (dbDriverName($pdo) === 'pgsql') {
+            $pdo->exec("ALTER TABLE workspace_due_entries ADD COLUMN amount_cents BIGINT NOT NULL DEFAULT 0");
+        } else {
+            $pdo->exec("ALTER TABLE workspace_due_entries ADD COLUMN amount_cents INTEGER NOT NULL DEFAULT 0");
+        }
+    }
     if (!tableHasColumn($pdo, 'workspace_due_entries', 'notes')) {
         $pdo->exec("ALTER TABLE workspace_due_entries ADD COLUMN notes TEXT NOT NULL DEFAULT ''");
     }
@@ -948,7 +957,7 @@ function ensureWorkspaceDueSchema(PDO $pdo): void
     );
 
     $rows = $pdo->query(
-        'SELECT id, label, recurrence_type, monthly_day, due_date, group_name
+        'SELECT id, label, recurrence_type, monthly_day, due_date, amount_cents, group_name
          FROM workspace_due_entries'
     )->fetchAll();
     if ($rows) {
@@ -958,6 +967,7 @@ function ensureWorkspaceDueSchema(PDO $pdo): void
                  recurrence_type = :recurrence_type,
                  monthly_day = :monthly_day,
                  due_date = :due_date,
+                 amount_cents = :amount_cents,
                  group_name = :group_name
              WHERE id = :id'
         );
@@ -965,6 +975,7 @@ function ensureWorkspaceDueSchema(PDO $pdo): void
             $dueDate = dueDateForStorage((string) ($row['due_date'] ?? ''));
             $recurrenceType = normalizeDueRecurrenceType((string) ($row['recurrence_type'] ?? 'monthly'));
             $monthlyDay = normalizeDueMonthlyDay($row['monthly_day'] ?? null);
+            $amountCents = normalizeDueAmountCents($row['amount_cents'] ?? null) ?? 0;
             if ($monthlyDay === null && $dueDate !== null) {
                 $monthlyDay = dueMonthlyDayFromDate($dueDate);
             }
@@ -988,6 +999,7 @@ function ensureWorkspaceDueSchema(PDO $pdo): void
                 ':recurrence_type' => $recurrenceType,
                 ':monthly_day' => $monthlyDay,
                 ':due_date' => $nextDueDate,
+                ':amount_cents' => $amountCents,
                 ':group_name' => normalizeDueGroupName((string) ($row['group_name'] ?? 'Geral')),
                 ':id' => (int) ($row['id'] ?? 0),
             ]);
@@ -2970,6 +2982,7 @@ function workspaceDueEntriesList(?int $workspaceId = null): array
                 de.recurrence_type,
                 de.monthly_day,
                 de.due_date,
+                de.amount_cents,
                 de.group_name,
                 de.notes,
                 de.created_by,
@@ -2990,6 +3003,8 @@ function workspaceDueEntriesList(?int $workspaceId = null): array
         $row['created_by'] = isset($row['created_by']) ? (int) $row['created_by'] : null;
         $row['label'] = normalizeDueEntryLabel((string) ($row['label'] ?? ''));
         $row['due_date'] = dueDateForStorage((string) ($row['due_date'] ?? ''));
+        $row['amount_cents'] = normalizeDueAmountCents($row['amount_cents'] ?? null) ?? 0;
+        $row['amount_display'] = dueAmountLabelFromCents($row['amount_cents']);
         $row['group_name'] = normalizeDueGroupName((string) ($row['group_name'] ?? 'Geral'));
         $row['notes'] = normalizeDueEntryNotes((string) ($row['notes'] ?? ''));
         $row['recurrence_type'] = normalizeDueRecurrenceType((string) ($row['recurrence_type'] ?? 'monthly'));
@@ -3081,6 +3096,52 @@ function normalizeDueEntryNotes(string $value): string
     }
 
     return $value;
+}
+
+function normalizeDueAmountCents($value): ?int
+{
+    if ($value === null) {
+        return null;
+    }
+
+    if (is_int($value)) {
+        return max(0, $value);
+    }
+
+    if (is_float($value)) {
+        return max(0, (int) round($value * 100));
+    }
+
+    $raw = trim((string) $value);
+    if ($raw === '') {
+        return null;
+    }
+
+    $raw = str_replace(['R$', 'r$', ' '], '', $raw);
+    if (strpos($raw, ',') !== false) {
+        if (strpos($raw, '.') !== false) {
+            $raw = str_replace('.', '', $raw);
+        }
+        $raw = str_replace(',', '.', $raw);
+    }
+
+    if (!preg_match('/^\d+(?:\.\d{1,2})?$/', $raw)) {
+        return null;
+    }
+
+    $parts = explode('.', $raw, 2);
+    $integerPart = preg_replace('/\D/', '', (string) ($parts[0] ?? '0'));
+    $decimalPart = preg_replace('/\D/', '', (string) ($parts[1] ?? ''));
+    $decimalPart = str_pad(substr($decimalPart, 0, 2), 2, '0');
+
+    $amount = ((int) $integerPart * 100) + (int) $decimalPart;
+    return max(0, $amount);
+}
+
+function dueAmountLabelFromCents($amountCents): string
+{
+    $normalized = normalizeDueAmountCents($amountCents) ?? 0;
+    return 'R$ ' . number_format($normalized / 100, 2, ',', '.');
 }
 
 function normalizeDueRecurrenceType(string $value): string
@@ -3380,6 +3441,7 @@ function createWorkspaceDueEntry(
     ?string $dueDate,
     string $groupName = 'Geral',
     string $notes = '',
+    $amountInput = null,
     ?int $createdBy = null,
     string $recurrenceType = 'monthly',
     $monthlyDay = null
@@ -3423,6 +3485,7 @@ function createWorkspaceDueEntry(
 
     $groupName = normalizeDueGroupName($groupName);
     $notes = normalizeDueEntryNotes($notes);
+    $amountCents = normalizeDueAmountCents($amountInput) ?? 0;
     upsertDueGroup($pdo, $groupName, $createdBy, $workspaceId);
 
     $createdAt = nowIso();
@@ -3431,9 +3494,9 @@ function createWorkspaceDueEntry(
     if (dbDriverName($pdo) === 'pgsql') {
         $stmt = $pdo->prepare(
             'INSERT INTO workspace_due_entries (
-                workspace_id, label, recurrence_type, monthly_day, due_date, group_name, notes, created_by, created_at, updated_at
+                workspace_id, label, recurrence_type, monthly_day, due_date, amount_cents, group_name, notes, created_by, created_at, updated_at
             ) VALUES (
-                :workspace_id, :label, :recurrence_type, :monthly_day, :due_date, :group_name, :notes, :created_by, :created_at, :updated_at
+                :workspace_id, :label, :recurrence_type, :monthly_day, :due_date, :amount_cents, :group_name, :notes, :created_by, :created_at, :updated_at
             )
             RETURNING id'
         );
@@ -3446,6 +3509,7 @@ function createWorkspaceDueEntry(
             $stmt->bindValue(':monthly_day', null, PDO::PARAM_NULL);
         }
         $stmt->bindValue(':due_date', $dueDate, PDO::PARAM_STR);
+        $stmt->bindValue(':amount_cents', $amountCents, PDO::PARAM_INT);
         $stmt->bindValue(':group_name', $groupName, PDO::PARAM_STR);
         $stmt->bindValue(':notes', $notes, PDO::PARAM_STR);
         if ($createdBy !== null && $createdBy > 0) {
@@ -3462,9 +3526,9 @@ function createWorkspaceDueEntry(
 
     $stmt = $pdo->prepare(
         'INSERT INTO workspace_due_entries (
-            workspace_id, label, recurrence_type, monthly_day, due_date, group_name, notes, created_by, created_at, updated_at
+            workspace_id, label, recurrence_type, monthly_day, due_date, amount_cents, group_name, notes, created_by, created_at, updated_at
         ) VALUES (
-            :workspace_id, :label, :recurrence_type, :monthly_day, :due_date, :group_name, :notes, :created_by, :created_at, :updated_at
+            :workspace_id, :label, :recurrence_type, :monthly_day, :due_date, :amount_cents, :group_name, :notes, :created_by, :created_at, :updated_at
         )'
     );
     $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
@@ -3476,6 +3540,7 @@ function createWorkspaceDueEntry(
         $stmt->bindValue(':monthly_day', null, PDO::PARAM_NULL);
     }
     $stmt->bindValue(':due_date', $dueDate, PDO::PARAM_STR);
+    $stmt->bindValue(':amount_cents', $amountCents, PDO::PARAM_INT);
     $stmt->bindValue(':group_name', $groupName, PDO::PARAM_STR);
     $stmt->bindValue(':notes', $notes, PDO::PARAM_STR);
     if ($createdBy !== null && $createdBy > 0) {
@@ -3498,6 +3563,7 @@ function updateWorkspaceDueEntry(
     ?string $dueDate,
     string $groupName = 'Geral',
     string $notes = '',
+    $amountInput = null,
     string $recurrenceType = 'monthly',
     $monthlyDay = null
 ): void {
@@ -3540,6 +3606,7 @@ function updateWorkspaceDueEntry(
 
     $groupName = normalizeDueGroupName($groupName);
     $notes = normalizeDueEntryNotes($notes);
+    $amountCents = normalizeDueAmountCents($amountInput) ?? 0;
     upsertDueGroup($pdo, $groupName, null, $workspaceId);
 
     $stmt = $pdo->prepare(
@@ -3548,6 +3615,7 @@ function updateWorkspaceDueEntry(
              recurrence_type = :recurrence_type,
              monthly_day = :monthly_day,
              due_date = :due_date,
+             amount_cents = :amount_cents,
              group_name = :group_name,
              notes = :notes,
              updated_at = :updated_at
@@ -3559,6 +3627,7 @@ function updateWorkspaceDueEntry(
         ':recurrence_type' => $recurrenceType,
         ':monthly_day' => $monthlyDay,
         ':due_date' => $dueDate,
+        ':amount_cents' => $amountCents,
         ':group_name' => $groupName,
         ':notes' => $notes,
         ':updated_at' => nowIso(),

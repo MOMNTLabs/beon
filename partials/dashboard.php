@@ -1123,6 +1123,9 @@
                                     }
                                     $dueGroupValue = (string) ($dueEntry['group_name'] ?? $dueGroupName);
                                     $dueNotes = trim((string) ($dueEntry['notes'] ?? ''));
+                                    $dueAmountCents = normalizeDueAmountCents($dueEntry['amount_cents'] ?? null) ?? 0;
+                                    $dueAmountDisplay = dueAmountLabelFromCents($dueAmountCents);
+                                    $dueAmountBadgeLabel = 'Valor: ' . $dueAmountDisplay;
                                     ?>
                                     <article
                                         class="due-entry-row"
@@ -1133,16 +1136,20 @@
                                         data-entry-next-date="<?= e((string) ($dueNextDateValue ?? '')) ?>"
                                         data-entry-recurrence-type="<?= e($dueRecurrenceType) ?>"
                                         data-entry-monthly-day="<?= e((string) ($dueMonthlyDay ?? '')) ?>"
+                                        data-entry-amount-cents="<?= e((string) $dueAmountCents) ?>"
                                         data-entry-group="<?= e($dueGroupValue) ?>"
                                         data-entry-notes="<?= e($dueNotes) ?>"
                                     >
                                         <div class="due-entry-main">
                                             <div class="due-entry-headline">
                                                 <strong class="due-entry-title"><?= e($dueLabel) ?></strong>
-                                                <span
-                                                    class="due-entry-schedule<?= $dueRecurrenceType === 'monthly' ? ' is-monthly' : ($dueRecurrenceType === 'annual' ? ' is-annual' : ' is-fixed') ?>"
-                                                    title="<?= e($dueScheduleTitle) ?>"
-                                                ><?= e($dueScheduleLabel) ?></span>
+                                                <div class="due-entry-meta">
+                                                    <span
+                                                        class="due-entry-schedule<?= $dueRecurrenceType === 'monthly' ? ' is-monthly' : ($dueRecurrenceType === 'annual' ? ' is-annual' : ' is-fixed') ?>"
+                                                        title="<?= e($dueScheduleTitle) ?>"
+                                                    ><?= e($dueScheduleLabel) ?></span>
+                                                    <span class="due-entry-amount" title="Valor a pagar"><?= e($dueAmountBadgeLabel) ?></span>
+                                                </div>
                                             </div>
                                             <?php if ($dueNotes !== ''): ?>
                                                 <span class="due-entry-notes"><?= e($dueNotes) ?></span>
@@ -1675,6 +1682,11 @@
             </label>
 
             <label>
+                <span>Valor (R$)</span>
+                <input type="number" name="amount_value" min="0" step="0.01" required data-due-entry-amount>
+            </label>
+
+            <label>
                 <span>Recorrencia</span>
                 <select name="recurrence_type" data-due-entry-recurrence>
                     <option value="monthly" selected>Mensal</option>
@@ -1691,9 +1703,27 @@
 
                 <label data-due-entry-fixed-wrap hidden>
                     <span>Data de vencimento</span>
-                    <input type="date" name="due_date" data-due-entry-date>
+                    <input type="date" data-due-entry-fixed-date>
                 </label>
+
+                <div class="due-entry-annual-grid" data-due-entry-annual-wrap hidden>
+                    <label>
+                        <span>Mes</span>
+                        <select data-due-entry-annual-month>
+                            <?php for ($dueMonthIndex = 1; $dueMonthIndex <= 12; $dueMonthIndex++): ?>
+                                <option value="<?= e(str_pad((string) $dueMonthIndex, 2, '0', STR_PAD_LEFT)) ?>">
+                                    <?= e(str_pad((string) $dueMonthIndex, 2, '0', STR_PAD_LEFT)) ?>
+                                </option>
+                            <?php endfor; ?>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Dia</span>
+                        <input type="number" min="1" max="31" step="1" data-due-entry-annual-day>
+                    </label>
+                </div>
             </div>
+            <input type="hidden" name="due_date" data-due-entry-date>
 
             <label>
                 <span>Observacao (opcional)</span>
@@ -1742,6 +1772,11 @@
             </label>
 
             <label>
+                <span>Valor (R$)</span>
+                <input type="number" name="amount_value" min="0" step="0.01" required data-due-entry-edit-amount>
+            </label>
+
+            <label>
                 <span>Recorrencia</span>
                 <select name="recurrence_type" data-due-entry-edit-recurrence>
                     <option value="monthly">Mensal</option>
@@ -1758,9 +1793,27 @@
 
                 <label data-due-entry-edit-fixed-wrap hidden>
                     <span>Data de vencimento</span>
-                    <input type="date" name="due_date" data-due-entry-edit-date>
+                    <input type="date" data-due-entry-edit-fixed-date>
                 </label>
+
+                <div class="due-entry-annual-grid" data-due-entry-edit-annual-wrap hidden>
+                    <label>
+                        <span>Mes</span>
+                        <select data-due-entry-edit-annual-month>
+                            <?php for ($dueEditMonthIndex = 1; $dueEditMonthIndex <= 12; $dueEditMonthIndex++): ?>
+                                <option value="<?= e(str_pad((string) $dueEditMonthIndex, 2, '0', STR_PAD_LEFT)) ?>">
+                                    <?= e(str_pad((string) $dueEditMonthIndex, 2, '0', STR_PAD_LEFT)) ?>
+                                </option>
+                            <?php endfor; ?>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Dia</span>
+                        <input type="number" min="1" max="31" step="1" data-due-entry-edit-annual-day>
+                    </label>
+                </div>
             </div>
+            <input type="hidden" name="due_date" data-due-entry-edit-date>
 
             <label>
                 <span>Observacao (opcional)</span>

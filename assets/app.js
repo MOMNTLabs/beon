@@ -2526,10 +2526,15 @@ window.addEventListener("DOMContentLoaded", () => {
   const dueEntryForm = document.querySelector("[data-due-entry-form]");
   const dueEntryGroupField = document.querySelector("[data-due-entry-group]");
   const dueEntryLabelField = document.querySelector("[data-due-entry-label]");
+  const dueEntryAmountField = document.querySelector("[data-due-entry-amount]");
   const dueEntryRecurrenceField = document.querySelector("[data-due-entry-recurrence]");
   const dueEntryMonthlyWrap = document.querySelector("[data-due-entry-monthly-wrap]");
   const dueEntryMonthlyDayField = document.querySelector("[data-due-entry-monthly-day]");
   const dueEntryFixedWrap = document.querySelector("[data-due-entry-fixed-wrap]");
+  const dueEntryFixedDateField = document.querySelector("[data-due-entry-fixed-date]");
+  const dueEntryAnnualWrap = document.querySelector("[data-due-entry-annual-wrap]");
+  const dueEntryAnnualMonthField = document.querySelector("[data-due-entry-annual-month]");
+  const dueEntryAnnualDayField = document.querySelector("[data-due-entry-annual-day]");
   const dueEntryDateField = document.querySelector("[data-due-entry-date]");
   const dueEntryNotesField = document.querySelector("[data-due-entry-notes]");
   const dueEntryEditModal = document.querySelector("[data-due-entry-edit-modal]");
@@ -2537,10 +2542,15 @@ window.addEventListener("DOMContentLoaded", () => {
   const dueEntryEditIdField = document.querySelector("[data-due-entry-edit-id]");
   const dueEntryEditGroupField = document.querySelector("[data-due-entry-edit-group]");
   const dueEntryEditLabelField = document.querySelector("[data-due-entry-edit-label]");
+  const dueEntryEditAmountField = document.querySelector("[data-due-entry-edit-amount]");
   const dueEntryEditRecurrenceField = document.querySelector("[data-due-entry-edit-recurrence]");
   const dueEntryEditMonthlyWrap = document.querySelector("[data-due-entry-edit-monthly-wrap]");
   const dueEntryEditMonthlyDayField = document.querySelector("[data-due-entry-edit-monthly-day]");
   const dueEntryEditFixedWrap = document.querySelector("[data-due-entry-edit-fixed-wrap]");
+  const dueEntryEditFixedDateField = document.querySelector("[data-due-entry-edit-fixed-date]");
+  const dueEntryEditAnnualWrap = document.querySelector("[data-due-entry-edit-annual-wrap]");
+  const dueEntryEditAnnualMonthField = document.querySelector("[data-due-entry-edit-annual-month]");
+  const dueEntryEditAnnualDayField = document.querySelector("[data-due-entry-edit-annual-day]");
   const dueEntryEditDateField = document.querySelector("[data-due-entry-edit-date]");
   const dueEntryEditNotesField = document.querySelector("[data-due-entry-edit-notes]");
   const taskDetailModal = document.querySelector("[data-task-detail-modal]");
@@ -4205,47 +4215,151 @@ window.addEventListener("DOMContentLoaded", () => {
     return normalizeDueMonthlyDayInput(String(parsedDay));
   };
 
+  const monthFromIsoDate = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const parts = raw.split("-");
+    if (parts.length !== 3) return "";
+    const parsedMonth = Number.parseInt(parts[1] || "", 10);
+    if (!Number.isFinite(parsedMonth)) return "";
+    if (parsedMonth < 1 || parsedMonth > 12) return "";
+    return String(parsedMonth).padStart(2, "0");
+  };
+
+  const daysInMonth = (year, month) => {
+    const safeYear = Number.isFinite(year) ? year : new Date().getFullYear();
+    const safeMonth = Number.isFinite(month) ? month : 1;
+    return new Date(safeYear, safeMonth, 0).getDate();
+  };
+
+  const normalizeAnnualMonthInput = (value) => {
+    const parsed = Number.parseInt(String(value || "").trim(), 10);
+    if (!Number.isFinite(parsed)) return "";
+    if (parsed < 1 || parsed > 12) return "";
+    return String(parsed).padStart(2, "0");
+  };
+
+  const normalizeAnnualDayInput = (dayValue, monthValue, yearValue = null) => {
+    const month = Number.parseInt(String(monthValue || "").trim(), 10);
+    if (!Number.isFinite(month) || month < 1 || month > 12) return "";
+
+    const year =
+      yearValue === null || !Number.isFinite(Number(yearValue))
+        ? new Date().getFullYear()
+        : Number.parseInt(String(yearValue), 10);
+
+    const parsedDay = Number.parseInt(String(dayValue || "").trim(), 10);
+    if (!Number.isFinite(parsedDay)) return "";
+
+    const maxDay = daysInMonth(year, month);
+    return String(Math.max(1, Math.min(maxDay, parsedDay))).padStart(2, "0");
+  };
+
+  const composeAnnualIsoDate = (monthValue, dayValue, yearValue = null) => {
+    const month = normalizeAnnualMonthInput(monthValue);
+    if (!month) return "";
+    const year =
+      yearValue === null || !Number.isFinite(Number(yearValue))
+        ? new Date().getFullYear()
+        : Number.parseInt(String(yearValue), 10);
+    const day = normalizeAnnualDayInput(dayValue, month, year);
+    if (!day) return "";
+    return `${String(year)}-${month}-${day}`;
+  };
+
+  const centsToCurrencyInputValue = (value) => {
+    const parsed = Number.parseInt(String(value || "").trim(), 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return "";
+    return (parsed / 100).toFixed(2);
+  };
+
   const syncDueRecurrenceFields = ({
     recurrenceField,
     monthlyWrap,
     monthlyDayField,
     fixedWrap,
+    fixedDateField,
+    annualWrap,
+    annualMonthField,
+    annualDayField,
     dueDateField,
   }) => {
     const recurrenceValue =
       recurrenceField instanceof HTMLSelectElement
         ? String(recurrenceField.value || "monthly").trim().toLowerCase()
         : "monthly";
-    const usesDateField = recurrenceValue === "fixed" || recurrenceValue === "annual";
+    const isMonthly = recurrenceValue === "monthly";
+    const isAnnual = recurrenceValue === "annual";
+    const isFixed = recurrenceValue === "fixed";
 
     if (monthlyWrap instanceof HTMLElement) {
-      monthlyWrap.hidden = usesDateField;
+      monthlyWrap.hidden = !isMonthly;
     }
     if (fixedWrap instanceof HTMLElement) {
-      fixedWrap.hidden = !usesDateField;
+      fixedWrap.hidden = !isFixed;
+    }
+    if (annualWrap instanceof HTMLElement) {
+      annualWrap.hidden = !isAnnual;
     }
 
     if (monthlyDayField instanceof HTMLInputElement) {
-      monthlyDayField.disabled = usesDateField;
-      monthlyDayField.required = !usesDateField;
+      monthlyDayField.disabled = !isMonthly;
+      monthlyDayField.required = isMonthly;
 
       const normalizedDay = normalizeDueMonthlyDayInput(monthlyDayField.value);
       if (normalizedDay) {
         monthlyDayField.value = normalizedDay;
       }
 
-      if (!usesDateField && !monthlyDayField.value) {
-        const dayFromDate =
-          dueDateField instanceof HTMLInputElement ? monthlyDayFromIsoDate(dueDateField.value) : "";
+      if (isMonthly && !monthlyDayField.value) {
+        const dayFromDate = dueDateField instanceof HTMLInputElement ? monthlyDayFromIsoDate(dueDateField.value) : "";
         monthlyDayField.value = dayFromDate || String(new Date().getDate());
       }
     }
 
+    if (fixedDateField instanceof HTMLInputElement) {
+      fixedDateField.disabled = !isFixed;
+      fixedDateField.required = isFixed;
+      if (isFixed && !fixedDateField.value) {
+        const fallbackDate = dueDateField instanceof HTMLInputElement ? String(dueDateField.value || "") : "";
+        fixedDateField.value = fallbackDate || todayIsoDate();
+      }
+    }
+
+    if (annualMonthField instanceof HTMLSelectElement) {
+      annualMonthField.disabled = !isAnnual;
+      annualMonthField.required = isAnnual;
+      const normalizedMonth = normalizeAnnualMonthInput(annualMonthField.value);
+      if (normalizedMonth) {
+        annualMonthField.value = normalizedMonth;
+      } else if (isAnnual) {
+        const fallbackMonth = dueDateField instanceof HTMLInputElement ? monthFromIsoDate(dueDateField.value) : "";
+        annualMonthField.value = fallbackMonth || String(new Date().getMonth() + 1).padStart(2, "0");
+      }
+    }
+
+    if (annualDayField instanceof HTMLInputElement) {
+      annualDayField.disabled = !isAnnual;
+      annualDayField.required = isAnnual;
+
+      if (isAnnual) {
+        const selectedMonth =
+          annualMonthField instanceof HTMLSelectElement ? annualMonthField.value : "";
+        const fallbackDay = dueDateField instanceof HTMLInputElement ? monthlyDayFromIsoDate(dueDateField.value) : "";
+        const daySource = annualDayField.value || fallbackDay || String(new Date().getDate());
+        annualDayField.value = normalizeAnnualDayInput(daySource, selectedMonth) || "";
+      }
+    }
+
     if (dueDateField instanceof HTMLInputElement) {
-      dueDateField.disabled = !usesDateField;
-      dueDateField.required = usesDateField;
-      if (usesDateField && !dueDateField.value) {
-        dueDateField.value = todayIsoDate();
+      if (isFixed) {
+        dueDateField.value = fixedDateField instanceof HTMLInputElement ? String(fixedDateField.value || "") : "";
+      } else if (isAnnual) {
+        const monthValue = annualMonthField instanceof HTMLSelectElement ? annualMonthField.value : "";
+        const dayValue = annualDayField instanceof HTMLInputElement ? annualDayField.value : "";
+        dueDateField.value = composeAnnualIsoDate(monthValue, dayValue);
+      } else {
+        dueDateField.value = "";
       }
     }
   };
@@ -4256,6 +4370,10 @@ window.addEventListener("DOMContentLoaded", () => {
       monthlyWrap: dueEntryMonthlyWrap,
       monthlyDayField: dueEntryMonthlyDayField,
       fixedWrap: dueEntryFixedWrap,
+      fixedDateField: dueEntryFixedDateField,
+      annualWrap: dueEntryAnnualWrap,
+      annualMonthField: dueEntryAnnualMonthField,
+      annualDayField: dueEntryAnnualDayField,
       dueDateField: dueEntryDateField,
     });
   };
@@ -4266,6 +4384,10 @@ window.addEventListener("DOMContentLoaded", () => {
       monthlyWrap: dueEntryEditMonthlyWrap,
       monthlyDayField: dueEntryEditMonthlyDayField,
       fixedWrap: dueEntryEditFixedWrap,
+      fixedDateField: dueEntryEditFixedDateField,
+      annualWrap: dueEntryEditAnnualWrap,
+      annualMonthField: dueEntryEditAnnualMonthField,
+      annualDayField: dueEntryEditAnnualDayField,
       dueDateField: dueEntryEditDateField,
     });
   };
@@ -4281,14 +4403,26 @@ window.addEventListener("DOMContentLoaded", () => {
     if (dueEntryGroupField instanceof HTMLSelectElement) {
       setDueGroupSelectValue(dueEntryGroupField, groupName);
     }
+    if (dueEntryAmountField instanceof HTMLInputElement) {
+      dueEntryAmountField.value = "";
+    }
     if (dueEntryRecurrenceField instanceof HTMLSelectElement) {
       dueEntryRecurrenceField.value = "monthly";
     }
     if (dueEntryMonthlyDayField instanceof HTMLInputElement) {
       dueEntryMonthlyDayField.value = String(new Date().getDate());
     }
-    if (dueEntryDateField instanceof HTMLInputElement && !dueEntryDateField.value) {
-      dueEntryDateField.value = todayIsoDate();
+    if (dueEntryFixedDateField instanceof HTMLInputElement) {
+      dueEntryFixedDateField.value = todayIsoDate();
+    }
+    if (dueEntryAnnualMonthField instanceof HTMLSelectElement) {
+      dueEntryAnnualMonthField.value = String(new Date().getMonth() + 1).padStart(2, "0");
+    }
+    if (dueEntryAnnualDayField instanceof HTMLInputElement) {
+      dueEntryAnnualDayField.value = String(new Date().getDate()).padStart(2, "0");
+    }
+    if (dueEntryDateField instanceof HTMLInputElement) {
+      dueEntryDateField.value = "";
     }
     if (dueEntryNotesField instanceof HTMLTextAreaElement && dueEntryNotesField.value === "") {
       dueEntryNotesField.value = "";
@@ -4320,6 +4454,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const dueDate = (entryRow.dataset.entryDate || "").trim();
     const recurrenceType = (entryRow.dataset.entryRecurrenceType || "monthly").trim().toLowerCase();
     const monthlyDayRaw = (entryRow.dataset.entryMonthlyDay || "").trim();
+    const amountCents = (entryRow.dataset.entryAmountCents || "").trim();
     const groupName = (entryRow.dataset.entryGroup || "").trim();
     const notes = entryRow.dataset.entryNotes || "";
 
@@ -4328,6 +4463,9 @@ window.addEventListener("DOMContentLoaded", () => {
     dueEntryEditIdField.value = entryId;
     if (dueEntryEditLabelField instanceof HTMLInputElement) {
       dueEntryEditLabelField.value = label;
+    }
+    if (dueEntryEditAmountField instanceof HTMLInputElement) {
+      dueEntryEditAmountField.value = centsToCurrencyInputValue(amountCents);
     }
     if (dueEntryEditRecurrenceField instanceof HTMLSelectElement) {
       if (recurrenceType === "annual") {
@@ -4341,6 +4479,18 @@ window.addEventListener("DOMContentLoaded", () => {
     if (dueEntryEditMonthlyDayField instanceof HTMLInputElement) {
       const normalizedDay = normalizeDueMonthlyDayInput(monthlyDayRaw);
       dueEntryEditMonthlyDayField.value = normalizedDay || monthlyDayFromIsoDate(dueDate) || "";
+    }
+    if (dueEntryEditFixedDateField instanceof HTMLInputElement) {
+      dueEntryEditFixedDateField.value = dueDate;
+    }
+    if (dueEntryEditAnnualMonthField instanceof HTMLSelectElement) {
+      const monthValue = monthFromIsoDate(dueDate);
+      if (monthValue) {
+        dueEntryEditAnnualMonthField.value = monthValue;
+      }
+    }
+    if (dueEntryEditAnnualDayField instanceof HTMLInputElement) {
+      dueEntryEditAnnualDayField.value = monthlyDayFromIsoDate(dueDate) || "";
     }
     if (dueEntryEditDateField instanceof HTMLInputElement) {
       dueEntryEditDateField.value = dueDate;
@@ -4912,26 +5062,39 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (dueEntryDateField instanceof HTMLInputElement) {
-    dueEntryDateField.addEventListener("change", () => {
-      if (!(dueEntryRecurrenceField instanceof HTMLSelectElement)) return;
-      if (String(dueEntryRecurrenceField.value || "").trim().toLowerCase() !== "monthly") return;
-      if (!(dueEntryMonthlyDayField instanceof HTMLInputElement)) return;
-      dueEntryMonthlyDayField.value =
-        monthlyDayFromIsoDate(dueEntryDateField.value) ||
-        normalizeDueMonthlyDayInput(dueEntryMonthlyDayField.value);
+  if (dueEntryFixedDateField instanceof HTMLInputElement) {
+    dueEntryFixedDateField.addEventListener("change", () => {
+      syncDueCreateRecurrenceFields();
     });
   }
 
-  if (dueEntryEditDateField instanceof HTMLInputElement) {
-    dueEntryEditDateField.addEventListener("change", () => {
-      if (!(dueEntryEditRecurrenceField instanceof HTMLSelectElement)) return;
-      if (String(dueEntryEditRecurrenceField.value || "").trim().toLowerCase() !== "monthly")
-        return;
-      if (!(dueEntryEditMonthlyDayField instanceof HTMLInputElement)) return;
-      dueEntryEditMonthlyDayField.value =
-        monthlyDayFromIsoDate(dueEntryEditDateField.value) ||
-        normalizeDueMonthlyDayInput(dueEntryEditMonthlyDayField.value);
+  if (dueEntryEditFixedDateField instanceof HTMLInputElement) {
+    dueEntryEditFixedDateField.addEventListener("change", () => {
+      syncDueEditRecurrenceFields();
+    });
+  }
+
+  if (dueEntryAnnualMonthField instanceof HTMLSelectElement) {
+    dueEntryAnnualMonthField.addEventListener("change", () => {
+      syncDueCreateRecurrenceFields();
+    });
+  }
+
+  if (dueEntryEditAnnualMonthField instanceof HTMLSelectElement) {
+    dueEntryEditAnnualMonthField.addEventListener("change", () => {
+      syncDueEditRecurrenceFields();
+    });
+  }
+
+  if (dueEntryAnnualDayField instanceof HTMLInputElement) {
+    dueEntryAnnualDayField.addEventListener("blur", () => {
+      syncDueCreateRecurrenceFields();
+    });
+  }
+
+  if (dueEntryEditAnnualDayField instanceof HTMLInputElement) {
+    dueEntryEditAnnualDayField.addEventListener("blur", () => {
+      syncDueEditRecurrenceFields();
     });
   }
 
