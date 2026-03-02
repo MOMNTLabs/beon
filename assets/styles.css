@@ -143,6 +143,9 @@ select optgroup {
 }
 
 .dashboard-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     gap: 10px;
     padding: 7px 14px;
     border-radius: 20px;
@@ -150,6 +153,14 @@ select optgroup {
         radial-gradient(circle at 14% 0%, rgba(255, 132, 167, 0.16), transparent 42%),
         radial-gradient(circle at 100% 0%, rgba(0, 194, 255, 0.16), transparent 38%),
         rgba(6, 10, 22, 0.7);
+}
+
+.dashboard-nav-main {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
 }
 
 .auth-nav {
@@ -347,7 +358,7 @@ select optgroup {
 .is-dashboard .dashboard {
     flex: 1;
     min-height: 0;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 .is-dashboard .dashboard-compact {
@@ -621,6 +632,16 @@ select optgroup {
     grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.dashboard-nav-stats {
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+        radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.03), transparent 32%),
+        rgba(3, 7, 18, 0.52);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .stat-cell {
     padding: 18px 20px;
     border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -649,13 +670,31 @@ select optgroup {
     font-size: 0.96rem;
 }
 
+.dashboard-nav-stats .stat-cell {
+    padding: 8px 14px;
+    min-height: 46px;
+    gap: 2px;
+}
+
+.dashboard-nav-stats .stat-cell span {
+    font-size: 0.64rem;
+    letter-spacing: 0.09em;
+}
+
+.dashboard-nav-stats .stat-cell strong {
+    font-size: 1rem;
+}
+
 .is-dashboard .dashboard-stats {
     width: 100%;
     max-width: 100%;
     align-self: stretch;
     margin-inline: auto;
-    justify-content: center;
-    grid-template-columns: repeat(5, minmax(150px, max-content));
+}
+
+.is-dashboard .dashboard-nav-stats {
+    justify-content: stretch;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .stat-cell:last-child {
@@ -1226,59 +1265,48 @@ textarea:focus {
     display: flex;
     flex-direction: column;
     min-height: 720px;
-    gap: 12px;
 }
 
 .users-sidebar-body {
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .is-dashboard .users-sidebar {
     min-height: 0;
     height: 100%;
-    gap: 8px;
     overflow: hidden;
 }
 
 .is-dashboard .users-sidebar-body {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
     min-height: 0;
 }
 
-.sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.sidebar-view-menu {
+    display: grid;
     gap: 8px;
-    margin-top: auto;
-    padding-top: 8px;
-    padding-bottom: 10px;
-}
-
-.is-dashboard .sidebar-footer {
-    padding-top: 4px;
-    padding-bottom: 8px;
+    align-content: start;
 }
 
 .sidebar-view-toggle {
-    width: min(100%, 220px);
-    min-height: 38px;
+    width: 100%;
+    min-height: 40px;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.03);
     color: rgba(240, 246, 255, 0.86);
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 8px;
     padding: 8px 12px;
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     font-weight: 600;
     letter-spacing: 0.01em;
-    margin-bottom: 4px;
+    text-align: left;
     cursor: pointer;
     transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
 }
@@ -1297,16 +1325,16 @@ textarea:focus {
 }
 
 .sidebar-view-toggle-icon {
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 
 .sidebar-view-toggle-icon svg {
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.7;
@@ -1315,58 +1343,8 @@ textarea:focus {
 }
 
 .sidebar-view-toggle-label {
-    white-space: nowrap;
-}
-
-.sidebar-settings-button {
-    width: 40px;
-    height: 40px;
-    border-radius: 999px;
-    text-decoration: none;
-}
-
-.workspace-sidebar-settings-link {
-    width: min(100%, 220px);
-    min-height: 38px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.03);
-    color: rgba(240, 246, 255, 0.86);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 8px 12px;
-    font-size: 0.76rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    text-decoration: none;
-    transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
-}
-
-.workspace-sidebar-settings-link:hover,
-.workspace-sidebar-settings-link:focus-visible {
-    border-color: rgba(120, 204, 255, 0.32);
-    background: rgba(58, 148, 255, 0.14);
-    transform: translateY(-1px);
-}
-
-.workspace-sidebar-settings-icon {
-    width: 14px;
-    height: 14px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.workspace-sidebar-settings-icon svg {
-    width: 14px;
-    height: 14px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.7;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    white-space: normal;
+    line-height: 1.2;
 }
 
 .icon-gear-button {
@@ -2057,6 +2035,45 @@ textarea:focus {
     flex-direction: column;
     overflow: hidden;
     padding-bottom: 6px;
+}
+
+.users-wrap {
+    min-height: 720px;
+    position: relative;
+    padding-bottom: 16px;
+}
+
+.is-dashboard .users-wrap {
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 6px;
+}
+
+.users-settings-grid {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 2px;
+}
+
+.users-wrap .workspace-settings-users-card {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.users-wrap .workspace-settings-users-card.is-full {
+    grid-column: 1 / -1;
+}
+
+.users-wrap .workspace-settings-members {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 2px;
 }
 
 .vault-summary {
@@ -3259,6 +3276,7 @@ textarea:focus {
 
 .is-dashboard .team-list,
 .is-dashboard .task-groups-list,
+.users-wrap .workspace-settings-members,
 .assignee-picker-menu,
 .create-task-modal,
 .task-detail-modal {
@@ -3268,6 +3286,7 @@ textarea:focus {
 
 .is-dashboard .team-list::-webkit-scrollbar,
 .is-dashboard .task-groups-list::-webkit-scrollbar,
+.users-wrap .workspace-settings-members::-webkit-scrollbar,
 .assignee-picker-menu::-webkit-scrollbar,
 .create-task-modal::-webkit-scrollbar,
 .task-detail-modal::-webkit-scrollbar {
@@ -3277,6 +3296,7 @@ textarea:focus {
 
 .is-dashboard .team-list::-webkit-scrollbar-track,
 .is-dashboard .task-groups-list::-webkit-scrollbar-track,
+.users-wrap .workspace-settings-members::-webkit-scrollbar-track,
 .assignee-picker-menu::-webkit-scrollbar-track,
 .create-task-modal::-webkit-scrollbar-track,
 .task-detail-modal::-webkit-scrollbar-track {
@@ -3286,6 +3306,7 @@ textarea:focus {
 
 .is-dashboard .team-list::-webkit-scrollbar-thumb,
 .is-dashboard .task-groups-list::-webkit-scrollbar-thumb,
+.users-wrap .workspace-settings-members::-webkit-scrollbar-thumb,
 .assignee-picker-menu::-webkit-scrollbar-thumb,
 .create-task-modal::-webkit-scrollbar-thumb,
 .task-detail-modal::-webkit-scrollbar-thumb {
@@ -3297,6 +3318,7 @@ textarea:focus {
 
 .is-dashboard .team-list::-webkit-scrollbar-thumb:hover,
 .is-dashboard .task-groups-list::-webkit-scrollbar-thumb:hover,
+.users-wrap .workspace-settings-members::-webkit-scrollbar-thumb:hover,
 .assignee-picker-menu::-webkit-scrollbar-thumb:hover,
 .create-task-modal::-webkit-scrollbar-thumb:hover,
 .task-detail-modal::-webkit-scrollbar-thumb:hover {
@@ -4434,11 +4456,28 @@ textarea:focus {
 }
 
 @media (max-width: 900px) {
-    .top-nav,
-    .dashboard-nav {
+    .top-nav {
         grid-template-columns: 1fr;
         border-radius: 20px;
         padding: 14px;
+    }
+
+    .dashboard-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border-radius: 20px;
+        padding: 10px;
+    }
+
+    .dashboard-nav-main {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .dashboard-nav .user-chip,
+    .dashboard-nav .top-nav-actions {
+        justify-self: start;
     }
 
     .nav-links {
@@ -4476,6 +4515,10 @@ textarea:focus {
     .stats-strip,
     .dashboard-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-nav-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .auth-grid {
@@ -4562,9 +4605,16 @@ textarea:focus {
     .feature-cards,
     .kanban-grid,
     .form-row,
-    .stats-strip,
-    .dashboard-stats {
+    .stats-strip {
         grid-template-columns: 1fr;
+    }
+
+    .dashboard-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-nav-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .compact-form {

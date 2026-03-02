@@ -1,36 +1,37 @@
 <header class="top-nav dashboard-nav">
-    <a href="index.php" class="brand" aria-label="WorkForm">
-        <img src="assets/WorkForm - Logo (Negativa).svg?v=1" alt="WorkForm" class="brand-lockup" width="116" height="29">
-    </a>
+    <div class="dashboard-nav-main">
+        <a href="index.php" class="brand" aria-label="WorkForm">
+            <img src="assets/WorkForm - Logo (Negativa).svg?v=1" alt="WorkForm" class="brand-lockup" width="116" height="29">
+        </a>
 
-    <div class="user-chip">
-        <div class="avatar" aria-hidden="true"><?= e(strtoupper(substr((string) $currentUser['name'], 0, 1))) ?></div>
-        <div>
-            <strong><?= e((string) $currentUser['name']) ?></strong>
-            <span><?= e((string) $currentUser['email']) ?></span>
+        <div class="user-chip">
+            <div class="avatar" aria-hidden="true"><?= e(strtoupper(substr((string) $currentUser['name'], 0, 1))) ?></div>
+            <div>
+                <strong><?= e((string) $currentUser['name']) ?></strong>
+                <span><?= e((string) $currentUser['email']) ?></span>
+            </div>
+        </div>
+
+        <div class="top-nav-actions">
+            <a
+                href="account-settings.php"
+                class="icon-gear-button top-account-settings-button"
+                aria-label="Configuracoes da conta"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
+                    <circle cx="12" cy="12" r="3.2"></circle>
+                </svg>
+            </a>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                <input type="hidden" name="action" value="logout">
+                <button type="submit" class="btn btn-pill btn-logout"><span>Sair</span></button>
+            </form>
         </div>
     </div>
-    <div class="top-nav-actions">
-        <a
-            href="account-settings.php"
-            class="icon-gear-button top-account-settings-button"
-            aria-label="Configuracoes da conta"
-        >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
-                <circle cx="12" cy="12" r="3.2"></circle>
-            </svg>
-        </a>
-        <form method="post">
-            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-            <input type="hidden" name="action" value="logout">
-            <button type="submit" class="btn btn-pill btn-logout"><span>Sair</span></button>
-        </form>
-    </div>
-</header>
 
-<main class="dashboard dashboard-compact">
-    <section class="stats-strip dashboard-stats" aria-label="Indicadores do workspace">
+    <section class="stats-strip dashboard-stats dashboard-nav-stats" aria-label="Indicadores do workspace">
         <div class="stat-cell">
             <span>Tarefas</span>
             <strong data-dashboard-stat-total><?= e((string) $stats['total']) ?></strong>
@@ -52,7 +53,9 @@
             <strong data-dashboard-stat-my-open><?= e((string) $myOpenTasks) ?></strong>
         </div>
     </section>
+</header>
 
+<main class="dashboard dashboard-compact">
     <section class="workspace-layout tasklist-layout">
         <aside class="panel users-sidebar" id="team">
             <div class="users-sidebar-body">
@@ -84,61 +87,62 @@
                             </div>
                         </div>
                     </details>
-                    <p>Equipe do workspace</p>
+                    <p>Navegacao</p>
                 </div>
-                <ul class="team-list">
-                    <?php if (!$workspaceMembers): ?>
-                        <li>Nenhum usuario cadastrado.</li>
-                    <?php else: ?>
-                        <?php foreach ($workspaceMembers as $workspaceMember): ?>
-                            <?php
-                            $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
-                            $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
-                            ?>
-                            <li>
-                                <div class="avatar small" aria-hidden="true"><?= e(strtoupper(substr((string) $workspaceMember['name'], 0, 1))) ?></div>
-                                <div class="team-user-meta">
-                                    <strong><?= e((string) $workspaceMember['name']) ?></strong>
-                                    <span class="workspace-member-role workspace-role-<?= e((string) $memberRole) ?>"><?= e((string) $memberRoleLabel) ?></span>
-                                    <span><?= e((string) $workspaceMember['email']) ?></span>
-                                </div>
-                            </li>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </ul>
-            </div>
-            <footer class="sidebar-footer">
-                <button
-                    type="button"
-                    class="sidebar-view-toggle"
-                    data-dashboard-view-toggle
-                    data-view="vault"
-                    aria-pressed="false"
-                >
-                    <span class="sidebar-view-toggle-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <rect x="5" y="10" width="14" height="10" rx="2"></rect>
-                            <path d="M8 10V7a4 4 0 1 1 8 0v3"></path>
-                        </svg>
-                    </span>
-                    <span class="sidebar-view-toggle-label">Gerenciador de acessos</span>
-                </button>
-                <?php if (!empty($canManageWorkspace)): ?>
-                    <a
-                        href="workspace-settings.php"
-                        class="workspace-sidebar-settings-link"
-                        aria-label="Configurar workspace"
+                <nav class="sidebar-view-menu" aria-label="Menu do workspace">
+                    <button
+                        type="button"
+                        class="sidebar-view-toggle is-active"
+                        data-dashboard-view-toggle
+                        data-view="tasks"
+                        aria-pressed="true"
                     >
-                        <span class="workspace-sidebar-settings-icon" aria-hidden="true">
+                        <span class="sidebar-view-toggle-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
-                                <circle cx="12" cy="12" r="3.2"></circle>
+                                <path d="M8 7h11"></path>
+                                <path d="M8 12h11"></path>
+                                <path d="M8 17h11"></path>
+                                <path d="M4.5 7h.01"></path>
+                                <path d="M4.5 12h.01"></path>
+                                <path d="M4.5 17h.01"></path>
                             </svg>
                         </span>
-                        <span>Configurar workspace</span>
-                    </a>
-                <?php endif; ?>
-            </footer>
+                        <span class="sidebar-view-toggle-label">Lista de tarefas</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="sidebar-view-toggle"
+                        data-dashboard-view-toggle
+                        data-view="vault"
+                        aria-pressed="false"
+                    >
+                        <span class="sidebar-view-toggle-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                                <path d="M8 10V7a4 4 0 1 1 8 0v3"></path>
+                            </svg>
+                        </span>
+                        <span class="sidebar-view-toggle-label">Gerenciador de acessos</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="sidebar-view-toggle"
+                        data-dashboard-view-toggle
+                        data-view="users"
+                        aria-pressed="false"
+                    >
+                        <span class="sidebar-view-toggle-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M16.5 19a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
+                                <path d="M7.5 15a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
+                                <path d="M2.5 19c0-2.2 2-4 5-4"></path>
+                                <path d="M12 19c0-2.2 2-4 4.5-4"></path>
+                            </svg>
+                        </span>
+                        <span class="sidebar-view-toggle-label">Usuarios</span>
+                    </button>
+                </nav>
+            </div>
         </aside>
 
         <section class="tasklist-wrap panel" id="tasks" data-dashboard-view-panel="tasks">
@@ -895,6 +899,100 @@
                         </section>
                     <?php endforeach; ?>
                 <?php endif; ?>
+            </div>
+        </section>
+
+        <section class="users-wrap panel" id="users" data-dashboard-view-panel="users" hidden>
+            <div class="panel-header board-header users-board-header">
+                <div>
+                    <h2>Usuarios</h2>
+                    <p>Gerencie membros e permissoes do workspace.</p>
+                </div>
+            </div>
+
+            <div class="workspace-settings-grid users-settings-grid">
+                <?php if (!empty($canManageWorkspace)): ?>
+                    <section class="workspace-settings-card">
+                        <h3>Dados do workspace</h3>
+                        <form method="post" class="workspace-settings-form">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                            <input type="hidden" name="action" value="workspace_update_name">
+                            <label>
+                                <span>Nome do workspace</span>
+                                <input
+                                    type="text"
+                                    name="workspace_name"
+                                    maxlength="80"
+                                    value="<?= e((string) ($currentWorkspace['name'] ?? 'Workspace')) ?>"
+                                    required
+                                >
+                            </label>
+                            <button type="submit" class="btn btn-mini">Salvar nome</button>
+                        </form>
+                    </section>
+                <?php endif; ?>
+
+                <section class="workspace-settings-card workspace-settings-users-card<?= empty($canManageWorkspace) ? ' is-full' : '' ?>">
+                    <h3>Usuarios do workspace</h3>
+                    <?php if (!empty($canManageWorkspace)): ?>
+                        <form method="post" class="workspace-settings-form workspace-settings-member-form">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                            <input type="hidden" name="action" value="workspace_add_member">
+                            <label>
+                                <span>Adicionar usuario por e-mail</span>
+                                <input type="email" name="member_email" placeholder="usuario@empresa.com" required>
+                            </label>
+                            <button type="submit" class="btn btn-mini">Adicionar</button>
+                        </form>
+                    <?php endif; ?>
+
+                    <ul class="workspace-settings-members">
+                        <?php if (!$workspaceMembers): ?>
+                            <li class="workspace-settings-member-empty">Nenhum usuario cadastrado.</li>
+                        <?php else: ?>
+                            <?php foreach ($workspaceMembers as $workspaceMember): ?>
+                                <?php
+                                $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+                                $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
+                                $workspaceMemberId = (int) ($workspaceMember['id'] ?? 0);
+                                ?>
+                                <li class="workspace-settings-member-item">
+                                    <div class="avatar small" aria-hidden="true"><?= e(strtoupper(substr((string) $workspaceMember['name'], 0, 1))) ?></div>
+                                    <div class="workspace-settings-member-meta">
+                                        <strong><?= e((string) $workspaceMember['name']) ?></strong>
+                                        <span class="workspace-member-role workspace-role-<?= e((string) $memberRole) ?>"><?= e((string) $memberRoleLabel) ?></span>
+                                        <span><?= e((string) $workspaceMember['email']) ?></span>
+                                    </div>
+                                    <?php if (!empty($canManageWorkspace) && $workspaceMemberId !== (int) $currentUser['id']): ?>
+                                        <div class="workspace-settings-member-actions">
+                                            <?php if ($memberRole !== 'admin'): ?>
+                                                <form method="post" class="workspace-settings-member-remove">
+                                                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                    <input type="hidden" name="action" value="workspace_promote_member">
+                                                    <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
+                                                    <button type="submit" class="btn btn-mini btn-ghost">Tornar admin</button>
+                                                </form>
+                                            <?php else: ?>
+                                                <form method="post" class="workspace-settings-member-remove">
+                                                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                    <input type="hidden" name="action" value="workspace_demote_member">
+                                                    <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
+                                                    <button type="submit" class="btn btn-mini btn-ghost">Tornar usuario</button>
+                                                </form>
+                                            <?php endif; ?>
+                                            <form method="post" class="workspace-settings-member-remove">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                <input type="hidden" name="action" value="workspace_remove_member">
+                                                <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
+                                                <button type="submit" class="btn btn-mini btn-ghost">Remover</button>
+                                            </form>
+                                        </div>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                </section>
             </div>
         </section>
     </section>

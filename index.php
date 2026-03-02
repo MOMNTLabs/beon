@@ -202,6 +202,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'Workspace criado.');
                 redirectTo('index.php#tasks');
 
+            case 'workspace_update_name':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem alterar o workspace.');
+                }
+
+                updateWorkspaceName($pdo, $workspaceId, (string) ($_POST['workspace_name'] ?? ''));
+                flash('success', 'Nome do workspace atualizado.');
+                redirectTo('index.php#users');
+
+            case 'workspace_add_member':
             case 'add_workspace_member':
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
@@ -231,7 +246,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'member');
                 flash('success', 'Usuario adicionado ao workspace.');
-                redirectTo('index.php#tasks');
+                redirectTo('index.php#users');
+
+            case 'workspace_promote_member':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem alterar permissoes.');
+                }
+
+                $memberId = (int) ($_POST['member_id'] ?? 0);
+                if ($memberId <= 0) {
+                    throw new RuntimeException('Usuario invalido.');
+                }
+                if ($memberId === (int) $authUser['id']) {
+                    throw new RuntimeException('Sua conta ja possui permissao de administrador.');
+                }
+                if (!userHasWorkspaceAccess($memberId, $workspaceId)) {
+                    throw new RuntimeException('Usuario nao pertence a este workspace.');
+                }
+
+                upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'admin');
+                flash('success', 'Permissao de administrador concedida.');
+                redirectTo('index.php#users');
+
+            case 'workspace_demote_member':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem alterar permissoes.');
+                }
+
+                $memberId = (int) ($_POST['member_id'] ?? 0);
+                if ($memberId <= 0) {
+                    throw new RuntimeException('Usuario invalido.');
+                }
+                if ($memberId === (int) $authUser['id']) {
+                    throw new RuntimeException('Nao e possivel alterar a propria permissao.');
+                }
+
+                $targetRole = workspaceRoleForUser($memberId, $workspaceId);
+                if ($targetRole !== 'admin') {
+                    throw new RuntimeException('Este usuario nao e administrador.');
+                }
+
+                updateWorkspaceMemberRole($pdo, $workspaceId, $memberId, 'member');
+                flash('success', 'Permissao alterada para usuario.');
+                redirectTo('index.php#users');
+
+            case 'workspace_remove_member':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem remover usuarios.');
+                }
+
+                $memberId = (int) ($_POST['member_id'] ?? 0);
+                if ($memberId <= 0) {
+                    throw new RuntimeException('Usuario invalido.');
+                }
+                if ($memberId === (int) $authUser['id']) {
+                    throw new RuntimeException('Nao e possivel remover a propria conta deste workspace.');
+                }
+
+                removeWorkspaceMember($pdo, $workspaceId, $memberId);
+                flash('success', 'Usuario removido do workspace.');
+                redirectTo('index.php#users');
 
             case 'create_vault_group':
                 $authUser = requireAuth();
@@ -1470,8 +1559,8 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=45">
-    <script src="assets/app.js?v=22" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=47">
+    <script src="assets/app.js?v=23" defer></script>
 </head>
 <body
     class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"

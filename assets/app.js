@@ -2275,19 +2275,16 @@ window.addEventListener("DOMContentLoaded", () => {
     fabMenu.setAttribute("aria-hidden", open ? "false" : "true");
   };
 
+  const dashboardViews = new Set(["tasks", "vault", "users"]);
   const normalizeDashboardView = (value) => {
-    return String(value || "").trim().toLowerCase() === "vault" ? "vault" : "tasks";
+    const normalized = String(value || "").trim().toLowerCase();
+    return dashboardViews.has(normalized) ? normalized : "tasks";
   };
 
   const dashboardViewFromHash = () => {
     const rawHash = String(window.location.hash || "").replace(/^#/, "");
     return normalizeDashboardView(rawHash);
   };
-
-  const dashboardToggleLockIcon =
-    '<rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 1 1 8 0v3"></path>';
-  const dashboardToggleTasksIcon =
-    '<path d="M8 7h11"></path><path d="M8 12h11"></path><path d="M8 17h11"></path><path d="M4.5 7h.01"></path><path d="M4.5 12h.01"></path><path d="M4.5 17h.01"></path>';
 
   const setDashboardView = (nextView, { updateHash = false } = {}) => {
     if (!dashboardViewPanels.length) return;
@@ -2304,19 +2301,12 @@ window.addEventListener("DOMContentLoaded", () => {
       const buttonView = normalizeDashboardView(button.dataset.view || "");
       const isActive = buttonView === view;
       button.classList.toggle("is-active", isActive);
-      const label = button.querySelector(".sidebar-view-toggle-label");
-      if (label instanceof HTMLElement) {
-        label.textContent = view === "vault" ? "Lista de tarefas" : "Gerenciador de acessos";
-      }
-      const icon = button.querySelector(".sidebar-view-toggle-icon svg");
-      if (icon instanceof SVGElement) {
-        icon.innerHTML = view === "vault" ? dashboardToggleTasksIcon : dashboardToggleLockIcon;
-      }
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
-      button.setAttribute(
-        "aria-label",
-        isActive ? "Voltar para lista de tarefas" : "Abrir gerenciador de acessos"
-      );
+      if (isActive) {
+        button.setAttribute("aria-current", "page");
+      } else {
+        button.removeAttribute("aria-current");
+      }
     });
 
     if (document.body instanceof HTMLBodyElement) {
@@ -2324,7 +2314,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (updateHash) {
-      const targetHash = view === "vault" ? "#vault" : "#tasks";
+      const targetHash = `#${view}`;
       if (window.location.hash !== targetHash) {
         window.history.replaceState(null, "", targetHash);
       }
@@ -3707,12 +3697,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const dashboardViewToggle = target.closest("[data-dashboard-view-toggle]");
     if (dashboardViewToggle instanceof HTMLElement) {
-      const currentView = normalizeDashboardView(
-        document.body?.dataset?.dashboardView || dashboardViewFromHash()
-      );
-      const targetView = normalizeDashboardView(dashboardViewToggle.dataset.view || "vault");
-      const nextView = currentView === targetView ? "tasks" : targetView;
-      setDashboardView(nextView, { updateHash: true });
+      const targetView = normalizeDashboardView(dashboardViewToggle.dataset.view || "tasks");
+      setDashboardView(targetView, { updateHash: true });
       return;
     }
 
