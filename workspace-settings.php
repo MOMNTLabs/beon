@@ -66,6 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
                 }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem adicionar usuarios.');
                 }
@@ -91,6 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
                 }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar permissoes.');
                 }
@@ -114,6 +120,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar permissoes.');
@@ -140,6 +149,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem remover usuarios.');
@@ -175,6 +187,8 @@ if ($currentWorkspaceId === null) {
 
 $currentWorkspace = activeWorkspace($currentUser);
 $canManageWorkspace = userCanManageWorkspace((int) $currentUser['id'], $currentWorkspaceId);
+$isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
+$canManageWorkspaceMembers = $canManageWorkspace && !$isPersonalWorkspace;
 $workspaceMembers = workspaceMembersList($currentWorkspaceId);
 $flashes = getFlashes();
 ?>
@@ -189,7 +203,7 @@ $flashes = getFlashes();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=54">
+    <link rel="stylesheet" href="assets/styles.css?v=55">
 </head>
 <body class="is-dashboard is-workspace-settings" data-workspace-id="<?= e((string) $currentWorkspaceId) ?>">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
@@ -249,7 +263,7 @@ $flashes = getFlashes();
             <section class="panel workspace-settings-panel">
                 <div class="panel-header workspace-settings-header">
                     <h2>Configuracoes do workspace</h2>
-                    <p>Gerencie nome e usuarios do espaco.</p>
+                    <p><?= $isPersonalWorkspace ? 'Workspace pessoal: gerenciamento individual sem membros.' : 'Gerencie nome e usuarios do espaco.' ?></p>
                 </div>
 
                 <div class="workspace-settings-grid">
@@ -278,7 +292,9 @@ $flashes = getFlashes();
 
                     <section class="workspace-settings-card">
                         <h3>Usuarios do workspace</h3>
-                        <?php if ($canManageWorkspace): ?>
+                        <?php if ($isPersonalWorkspace): ?>
+                            <p class="workspace-settings-readonly">Este workspace e pessoal e nao permite adicionar outros usuarios.</p>
+                        <?php elseif ($canManageWorkspaceMembers): ?>
                             <form method="post" class="workspace-settings-form workspace-settings-member-form">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                 <input type="hidden" name="action" value="workspace_add_member">
@@ -307,7 +323,7 @@ $flashes = getFlashes();
                                             <span class="workspace-member-role workspace-role-<?= e((string) $memberRole) ?>"><?= e((string) $memberRoleLabel) ?></span>
                                             <span><?= e((string) $workspaceMember['email']) ?></span>
                                         </div>
-                                        <?php if ($canManageWorkspace && $workspaceMemberId !== (int) $currentUser['id']): ?>
+                                        <?php if ($canManageWorkspaceMembers && $workspaceMemberId !== (int) $currentUser['id']): ?>
                                             <div class="workspace-settings-member-actions">
                                                 <?php if ($memberRole !== 'admin'): ?>
                                                     <form method="post" class="workspace-settings-member-remove">

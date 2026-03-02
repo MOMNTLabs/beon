@@ -304,6 +304,7 @@ function ensureWorkspaceSchema(PDO $pdo): void
                 id BIGSERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
                 slug TEXT NOT NULL UNIQUE,
+                is_personal SMALLINT NOT NULL DEFAULT 0,
                 created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
                 created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
                 updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
@@ -329,6 +330,7 @@ function ensureWorkspaceSchema(PDO $pdo): void
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 slug TEXT NOT NULL UNIQUE,
+                is_personal INTEGER NOT NULL DEFAULT 0,
                 created_by INTEGER DEFAULT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
@@ -351,6 +353,14 @@ function ensureWorkspaceSchema(PDO $pdo): void
             'CREATE INDEX IF NOT EXISTS idx_workspace_members_user_workspace
              ON workspace_members(user_id, workspace_id)'
         );
+    }
+
+    if (!tableHasColumn($pdo, 'workspaces', 'is_personal')) {
+        if ($driver === 'pgsql') {
+            $pdo->exec('ALTER TABLE workspaces ADD COLUMN is_personal SMALLINT NOT NULL DEFAULT 0');
+        } else {
+            $pdo->exec('ALTER TABLE workspaces ADD COLUMN is_personal INTEGER NOT NULL DEFAULT 0');
+        }
     }
 
     if (!tableHasColumn($pdo, 'tasks', 'workspace_id')) {
@@ -1382,7 +1392,7 @@ function workspaceById(int $workspaceId): ?array
     }
 
     $stmt = db()->prepare(
-        'SELECT id, name, slug, created_by, created_at, updated_at
+        'SELECT id, name, slug, is_personal, created_by, created_at, updated_at
          FROM workspaces
          WHERE id = :id
          LIMIT 1'
@@ -1390,7 +1400,62 @@ function workspaceById(int $workspaceId): ?array
     $stmt->execute([':id' => $workspaceId]);
     $workspace = $stmt->fetch();
 
-    return $workspace ?: null;
+    if (!$workspace) {
+        return null;
+    }
+
+    $workspace['is_personal'] = ((int) ($workspace['is_personal'] ?? 0)) === 1;
+    return $workspace;
+}
+
+function workspaceIsPersonal(int $workspaceId): bool
+{
+    if ($workspaceId <= 0) {
+        return false;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT is_personal
+         FROM workspaces
+         WHERE id = :workspace_id
+         LIMIT 1'
+    );
+    $stmt->execute([':workspace_id' => $workspaceId]);
+    return ((int) $stmt->fetchColumn()) === 1;
+}
+
+function workspaceCanManageMembers(int $workspaceId): bool
+{
+    return !workspaceIsPersonal($workspaceId);
+}
+
+function personalWorkspaceForUserId(int $userId): ?array
+{
+    if ($userId <= 0) {
+        return null;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT w.id, w.name, w.slug, w.is_personal, w.created_by, w.created_at, w.updated_at
+         FROM workspaces w
+         INNER JOIN workspace_members wm ON wm.workspace_id = w.id
+         WHERE wm.user_id = :member_user_id
+           AND w.is_personal = 1
+           AND w.created_by = :owner_user_id
+         ORDER BY w.created_at ASC, w.id ASC
+         LIMIT 1'
+    );
+    $stmt->execute([
+        ':member_user_id' => $userId,
+        ':owner_user_id' => $userId,
+    ]);
+    $workspace = $stmt->fetch();
+    if (!$workspace) {
+        return null;
+    }
+
+    $workspace['is_personal'] = true;
+    return $workspace;
 }
 
 function workspaceRoleForUser(int $userId, int $workspaceId): ?string
@@ -1484,7 +1549,7 @@ function upsertWorkspaceMember(PDO $pdo, int $workspaceId, int $userId, string $
     ]);
 }
 
-function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy): int
+function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $isPersonal = false): int
 {
     $createdBy = (int) $createdBy;
     if ($createdBy <= 0) {
@@ -1494,16 +1559,18 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy): int
     $name = normalizeWorkspaceName($workspaceName);
     $slug = generateWorkspaceSlug($pdo, $name);
     $now = nowIso();
+    $personalFlag = $isPersonal ? 1 : 0;
 
     if (dbDriverName($pdo) === 'pgsql') {
         $stmt = $pdo->prepare(
-            'INSERT INTO workspaces (name, slug, created_by, created_at, updated_at)
-             VALUES (:name, :slug, :created_by, :created_at, :updated_at)
+            'INSERT INTO workspaces (name, slug, is_personal, created_by, created_at, updated_at)
+             VALUES (:name, :slug, :is_personal, :created_by, :created_at, :updated_at)
              RETURNING id'
         );
         $stmt->execute([
             ':name' => $name,
             ':slug' => $slug,
+            ':is_personal' => $personalFlag,
             ':created_by' => $createdBy,
             ':created_at' => $now,
             ':updated_at' => $now,
@@ -1511,12 +1578,13 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy): int
         $workspaceId = (int) $stmt->fetchColumn();
     } else {
         $stmt = $pdo->prepare(
-            'INSERT INTO workspaces (name, slug, created_by, created_at, updated_at)
-             VALUES (:name, :slug, :created_by, :created_at, :updated_at)'
+            'INSERT INTO workspaces (name, slug, is_personal, created_by, created_at, updated_at)
+             VALUES (:name, :slug, :is_personal, :created_by, :created_at, :updated_at)'
         );
         $stmt->execute([
             ':name' => $name,
             ':slug' => $slug,
+            ':is_personal' => $personalFlag,
             ':created_by' => $createdBy,
             ':created_at' => $now,
             ':updated_at' => $now,
@@ -1890,6 +1958,7 @@ function workspaceMembershipsDetailedForUser(int $userId): array
              w.id,
              w.name,
              w.slug,
+             w.is_personal,
              w.created_by,
              w.created_at,
              w.updated_at,
@@ -1913,6 +1982,7 @@ function workspaceMembershipsDetailedForUser(int $userId): array
     foreach ($rows as &$row) {
         $row['id'] = (int) ($row['id'] ?? 0);
         $row['created_by'] = (int) ($row['created_by'] ?? 0);
+        $row['is_personal'] = ((int) ($row['is_personal'] ?? 0)) === 1;
         $row['member_count'] = (int) ($row['member_count'] ?? 0);
         $row['member_role'] = normalizeWorkspaceRole((string) ($row['member_role'] ?? 'member'));
         $row['is_owner'] = ((int) $row['created_by']) === $userId;
@@ -1933,6 +2003,7 @@ function workspacesForUser(int $userId): array
              w.id,
              w.name,
              w.slug,
+             w.is_personal,
              w.created_by,
              w.created_at,
              w.updated_at,
@@ -1946,6 +2017,7 @@ function workspacesForUser(int $userId): array
     $rows = $stmt->fetchAll();
 
     foreach ($rows as &$row) {
+        $row['is_personal'] = ((int) ($row['is_personal'] ?? 0)) === 1;
         $row['member_role'] = normalizeWorkspaceRole((string) ($row['member_role'] ?? 'member'));
     }
     unset($row);
@@ -1993,11 +2065,28 @@ function setActiveWorkspaceId(?int $workspaceId): void
     unset($_SESSION['workspace_id']);
 }
 
+function ensurePersonalWorkspaceForUser(int $userId): ?int
+{
+    if ($userId <= 0) {
+        return null;
+    }
+
+    $existingPersonal = personalWorkspaceForUserId($userId);
+    if ($existingPersonal) {
+        return (int) ($existingPersonal['id'] ?? 0);
+    }
+
+    $workspaceId = createWorkspace(db(), 'Pessoal', $userId, true);
+    return $workspaceId > 0 ? $workspaceId : null;
+}
+
 function ensureUserWorkspaceAccess(int $userId): void
 {
     if ($userId <= 0) {
         return;
     }
+
+    ensurePersonalWorkspaceForUser($userId);
 
     $workspaceCountStmt = db()->prepare(
         'SELECT COUNT(*)
@@ -2010,12 +2099,7 @@ function ensureUserWorkspaceAccess(int $userId): void
         return;
     }
 
-    $userStmt = db()->prepare('SELECT name FROM users WHERE id = :id LIMIT 1');
-    $userStmt->execute([':id' => $userId]);
-    $userRow = $userStmt->fetch();
-    $userName = trim((string) ($userRow['name'] ?? ''));
-    $workspaceName = $userName !== '' ? ('Espaco de ' . $userName) : 'Formula Online';
-    $workspaceId = createWorkspace(db(), $workspaceName, $userId);
+    $workspaceId = createWorkspace(db(), 'Formula Online', $userId);
     if ($workspaceId > 0) {
         setActiveWorkspaceId($workspaceId);
     }
@@ -2030,6 +2114,12 @@ function ensureActiveWorkspaceSessionForUser(int $userId): void
 
     $sessionWorkspaceId = (int) ($_SESSION['workspace_id'] ?? 0);
     if ($sessionWorkspaceId > 0 && userHasWorkspaceAccess($userId, $sessionWorkspaceId)) {
+        return;
+    }
+
+    $personalWorkspace = personalWorkspaceForUserId($userId);
+    if ($personalWorkspace) {
+        setActiveWorkspaceId((int) ($personalWorkspace['id'] ?? 0));
         return;
     }
 

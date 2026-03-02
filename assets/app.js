@@ -2388,10 +2388,31 @@ window.addEventListener("DOMContentLoaded", () => {
     fabMenu.setAttribute("aria-hidden", open ? "false" : "true");
   };
 
-  const dashboardViews = new Set(["tasks", "vault", "users"]);
-  const normalizeDashboardView = (value) => {
+  const normalizeDashboardViewCandidate = (value) => {
     const normalized = String(value || "").trim().toLowerCase();
-    return dashboardViews.has(normalized) ? normalized : "tasks";
+    return normalized === "tasks" || normalized === "vault" || normalized === "users"
+      ? normalized
+      : "";
+  };
+
+  const dashboardViews = new Set();
+  dashboardViewPanels.forEach((panel) => {
+    if (!(panel instanceof HTMLElement)) return;
+    const panelView = normalizeDashboardViewCandidate(panel.dataset.dashboardViewPanel || "");
+    if (panelView) dashboardViews.add(panelView);
+  });
+  dashboardViewToggleButtons.forEach((button) => {
+    if (!(button instanceof HTMLElement)) return;
+    const buttonView = normalizeDashboardViewCandidate(button.dataset.view || "");
+    if (buttonView) dashboardViews.add(buttonView);
+  });
+  if (!dashboardViews.has("tasks")) {
+    dashboardViews.add("tasks");
+  }
+
+  const normalizeDashboardView = (value) => {
+    const normalized = normalizeDashboardViewCandidate(value);
+    return normalized && dashboardViews.has(normalized) ? normalized : "tasks";
   };
 
   const dashboardViewFromHash = () => {

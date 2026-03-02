@@ -40,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'account_delete_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao pode ser removido.');
+                }
                 deleteWorkspaceOwnedByUser($pdo, $workspaceId, (int) $currentUser['id']);
                 ensureActiveWorkspaceSessionForUser((int) $currentUser['id']);
                 flash('success', 'Workspace removido.');
@@ -47,6 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'account_leave_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite sair.');
+                }
                 leaveWorkspace($pdo, $workspaceId, (int) $currentUser['id']);
                 ensureActiveWorkspaceSessionForUser((int) $currentUser['id']);
                 flash('success', 'Voce saiu do workspace.');
@@ -77,7 +83,7 @@ $flashes = getFlashes();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=44">
+    <link rel="stylesheet" href="assets/styles.css?v=55">
 </head>
 <body class="is-dashboard is-workspace-settings">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
@@ -195,6 +201,7 @@ $flashes = getFlashes();
                                 $workspaceRole = normalizeWorkspaceRole((string) ($workspaceItem['member_role'] ?? 'member'));
                                 $workspaceRoleLabel = workspaceRoles()[$workspaceRole] ?? 'Usuario';
                                 $isOwner = (bool) ($workspaceItem['is_owner'] ?? false);
+                                $isPersonalWorkspace = !empty($workspaceItem['is_personal']);
                                 $isActiveWorkspace = $currentWorkspaceId === $workspaceId;
                                 $memberCount = (int) ($workspaceItem['member_count'] ?? 0);
                                 $creatorName = trim((string) ($workspaceItem['creator_name'] ?? ''));
@@ -206,14 +213,16 @@ $flashes = getFlashes();
                                         <span class="workspace-member-role workspace-role-<?= e($workspaceRole) ?>"><?= e($workspaceRoleLabel) ?></span>
                                         <span>
                                             <?= $isOwner ? 'Criado por voce' : ('Criado por ' . e($creatorName !== '' ? $creatorName : 'outro usuario')) ?>
-                                            &middot; <?= e((string) $memberCount) ?> membro(s)
+                                            &middot; <?= $isPersonalWorkspace ? 'Workspace pessoal' : (e((string) $memberCount) . ' membro(s)') ?>
                                         </span>
                                         <?php if ($isActiveWorkspace): ?>
                                             <span class="account-workspace-active">Workspace ativo</span>
                                         <?php endif; ?>
                                     </div>
                                     <div class="account-workspace-actions">
-                                        <?php if ($isOwner): ?>
+                                        <?php if ($isPersonalWorkspace): ?>
+                                            <span class="account-workspace-active">Pessoal</span>
+                                        <?php elseif ($isOwner): ?>
                                             <form method="post" class="workspace-settings-member-remove">
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                 <input type="hidden" name="action" value="account_delete_workspace">

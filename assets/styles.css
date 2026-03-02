@@ -913,8 +913,11 @@ select optgroup {
     margin-top: 8px;
     padding: 8px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(5, 11, 24, 0.78);
+    border: 1px solid rgba(229, 239, 255, 0.72);
+    background:
+        linear-gradient(160deg, rgba(247, 251, 255, 0.88), rgba(233, 244, 255, 0.82)),
+        rgba(237, 246, 255, 0.82);
+    box-shadow: 0 14px 26px rgba(8, 20, 42, 0.22);
     display: grid;
     gap: 8px;
 }
@@ -939,25 +942,26 @@ select optgroup {
     justify-content: flex-start;
     font-size: 0.84rem;
     text-align: left;
+    color: rgba(25, 39, 61, 0.9);
 }
 
 .workspace-sidebar-picker-option {
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.03);
-    color: var(--text);
+    border: 1px solid rgba(70, 95, 128, 0.24);
+    background: rgba(255, 255, 255, 0.66);
     cursor: pointer;
 }
 
 .workspace-sidebar-picker-option:hover,
 .workspace-sidebar-picker-option:focus-visible {
-    border-color: rgba(124, 213, 255, 0.46);
-    background: rgba(12, 30, 56, 0.72);
+    border-color: rgba(87, 158, 214, 0.62);
+    background: rgba(214, 236, 255, 0.92);
 }
 
 .workspace-sidebar-picker-current {
-    border: 1px solid rgba(120, 214, 255, 0.28);
-    background: rgba(18, 42, 72, 0.62);
-    color: rgba(214, 241, 255, 0.96);
+    border: 1px solid rgba(92, 155, 214, 0.58);
+    background: linear-gradient(140deg, rgba(208, 230, 255, 0.95), rgba(192, 219, 248, 0.9));
+    color: rgba(25, 56, 94, 0.96);
+    font-weight: 600;
 }
 
 .workspace-sidebar-create-form {
@@ -972,6 +976,13 @@ select optgroup {
     border-radius: 10px;
     padding: 0 10px;
     font-size: 0.8rem;
+    border: 1px solid rgba(82, 121, 168, 0.34);
+    background: rgba(255, 255, 255, 0.84);
+    color: rgba(22, 33, 49, 0.95);
+}
+
+.workspace-sidebar-create-form input::placeholder {
+    color: rgba(73, 89, 112, 0.76);
 }
 
 .form-stack {

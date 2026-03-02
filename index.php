@@ -232,6 +232,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
                 }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem adicionar usuarios ao workspace.');
                 }
@@ -263,6 +266,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
                 }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar permissoes.');
                 }
@@ -287,6 +293,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar permissoes.');
@@ -314,6 +323,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem remover usuarios.');
@@ -1458,6 +1470,8 @@ $workspaceMembers = ($currentUser && $currentWorkspaceId !== null) ? workspaceMe
 $canManageWorkspace = ($currentUser && $currentWorkspaceId !== null)
     ? userCanManageWorkspace((int) $currentUser['id'], $currentWorkspaceId)
     : false;
+$isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
+$showUsersDashboardTab = !$isPersonalWorkspace;
 $taskGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? taskGroupsList($currentWorkspaceId) : ['Geral'];
 $vaultGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? vaultGroupsList($currentWorkspaceId) : ['Geral'];
 
@@ -1568,8 +1582,8 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=54">
-    <script src="assets/app.js?v=28" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=55">
+    <script src="assets/app.js?v=29" defer></script>
 </head>
 <body
     class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"
