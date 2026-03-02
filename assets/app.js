@@ -1820,7 +1820,23 @@ window.addEventListener("DOMContentLoaded", () => {
       applyFirstLetterUppercaseToInput(target);
     }
 
+    if (target.matches("[data-permission-all-checkbox]")) {
+      const permissionModal = target.closest("[data-group-permissions-modal]");
+      if (permissionModal instanceof HTMLElement && target instanceof HTMLInputElement) {
+        permissionModal.querySelectorAll("[data-permission-enabled-checkbox]").forEach((checkbox) => {
+          if (!(checkbox instanceof HTMLInputElement)) return;
+          checkbox.checked = target.checked;
+        });
+        syncGroupPermissionsModal(permissionModal);
+      }
+      return;
+    }
+
     if (target.matches("[data-permission-enabled-checkbox]")) {
+      const permissionModal = target.closest("[data-group-permissions-modal]");
+      if (permissionModal instanceof HTMLElement) {
+        syncGroupPermissionsModal(permissionModal);
+      }
       return;
     }
 
@@ -2427,6 +2443,38 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     return "Geral";
+  };
+
+  const syncGroupPermissionsModal = (modalElement) => {
+    if (!(modalElement instanceof HTMLElement)) return;
+
+    const memberCheckboxes = Array.from(
+      modalElement.querySelectorAll("[data-permission-enabled-checkbox]")
+    ).filter((checkbox) => checkbox instanceof HTMLInputElement);
+
+    const totalMembers = memberCheckboxes.length;
+    const enabledMembers = memberCheckboxes.reduce(
+      (total, checkbox) => total + (checkbox.checked ? 1 : 0),
+      0
+    );
+    const countLabel = `${enabledMembers}/${totalMembers}`;
+
+    const allCheckbox = modalElement.querySelector("[data-permission-all-checkbox]");
+    if (allCheckbox instanceof HTMLInputElement) {
+      allCheckbox.disabled = totalMembers === 0;
+      allCheckbox.checked = totalMembers > 0 && enabledMembers === totalMembers;
+      allCheckbox.indeterminate =
+        totalMembers > 0 && enabledMembers > 0 && enabledMembers < totalMembers;
+    }
+
+    modalElement.querySelectorAll("[data-permission-counter]").forEach((counter) => {
+      if (!(counter instanceof HTMLElement)) return;
+      counter.textContent = `${countLabel} permitidos`;
+    });
+    modalElement.querySelectorAll("[data-permission-summary-count]").forEach((counter) => {
+      if (!(counter instanceof HTMLElement)) return;
+      counter.textContent = countLabel;
+    });
   };
 
   const syncTaskDetailImageHiddenField = () => {
@@ -3393,6 +3441,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   syncTaskGroupInputs();
+  groupPermissionModals.forEach((modal) => syncGroupPermissionsModal(modal));
   document.querySelectorAll("[data-task-group]").forEach((section) => {
     setTaskGroupCollapsed(section, section.classList.contains("is-collapsed"));
   });
@@ -3475,6 +3524,7 @@ window.addEventListener("DOMContentLoaded", () => {
     );
     if (!(modal instanceof HTMLElement)) return;
 
+    syncGroupPermissionsModal(modal);
     modal.hidden = false;
     syncBodyModalLock();
   };

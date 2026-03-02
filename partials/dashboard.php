@@ -1273,7 +1273,8 @@
                     <input type="hidden" name="group_name" value="<?= e((string) $taskGroupPermissionsName) ?>">
 
                     <?php
-                    $hasConfigurableTaskMembers = false;
+                    $taskPermissionRows = [];
+                    $taskEnabledCount = 0;
                     foreach ($workspaceMembers as $workspaceMember) {
                         $memberId = (int) ($workspaceMember['id'] ?? 0);
                         if ($memberId <= 0) {
@@ -1283,43 +1284,59 @@
                         if ($memberRole === 'admin') {
                             continue;
                         }
-                        $hasConfigurableTaskMembers = true;
-                        break;
+                        $memberPermission = $taskPermissionsByUser[$memberId] ?? [];
+                        $memberEnabled = (bool) ($memberPermission['can_view'] ?? true)
+                            && (bool) ($memberPermission['can_access'] ?? true);
+                        if ($memberEnabled) {
+                            $taskEnabledCount++;
+                        }
+                        $taskPermissionRows[] = [
+                            'id' => $memberId,
+                            'name' => (string) ($workspaceMember['name'] ?? 'Usuario'),
+                            'email' => (string) ($workspaceMember['email'] ?? ''),
+                            'enabled' => $memberEnabled,
+                        ];
                     }
+                    $taskTotalCount = count($taskPermissionRows);
+                    $taskAllEnabled = $taskTotalCount > 0 && $taskEnabledCount === $taskTotalCount;
+                    $taskCounterLabel = $taskEnabledCount . '/' . $taskTotalCount;
                     ?>
 
+                    <div class="group-permissions-scope" data-group-permissions-scope>
+                        <label class="group-permissions-toggle group-permissions-toggle-master">
+                            <input
+                                type="checkbox"
+                                data-permission-all-checkbox
+                                <?= $taskAllEnabled ? 'checked' : '' ?>
+                                <?= $taskTotalCount === 0 ? 'disabled' : '' ?>
+                            >
+                            <span>Aplicar a todos</span>
+                        </label>
+                        <span class="group-permissions-counter" data-permission-counter><?= e($taskCounterLabel) ?> permitidos</span>
+                    </div>
+
                     <details class="group-permissions-members" open>
-                        <summary>Usuarios do workspace</summary>
+                        <summary>
+                            <span>Usuarios do workspace</span>
+                            <span class="group-permissions-summary-count" data-permission-summary-count><?= e($taskCounterLabel) ?></span>
+                        </summary>
                         <div class="group-permissions-list">
-                            <?php if (!$hasConfigurableTaskMembers): ?>
+                            <?php if (!$taskPermissionRows): ?>
                                 <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
                             <?php else: ?>
-                                <?php foreach ($workspaceMembers as $workspaceMember): ?>
-                                    <?php
-                                    $memberId = (int) ($workspaceMember['id'] ?? 0);
-                                    if ($memberId <= 0) {
-                                        continue;
-                                    }
-                                    $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
-                                    if ($memberRole === 'admin') {
-                                        continue;
-                                    }
-                                    $memberPermission = $taskPermissionsByUser[$memberId] ?? [];
-                                    $memberEnabled = (bool) ($memberPermission['can_view'] ?? true)
-                                        && (bool) ($memberPermission['can_access'] ?? true);
-                                    ?>
+                                <?php foreach ($taskPermissionRows as $taskPermissionRow): ?>
                                     <div class="group-permissions-row">
-                                        <input type="hidden" name="member_ids[]" value="<?= e((string) $memberId) ?>">
+                                        <input type="hidden" name="member_ids[]" value="<?= e((string) $taskPermissionRow['id']) ?>">
                                         <div class="group-permissions-user">
-                                            <strong><?= e((string) ($workspaceMember['name'] ?? 'Usuario')) ?></strong>
-                                            <span><?= e((string) ($workspaceMember['email'] ?? '')) ?></span>
+                                            <strong><?= e((string) $taskPermissionRow['name']) ?></strong>
+                                            <span><?= e((string) $taskPermissionRow['email']) ?></span>
                                         </div>
                                         <label class="group-permissions-toggle">
                                             <input
                                                 type="checkbox"
-                                                name="permissions[<?= e((string) $memberId) ?>][enabled]"
+                                                name="permissions[<?= e((string) $taskPermissionRow['id']) ?>][enabled]"
                                                 value="1"
-                                                <?= $memberEnabled ? 'checked' : '' ?>
+                                                <?= !empty($taskPermissionRow['enabled']) ? 'checked' : '' ?>
                                                 data-permission-enabled-checkbox
                                             >
                                             <span>Permitido</span>
@@ -1360,7 +1377,8 @@
                     <input type="hidden" name="group_name" value="<?= e((string) $vaultGroupPermissionsName) ?>">
 
                     <?php
-                    $hasConfigurableVaultMembers = false;
+                    $vaultPermissionRows = [];
+                    $vaultEnabledCount = 0;
                     foreach ($workspaceMembers as $workspaceMember) {
                         $memberId = (int) ($workspaceMember['id'] ?? 0);
                         if ($memberId <= 0) {
@@ -1370,43 +1388,59 @@
                         if ($memberRole === 'admin') {
                             continue;
                         }
-                        $hasConfigurableVaultMembers = true;
-                        break;
+                        $memberPermission = $vaultPermissionsByUser[$memberId] ?? [];
+                        $memberEnabled = (bool) ($memberPermission['can_view'] ?? true)
+                            && (bool) ($memberPermission['can_access'] ?? true);
+                        if ($memberEnabled) {
+                            $vaultEnabledCount++;
+                        }
+                        $vaultPermissionRows[] = [
+                            'id' => $memberId,
+                            'name' => (string) ($workspaceMember['name'] ?? 'Usuario'),
+                            'email' => (string) ($workspaceMember['email'] ?? ''),
+                            'enabled' => $memberEnabled,
+                        ];
                     }
+                    $vaultTotalCount = count($vaultPermissionRows);
+                    $vaultAllEnabled = $vaultTotalCount > 0 && $vaultEnabledCount === $vaultTotalCount;
+                    $vaultCounterLabel = $vaultEnabledCount . '/' . $vaultTotalCount;
                     ?>
 
+                    <div class="group-permissions-scope" data-group-permissions-scope>
+                        <label class="group-permissions-toggle group-permissions-toggle-master">
+                            <input
+                                type="checkbox"
+                                data-permission-all-checkbox
+                                <?= $vaultAllEnabled ? 'checked' : '' ?>
+                                <?= $vaultTotalCount === 0 ? 'disabled' : '' ?>
+                            >
+                            <span>Aplicar a todos</span>
+                        </label>
+                        <span class="group-permissions-counter" data-permission-counter><?= e($vaultCounterLabel) ?> permitidos</span>
+                    </div>
+
                     <details class="group-permissions-members" open>
-                        <summary>Usuarios do workspace</summary>
+                        <summary>
+                            <span>Usuarios do workspace</span>
+                            <span class="group-permissions-summary-count" data-permission-summary-count><?= e($vaultCounterLabel) ?></span>
+                        </summary>
                         <div class="group-permissions-list">
-                            <?php if (!$hasConfigurableVaultMembers): ?>
+                            <?php if (!$vaultPermissionRows): ?>
                                 <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
                             <?php else: ?>
-                                <?php foreach ($workspaceMembers as $workspaceMember): ?>
-                                    <?php
-                                    $memberId = (int) ($workspaceMember['id'] ?? 0);
-                                    if ($memberId <= 0) {
-                                        continue;
-                                    }
-                                    $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
-                                    if ($memberRole === 'admin') {
-                                        continue;
-                                    }
-                                    $memberPermission = $vaultPermissionsByUser[$memberId] ?? [];
-                                    $memberEnabled = (bool) ($memberPermission['can_view'] ?? true)
-                                        && (bool) ($memberPermission['can_access'] ?? true);
-                                    ?>
+                                <?php foreach ($vaultPermissionRows as $vaultPermissionRow): ?>
                                     <div class="group-permissions-row">
-                                        <input type="hidden" name="member_ids[]" value="<?= e((string) $memberId) ?>">
+                                        <input type="hidden" name="member_ids[]" value="<?= e((string) $vaultPermissionRow['id']) ?>">
                                         <div class="group-permissions-user">
-                                            <strong><?= e((string) ($workspaceMember['name'] ?? 'Usuario')) ?></strong>
-                                            <span><?= e((string) ($workspaceMember['email'] ?? '')) ?></span>
+                                            <strong><?= e((string) $vaultPermissionRow['name']) ?></strong>
+                                            <span><?= e((string) $vaultPermissionRow['email']) ?></span>
                                         </div>
                                         <label class="group-permissions-toggle">
                                             <input
                                                 type="checkbox"
-                                                name="permissions[<?= e((string) $memberId) ?>][enabled]"
+                                                name="permissions[<?= e((string) $vaultPermissionRow['id']) ?>][enabled]"
                                                 value="1"
-                                                <?= $memberEnabled ? 'checked' : '' ?>
+                                                <?= !empty($vaultPermissionRow['enabled']) ? 'checked' : '' ?>
                                                 data-permission-enabled-checkbox
                                             >
                                             <span>Permitido</span>

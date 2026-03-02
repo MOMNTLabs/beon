@@ -3666,6 +3666,33 @@ textarea:focus {
     padding-right: 2px;
 }
 
+.group-permissions-scope {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.group-permissions-toggle-master {
+    min-height: 32px;
+    padding: 4px 11px;
+}
+
+.group-permissions-counter {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(219, 237, 255, 0.9);
+    font-size: 0.74rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
 .group-permissions-members {
     display: grid;
     gap: 8px;
@@ -3689,6 +3716,19 @@ textarea:focus {
     letter-spacing: 0.04em;
     text-transform: uppercase;
     transition: border-color 160ms ease, background 160ms ease;
+}
+
+.group-permissions-summary-count {
+    display: inline-flex;
+    align-items: center;
+    min-height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    color: rgba(220, 237, 255, 0.92);
 }
 
 .group-permissions-members > summary::-webkit-details-marker {
