@@ -1820,26 +1820,7 @@ window.addEventListener("DOMContentLoaded", () => {
       applyFirstLetterUppercaseToInput(target);
     }
 
-    if (
-      target.matches("[data-permission-view-checkbox]") ||
-      target.matches("[data-permission-access-checkbox]")
-    ) {
-      const permissionRow = target.closest(".group-permissions-row");
-      if (permissionRow instanceof HTMLElement) {
-        const viewCheckbox = permissionRow.querySelector("[data-permission-view-checkbox]");
-        const accessCheckbox = permissionRow.querySelector("[data-permission-access-checkbox]");
-        if (
-          target.matches("[data-permission-access-checkbox]") &&
-          target instanceof HTMLInputElement &&
-          target.checked &&
-          viewCheckbox instanceof HTMLInputElement
-        ) {
-          viewCheckbox.checked = true;
-        }
-        if (accessCheckbox instanceof HTMLInputElement && viewCheckbox instanceof HTMLInputElement) {
-          syncPermissionRow(permissionRow);
-        }
-      }
+    if (target.matches("[data-permission-enabled-checkbox]")) {
       return;
     }
 
@@ -2446,30 +2427,6 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     return "Geral";
-  };
-
-  const syncPermissionRow = (row) => {
-    if (!(row instanceof HTMLElement)) return;
-
-    const viewCheckbox = row.querySelector("[data-permission-view-checkbox]");
-    const accessCheckbox = row.querySelector("[data-permission-access-checkbox]");
-    if (!(viewCheckbox instanceof HTMLInputElement)) return;
-    if (!(accessCheckbox instanceof HTMLInputElement)) return;
-
-    if (viewCheckbox.disabled) {
-      viewCheckbox.checked = true;
-      accessCheckbox.checked = true;
-      accessCheckbox.disabled = true;
-      return;
-    }
-
-    if (!viewCheckbox.checked) {
-      accessCheckbox.checked = false;
-      accessCheckbox.disabled = true;
-      return;
-    }
-
-    accessCheckbox.disabled = false;
   };
 
   const syncTaskDetailImageHiddenField = () => {
@@ -3436,9 +3393,6 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   syncTaskGroupInputs();
-  document
-    .querySelectorAll(".group-permissions-row")
-    .forEach((row) => syncPermissionRow(row));
   document.querySelectorAll("[data-task-group]").forEach((section) => {
     setTaskGroupCollapsed(section, section.classList.contains("is-collapsed"));
   });

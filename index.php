@@ -94,6 +94,15 @@ function submittedGroupPermissionsByUserId(array $workspaceRolesByUserId): array
             $memberPermissions = [];
         }
 
+        if (array_key_exists('enabled', $memberPermissions)) {
+            $enabled = 1;
+            $permissionsByUserId[$memberId] = [
+                'can_view' => $enabled,
+                'can_access' => $enabled,
+            ];
+            continue;
+        }
+
         $canView = array_key_exists('can_view', $memberPermissions) ? 1 : 0;
         $canAccess = array_key_exists('can_access', $memberPermissions) ? 1 : 0;
         if ($canView === 0) {
@@ -1559,8 +1568,8 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=48">
-    <script src="assets/app.js?v=23" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=50">
+    <script src="assets/app.js?v=24" defer></script>
 </head>
 <body
     class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"

@@ -1,9 +1,32 @@
 <header class="top-nav dashboard-nav">
-    <div class="dashboard-nav-main">
-        <a href="index.php" class="brand" aria-label="WorkForm">
-            <img src="assets/WorkForm - Logo (Negativa).svg?v=1" alt="WorkForm" class="brand-lockup" width="116" height="29">
-        </a>
+    <a href="index.php" class="brand" aria-label="WorkForm">
+        <img src="assets/WorkForm - Logo (Negativa).svg?v=1" alt="WorkForm" class="brand-lockup" width="116" height="29">
+    </a>
 
+    <section class="stats-strip dashboard-stats dashboard-nav-stats" aria-label="Indicadores do workspace">
+        <div class="stat-cell">
+            <span>Tarefas</span>
+            <strong data-dashboard-stat-total><?= e((string) $stats['total']) ?></strong>
+        </div>
+        <div class="stat-cell">
+            <span>Concluidas</span>
+            <strong data-dashboard-stat-done><?= e((string) $stats['done']) ?> (<?= e((string) $completionRate) ?>%)</strong>
+        </div>
+        <div class="stat-cell">
+            <span>Para hoje</span>
+            <strong data-dashboard-stat-due-today><?= e((string) $stats['due_today']) ?></strong>
+        </div>
+        <div class="stat-cell">
+            <span>Urgentes</span>
+            <strong data-dashboard-stat-urgent><?= e((string) $stats['urgent']) ?></strong>
+        </div>
+        <div class="stat-cell">
+            <span>Minhas abertas</span>
+            <strong data-dashboard-stat-my-open><?= e((string) $myOpenTasks) ?></strong>
+        </div>
+    </section>
+
+    <div class="dashboard-nav-main">
         <div class="user-chip">
             <div class="avatar" aria-hidden="true"><?= e(strtoupper(substr((string) $currentUser['name'], 0, 1))) ?></div>
             <div>
@@ -30,29 +53,6 @@
             </form>
         </div>
     </div>
-
-    <section class="stats-strip dashboard-stats dashboard-nav-stats" aria-label="Indicadores do workspace">
-        <div class="stat-cell">
-            <span>Tarefas</span>
-            <strong data-dashboard-stat-total><?= e((string) $stats['total']) ?></strong>
-        </div>
-        <div class="stat-cell">
-            <span>Concluidas</span>
-            <strong data-dashboard-stat-done><?= e((string) $stats['done']) ?> (<?= e((string) $completionRate) ?>%)</strong>
-        </div>
-        <div class="stat-cell">
-            <span>Para hoje</span>
-            <strong data-dashboard-stat-due-today><?= e((string) $stats['due_today']) ?></strong>
-        </div>
-        <div class="stat-cell">
-            <span>Urgentes</span>
-            <strong data-dashboard-stat-urgent><?= e((string) $stats['urgent']) ?></strong>
-        </div>
-        <div class="stat-cell">
-            <span>Minhas abertas</span>
-            <strong data-dashboard-stat-my-open><?= e((string) $myOpenTasks) ?></strong>
-        </div>
-    </section>
 </header>
 
 <main class="dashboard dashboard-compact">
@@ -87,7 +87,7 @@
                             </div>
                         </div>
                     </details>
-                    <p>Navegacao</p>
+                    <p>Menu</p>
                 </div>
                 <nav class="sidebar-view-menu" aria-label="Menu do workspace">
                     <button
@@ -1272,51 +1272,63 @@
                     <input type="hidden" name="action" value="update_task_group_permissions">
                     <input type="hidden" name="group_name" value="<?= e((string) $taskGroupPermissionsName) ?>">
 
-                    <div class="group-permissions-list">
-                        <?php foreach ($workspaceMembers as $workspaceMember): ?>
-                            <?php
-                            $memberId = (int) ($workspaceMember['id'] ?? 0);
-                            if ($memberId <= 0) {
-                                continue;
-                            }
-                            $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
-                            $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
-                            $isMemberAdmin = $memberRole === 'admin';
-                            $memberPermission = $taskPermissionsByUser[$memberId] ?? [];
-                            $memberCanView = $isMemberAdmin ? true : (bool) ($memberPermission['can_view'] ?? true);
-                            $memberCanAccess = $isMemberAdmin ? true : ($memberCanView && (bool) ($memberPermission['can_access'] ?? true));
-                            ?>
-                            <div class="group-permissions-row">
-                                <input type="hidden" name="member_ids[]" value="<?= e((string) $memberId) ?>">
-                                <div class="group-permissions-user">
-                                    <strong><?= e((string) ($workspaceMember['name'] ?? 'Usuario')) ?></strong>
-                                    <span><?= e((string) $memberRoleLabel) ?></span>
-                                </div>
-                                <label class="group-permissions-toggle">
-                                    <input
-                                        type="checkbox"
-                                        name="permissions[<?= e((string) $memberId) ?>][can_view]"
-                                        value="1"
-                                        <?= $memberCanView ? 'checked' : '' ?>
-                                        <?= $isMemberAdmin ? 'disabled' : '' ?>
-                                        data-permission-view-checkbox
-                                    >
-                                    <span>Pode ver</span>
-                                </label>
-                                <label class="group-permissions-toggle">
-                                    <input
-                                        type="checkbox"
-                                        name="permissions[<?= e((string) $memberId) ?>][can_access]"
-                                        value="1"
-                                        <?= $memberCanAccess ? 'checked' : '' ?>
-                                        <?= (!$memberCanView || $isMemberAdmin) ? 'disabled' : '' ?>
-                                        data-permission-access-checkbox
-                                    >
-                                    <span>Pode acessar</span>
-                                </label>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
+                    <?php
+                    $hasConfigurableTaskMembers = false;
+                    foreach ($workspaceMembers as $workspaceMember) {
+                        $memberId = (int) ($workspaceMember['id'] ?? 0);
+                        if ($memberId <= 0) {
+                            continue;
+                        }
+                        $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+                        if ($memberRole === 'admin') {
+                            continue;
+                        }
+                        $hasConfigurableTaskMembers = true;
+                        break;
+                    }
+                    ?>
+
+                    <details class="group-permissions-members" open>
+                        <summary>Usuarios do workspace</summary>
+                        <div class="group-permissions-list">
+                            <?php if (!$hasConfigurableTaskMembers): ?>
+                                <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
+                            <?php else: ?>
+                                <?php foreach ($workspaceMembers as $workspaceMember): ?>
+                                    <?php
+                                    $memberId = (int) ($workspaceMember['id'] ?? 0);
+                                    if ($memberId <= 0) {
+                                        continue;
+                                    }
+                                    $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+                                    if ($memberRole === 'admin') {
+                                        continue;
+                                    }
+                                    $memberPermission = $taskPermissionsByUser[$memberId] ?? [];
+                                    $memberEnabled = (bool) ($memberPermission['can_view'] ?? true)
+                                        && (bool) ($memberPermission['can_access'] ?? true);
+                                    ?>
+                                    <div class="group-permissions-row">
+                                        <input type="hidden" name="member_ids[]" value="<?= e((string) $memberId) ?>">
+                                        <div class="group-permissions-user">
+                                            <strong><?= e((string) ($workspaceMember['name'] ?? 'Usuario')) ?></strong>
+                                            <span><?= e((string) ($workspaceMember['email'] ?? '')) ?></span>
+                                        </div>
+                                        <label class="group-permissions-toggle">
+                                            <input
+                                                type="checkbox"
+                                                name="permissions[<?= e((string) $memberId) ?>][enabled]"
+                                                value="1"
+                                                <?= $memberEnabled ? 'checked' : '' ?>
+                                                data-permission-enabled-checkbox
+                                            >
+                                            <span>Permitido</span>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </details>
 
                     <div class="modal-actions">
                         <button type="button" class="btn btn-mini btn-ghost" data-close-group-permissions-modal>Cancelar</button>
@@ -1347,51 +1359,63 @@
                     <input type="hidden" name="action" value="update_vault_group_permissions">
                     <input type="hidden" name="group_name" value="<?= e((string) $vaultGroupPermissionsName) ?>">
 
-                    <div class="group-permissions-list">
-                        <?php foreach ($workspaceMembers as $workspaceMember): ?>
-                            <?php
-                            $memberId = (int) ($workspaceMember['id'] ?? 0);
-                            if ($memberId <= 0) {
-                                continue;
-                            }
-                            $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
-                            $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
-                            $isMemberAdmin = $memberRole === 'admin';
-                            $memberPermission = $vaultPermissionsByUser[$memberId] ?? [];
-                            $memberCanView = $isMemberAdmin ? true : (bool) ($memberPermission['can_view'] ?? true);
-                            $memberCanAccess = $isMemberAdmin ? true : ($memberCanView && (bool) ($memberPermission['can_access'] ?? true));
-                            ?>
-                            <div class="group-permissions-row">
-                                <input type="hidden" name="member_ids[]" value="<?= e((string) $memberId) ?>">
-                                <div class="group-permissions-user">
-                                    <strong><?= e((string) ($workspaceMember['name'] ?? 'Usuario')) ?></strong>
-                                    <span><?= e((string) $memberRoleLabel) ?></span>
-                                </div>
-                                <label class="group-permissions-toggle">
-                                    <input
-                                        type="checkbox"
-                                        name="permissions[<?= e((string) $memberId) ?>][can_view]"
-                                        value="1"
-                                        <?= $memberCanView ? 'checked' : '' ?>
-                                        <?= $isMemberAdmin ? 'disabled' : '' ?>
-                                        data-permission-view-checkbox
-                                    >
-                                    <span>Pode ver</span>
-                                </label>
-                                <label class="group-permissions-toggle">
-                                    <input
-                                        type="checkbox"
-                                        name="permissions[<?= e((string) $memberId) ?>][can_access]"
-                                        value="1"
-                                        <?= $memberCanAccess ? 'checked' : '' ?>
-                                        <?= (!$memberCanView || $isMemberAdmin) ? 'disabled' : '' ?>
-                                        data-permission-access-checkbox
-                                    >
-                                    <span>Pode acessar</span>
-                                </label>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
+                    <?php
+                    $hasConfigurableVaultMembers = false;
+                    foreach ($workspaceMembers as $workspaceMember) {
+                        $memberId = (int) ($workspaceMember['id'] ?? 0);
+                        if ($memberId <= 0) {
+                            continue;
+                        }
+                        $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+                        if ($memberRole === 'admin') {
+                            continue;
+                        }
+                        $hasConfigurableVaultMembers = true;
+                        break;
+                    }
+                    ?>
+
+                    <details class="group-permissions-members" open>
+                        <summary>Usuarios do workspace</summary>
+                        <div class="group-permissions-list">
+                            <?php if (!$hasConfigurableVaultMembers): ?>
+                                <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
+                            <?php else: ?>
+                                <?php foreach ($workspaceMembers as $workspaceMember): ?>
+                                    <?php
+                                    $memberId = (int) ($workspaceMember['id'] ?? 0);
+                                    if ($memberId <= 0) {
+                                        continue;
+                                    }
+                                    $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+                                    if ($memberRole === 'admin') {
+                                        continue;
+                                    }
+                                    $memberPermission = $vaultPermissionsByUser[$memberId] ?? [];
+                                    $memberEnabled = (bool) ($memberPermission['can_view'] ?? true)
+                                        && (bool) ($memberPermission['can_access'] ?? true);
+                                    ?>
+                                    <div class="group-permissions-row">
+                                        <input type="hidden" name="member_ids[]" value="<?= e((string) $memberId) ?>">
+                                        <div class="group-permissions-user">
+                                            <strong><?= e((string) ($workspaceMember['name'] ?? 'Usuario')) ?></strong>
+                                            <span><?= e((string) ($workspaceMember['email'] ?? '')) ?></span>
+                                        </div>
+                                        <label class="group-permissions-toggle">
+                                            <input
+                                                type="checkbox"
+                                                name="permissions[<?= e((string) $memberId) ?>][enabled]"
+                                                value="1"
+                                                <?= $memberEnabled ? 'checked' : '' ?>
+                                                data-permission-enabled-checkbox
+                                            >
+                                            <span>Permitido</span>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </details>
 
                     <div class="modal-actions">
                         <button type="button" class="btn btn-mini btn-ghost" data-close-group-permissions-modal>Cancelar</button>
