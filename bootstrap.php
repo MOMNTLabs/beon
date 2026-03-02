@@ -2229,7 +2229,10 @@ function workspaceMembershipsDetailedForUser(int $userId): array
          INNER JOIN workspace_members wm ON wm.workspace_id = w.id
          LEFT JOIN users creator ON creator.id = w.created_by
          WHERE wm.user_id = :user_id
-         ORDER BY w.created_at ASC, w.id ASC'
+         ORDER BY
+             CASE WHEN w.is_personal = 1 THEN 0 ELSE 1 END,
+             w.created_at ASC,
+             w.id ASC'
     );
     $stmt->execute([':user_id' => $userId]);
     $rows = $stmt->fetchAll();
@@ -2266,7 +2269,10 @@ function workspacesForUser(int $userId): array
          FROM workspaces w
          INNER JOIN workspace_members wm ON wm.workspace_id = w.id
          WHERE wm.user_id = :user_id
-         ORDER BY w.created_at ASC, w.id ASC'
+         ORDER BY
+             CASE WHEN w.is_personal = 1 THEN 0 ELSE 1 END,
+             w.created_at ASC,
+             w.id ASC'
     );
     $stmt->execute([':user_id' => $userId]);
     $rows = $stmt->fetchAll();
@@ -2323,7 +2329,7 @@ function setActiveWorkspaceId(?int $workspaceId): void
 function personalWorkspaceDefaultName(int $userId): string
 {
     if ($userId <= 0) {
-        return '(Usuario) Workspace';
+        return 'Usuario Workspace';
     }
 
     $stmt = db()->prepare(
@@ -2338,7 +2344,7 @@ function personalWorkspaceDefaultName(int $userId): string
         $userName = 'Usuario';
     }
 
-    return '(' . $userName . ') Workspace';
+    return $userName . ' Workspace';
 }
 
 function ensurePersonalWorkspaceForUser(int $userId): ?int
@@ -5185,19 +5191,20 @@ function tasksByStatus(array $tasks): array
     return $grouped;
 }
 
-function filterTasks(array $tasks, ?string $statusFilter, ?int $assigneeFilterId): array
+function filterTasks(array $tasks, ?string $groupFilter, ?int $assigneeFilterId): array
 {
-    $statusFilter = $statusFilter ? normalizeTaskStatus($statusFilter) : null;
+    $groupFilter = $groupFilter ? normalizeTaskGroupName($groupFilter) : null;
     $assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilterId : null;
 
-    if ($statusFilter === null && $assigneeFilterId === null) {
+    if ($groupFilter === null && $assigneeFilterId === null) {
         return $tasks;
     }
 
     $filtered = [];
 
     foreach ($tasks as $task) {
-        if ($statusFilter !== null && (string) $task['status'] !== $statusFilter) {
+        $taskGroup = normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral'));
+        if ($groupFilter !== null && $taskGroup !== $groupFilter) {
             continue;
         }
 

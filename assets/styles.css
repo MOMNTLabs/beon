@@ -867,6 +867,7 @@ select optgroup {
 
 .workspace-sidebar-picker {
     position: relative;
+    z-index: 4;
 }
 
 .workspace-sidebar-picker > summary {
@@ -910,7 +911,10 @@ select optgroup {
 }
 
 .workspace-sidebar-picker-menu {
-    margin-top: 8px;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
     padding: 8px;
     border-radius: 12px;
     border: 1px solid rgba(176, 198, 232, 0.24);
@@ -920,6 +924,7 @@ select optgroup {
     box-shadow: 0 12px 24px rgba(8, 20, 42, 0.22);
     display: grid;
     gap: 8px;
+    z-index: 18;
 }
 
 .workspace-sidebar-picker-list {

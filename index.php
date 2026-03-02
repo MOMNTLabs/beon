@@ -1872,9 +1872,12 @@ $dueEntries = array_values(array_filter(
     }
 ));
 $dueEntriesByGroup = $currentUser ? dueEntriesByGroup($dueEntries, $dueGroups) : [];
-$statusFilter = isset($_GET['status']) && trim((string) $_GET['status']) !== ''
-    ? normalizeTaskStatus((string) $_GET['status'])
+$groupFilter = isset($_GET['group']) && trim((string) $_GET['group']) !== ''
+    ? normalizeTaskGroupName((string) $_GET['group'])
     : null;
+if ($groupFilter !== null && !in_array($groupFilter, $taskGroups, true)) {
+    $groupFilter = null;
+}
 $assigneeFilterId = isset($_GET['assignee']) ? (int) $_GET['assignee'] : null;
 $assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilterId : null;
 
@@ -1894,9 +1897,15 @@ $allTasks = array_values(array_filter(
         return isset($taskVisibleKeys[$groupKey]);
     }
 ));
-$tasks = $currentUser ? filterTasks($allTasks, $statusFilter, $assigneeFilterId) : [];
-$showEmptyGroups = $currentUser && $statusFilter === null && $assigneeFilterId === null;
-$tasksGroupedByGroup = $currentUser ? tasksByGroup($tasks, $showEmptyGroups ? $taskGroups : null) : [];
+$tasks = $currentUser ? filterTasks($allTasks, $groupFilter, $assigneeFilterId) : [];
+$showEmptyGroups = $currentUser && $groupFilter === null && $assigneeFilterId === null;
+$groupingSource = null;
+if ($showEmptyGroups) {
+    $groupingSource = $taskGroups;
+} elseif ($groupFilter !== null) {
+    $groupingSource = [$groupFilter];
+}
+$tasksGroupedByGroup = $currentUser ? tasksByGroup($tasks, $groupingSource) : [];
 $stats = $currentUser ? dashboardStats($allTasks) : ['total' => 0, 'done' => 0, 'due_today' => 0, 'urgent' => 0];
 $myOpenTasks = $currentUser ? countMyAssignedTasks($allTasks, (int) $currentUser['id']) : 0;
 $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
@@ -1913,8 +1922,8 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=64">
-    <script src="assets/app.js?v=39" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=65">
+    <script src="assets/app.js?v=41" defer></script>
 </head>
 <body
     class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"

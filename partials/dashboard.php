@@ -186,54 +186,53 @@
 
             <form method="get" class="task-filters" id="task-filters" data-task-filter-form>
                 <label>
-                    <span>Status</span>
-                    <?php $statusFilterValue = (string) ($statusFilter ?? ''); ?>
+                    <span>Grupo</span>
+                    <?php $groupFilterValue = (string) ($groupFilter ?? ''); ?>
                     <div class="tag-field row-inline-picker-wrap" data-inline-select-wrap>
-                        <details
-                            class="row-inline-picker status-inline-picker<?= $statusFilterValue !== '' ? ' status-' . e($statusFilterValue) : '' ?>"
-                            data-inline-select-picker
-                        >
-                            <summary aria-label="Filtrar por status">
+                        <details class="row-inline-picker filter-inline-picker" data-inline-select-picker>
+                            <summary aria-label="Filtrar por grupo">
                                 <span class="row-inline-picker-summary-text" data-inline-select-text>
-                                    <?php if ($statusFilterValue === ''): ?>
+                                    <?php if ($groupFilterValue === ''): ?>
                                         Todos
                                     <?php else: ?>
-                                        <?= e((string) ($statusOptions[$statusFilterValue] ?? 'Todos')) ?>
+                                        <?= e($groupFilterValue) ?>
                                     <?php endif; ?>
                                 </span>
                             </summary>
-                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Filtro de status">
+                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Filtro de grupo">
                                 <button
                                     type="button"
-                                    class="row-inline-picker-option<?= $statusFilterValue === '' ? ' is-active' : '' ?>"
+                                    class="row-inline-picker-option<?= $groupFilterValue === '' ? ' is-active' : '' ?>"
                                     data-inline-select-option
                                     data-value=""
                                     data-label="Todos"
                                     role="option"
-                                    aria-selected="<?= $statusFilterValue === '' ? 'true' : 'false' ?>"
+                                    aria-selected="<?= $groupFilterValue === '' ? 'true' : 'false' ?>"
                                 >Todos</button>
-                                <?php foreach ($statusOptions as $key => $label): ?>
+                                <?php foreach ($taskGroups as $groupOption): ?>
                                     <button
                                         type="button"
-                                        class="row-inline-picker-option status-<?= e($key) ?><?= $statusFilterValue === $key ? ' is-active' : '' ?>"
+                                        class="row-inline-picker-option<?= $groupFilterValue === (string) $groupOption ? ' is-active' : '' ?>"
                                         data-inline-select-option
-                                        data-value="<?= e($key) ?>"
-                                        data-label="<?= e($label) ?>"
+                                        data-value="<?= e((string) $groupOption) ?>"
+                                        data-label="<?= e((string) $groupOption) ?>"
                                         role="option"
-                                        aria-selected="<?= $statusFilterValue === $key ? 'true' : 'false' ?>"
-                                    ><?= e($label) ?></button>
+                                        aria-selected="<?= $groupFilterValue === (string) $groupOption ? 'true' : 'false' ?>"
+                                    ><?= e((string) $groupOption) ?></button>
                                 <?php endforeach; ?>
                             </div>
                         </details>
                         <select
-                            name="status"
-                            class="tag-select status-select<?= $statusFilterValue !== '' ? ' status-' . e($statusFilterValue) : '' ?> row-inline-picker-native"
+                            name="group"
+                            class="tag-select row-inline-picker-native"
                             data-inline-select-source
                             hidden
                         >
                             <option value="">Todos</option>
-                            <?php foreach ($statusOptions as $key => $label): ?>
-                                <option value="<?= e($key) ?>"<?= $statusFilter === $key ? ' selected' : '' ?>><?= e($label) ?></option>
+                            <?php foreach ($taskGroups as $groupOption): ?>
+                                <option value="<?= e((string) $groupOption) ?>"<?= $groupFilterValue === (string) $groupOption ? ' selected' : '' ?>>
+                                    <?= e((string) $groupOption) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>

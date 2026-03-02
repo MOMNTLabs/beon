@@ -1591,36 +1591,124 @@ window.addEventListener("DOMContentLoaded", () => {
     syncGroupStatusDividers(dropzone);
   };
 
-  const setTaskGroupCollapsed = (groupSection, collapsed) => {
+  const collapseStorageWorkspaceId = (() => {
+    const workspaceId = String(document.body?.dataset?.workspaceId || "").trim();
+    return workspaceId || "0";
+  })();
+
+  const normalizeGroupCollapseStorageName = (groupName) =>
+    String(groupName || "").trim().toLocaleLowerCase();
+
+  const getGroupCollapseStorageKey = (scope) =>
+    `wf_group_collapsed:${collapseStorageWorkspaceId}:${scope}`;
+
+  const readStoredGroupCollapsedMap = (scope) => {
+    if (!window.localStorage) return {};
+
+    try {
+      const raw = window.localStorage.getItem(getGroupCollapseStorageKey(scope));
+      const decoded = raw ? JSON.parse(raw) : {};
+      if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) {
+        return {};
+      }
+
+      const map = {};
+      Object.entries(decoded).forEach(([key, value]) => {
+        const normalizedKey = normalizeGroupCollapseStorageName(key);
+        if (!normalizedKey) return;
+        map[normalizedKey] = Boolean(value);
+      });
+      return map;
+    } catch (error) {
+      return {};
+    }
+  };
+
+  const writeStoredGroupCollapsedMap = (scope, map) => {
+    if (!window.localStorage) return;
+
+    try {
+      window.localStorage.setItem(getGroupCollapseStorageKey(scope), JSON.stringify(map));
+    } catch (error) {
+      // noop
+    }
+  };
+
+  const getStoredGroupCollapsedState = (scope, groupName) => {
+    const normalizedGroupName = normalizeGroupCollapseStorageName(groupName);
+    if (!normalizedGroupName) return null;
+    const map = readStoredGroupCollapsedMap(scope);
+    if (!Object.prototype.hasOwnProperty.call(map, normalizedGroupName)) {
+      return null;
+    }
+    return Boolean(map[normalizedGroupName]);
+  };
+
+  const setStoredGroupCollapsedState = (scope, groupName, collapsed) => {
+    const normalizedGroupName = normalizeGroupCollapseStorageName(groupName);
+    if (!normalizedGroupName) return;
+
+    const map = readStoredGroupCollapsedMap(scope);
+    if (collapsed) {
+      map[normalizedGroupName] = true;
+    } else {
+      delete map[normalizedGroupName];
+    }
+
+    writeStoredGroupCollapsedMap(scope, map);
+  };
+
+  const resolveInitialGroupCollapsedState = (scope, groupSection) => {
+    if (!(groupSection instanceof HTMLElement)) return false;
+    const storedState = getStoredGroupCollapsedState(scope, groupSection.dataset.groupName || "");
+    if (storedState !== null) {
+      return storedState;
+    }
+    return groupSection.classList.contains("is-collapsed");
+  };
+
+  const setTaskGroupCollapsed = (groupSection, collapsed, options = {}) => {
     if (!(groupSection instanceof HTMLElement)) return;
     const dropzone = groupSection.querySelector("[data-task-dropzone]");
     const shouldCollapse = Boolean(collapsed);
+    const shouldPersist = options.persist !== false;
 
     groupSection.classList.toggle("is-collapsed", shouldCollapse);
     if (dropzone instanceof HTMLElement) {
       dropzone.hidden = shouldCollapse;
     }
+    if (shouldPersist) {
+      setStoredGroupCollapsedState("tasks", groupSection.dataset.groupName || "", shouldCollapse);
+    }
   };
 
-  const setVaultGroupCollapsed = (groupSection, collapsed) => {
+  const setVaultGroupCollapsed = (groupSection, collapsed, options = {}) => {
     if (!(groupSection instanceof HTMLElement)) return;
     const rows = groupSection.querySelector("[data-vault-group-rows]");
     const shouldCollapse = Boolean(collapsed);
+    const shouldPersist = options.persist !== false;
 
     groupSection.classList.toggle("is-collapsed", shouldCollapse);
     if (rows instanceof HTMLElement) {
       rows.hidden = shouldCollapse;
     }
+    if (shouldPersist) {
+      setStoredGroupCollapsedState("vault", groupSection.dataset.groupName || "", shouldCollapse);
+    }
   };
 
-  const setDueGroupCollapsed = (groupSection, collapsed) => {
+  const setDueGroupCollapsed = (groupSection, collapsed, options = {}) => {
     if (!(groupSection instanceof HTMLElement)) return;
     const rows = groupSection.querySelector("[data-due-group-rows]");
     const shouldCollapse = Boolean(collapsed);
+    const shouldPersist = options.persist !== false;
 
     groupSection.classList.toggle("is-collapsed", shouldCollapse);
     if (rows instanceof HTMLElement) {
       rows.hidden = shouldCollapse;
+    }
+    if (shouldPersist) {
+      setStoredGroupCollapsedState("dues", groupSection.dataset.groupName || "", shouldCollapse);
     }
   };
 
@@ -3958,13 +4046,19 @@ window.addEventListener("DOMContentLoaded", () => {
   setTaskGroupReorderMode(false);
   groupPermissionModals.forEach((modal) => syncGroupPermissionsModal(modal));
   document.querySelectorAll("[data-task-group]").forEach((section) => {
-    setTaskGroupCollapsed(section, section.classList.contains("is-collapsed"));
+    setTaskGroupCollapsed(section, resolveInitialGroupCollapsedState("tasks", section), {
+      persist: false,
+    });
   });
   document.querySelectorAll("[data-vault-group]").forEach((section) => {
-    setVaultGroupCollapsed(section, section.classList.contains("is-collapsed"));
+    setVaultGroupCollapsed(section, resolveInitialGroupCollapsedState("vault", section), {
+      persist: false,
+    });
   });
   document.querySelectorAll("[data-due-group]").forEach((section) => {
-    setDueGroupCollapsed(section, section.classList.contains("is-collapsed"));
+    setDueGroupCollapsed(section, resolveInitialGroupCollapsedState("dues", section), {
+      persist: false,
+    });
   });
   document.querySelectorAll("[data-vault-password-cell]").forEach((cell) => {
     syncVaultPasswordCell(cell, false);
@@ -4996,11 +5090,11 @@ window.addEventListener("DOMContentLoaded", () => {
   const applyTaskFilterForm = (form) => {
     if (!(form instanceof HTMLFormElement)) return;
     const params = new URLSearchParams();
-    const statusField = form.querySelector('select[name="status"]');
+    const groupField = form.querySelector('select[name="group"]');
     const assigneeField = form.querySelector('select[name="assignee"]');
 
-    if (statusField instanceof HTMLSelectElement && (statusField.value || "").trim() !== "") {
-      params.set("status", statusField.value.trim());
+    if (groupField instanceof HTMLSelectElement && (groupField.value || "").trim() !== "") {
+      params.set("group", groupField.value.trim());
     }
     if (assigneeField instanceof HTMLSelectElement && (assigneeField.value || "").trim() !== "") {
       params.set("assignee", assigneeField.value.trim());
@@ -5020,7 +5114,7 @@ window.addEventListener("DOMContentLoaded", () => {
     taskFilterForm.addEventListener("change", (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      const select = target.closest('select[name="status"], select[name="assignee"]');
+      const select = target.closest('select[name="group"], select[name="assignee"]');
       if (!(select instanceof HTMLSelectElement)) return;
       applyTaskFilterForm(taskFilterForm);
     });
