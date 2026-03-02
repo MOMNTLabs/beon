@@ -155,6 +155,7 @@ function migrate(PDO $pdo): void
     ensureTaskExtendedSchema($pdo);
     ensureTaskGroupsSchema($pdo);
     ensureTaskHistorySchema($pdo);
+    ensureGroupPermissionSchema($pdo);
 }
 
 function migrateSqlite(PDO $pdo): void
@@ -824,6 +825,121 @@ function ensureWorkspaceVaultSchema(PDO $pdo): void
     }
 }
 
+function ensureGroupPermissionSchema(PDO $pdo): void
+{
+    $driver = dbDriverName($pdo);
+
+    if ($driver === 'pgsql') {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS task_group_permissions (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                group_name TEXT NOT NULL,
+                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                can_view SMALLINT NOT NULL DEFAULT 1,
+                can_access SMALLINT NOT NULL DEFAULT 1,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_vault_group_permissions (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                group_name TEXT NOT NULL,
+                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                can_view SMALLINT NOT NULL DEFAULT 1,
+                can_access SMALLINT NOT NULL DEFAULT 1,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+    } else {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS task_group_permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                group_name TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                can_view INTEGER NOT NULL DEFAULT 1,
+                can_access INTEGER NOT NULL DEFAULT 1,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_vault_group_permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                group_name TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                can_view INTEGER NOT NULL DEFAULT 1,
+                can_access INTEGER NOT NULL DEFAULT 1,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )'
+        );
+    }
+
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_task_group_permissions_workspace_group_user
+         ON task_group_permissions(workspace_id, group_name, user_id)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_task_group_permissions_workspace_user
+         ON task_group_permissions(workspace_id, user_id)'
+    );
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_vault_group_permissions_workspace_group_user
+         ON workspace_vault_group_permissions(workspace_id, group_name, user_id)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_vault_group_permissions_workspace_user
+         ON workspace_vault_group_permissions(workspace_id, user_id)'
+    );
+
+    $normalizers = [
+        'task_group_permissions' => 'normalizeTaskGroupName',
+        'workspace_vault_group_permissions' => 'normalizeVaultGroupName',
+    ];
+
+    foreach ($normalizers as $tableName => $normalizeFn) {
+        $rows = $pdo->query(
+            'SELECT id, group_name, can_view, can_access
+             FROM ' . $tableName
+        )->fetchAll();
+        if (!$rows) {
+            continue;
+        }
+
+        $updateStmt = $pdo->prepare(
+            'UPDATE ' . $tableName . '
+             SET group_name = :group_name,
+                 can_view = :can_view,
+                 can_access = :can_access,
+                 updated_at = :updated_at
+             WHERE id = :id'
+        );
+        $updatedAt = nowIso();
+
+        foreach ($rows as $row) {
+            $canView = ((int) ($row['can_view'] ?? 1)) === 1 ? 1 : 0;
+            $canAccess = ((int) ($row['can_access'] ?? 1)) === 1 ? 1 : 0;
+            if ($canView === 0) {
+                $canAccess = 0;
+            }
+
+            $updateStmt->execute([
+                ':group_name' => $normalizeFn((string) ($row['group_name'] ?? 'Geral')),
+                ':can_view' => $canView,
+                ':can_access' => $canAccess,
+                ':updated_at' => $updatedAt,
+                ':id' => (int) ($row['id'] ?? 0),
+            ]);
+        }
+    }
+}
+
 function tableHasColumn(PDO $pdo, string $table, string $column): bool
 {
     if (dbDriverName($pdo) === 'pgsql') {
@@ -1166,6 +1282,11 @@ function normalizeWorkspaceRole(string $value): string
 {
     $value = trim(mb_strtolower($value));
     return array_key_exists($value, workspaceRoles()) ? $value : 'member';
+}
+
+function normalizePermissionFlag($value): int
+{
+    return ((int) $value) === 1 ? 1 : 0;
 }
 
 function normalizeWorkspaceName(string $value): string
@@ -3125,6 +3246,436 @@ function defaultTaskGroupName(?int $workspaceId = null): string
 function isProtectedTaskGroupName(string $groupName, ?int $workspaceId = null): bool
 {
     return mb_strtolower(normalizeTaskGroupName($groupName)) === mb_strtolower(defaultTaskGroupName($workspaceId));
+}
+
+function taskGroupPermissionOverridesForUser(int $workspaceId, int $userId): array
+{
+    if ($workspaceId <= 0 || $userId <= 0) {
+        return [];
+    }
+
+    $role = workspaceRoleForUser($userId, $workspaceId);
+    if ($role === null || $role === 'admin') {
+        return [];
+    }
+
+    static $cache = [];
+    $cacheKey = $workspaceId . ':' . $userId;
+    if (array_key_exists($cacheKey, $cache)) {
+        return $cache[$cacheKey];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT group_name, can_view, can_access
+         FROM task_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND user_id = :user_id'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':user_id' => $userId,
+    ]);
+    $rows = $stmt->fetchAll();
+
+    $map = [];
+    foreach ($rows as $row) {
+        $groupKey = mb_strtolower(normalizeTaskGroupName((string) ($row['group_name'] ?? 'Geral')));
+        $canView = normalizePermissionFlag($row['can_view'] ?? 1);
+        $canAccess = $canView === 1 ? normalizePermissionFlag($row['can_access'] ?? 1) : 0;
+        $map[$groupKey] = [
+            'can_view' => $canView === 1,
+            'can_access' => $canAccess === 1,
+        ];
+    }
+
+    $cache[$cacheKey] = $map;
+    return $map;
+}
+
+function vaultGroupPermissionOverridesForUser(int $workspaceId, int $userId): array
+{
+    if ($workspaceId <= 0 || $userId <= 0) {
+        return [];
+    }
+
+    $role = workspaceRoleForUser($userId, $workspaceId);
+    if ($role === null || $role === 'admin') {
+        return [];
+    }
+
+    static $cache = [];
+    $cacheKey = $workspaceId . ':' . $userId;
+    if (array_key_exists($cacheKey, $cache)) {
+        return $cache[$cacheKey];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT group_name, can_view, can_access
+         FROM workspace_vault_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND user_id = :user_id'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':user_id' => $userId,
+    ]);
+    $rows = $stmt->fetchAll();
+
+    $map = [];
+    foreach ($rows as $row) {
+        $groupKey = mb_strtolower(normalizeVaultGroupName((string) ($row['group_name'] ?? 'Geral')));
+        $canView = normalizePermissionFlag($row['can_view'] ?? 1);
+        $canAccess = $canView === 1 ? normalizePermissionFlag($row['can_access'] ?? 1) : 0;
+        $map[$groupKey] = [
+            'can_view' => $canView === 1,
+            'can_access' => $canAccess === 1,
+        ];
+    }
+
+    $cache[$cacheKey] = $map;
+    return $map;
+}
+
+function taskGroupPermissionForUser(int $workspaceId, string $groupName, int $userId): array
+{
+    if ($workspaceId <= 0 || $userId <= 0) {
+        return ['can_view' => false, 'can_access' => false];
+    }
+
+    $role = workspaceRoleForUser($userId, $workspaceId);
+    if ($role === null) {
+        return ['can_view' => false, 'can_access' => false];
+    }
+    if ($role === 'admin') {
+        return ['can_view' => true, 'can_access' => true];
+    }
+
+    $groupKey = mb_strtolower(normalizeTaskGroupName($groupName));
+    $overrides = taskGroupPermissionOverridesForUser($workspaceId, $userId);
+    $permission = $overrides[$groupKey] ?? ['can_view' => true, 'can_access' => true];
+    $canView = !empty($permission['can_view']);
+    $canAccess = $canView && !empty($permission['can_access']);
+
+    return ['can_view' => $canView, 'can_access' => $canAccess];
+}
+
+function vaultGroupPermissionForUser(int $workspaceId, string $groupName, int $userId): array
+{
+    if ($workspaceId <= 0 || $userId <= 0) {
+        return ['can_view' => false, 'can_access' => false];
+    }
+
+    $role = workspaceRoleForUser($userId, $workspaceId);
+    if ($role === null) {
+        return ['can_view' => false, 'can_access' => false];
+    }
+    if ($role === 'admin') {
+        return ['can_view' => true, 'can_access' => true];
+    }
+
+    $groupKey = mb_strtolower(normalizeVaultGroupName($groupName));
+    $overrides = vaultGroupPermissionOverridesForUser($workspaceId, $userId);
+    $permission = $overrides[$groupKey] ?? ['can_view' => true, 'can_access' => true];
+    $canView = !empty($permission['can_view']);
+    $canAccess = $canView && !empty($permission['can_access']);
+
+    return ['can_view' => $canView, 'can_access' => $canAccess];
+}
+
+function userCanViewTaskGroup(int $userId, int $workspaceId, string $groupName): bool
+{
+    return taskGroupPermissionForUser($workspaceId, $groupName, $userId)['can_view'];
+}
+
+function userCanAccessTaskGroup(int $userId, int $workspaceId, string $groupName): bool
+{
+    return taskGroupPermissionForUser($workspaceId, $groupName, $userId)['can_access'];
+}
+
+function userCanViewVaultGroup(int $userId, int $workspaceId, string $groupName): bool
+{
+    return vaultGroupPermissionForUser($workspaceId, $groupName, $userId)['can_view'];
+}
+
+function userCanAccessVaultGroup(int $userId, int $workspaceId, string $groupName): bool
+{
+    return vaultGroupPermissionForUser($workspaceId, $groupName, $userId)['can_access'];
+}
+
+function taskGroupPermissionsByUser(int $workspaceId, string $groupName): array
+{
+    if ($workspaceId <= 0) {
+        return [];
+    }
+
+    $groupName = normalizeTaskGroupName($groupName);
+    $stmt = db()->prepare(
+        'SELECT user_id, can_view, can_access
+         FROM task_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $groupName,
+    ]);
+    $rows = $stmt->fetchAll();
+
+    $map = [];
+    foreach ($rows as $row) {
+        $userId = (int) ($row['user_id'] ?? 0);
+        if ($userId <= 0) {
+            continue;
+        }
+        $canView = normalizePermissionFlag($row['can_view'] ?? 1);
+        $canAccess = $canView === 1 ? normalizePermissionFlag($row['can_access'] ?? 1) : 0;
+        $map[$userId] = [
+            'can_view' => $canView === 1,
+            'can_access' => $canAccess === 1,
+        ];
+    }
+
+    return $map;
+}
+
+function vaultGroupPermissionsByUser(int $workspaceId, string $groupName): array
+{
+    if ($workspaceId <= 0) {
+        return [];
+    }
+
+    $groupName = normalizeVaultGroupName($groupName);
+    $stmt = db()->prepare(
+        'SELECT user_id, can_view, can_access
+         FROM workspace_vault_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $groupName,
+    ]);
+    $rows = $stmt->fetchAll();
+
+    $map = [];
+    foreach ($rows as $row) {
+        $userId = (int) ($row['user_id'] ?? 0);
+        if ($userId <= 0) {
+            continue;
+        }
+        $canView = normalizePermissionFlag($row['can_view'] ?? 1);
+        $canAccess = $canView === 1 ? normalizePermissionFlag($row['can_access'] ?? 1) : 0;
+        $map[$userId] = [
+            'can_view' => $canView === 1,
+            'can_access' => $canAccess === 1,
+        ];
+    }
+
+    return $map;
+}
+
+function saveTaskGroupPermissions(
+    PDO $pdo,
+    int $workspaceId,
+    string $groupName,
+    array $permissionsByUserId,
+    array $workspaceRolesByUserId
+): void {
+    if ($workspaceId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $groupName = normalizeTaskGroupName($groupName);
+
+    $deleteStmt = $pdo->prepare(
+        'DELETE FROM task_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
+    );
+    $deleteStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $groupName,
+    ]);
+
+    $insertStmt = $pdo->prepare(
+        'INSERT INTO task_group_permissions (workspace_id, group_name, user_id, can_view, can_access, updated_at)
+         VALUES (:workspace_id, :group_name, :user_id, :can_view, :can_access, :updated_at)'
+    );
+    $updatedAt = nowIso();
+
+    foreach ($permissionsByUserId as $rawUserId => $permissionRow) {
+        $userId = (int) $rawUserId;
+        if ($userId <= 0 || !isset($workspaceRolesByUserId[$userId])) {
+            continue;
+        }
+
+        $role = normalizeWorkspaceRole((string) $workspaceRolesByUserId[$userId]);
+        if ($role === 'admin') {
+            continue;
+        }
+
+        $canView = normalizePermissionFlag($permissionRow['can_view'] ?? 1);
+        $canAccess = $canView === 1 ? normalizePermissionFlag($permissionRow['can_access'] ?? 1) : 0;
+
+        if ($canView === 1 && $canAccess === 1) {
+            continue;
+        }
+
+        $insertStmt->execute([
+            ':workspace_id' => $workspaceId,
+            ':group_name' => $groupName,
+            ':user_id' => $userId,
+            ':can_view' => $canView,
+            ':can_access' => $canAccess,
+            ':updated_at' => $updatedAt,
+        ]);
+    }
+}
+
+function saveVaultGroupPermissions(
+    PDO $pdo,
+    int $workspaceId,
+    string $groupName,
+    array $permissionsByUserId,
+    array $workspaceRolesByUserId
+): void {
+    if ($workspaceId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $groupName = normalizeVaultGroupName($groupName);
+
+    $deleteStmt = $pdo->prepare(
+        'DELETE FROM workspace_vault_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
+    );
+    $deleteStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $groupName,
+    ]);
+
+    $insertStmt = $pdo->prepare(
+        'INSERT INTO workspace_vault_group_permissions (workspace_id, group_name, user_id, can_view, can_access, updated_at)
+         VALUES (:workspace_id, :group_name, :user_id, :can_view, :can_access, :updated_at)'
+    );
+    $updatedAt = nowIso();
+
+    foreach ($permissionsByUserId as $rawUserId => $permissionRow) {
+        $userId = (int) $rawUserId;
+        if ($userId <= 0 || !isset($workspaceRolesByUserId[$userId])) {
+            continue;
+        }
+
+        $role = normalizeWorkspaceRole((string) $workspaceRolesByUserId[$userId]);
+        if ($role === 'admin') {
+            continue;
+        }
+
+        $canView = normalizePermissionFlag($permissionRow['can_view'] ?? 1);
+        $canAccess = $canView === 1 ? normalizePermissionFlag($permissionRow['can_access'] ?? 1) : 0;
+
+        if ($canView === 1 && $canAccess === 1) {
+            continue;
+        }
+
+        $insertStmt->execute([
+            ':workspace_id' => $workspaceId,
+            ':group_name' => $groupName,
+            ':user_id' => $userId,
+            ':can_view' => $canView,
+            ':can_access' => $canAccess,
+            ':updated_at' => $updatedAt,
+        ]);
+    }
+}
+
+function renameTaskGroupPermissions(PDO $pdo, int $workspaceId, string $oldGroupName, string $newGroupName): void
+{
+    if ($workspaceId <= 0) {
+        return;
+    }
+
+    $oldGroupName = normalizeTaskGroupName($oldGroupName);
+    $newGroupName = normalizeTaskGroupName($newGroupName);
+    if (mb_strtolower($oldGroupName) === mb_strtolower($newGroupName)) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE task_group_permissions
+         SET group_name = :new_group_name,
+             updated_at = :updated_at
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:old_group_name))'
+    );
+    $stmt->execute([
+        ':new_group_name' => $newGroupName,
+        ':updated_at' => nowIso(),
+        ':workspace_id' => $workspaceId,
+        ':old_group_name' => $oldGroupName,
+    ]);
+}
+
+function renameVaultGroupPermissions(PDO $pdo, int $workspaceId, string $oldGroupName, string $newGroupName): void
+{
+    if ($workspaceId <= 0) {
+        return;
+    }
+
+    $oldGroupName = normalizeVaultGroupName($oldGroupName);
+    $newGroupName = normalizeVaultGroupName($newGroupName);
+    if (mb_strtolower($oldGroupName) === mb_strtolower($newGroupName)) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_vault_group_permissions
+         SET group_name = :new_group_name,
+             updated_at = :updated_at
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:old_group_name))'
+    );
+    $stmt->execute([
+        ':new_group_name' => $newGroupName,
+        ':updated_at' => nowIso(),
+        ':workspace_id' => $workspaceId,
+        ':old_group_name' => $oldGroupName,
+    ]);
+}
+
+function deleteTaskGroupPermissions(PDO $pdo, int $workspaceId, string $groupName): void
+{
+    if ($workspaceId <= 0) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'DELETE FROM task_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => normalizeTaskGroupName($groupName),
+    ]);
+}
+
+function deleteVaultGroupPermissions(PDO $pdo, int $workspaceId, string $groupName): void
+{
+    if ($workspaceId <= 0) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'DELETE FROM workspace_vault_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => normalizeVaultGroupName($groupName),
+    ]);
 }
 
 function upsertTaskGroup(PDO $pdo, string $groupName, ?int $createdBy = null, ?int $workspaceId = null): string

@@ -287,12 +287,27 @@
                 <?php if (empty($tasksGroupedByGroup)): ?>
                     <div class="empty-card task-list-empty">
                         <p>Nenhuma tarefa encontrada com os filtros atuais.</p>
-                        <button type="button" class="btn btn-mini" data-open-create-task-modal>Nova tarefa</button>
+                        <button
+                            type="button"
+                            class="btn btn-mini"
+                            data-open-create-task-modal
+                            <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>
+                        >Nova tarefa</button>
                     </div>
                 <?php else: ?>
                     <?php foreach ($tasksGroupedByGroup as $groupName => $groupTasks): ?>
-                        <?php $isProtectedGroup = isset($protectedGroupName) && mb_strtolower((string) $groupName) === mb_strtolower((string) $protectedGroupName); ?>
-                        <section class="task-group" aria-labelledby="group-<?= e(md5((string) $groupName)) ?>" data-task-group data-group-name="<?= e((string) $groupName) ?>">
+                        <?php
+                        $taskGroupPermission = $taskGroupPermissions[$groupName] ?? ['can_view' => true, 'can_access' => true];
+                        $taskGroupCanAccess = !empty($taskGroupPermission['can_access']);
+                        $taskGroupPermissionsModalKey = 'task-group-perm-' . md5((string) $groupName);
+                        ?>
+                        <section
+                            class="task-group<?= $taskGroupCanAccess ? '' : ' task-group-readonly' ?>"
+                            aria-labelledby="group-<?= e(md5((string) $groupName)) ?>"
+                            data-task-group
+                            data-group-name="<?= e((string) $groupName) ?>"
+                            data-group-can-access="<?= $taskGroupCanAccess ? '1' : '0' ?>"
+                        >
                             <header class="task-group-head">
                                 <div class="task-group-head-main">
                                     <form method="post" class="task-group-rename-form" data-group-rename-form>
@@ -309,6 +324,7 @@
                                                 data-group-name-input
                                                 aria-label="Nome do grupo"
                                                 spellcheck="false"
+                                                <?= $taskGroupCanAccess ? '' : 'readonly' ?>
                                             >
                                         </h3>
                                     </form>
@@ -321,14 +337,24 @@
                                         aria-expanded="true"
                                         aria-label="Retrair grupo"
                                     ><span aria-hidden="true">&#9662;</span></button>
-                                    <button
-                                        type="button"
-                                        class="group-add-button"
-                                        data-open-create-task-modal
-                                        data-create-group="<?= e((string) $groupName) ?>"
-                                        aria-label="Criar tarefa no grupo <?= e((string) $groupName) ?>"
-                                    >+</button>
-                                    <?php if (!$isProtectedGroup): ?>
+                                    <?php if (!empty($canManageWorkspace)): ?>
+                                        <button
+                                            type="button"
+                                            class="group-permissions-button"
+                                            data-open-group-permissions-modal="<?= e($taskGroupPermissionsModalKey) ?>"
+                                            aria-label="Gerenciar acesso do grupo <?= e((string) $groupName) ?>"
+                                        >
+                                            Acesso
+                                        </button>
+                                    <?php endif; ?>
+                                    <?php if ($taskGroupCanAccess): ?>
+                                        <button
+                                            type="button"
+                                            class="group-add-button"
+                                            data-open-create-task-modal
+                                            data-create-group="<?= e((string) $groupName) ?>"
+                                            aria-label="Criar tarefa no grupo <?= e((string) $groupName) ?>"
+                                        >+</button>
                                         <form method="post" class="task-group-delete-form" data-group-delete-form>
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="delete_group">
@@ -341,6 +367,9 @@
                                             ><span aria-hidden="true">&#10005;</span></button>
                                         </form>
                                     <?php endif; ?>
+                                    <?php if (!$taskGroupCanAccess): ?>
+                                        <span class="task-group-readonly-tag">Somente leitura</span>
+                                    <?php endif; ?>
                                     <span class="task-group-count"><?= e((string) count($groupTasks)) ?></span>
                                 </div>
                             </header>
@@ -348,13 +377,15 @@
                             <div class="task-list-rows" data-task-dropzone data-group-name="<?= e((string) $groupName) ?>">
                                 <?php if (!$groupTasks): ?>
                                     <div class="task-group-empty-row">
-                                        <button
-                                            type="button"
-                                            class="task-group-empty-add"
-                                            data-open-create-task-modal
-                                            data-create-group="<?= e((string) $groupName) ?>"
-                                            aria-label="Criar tarefa no grupo <?= e((string) $groupName) ?>"
-                                        >+</button>
+                                        <?php if ($taskGroupCanAccess): ?>
+                                            <button
+                                                type="button"
+                                                class="task-group-empty-add"
+                                                data-open-create-task-modal
+                                                data-create-group="<?= e((string) $groupName) ?>"
+                                                aria-label="Criar tarefa no grupo <?= e((string) $groupName) ?>"
+                                            >+</button>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
                                 <?php foreach ($groupTasks as $task): ?>
@@ -371,8 +402,9 @@
                                         class="task-list-item task-status-<?= e($statusKey) ?><?= $isOverdueMarked ? ' has-overdue-flag' : '' ?>"
                                         id="task-<?= e((string) $taskId) ?>"
                                         data-task-item
+                                        data-task-readonly="<?= $taskGroupCanAccess ? '0' : '1' ?>"
                                         data-group-name="<?= e((string) ($task['group_name'] ?? 'Geral')) ?>"
-                                        draggable="true"
+                                        draggable="<?= $taskGroupCanAccess ? 'true' : 'false' ?>"
                                     >
                                         <form method="post" class="task-list-form" id="update-task-<?= e((string) $taskId) ?>" data-task-autosave-form>
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
@@ -386,6 +418,7 @@
                                             <input type="hidden" value="<?= e((string) (($task['overdue_days'] ?? 0))) ?>" data-task-overdue-days>
                                             <input type="hidden" value="<?= e((string) json_encode($task['history'] ?? [], JSON_UNESCAPED_UNICODE)) ?>" data-task-history-json>
 
+                                            <fieldset class="task-row-fieldset" <?= $taskGroupCanAccess ? '' : 'disabled' ?>>
                                             <div class="task-line-row">
                                                 <div class="task-line-title">
                                                     <input
@@ -555,7 +588,7 @@
                                                             <?php
                                                             $currentTaskGroup = normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral'));
                                                             $groupRendered = false;
-                                                            foreach ($taskGroups as $groupNameOption):
+                                                            foreach ($taskGroupsWithAccess as $groupNameOption):
                                                                 $optionValue = normalizeTaskGroupName((string) $groupNameOption);
                                                                 $selected = $optionValue === $currentTaskGroup;
                                                                 if ($selected) {
@@ -586,6 +619,7 @@
 
                                                 </div>
                                             </div>
+                                            </fieldset>
                                         </form>
 
                                         <form method="post" id="delete-task-<?= e((string) $taskId) ?>" class="task-delete-form">
@@ -628,6 +662,7 @@
                         class="icon-gear-button vault-summary-button"
                         data-open-vault-entry-modal
                         aria-label="Adicionar dado de acesso"
+                        <?= empty($vaultGroupsWithAccess) ? 'disabled' : '' ?>
                     >
                         <span class="vault-summary-button-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" focusable="false">
@@ -650,8 +685,12 @@
                     </div>
                 <?php else: ?>
                     <?php foreach ($vaultEntriesByGroup as $vaultGroupName => $groupVaultEntries): ?>
-                        <?php $isProtectedVaultGroup = mb_strtolower((string) $vaultGroupName) === mb_strtolower((string) $protectedVaultGroupName); ?>
-                        <section class="task-group vault-group" data-vault-group data-group-name="<?= e((string) $vaultGroupName) ?>">
+                        <?php
+                        $vaultGroupPermission = $vaultGroupPermissions[$vaultGroupName] ?? ['can_view' => true, 'can_access' => true];
+                        $vaultGroupCanAccess = !empty($vaultGroupPermission['can_access']);
+                        $vaultGroupPermissionsModalKey = 'vault-group-perm-' . md5((string) $vaultGroupName);
+                        ?>
+                        <section class="task-group vault-group<?= $vaultGroupCanAccess ? '' : ' task-group-readonly' ?>" data-vault-group data-group-name="<?= e((string) $vaultGroupName) ?>">
                             <header class="task-group-head">
                                 <div class="task-group-head-main">
                                     <form method="post" class="task-group-rename-form">
@@ -667,6 +706,7 @@
                                                 class="task-group-name-input"
                                                 aria-label="Nome do grupo do cofre"
                                                 spellcheck="false"
+                                                <?= $vaultGroupCanAccess ? '' : 'readonly' ?>
                                             >
                                         </h3>
                                         <button type="submit" class="sr-only">Salvar grupo</button>
@@ -680,14 +720,24 @@
                                         aria-expanded="true"
                                         aria-label="Retrair grupo do cofre"
                                     ><span aria-hidden="true">&#9662;</span></button>
-                                    <button
-                                        type="button"
-                                        class="group-add-button"
-                                        data-open-vault-entry-modal
-                                        data-create-group="<?= e((string) $vaultGroupName) ?>"
-                                        aria-label="Adicionar item no grupo <?= e((string) $vaultGroupName) ?>"
-                                    >+</button>
-                                    <?php if (!$isProtectedVaultGroup): ?>
+                                    <?php if (!empty($canManageWorkspace)): ?>
+                                        <button
+                                            type="button"
+                                            class="group-permissions-button"
+                                            data-open-group-permissions-modal="<?= e($vaultGroupPermissionsModalKey) ?>"
+                                            aria-label="Gerenciar acesso do grupo do cofre <?= e((string) $vaultGroupName) ?>"
+                                        >
+                                            Acesso
+                                        </button>
+                                    <?php endif; ?>
+                                    <?php if ($vaultGroupCanAccess): ?>
+                                        <button
+                                            type="button"
+                                            class="group-add-button"
+                                            data-open-vault-entry-modal
+                                            data-create-group="<?= e((string) $vaultGroupName) ?>"
+                                            aria-label="Adicionar item no grupo <?= e((string) $vaultGroupName) ?>"
+                                        >+</button>
                                         <form method="post" class="task-group-delete-form">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="delete_vault_group">
@@ -699,6 +749,9 @@
                                             ><span aria-hidden="true">&#10005;</span></button>
                                         </form>
                                     <?php endif; ?>
+                                    <?php if (!$vaultGroupCanAccess): ?>
+                                        <span class="task-group-readonly-tag">Somente leitura</span>
+                                    <?php endif; ?>
                                     <span class="task-group-count"><?= e((string) count($groupVaultEntries)) ?></span>
                                 </div>
                             </header>
@@ -706,13 +759,15 @@
                             <div class="vault-group-rows" data-vault-group-rows>
                                 <?php if (!$groupVaultEntries): ?>
                                     <div class="task-group-empty-row">
-                                        <button
-                                            type="button"
-                                            class="task-group-empty-add"
-                                            data-open-vault-entry-modal
-                                            data-create-group="<?= e((string) $vaultGroupName) ?>"
-                                            aria-label="Adicionar item no grupo <?= e((string) $vaultGroupName) ?>"
-                                        >+</button>
+                                        <?php if ($vaultGroupCanAccess): ?>
+                                            <button
+                                                type="button"
+                                                class="task-group-empty-add"
+                                                data-open-vault-entry-modal
+                                                data-create-group="<?= e((string) $vaultGroupName) ?>"
+                                                aria-label="Adicionar item no grupo <?= e((string) $vaultGroupName) ?>"
+                                            >+</button>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
 
@@ -748,6 +803,7 @@
                                                         class="task-title-input vault-entry-title-input"
                                                         aria-label="Nome do dado de acesso"
                                                         data-vault-entry-label-input
+                                                        <?= $vaultGroupCanAccess ? '' : 'readonly' ?>
                                                         required
                                                     >
                                                 </div>
@@ -802,26 +858,28 @@
                                                 </div>
 
                                                 <div class="vault-entry-tools">
-                                                    <button
-                                                        type="button"
-                                                        class="vault-icon-button"
-                                                        data-open-vault-edit-modal
-                                                        aria-label="Editar dado de acesso"
-                                                    >
-                                                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                                                            <path d="M4 20h4l10-10-4-4L4 16v4Z"></path>
-                                                            <path d="m12 6 4 4"></path>
-                                                        </svg>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="vault-entry-delete-button"
-                                                        data-vault-delete-entry
-                                                        data-delete-form-id="delete-vault-entry-<?= e((string) $vaultEntryId) ?>"
-                                                        aria-label="Excluir dado de acesso"
-                                                    >
-                                                        <span aria-hidden="true">&#10005;</span>
-                                                    </button>
+                                                    <?php if ($vaultGroupCanAccess): ?>
+                                                        <button
+                                                            type="button"
+                                                            class="vault-icon-button"
+                                                            data-open-vault-edit-modal
+                                                            aria-label="Editar dado de acesso"
+                                                        >
+                                                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                                <path d="M4 20h4l10-10-4-4L4 16v4Z"></path>
+                                                                <path d="m12 6 4 4"></path>
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            class="vault-entry-delete-button"
+                                                            data-vault-delete-entry
+                                                            data-delete-form-id="delete-vault-entry-<?= e((string) $vaultEntryId) ?>"
+                                                            aria-label="Excluir dado de acesso"
+                                                        >
+                                                            <span aria-hidden="true">&#10005;</span>
+                                                        </button>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </form>
@@ -868,12 +926,16 @@
 
             <label>
                 <span>Grupo</span>
-                <select name="group_name" data-create-task-group-input>
-                    <?php foreach ($taskGroups as $groupNameOption): ?>
-                        <option value="<?= e((string) $groupNameOption) ?>"<?= (isset($protectedGroupName) && mb_strtolower((string) $groupNameOption) === mb_strtolower((string) $protectedGroupName)) ? ' selected' : '' ?>>
-                            <?= e((string) $groupNameOption) ?>
-                        </option>
-                    <?php endforeach; ?>
+                <select name="group_name" data-create-task-group-input <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>>
+                    <?php if (!$taskGroupsWithAccess): ?>
+                        <option value="">Sem grupo com acesso</option>
+                    <?php else: ?>
+                        <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
+                            <option value="<?= e((string) $groupNameOption) ?>">
+                                <?= e((string) $groupNameOption) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </select>
             </label>
 
@@ -930,7 +992,7 @@
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-mini btn-ghost" data-close-create-modal>Cancelar</button>
-                <button type="submit" class="btn btn-pill">Adicionar tarefa</button>
+                <button type="submit" class="btn btn-pill" <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar tarefa</button>
             </div>
         </form>
     </section>
@@ -1006,10 +1068,14 @@
 
             <label>
                 <span>Grupo</span>
-                <select name="group_name" data-vault-entry-group>
-                    <?php foreach ($vaultGroups as $vaultGroupOption): ?>
-                        <option value="<?= e((string) $vaultGroupOption) ?>"><?= e((string) $vaultGroupOption) ?></option>
-                    <?php endforeach; ?>
+                <select name="group_name" data-vault-entry-group <?= empty($vaultGroupsWithAccess) ? 'disabled' : '' ?>>
+                    <?php if (!$vaultGroupsWithAccess): ?>
+                        <option value="">Sem grupo com acesso</option>
+                    <?php else: ?>
+                        <?php foreach ($vaultGroupsWithAccess as $vaultGroupOption): ?>
+                            <option value="<?= e((string) $vaultGroupOption) ?>"><?= e((string) $vaultGroupOption) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </select>
             </label>
 
@@ -1030,7 +1096,7 @@
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-mini btn-ghost" data-close-vault-entry-modal>Cancelar</button>
-                <button type="submit" class="btn btn-pill">Adicionar</button>
+                <button type="submit" class="btn btn-pill" <?= empty($vaultGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar</button>
             </div>
         </form>
     </section>
@@ -1053,10 +1119,14 @@
 
             <label>
                 <span>Grupo</span>
-                <select name="group_name" data-vault-entry-edit-group>
-                    <?php foreach ($vaultGroups as $vaultGroupOption): ?>
-                        <option value="<?= e((string) $vaultGroupOption) ?>"><?= e((string) $vaultGroupOption) ?></option>
-                    <?php endforeach; ?>
+                <select name="group_name" data-vault-entry-edit-group <?= empty($vaultGroupsWithAccess) ? 'disabled' : '' ?>>
+                    <?php if (!$vaultGroupsWithAccess): ?>
+                        <option value="">Sem grupo com acesso</option>
+                    <?php else: ?>
+                        <?php foreach ($vaultGroupsWithAccess as $vaultGroupOption): ?>
+                            <option value="<?= e((string) $vaultGroupOption) ?>"><?= e((string) $vaultGroupOption) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </select>
             </label>
 
@@ -1077,11 +1147,163 @@
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-mini btn-ghost" data-close-vault-entry-edit-modal>Cancelar</button>
-                <button type="submit" class="btn btn-pill">Salvar</button>
+                <button type="submit" class="btn btn-pill" <?= empty($vaultGroupsWithAccess) ? 'disabled' : '' ?>>Salvar</button>
             </div>
         </form>
     </section>
 </div>
+
+<?php if (!empty($canManageWorkspace)): ?>
+    <?php foreach ($taskGroups as $taskGroupPermissionsName): ?>
+        <?php
+        $taskGroupPermissionsModalKey = 'task-group-perm-' . md5((string) $taskGroupPermissionsName);
+        $taskPermissionsByUser = $taskGroupPermissionsByUserMap[$taskGroupPermissionsName] ?? [];
+        ?>
+        <div class="modal-backdrop" data-group-permissions-modal="<?= e($taskGroupPermissionsModalKey) ?>" hidden>
+            <div class="modal-scrim" data-close-group-permissions-modal></div>
+            <section class="modal-card group-permissions-modal-card" role="dialog" aria-modal="true" aria-labelledby="task-group-perm-title-<?= e(md5((string) $taskGroupPermissionsName)) ?>">
+                <header class="modal-head">
+                    <h2 id="task-group-perm-title-<?= e(md5((string) $taskGroupPermissionsName)) ?>">Acesso do grupo: <?= e((string) $taskGroupPermissionsName) ?></h2>
+                    <button type="button" class="modal-close-button" data-close-group-permissions-modal aria-label="Fechar modal">
+                        <span aria-hidden="true">&#10005;</span>
+                    </button>
+                </header>
+
+                <form method="post" class="form-stack modal-form group-permissions-form">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="update_task_group_permissions">
+                    <input type="hidden" name="group_name" value="<?= e((string) $taskGroupPermissionsName) ?>">
+
+                    <div class="group-permissions-list">
+                        <?php foreach ($workspaceMembers as $workspaceMember): ?>
+                            <?php
+                            $memberId = (int) ($workspaceMember['id'] ?? 0);
+                            if ($memberId <= 0) {
+                                continue;
+                            }
+                            $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+                            $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
+                            $isMemberAdmin = $memberRole === 'admin';
+                            $memberPermission = $taskPermissionsByUser[$memberId] ?? [];
+                            $memberCanView = $isMemberAdmin ? true : (bool) ($memberPermission['can_view'] ?? true);
+                            $memberCanAccess = $isMemberAdmin ? true : ($memberCanView && (bool) ($memberPermission['can_access'] ?? true));
+                            ?>
+                            <div class="group-permissions-row">
+                                <input type="hidden" name="member_ids[]" value="<?= e((string) $memberId) ?>">
+                                <div class="group-permissions-user">
+                                    <strong><?= e((string) ($workspaceMember['name'] ?? 'Usuario')) ?></strong>
+                                    <span><?= e((string) $memberRoleLabel) ?></span>
+                                </div>
+                                <label class="group-permissions-toggle">
+                                    <input
+                                        type="checkbox"
+                                        name="permissions[<?= e((string) $memberId) ?>][can_view]"
+                                        value="1"
+                                        <?= $memberCanView ? 'checked' : '' ?>
+                                        <?= $isMemberAdmin ? 'disabled' : '' ?>
+                                        data-permission-view-checkbox
+                                    >
+                                    <span>Pode ver</span>
+                                </label>
+                                <label class="group-permissions-toggle">
+                                    <input
+                                        type="checkbox"
+                                        name="permissions[<?= e((string) $memberId) ?>][can_access]"
+                                        value="1"
+                                        <?= $memberCanAccess ? 'checked' : '' ?>
+                                        <?= (!$memberCanView || $isMemberAdmin) ? 'disabled' : '' ?>
+                                        data-permission-access-checkbox
+                                    >
+                                    <span>Pode acessar</span>
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-mini btn-ghost" data-close-group-permissions-modal>Cancelar</button>
+                        <button type="submit" class="btn btn-pill">Salvar permissoes</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    <?php endforeach; ?>
+
+    <?php foreach ($vaultGroups as $vaultGroupPermissionsName): ?>
+        <?php
+        $vaultGroupPermissionsModalKey = 'vault-group-perm-' . md5((string) $vaultGroupPermissionsName);
+        $vaultPermissionsByUser = $vaultGroupPermissionsByUserMap[$vaultGroupPermissionsName] ?? [];
+        ?>
+        <div class="modal-backdrop" data-group-permissions-modal="<?= e($vaultGroupPermissionsModalKey) ?>" hidden>
+            <div class="modal-scrim" data-close-group-permissions-modal></div>
+            <section class="modal-card group-permissions-modal-card" role="dialog" aria-modal="true" aria-labelledby="vault-group-perm-title-<?= e(md5((string) $vaultGroupPermissionsName)) ?>">
+                <header class="modal-head">
+                    <h2 id="vault-group-perm-title-<?= e(md5((string) $vaultGroupPermissionsName)) ?>">Acesso do grupo do cofre: <?= e((string) $vaultGroupPermissionsName) ?></h2>
+                    <button type="button" class="modal-close-button" data-close-group-permissions-modal aria-label="Fechar modal">
+                        <span aria-hidden="true">&#10005;</span>
+                    </button>
+                </header>
+
+                <form method="post" class="form-stack modal-form group-permissions-form">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="update_vault_group_permissions">
+                    <input type="hidden" name="group_name" value="<?= e((string) $vaultGroupPermissionsName) ?>">
+
+                    <div class="group-permissions-list">
+                        <?php foreach ($workspaceMembers as $workspaceMember): ?>
+                            <?php
+                            $memberId = (int) ($workspaceMember['id'] ?? 0);
+                            if ($memberId <= 0) {
+                                continue;
+                            }
+                            $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+                            $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
+                            $isMemberAdmin = $memberRole === 'admin';
+                            $memberPermission = $vaultPermissionsByUser[$memberId] ?? [];
+                            $memberCanView = $isMemberAdmin ? true : (bool) ($memberPermission['can_view'] ?? true);
+                            $memberCanAccess = $isMemberAdmin ? true : ($memberCanView && (bool) ($memberPermission['can_access'] ?? true));
+                            ?>
+                            <div class="group-permissions-row">
+                                <input type="hidden" name="member_ids[]" value="<?= e((string) $memberId) ?>">
+                                <div class="group-permissions-user">
+                                    <strong><?= e((string) ($workspaceMember['name'] ?? 'Usuario')) ?></strong>
+                                    <span><?= e((string) $memberRoleLabel) ?></span>
+                                </div>
+                                <label class="group-permissions-toggle">
+                                    <input
+                                        type="checkbox"
+                                        name="permissions[<?= e((string) $memberId) ?>][can_view]"
+                                        value="1"
+                                        <?= $memberCanView ? 'checked' : '' ?>
+                                        <?= $isMemberAdmin ? 'disabled' : '' ?>
+                                        data-permission-view-checkbox
+                                    >
+                                    <span>Pode ver</span>
+                                </label>
+                                <label class="group-permissions-toggle">
+                                    <input
+                                        type="checkbox"
+                                        name="permissions[<?= e((string) $memberId) ?>][can_access]"
+                                        value="1"
+                                        <?= $memberCanAccess ? 'checked' : '' ?>
+                                        <?= (!$memberCanView || $isMemberAdmin) ? 'disabled' : '' ?>
+                                        data-permission-access-checkbox
+                                    >
+                                    <span>Pode acessar</span>
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-mini btn-ghost" data-close-group-permissions-modal>Cancelar</button>
+                        <button type="submit" class="btn btn-pill">Salvar permissoes</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
 
 <div class="modal-backdrop" data-task-detail-modal hidden>
     <div class="modal-scrim" data-close-task-detail-modal></div>

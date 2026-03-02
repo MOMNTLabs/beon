@@ -1820,6 +1820,29 @@ window.addEventListener("DOMContentLoaded", () => {
       applyFirstLetterUppercaseToInput(target);
     }
 
+    if (
+      target.matches("[data-permission-view-checkbox]") ||
+      target.matches("[data-permission-access-checkbox]")
+    ) {
+      const permissionRow = target.closest(".group-permissions-row");
+      if (permissionRow instanceof HTMLElement) {
+        const viewCheckbox = permissionRow.querySelector("[data-permission-view-checkbox]");
+        const accessCheckbox = permissionRow.querySelector("[data-permission-access-checkbox]");
+        if (
+          target.matches("[data-permission-access-checkbox]") &&
+          target instanceof HTMLInputElement &&
+          target.checked &&
+          viewCheckbox instanceof HTMLInputElement
+        ) {
+          viewCheckbox.checked = true;
+        }
+        if (accessCheckbox instanceof HTMLInputElement && viewCheckbox instanceof HTMLInputElement) {
+          syncPermissionRow(permissionRow);
+        }
+      }
+      return;
+    }
+
     if (target.matches("[data-group-name-input]")) {
       const renameForm = target.closest("[data-group-rename-form]");
       if (renameForm instanceof HTMLFormElement) {
@@ -2220,7 +2243,13 @@ window.addEventListener("DOMContentLoaded", () => {
       ].join(",")
     );
 
-    if (interactiveTarget && taskItem.contains(interactiveTarget)) {
+    const interactiveDisabled =
+      (interactiveTarget instanceof HTMLButtonElement && interactiveTarget.disabled) ||
+      (interactiveTarget instanceof HTMLInputElement && interactiveTarget.disabled) ||
+      (interactiveTarget instanceof HTMLSelectElement && interactiveTarget.disabled) ||
+      (interactiveTarget instanceof HTMLTextAreaElement && interactiveTarget.disabled);
+
+    if (interactiveTarget && taskItem.contains(interactiveTarget) && !interactiveDisabled) {
       return;
     }
 
@@ -2384,6 +2413,9 @@ window.addEventListener("DOMContentLoaded", () => {
   const confirmModalTitle = document.querySelector("#confirm-modal-title");
   const confirmModalMessage = document.querySelector("[data-confirm-modal-message]");
   const confirmModalSubmit = document.querySelector("[data-confirm-modal-submit]");
+  const groupPermissionModals = Array.from(
+    document.querySelectorAll("[data-group-permissions-modal]")
+  );
   let confirmModalAction = null;
   let taskDetailContext = null;
   let taskDetailEditImageItems = [];
@@ -2412,7 +2444,9 @@ window.addEventListener("DOMContentLoaded", () => {
     const bodyDefault = document.body?.dataset?.defaultGroupName?.trim();
     if (bodyDefault) return bodyDefault;
 
-    const firstGroupSection = document.querySelector("[data-task-group]");
+    const firstGroupSection =
+      document.querySelector('[data-task-group][data-group-can-access="1"]') ||
+      document.querySelector("[data-task-group]");
     const firstGroupName = firstGroupSection?.dataset?.groupName?.trim();
     if (firstGroupName) return firstGroupName;
 
@@ -2422,6 +2456,30 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     return "Geral";
+  };
+
+  const syncPermissionRow = (row) => {
+    if (!(row instanceof HTMLElement)) return;
+
+    const viewCheckbox = row.querySelector("[data-permission-view-checkbox]");
+    const accessCheckbox = row.querySelector("[data-permission-access-checkbox]");
+    if (!(viewCheckbox instanceof HTMLInputElement)) return;
+    if (!(accessCheckbox instanceof HTMLInputElement)) return;
+
+    if (viewCheckbox.disabled) {
+      viewCheckbox.checked = true;
+      accessCheckbox.checked = true;
+      accessCheckbox.disabled = true;
+      return;
+    }
+
+    if (!viewCheckbox.checked) {
+      accessCheckbox.checked = false;
+      accessCheckbox.disabled = true;
+      return;
+    }
+
+    accessCheckbox.disabled = false;
   };
 
   const syncTaskDetailImageHiddenField = () => {
@@ -2561,7 +2619,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const setTaskDetailEditMode = (editing) => {
     if (!taskDetailModal) return;
-    const isEditing = Boolean(editing);
+    const isReadOnlyTask = Boolean(taskDetailContext?.readOnly);
+    const isEditing = isReadOnlyTask ? false : Boolean(editing);
     taskDetailModal.classList.toggle("is-editing", isEditing);
     if (taskDetailViewPanel instanceof HTMLElement) {
       taskDetailViewPanel.hidden = isEditing;
@@ -2570,7 +2629,10 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailEditPanel.hidden = !isEditing;
     }
     if (taskDetailEditButton instanceof HTMLButtonElement) {
-      taskDetailEditButton.hidden = isEditing;
+      taskDetailEditButton.hidden = isEditing || isReadOnlyTask;
+    }
+    if (taskDetailDeleteButton instanceof HTMLButtonElement) {
+      taskDetailDeleteButton.hidden = isReadOnlyTask;
     }
     if (taskDetailSaveButton instanceof HTMLButtonElement) {
       taskDetailSaveButton.hidden = !isEditing;
@@ -2596,6 +2658,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const getTaskDetailBindings = (taskItem) => {
     if (!(taskItem instanceof HTMLElement)) return null;
+    const readOnly = (taskItem.dataset.taskReadonly || "0") === "1";
 
     const form = taskItem.querySelector("[data-task-autosave-form]");
     const deleteForm = taskItem.querySelector(".task-delete-form");
@@ -2649,6 +2712,7 @@ window.addEventListener("DOMContentLoaded", () => {
       overdueDaysField: overdueDaysField instanceof HTMLInputElement ? overdueDaysField : null,
       historyField: historyField instanceof HTMLInputElement ? historyField : null,
       metaRow,
+      readOnly,
     };
   };
 
@@ -2881,6 +2945,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const copyTaskDetailModalToRow = (context = taskDetailContext) => {
     if (!context) return false;
+    if (context.readOnly) {
+      showClientFlash("error", "Voce nao possui acesso para editar tarefas deste grupo.");
+      return false;
+    }
     if (
       !(taskDetailEditTitle instanceof HTMLInputElement) ||
       !(taskDetailEditStatus instanceof HTMLSelectElement) ||
@@ -3012,6 +3080,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailModal,
       taskImagePreviewModal,
       confirmModal,
+      ...groupPermissionModals,
     ].some(
       (modal) => modal && !modal.hidden
     );
@@ -3310,6 +3379,9 @@ window.addEventListener("DOMContentLoaded", () => {
     const names = new Set();
 
     document.querySelectorAll("[data-task-group]").forEach((section) => {
+      if (!(section instanceof HTMLElement)) return;
+      const canAccess = (section.dataset.groupCanAccess || "1") !== "0";
+      if (!canAccess) return;
       const text = section?.dataset?.groupName?.trim();
       if (text) names.add(text);
     });
@@ -3374,6 +3446,9 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   syncTaskGroupInputs();
+  document
+    .querySelectorAll(".group-permissions-row")
+    .forEach((row) => syncPermissionRow(row));
   document.querySelectorAll("[data-task-group]").forEach((section) => {
     setTaskGroupCollapsed(section, section.classList.contains("is-collapsed"));
   });
@@ -3388,6 +3463,9 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!createTaskModal) return;
     setFabMenuOpen(false);
     syncTaskGroupInputs();
+    if (createTaskGroupInput instanceof HTMLSelectElement && createTaskGroupInput.disabled) {
+      return;
+    }
     if (createTaskForm) {
       createTaskForm.reset();
       createTaskForm
@@ -3444,6 +3522,33 @@ window.addEventListener("DOMContentLoaded", () => {
     syncBodyModalLock();
   };
 
+  const openGroupPermissionsModal = (modalKey = "") => {
+    const key = String(modalKey || "").trim();
+    if (!key) return;
+
+    const modal = document.querySelector(
+      `[data-group-permissions-modal="${CSS.escape(key)}"]`
+    );
+    if (!(modal instanceof HTMLElement)) return;
+
+    modal.hidden = false;
+    syncBodyModalLock();
+  };
+
+  const closeGroupPermissionsModal = (modalElement = null) => {
+    if (modalElement instanceof HTMLElement) {
+      modalElement.hidden = true;
+      syncBodyModalLock();
+      return;
+    }
+
+    groupPermissionModals.forEach((modal) => {
+      if (!(modal instanceof HTMLElement) || modal.hidden) return;
+      modal.hidden = true;
+    });
+    syncBodyModalLock();
+  };
+
   const setVaultGroupSelectValue = (select, value) => {
     if (!(select instanceof HTMLSelectElement)) return;
     const next = (value || "").trim();
@@ -3472,6 +3577,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const openVaultEntryModal = (groupName = "") => {
     if (!(vaultEntryModal instanceof HTMLElement)) return;
+    if (vaultEntryGroupField instanceof HTMLSelectElement && vaultEntryGroupField.disabled) {
+      return;
+    }
     if (vaultEntryForm instanceof HTMLFormElement) {
       vaultEntryForm.reset();
     }
@@ -3495,6 +3603,9 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(entryRow instanceof HTMLElement)) return;
     if (!(vaultEntryEditModal instanceof HTMLElement)) return;
     if (!(vaultEntryEditForm instanceof HTMLFormElement)) return;
+    if (vaultEntryEditGroupField instanceof HTMLSelectElement && vaultEntryEditGroupField.disabled) {
+      return;
+    }
 
     const entryId = (entryRow.dataset.entryId || "").trim();
     const labelInput = entryRow.querySelector("[data-vault-entry-label-input]");
@@ -3699,6 +3810,16 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const openGroupPermissionsTrigger = target.closest(
+      "[data-open-group-permissions-modal]"
+    );
+    if (openGroupPermissionsTrigger instanceof HTMLElement) {
+      openGroupPermissionsModal(
+        openGroupPermissionsTrigger.dataset.openGroupPermissionsModal || ""
+      );
+      return;
+    }
+
     const openTaskDetailEditTrigger = target.closest("[data-task-detail-edit]");
     if (openTaskDetailEditTrigger) {
       if (taskDetailContext) {
@@ -3754,6 +3875,16 @@ window.addEventListener("DOMContentLoaded", () => {
     const closeGroupTrigger = target.closest("[data-close-create-group-modal]");
     if (closeGroupTrigger) {
       closeCreateGroupModal();
+      return;
+    }
+
+    const closeGroupPermissionsTrigger = target.closest(
+      "[data-close-group-permissions-modal]"
+    );
+    if (closeGroupPermissionsTrigger instanceof HTMLElement) {
+      closeGroupPermissionsModal(
+        closeGroupPermissionsTrigger.closest("[data-group-permissions-modal]")
+      );
       return;
     }
 
@@ -3858,6 +3989,9 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (taskDetailModal && !taskDetailModal.hidden) {
       closeTaskDetailModal();
+    }
+    if (groupPermissionModals.some((modal) => modal instanceof HTMLElement && !modal.hidden)) {
+      closeGroupPermissionsModal();
     }
     if (confirmModal && !confirmModal.hidden) {
       closeConfirmModal();

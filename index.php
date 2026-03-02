@@ -27,6 +27,15 @@ function respondJson(array $payload, int $status = 200): void
 function dashboardSummaryPayloadForUser(int $userId, ?int $workspaceId = null): array
 {
     $allTasks = allTasks($workspaceId);
+    if ($workspaceId !== null && $workspaceId > 0) {
+        $allTasks = array_values(array_filter(
+            $allTasks,
+            static function (array $task) use ($workspaceId, $userId): bool {
+                $groupName = (string) ($task['group_name'] ?? 'Geral');
+                return userCanViewTaskGroup($userId, $workspaceId, $groupName);
+            }
+        ));
+    }
     $stats = dashboardStats($allTasks);
     $myOpenTasks = countMyAssignedTasks($allTasks, $userId);
     $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
@@ -39,6 +48,65 @@ function dashboardSummaryPayloadForUser(int $userId, ?int $workspaceId = null): 
         'urgent' => (int) $stats['urgent'],
         'my_open' => (int) $myOpenTasks,
     ];
+}
+
+function workspaceRolesByUserId(array $workspaceMembers): array
+{
+    $rolesByUserId = [];
+    foreach ($workspaceMembers as $workspaceMember) {
+        $memberId = (int) ($workspaceMember['id'] ?? 0);
+        if ($memberId <= 0) {
+            continue;
+        }
+        $rolesByUserId[$memberId] = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+    }
+
+    return $rolesByUserId;
+}
+
+function submittedGroupPermissionsByUserId(array $workspaceRolesByUserId): array
+{
+    $memberIdsRaw = $_POST['member_ids'] ?? [];
+    if (!is_array($memberIdsRaw)) {
+        $memberIdsRaw = [$memberIdsRaw];
+    }
+
+    $permissionsRaw = $_POST['permissions'] ?? [];
+    if (!is_array($permissionsRaw)) {
+        $permissionsRaw = [];
+    }
+
+    $permissionsByUserId = [];
+    foreach ($memberIdsRaw as $memberIdRaw) {
+        $memberId = (int) $memberIdRaw;
+        if ($memberId <= 0 || !isset($workspaceRolesByUserId[$memberId])) {
+            continue;
+        }
+
+        $memberRole = normalizeWorkspaceRole((string) $workspaceRolesByUserId[$memberId]);
+        if ($memberRole === 'admin') {
+            $permissionsByUserId[$memberId] = ['can_view' => 1, 'can_access' => 1];
+            continue;
+        }
+
+        $memberPermissions = $permissionsRaw[(string) $memberId] ?? $permissionsRaw[$memberId] ?? [];
+        if (!is_array($memberPermissions)) {
+            $memberPermissions = [];
+        }
+
+        $canView = array_key_exists('can_view', $memberPermissions) ? 1 : 0;
+        $canAccess = array_key_exists('can_access', $memberPermissions) ? 1 : 0;
+        if ($canView === 0) {
+            $canAccess = 0;
+        }
+
+        $permissionsByUserId[$memberId] = [
+            'can_view' => $canView,
+            'can_access' => $canAccess,
+        ];
+    }
+
+    return $permissionsByUserId;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -194,6 +262,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existingOldGroupName === null) {
                     throw new RuntimeException('Grupo do cofre nao encontrado.');
                 }
+                if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, $existingOldGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para gerenciar este grupo do cofre.');
+                }
 
                 $existingTargetGroupName = findVaultGroupByName($newGroupName, $workspaceId);
                 if (
@@ -232,6 +303,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ':old_group_name' => $existingOldGroupName,
                         ]);
 
+                        renameVaultGroupPermissions(
+                            $pdo,
+                            $workspaceId,
+                            $existingOldGroupName,
+                            $newGroupName
+                        );
+
                         $pdo->commit();
                     } catch (Throwable $e) {
                         if ($pdo->inTransaction()) {
@@ -256,8 +334,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existingGroupName === null) {
                     throw new RuntimeException('Grupo do cofre nao encontrado.');
                 }
-                if (isProtectedVaultGroupName($existingGroupName, $workspaceId)) {
-                    throw new RuntimeException('Este grupo do cofre nao pode ser removido.');
+                if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, $existingGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para remover este grupo do cofre.');
                 }
 
                 $pdo->beginTransaction();
@@ -286,6 +364,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new RuntimeException('Nao foi possivel remover o grupo do cofre.');
                     }
 
+                    deleteVaultGroupPermissions($pdo, $workspaceId, $existingGroupName);
+
                     $pdo->commit();
                 } catch (Throwable $e) {
                     if ($pdo->inTransaction()) {
@@ -302,6 +382,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
                 redirectTo('index.php#vault');
 
+            case 'update_vault_group_permissions':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem configurar acessos por grupo.');
+                }
+
+                $groupInput = normalizeVaultGroupName((string) ($_POST['group_name'] ?? ''));
+                $existingGroupName = findVaultGroupByName($groupInput, $workspaceId);
+                if ($existingGroupName === null) {
+                    throw new RuntimeException('Grupo do cofre nao encontrado.');
+                }
+
+                $rolesByUserId = workspaceRolesByUserId(workspaceMembersList($workspaceId));
+                $permissionsByUserId = submittedGroupPermissionsByUserId($rolesByUserId);
+                $pdo->beginTransaction();
+                try {
+                    saveVaultGroupPermissions($pdo, $workspaceId, $existingGroupName, $permissionsByUserId, $rolesByUserId);
+                    $pdo->commit();
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $e;
+                }
+
+                flash('success', 'Permissoes do grupo do cofre atualizadas.');
+                redirectTo('index.php#vault');
+
             case 'create_vault_entry':
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
@@ -311,6 +423,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $groupNameInput = normalizeVaultGroupName((string) ($_POST['group_name'] ?? ''));
                 $groupName = findVaultGroupByName($groupNameInput, $workspaceId) ?? $groupNameInput;
+                if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, $groupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para adicionar itens neste grupo do cofre.');
+                }
                 createWorkspaceVaultEntry(
                     $pdo,
                     $workspaceId,
@@ -333,6 +448,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
                 $label = (string) ($_POST['label'] ?? '');
+                $entryGroupStmt = $pdo->prepare(
+                    'SELECT group_name
+                     FROM workspace_vault_entries
+                     WHERE id = :id
+                       AND workspace_id = :workspace_id
+                     LIMIT 1'
+                );
+                $entryGroupStmt->execute([
+                    ':id' => $entryId,
+                    ':workspace_id' => $workspaceId,
+                ]);
+                $entryGroupName = $entryGroupStmt->fetchColumn();
+                if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
+                    throw new RuntimeException('Registro nao encontrado.');
+                }
+                if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, (string) $entryGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para editar este item do cofre.');
+                }
                 updateWorkspaceVaultEntryLabel($pdo, $workspaceId, $entryId, $label);
 
                 if (requestExpectsJson()) {
@@ -356,6 +489,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
                 $groupNameInput = normalizeVaultGroupName((string) ($_POST['group_name'] ?? ''));
                 $groupName = findVaultGroupByName($groupNameInput, $workspaceId) ?? $groupNameInput;
+                $entryGroupStmt = $pdo->prepare(
+                    'SELECT group_name
+                     FROM workspace_vault_entries
+                     WHERE id = :id
+                       AND workspace_id = :workspace_id
+                     LIMIT 1'
+                );
+                $entryGroupStmt->execute([
+                    ':id' => $entryId,
+                    ':workspace_id' => $workspaceId,
+                ]);
+                $entryGroupName = $entryGroupStmt->fetchColumn();
+                if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
+                    throw new RuntimeException('Registro nao encontrado.');
+                }
+                if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, (string) $entryGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para editar este item do cofre.');
+                }
+                if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, $groupName)) {
+                    throw new RuntimeException('Voce nao possui acesso ao grupo de destino.');
+                }
                 updateWorkspaceVaultEntry(
                     $pdo,
                     $workspaceId,
@@ -377,6 +531,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
+                $entryGroupStmt = $pdo->prepare(
+                    'SELECT group_name
+                     FROM workspace_vault_entries
+                     WHERE id = :id
+                       AND workspace_id = :workspace_id
+                     LIMIT 1'
+                );
+                $entryGroupStmt->execute([
+                    ':id' => $entryId,
+                    ':workspace_id' => $workspaceId,
+                ]);
+                $entryGroupName = $entryGroupStmt->fetchColumn();
+                if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
+                    throw new RuntimeException('Registro nao encontrado.');
+                }
+                if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, (string) $entryGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para excluir este item do cofre.');
+                }
                 deleteWorkspaceVaultEntry($pdo, $workspaceId, $entryId);
 
                 flash('success', 'Item removido do cofre.');
@@ -410,6 +582,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($existingOldGroupName === null) {
                     throw new RuntimeException('Grupo nao encontrado.');
+                }
+                if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $existingOldGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para gerenciar este grupo.');
                 }
 
                 $existingTargetGroupName = findTaskGroupByName($newGroupName, $workspaceId);
@@ -465,6 +640,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ':workspace_id' => $workspaceId,
                             ':old_group_name' => $existingOldGroupName,
                         ]);
+                        renameTaskGroupPermissions($pdo, $workspaceId, $existingOldGroupName, $newGroupName);
                     }
 
                     if ($affectedTaskCount > 0 && $existingOldGroupName !== $newGroupName) {
@@ -529,9 +705,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existingGroupName === null) {
                     throw new RuntimeException('Grupo nao encontrado.');
                 }
-
-                if (isProtectedTaskGroupName($existingGroupName, $workspaceId)) {
-                    throw new RuntimeException('Este grupo nao pode ser removido.');
+                if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $existingGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para remover este grupo.');
                 }
 
                 $taskIdsStmt = $pdo->prepare(
@@ -590,6 +765,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new RuntimeException('Nao foi possivel remover o grupo.');
                     }
 
+                    deleteTaskGroupPermissions($pdo, $workspaceId, $existingGroupName);
+
                     $pdo->commit();
                 } catch (Throwable $e) {
                     if ($pdo->inTransaction()) {
@@ -615,6 +792,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
                 redirectTo('index.php#tasks');
 
+            case 'update_task_group_permissions':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem configurar acessos por grupo.');
+                }
+
+                $groupInput = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
+                $existingGroupName = findTaskGroupByName($groupInput, $workspaceId);
+                if ($existingGroupName === null) {
+                    throw new RuntimeException('Grupo nao encontrado.');
+                }
+
+                $rolesByUserId = workspaceRolesByUserId(workspaceMembersList($workspaceId));
+                $permissionsByUserId = submittedGroupPermissionsByUserId($rolesByUserId);
+                $pdo->beginTransaction();
+                try {
+                    saveTaskGroupPermissions($pdo, $workspaceId, $existingGroupName, $permissionsByUserId, $rolesByUserId);
+                    $pdo->commit();
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $e;
+                }
+
+                flash('success', 'Permissoes do grupo atualizadas.');
+                redirectTo('index.php#tasks');
+
             case 'create_task':
             case 'update_task':
                 $authUser = requireAuth();
@@ -622,6 +831,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
                 }
+                $actorUserId = (int) $authUser['id'];
                 $isAutosave = $action === 'update_task' && (string) ($_POST['autosave'] ?? '') === '1';
                 $usersById = usersMapById($workspaceId);
                 $taskId = (int) ($_POST['task_id'] ?? 0);
@@ -662,7 +872,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $assigneeIds = normalizeAssigneeIds($rawAssigneeValues, $usersById);
                 $assignedTo = $assigneeIds[0] ?? null;
                 $assigneeIdsJson = encodeAssigneeIds($assigneeIds);
-                upsertTaskGroup($pdo, $groupName, (int) $authUser['id'], $workspaceId);
 
                 if ($title === '') {
                     throw new RuntimeException('O titulo da tarefa e obrigatorio.');
@@ -675,6 +884,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($action === 'create_task') {
+                    if (!userCanAccessTaskGroup($actorUserId, $workspaceId, $groupName)) {
+                        throw new RuntimeException('Voce nao possui acesso para criar tarefas neste grupo.');
+                    }
+                    upsertTaskGroup($pdo, $groupName, $actorUserId, $workspaceId);
+
                     $normalized = normalizeTaskOverdueState(
                         $status,
                         $priority,
@@ -703,7 +917,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':dd' => $dueDate,
                         ':of' => $overdueFlag,
                         ':osd' => $overdueSinceDate,
-                        ':cb' => (int) $authUser['id'],
+                        ':cb' => $actorUserId,
                         ':at' => $assignedTo,
                         ':aj' => $assigneeIdsJson,
                         ':rl' => encodeReferenceUrlList($referenceLinks),
@@ -724,7 +938,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'priority' => $priority,
                                 'due_date' => $dueDate,
                             ],
-                            (int) $authUser['id'],
+                            $actorUserId,
                             $now
                         );
 
@@ -739,7 +953,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     'overdue_since_date' => $overdueSinceDate,
                                     'overdue_days' => taskOverdueDays($overdueSinceDate),
                                 ],
-                                (int) $authUser['id'],
+                                $actorUserId,
                                 $now
                             );
                         }
@@ -766,6 +980,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$existingTaskRow) {
                     throw new RuntimeException('Tarefa invalida.');
                 }
+                $existingTaskGroupName = normalizeTaskGroupName((string) ($existingTaskRow['group_name'] ?? 'Geral'));
+                if (!userCanAccessTaskGroup($actorUserId, $workspaceId, $existingTaskGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para editar tarefas deste grupo.');
+                }
+                if (!userCanAccessTaskGroup($actorUserId, $workspaceId, $groupName)) {
+                    throw new RuntimeException('Voce nao possui acesso ao grupo de destino.');
+                }
+                upsertTaskGroup($pdo, $groupName, $actorUserId, $workspaceId);
+
                 if ($referenceLinks === null) {
                     $referenceLinks = decodeReferenceUrlList($existingTaskRow['reference_links_json'] ?? null);
                 }
@@ -838,7 +1061,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingOverdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
                 $existingOverdueSinceDate = dueDateForStorage((string) ($existingTaskRow['overdue_since_date'] ?? ''));
                 $existingAssigneeIds = decodeAssigneeIds($existingTaskRow['assignee_ids_json'] ?? null);
-                $actorUserId = (int) $authUser['id'];
                 $statusOptions = taskStatuses();
                 $priorityOptions = taskPriorities();
 
@@ -981,7 +1203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $existingTaskStmt = $pdo->prepare(
-                    'SELECT status, overdue_flag, overdue_since_date
+                    'SELECT status, overdue_flag, overdue_since_date, group_name
                      FROM tasks
                      WHERE id = :id
                        AND workspace_id = :workspace_id
@@ -994,6 +1216,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingTaskRow = $existingTaskStmt->fetch();
                 if (!$existingTaskRow) {
                     throw new RuntimeException('Tarefa invalida.');
+                }
+                $existingTaskGroupName = normalizeTaskGroupName((string) ($existingTaskRow['group_name'] ?? 'Geral'));
+                if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $existingTaskGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para atualizar esta tarefa.');
                 }
 
                 $existingStatus = normalizeTaskStatus((string) ($existingTaskRow['status'] ?? 'todo'));
@@ -1068,7 +1294,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 if ($taskId <= 0) {
-                    throw new RuntimeException('Tarefa inválida.');
+                    throw new RuntimeException('Tarefa invalida.');
+                }
+                $taskGroupStmt = $pdo->prepare(
+                    'SELECT group_name
+                     FROM tasks
+                     WHERE id = :id
+                       AND workspace_id = :workspace_id
+                     LIMIT 1'
+                );
+                $taskGroupStmt->execute([
+                    ':id' => $taskId,
+                    ':workspace_id' => $workspaceId,
+                ]);
+                $taskGroupName = $taskGroupStmt->fetchColumn();
+                if (!is_string($taskGroupName) || trim($taskGroupName) === '') {
+                    throw new RuntimeException('Tarefa invalida.');
+                }
+                if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $taskGroupName)) {
+                    throw new RuntimeException('Voce nao possui acesso para remover esta tarefa.');
                 }
                 $stmt = $pdo->prepare(
                     'DELETE FROM tasks
@@ -1116,24 +1360,74 @@ $workspaceMembers = ($currentUser && $currentWorkspaceId !== null) ? workspaceMe
 $canManageWorkspace = ($currentUser && $currentWorkspaceId !== null)
     ? userCanManageWorkspace((int) $currentUser['id'], $currentWorkspaceId)
     : false;
-$vaultEntries = ($currentUser && $currentWorkspaceId !== null) ? workspaceVaultEntriesList($currentWorkspaceId) : [];
-$vaultGroups = ($currentUser && $currentWorkspaceId !== null) ? vaultGroupsList($currentWorkspaceId) : ['Geral'];
-$protectedVaultGroupName = ($currentUser && $currentWorkspaceId !== null) ? defaultVaultGroupName($currentWorkspaceId) : 'Geral';
-if ($currentUser && $vaultGroups) {
-    $protectedVaultIndex = null;
-    foreach ($vaultGroups as $index => $groupName) {
-        if (mb_strtolower((string) $groupName) === mb_strtolower($protectedVaultGroupName)) {
-            $protectedVaultIndex = $index;
-            break;
+$taskGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? taskGroupsList($currentWorkspaceId) : ['Geral'];
+$vaultGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? vaultGroupsList($currentWorkspaceId) : ['Geral'];
+
+$taskGroupPermissions = [];
+$taskGroupPermissionsByUserMap = [];
+$taskGroups = [];
+$taskGroupsWithAccess = [];
+
+$vaultGroupPermissions = [];
+$vaultGroupPermissionsByUserMap = [];
+$vaultGroups = [];
+$vaultGroupsWithAccess = [];
+
+if ($currentUser && $currentWorkspaceId !== null) {
+    $currentUserId = (int) $currentUser['id'];
+
+    foreach ($taskGroupsAll as $taskGroupName) {
+        $taskGroupName = normalizeTaskGroupName((string) $taskGroupName);
+        $permission = taskGroupPermissionForUser($currentWorkspaceId, $taskGroupName, $currentUserId);
+        $taskGroupPermissions[$taskGroupName] = $permission;
+
+        if (!empty($permission['can_view'])) {
+            $taskGroups[] = $taskGroupName;
+        }
+        if (!empty($permission['can_access'])) {
+            $taskGroupsWithAccess[] = $taskGroupName;
+        }
+
+        if ($canManageWorkspace) {
+            $taskGroupPermissionsByUserMap[$taskGroupName] = taskGroupPermissionsByUser($currentWorkspaceId, $taskGroupName);
         }
     }
-    if ($protectedVaultIndex !== null && $protectedVaultIndex !== 0) {
-        $protectedVault = $vaultGroups[$protectedVaultIndex];
-        unset($vaultGroups[$protectedVaultIndex]);
-        array_unshift($vaultGroups, $protectedVault);
-        $vaultGroups = array_values($vaultGroups);
+
+    foreach ($vaultGroupsAll as $vaultGroupName) {
+        $vaultGroupName = normalizeVaultGroupName((string) $vaultGroupName);
+        $permission = vaultGroupPermissionForUser($currentWorkspaceId, $vaultGroupName, $currentUserId);
+        $vaultGroupPermissions[$vaultGroupName] = $permission;
+
+        if (!empty($permission['can_view'])) {
+            $vaultGroups[] = $vaultGroupName;
+        }
+        if (!empty($permission['can_access'])) {
+            $vaultGroupsWithAccess[] = $vaultGroupName;
+        }
+
+        if ($canManageWorkspace) {
+            $vaultGroupPermissionsByUserMap[$vaultGroupName] = vaultGroupPermissionsByUser($currentWorkspaceId, $vaultGroupName);
+        }
     }
+} else {
+    $taskGroups = $taskGroupsAll;
+    $taskGroupsWithAccess = $taskGroupsAll;
+    $vaultGroups = $vaultGroupsAll;
+    $vaultGroupsWithAccess = $vaultGroupsAll;
 }
+
+$vaultVisibleKeys = [];
+foreach ($vaultGroups as $vaultGroupName) {
+    $vaultVisibleKeys[mb_strtolower(normalizeVaultGroupName($vaultGroupName))] = true;
+}
+$vaultEntries = ($currentUser && $currentWorkspaceId !== null) ? workspaceVaultEntriesList($currentWorkspaceId) : [];
+$vaultEntries = array_values(array_filter(
+    $vaultEntries,
+    static function (array $entry) use ($vaultVisibleKeys): bool {
+        $groupKey = mb_strtolower(normalizeVaultGroupName((string) ($entry['group_name'] ?? 'Geral')));
+        return isset($vaultVisibleKeys[$groupKey]);
+    }
+));
 $vaultEntriesByGroup = $currentUser ? vaultEntriesByGroup($vaultEntries, $vaultGroups) : [];
 $statusFilter = isset($_GET['status']) && trim((string) $_GET['status']) !== ''
     ? normalizeTaskStatus((string) $_GET['status'])
@@ -1145,30 +1439,25 @@ if ($currentUser && $currentWorkspaceId !== null) {
     applyOverdueTaskPolicy($currentWorkspaceId);
 }
 
-$allTasks = ($currentUser && $currentWorkspaceId !== null) ? allTasks($currentWorkspaceId) : [];
-$tasks = $currentUser ? filterTasks($allTasks, $statusFilter, $assigneeFilterId) : [];
-$taskGroups = ($currentUser && $currentWorkspaceId !== null) ? taskGroupsList($currentWorkspaceId) : ['Geral'];
-$protectedGroupName = ($currentUser && $currentWorkspaceId !== null) ? defaultTaskGroupName($currentWorkspaceId) : 'Geral';
-if ($currentUser && $taskGroups) {
-    $protectedIndex = null;
-    foreach ($taskGroups as $index => $groupName) {
-        if (mb_strtolower((string) $groupName) === mb_strtolower($protectedGroupName)) {
-            $protectedIndex = $index;
-            break;
-        }
-    }
-    if ($protectedIndex !== null && $protectedIndex !== 0) {
-        $protected = $taskGroups[$protectedIndex];
-        unset($taskGroups[$protectedIndex]);
-        array_unshift($taskGroups, $protected);
-        $taskGroups = array_values($taskGroups);
-    }
+$taskVisibleKeys = [];
+foreach ($taskGroups as $taskGroupName) {
+    $taskVisibleKeys[mb_strtolower(normalizeTaskGroupName($taskGroupName))] = true;
 }
+$allTasks = ($currentUser && $currentWorkspaceId !== null) ? allTasks($currentWorkspaceId) : [];
+$allTasks = array_values(array_filter(
+    $allTasks,
+    static function (array $task) use ($taskVisibleKeys): bool {
+        $groupKey = mb_strtolower(normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral')));
+        return isset($taskVisibleKeys[$groupKey]);
+    }
+));
+$tasks = $currentUser ? filterTasks($allTasks, $statusFilter, $assigneeFilterId) : [];
 $showEmptyGroups = $currentUser && $statusFilter === null && $assigneeFilterId === null;
 $tasksGroupedByGroup = $currentUser ? tasksByGroup($tasks, $showEmptyGroups ? $taskGroups : null) : [];
 $stats = $currentUser ? dashboardStats($allTasks) : ['total' => 0, 'done' => 0, 'due_today' => 0, 'urgent' => 0];
 $myOpenTasks = $currentUser ? countMyAssignedTasks($allTasks, (int) $currentUser['id']) : 0;
 $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
+$defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -1181,12 +1470,12 @@ $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['to
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=44">
-    <script src="assets/app.js?v=21" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=45">
+    <script src="assets/app.js?v=22" defer></script>
 </head>
 <body
     class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"
-    data-default-group-name="<?= e((string) $protectedGroupName) ?>"
+    data-default-group-name="<?= e((string) $defaultTaskGroupName) ?>"
     data-workspace-id="<?= e((string) ($currentWorkspaceId ?? '')) ?>"
 >
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
