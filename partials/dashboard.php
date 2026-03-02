@@ -438,6 +438,12 @@
                                     $dueDateValue = (string) ($task['due_date'] ?? '');
                                     $dueDateUi = taskDueDatePresentation($dueDateValue);
                                     $isOverdueMarked = ((int) ($task['overdue_flag'] ?? 0)) === 1;
+                                    $taskSubtasks = is_array($task['subtasks'] ?? null)
+                                        ? $task['subtasks']
+                                        : decodeTaskSubtasks($task['subtasks_json'] ?? null);
+                                    $taskSubtasksProgress = taskSubtasksProgress($taskSubtasks);
+                                    $taskSubtasksTotal = (int) ($taskSubtasksProgress['total'] ?? 0);
+                                    $taskSubtasksCompleted = (int) ($taskSubtasksProgress['completed'] ?? 0);
                                     ?>
                                     <article
                                         class="task-list-item task-status-<?= e($statusKey) ?><?= $isOverdueMarked ? ' has-overdue-flag' : '' ?>"
@@ -454,6 +460,7 @@
                                             <input type="hidden" name="autosave" value="1">
                                             <input type="hidden" name="reference_links_json" value="<?= e(encodeReferenceUrlList($task['reference_links'] ?? [])) ?>" data-task-reference-links-json>
                                             <input type="hidden" name="reference_images_json" value="<?= e(encodeReferenceImageList($task['reference_images'] ?? [])) ?>" data-task-reference-images-json>
+                                            <input type="hidden" name="subtasks_json" value="<?= e(encodeTaskSubtasks($taskSubtasks)) ?>" data-task-subtasks-json>
                                             <input type="hidden" name="overdue_flag" value="<?= $isOverdueMarked ? '1' : '0' ?>" data-task-overdue-flag>
                                             <input type="hidden" name="overdue_since_date" value="<?= e((string) ($task['overdue_since_date'] ?? '')) ?>" data-task-overdue-since-date>
                                             <input type="hidden" value="<?= e((string) (($task['overdue_days'] ?? 0))) ?>" data-task-overdue-days>
@@ -471,6 +478,27 @@
                                                         aria-label="Titulo da tarefa"
                                                         required
                                                     >
+                                                    <div
+                                                        class="task-subtasks-progress<?= $taskSubtasksTotal > 0 ? '' : ' is-hidden' ?>"
+                                                        data-task-subtasks-progress
+                                                        aria-label="Progresso das subtarefas"
+                                                    >
+                                                        <div class="task-subtasks-progress-steps" data-task-subtasks-progress-steps>
+                                                            <?php foreach ($taskSubtasks as $index => $subtask): ?>
+                                                                <?php
+                                                                $isDoneStep = !empty($subtask['done']);
+                                                                $isLockedStep = $index > 0 && empty($taskSubtasks[$index - 1]['done']);
+                                                                ?>
+                                                                <span
+                                                                    class="task-subtasks-progress-step<?= $isDoneStep ? ' is-done' : '' ?><?= $isLockedStep ? ' is-locked' : '' ?>"
+                                                                    aria-hidden="true"
+                                                                ></span>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                        <span class="task-subtasks-progress-text" data-task-subtasks-progress-text>
+                                                            <?= e((string) $taskSubtasksCompleted) ?>/<?= e((string) $taskSubtasksTotal) ?> etapas
+                                                        </span>
+                                                    </div>
                                                 </div>
 
                                                 <div class="status-stepper" data-status-stepper>
@@ -1446,6 +1474,21 @@
                 ></textarea>
             </label>
 
+            <div class="task-subtasks-editor">
+                <span>Etapas / subtarefas</span>
+                <div class="task-subtasks-edit-add">
+                    <input
+                        type="text"
+                        maxlength="120"
+                        placeholder="Nova etapa"
+                        data-create-task-subtask-input
+                    >
+                    <button type="button" class="btn btn-mini btn-ghost" data-create-task-subtask-add>Adicionar etapa</button>
+                </div>
+                <div class="task-subtasks-edit-list" data-create-task-subtasks-list></div>
+                <textarea name="subtasks_json" rows="1" data-create-task-subtasks hidden></textarea>
+            </div>
+
             <div class="modal-actions">
                 <button type="button" class="btn btn-mini btn-ghost" data-close-create-modal>Cancelar</button>
                 <button type="submit" class="btn btn-pill" <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar tarefa</button>
@@ -2156,6 +2199,11 @@
                             <div class="task-detail-view-description" data-task-detail-view-description></div>
                         </div>
 
+                        <div class="task-detail-view-block" data-task-detail-view-subtasks-wrap hidden>
+                            <div class="task-detail-view-label">Etapas</div>
+                            <div class="task-detail-subtasks-list" data-task-detail-view-subtasks></div>
+                        </div>
+
                         <div class="task-detail-view-block" data-task-detail-view-references hidden>
                             <div class="task-detail-view-label">Referencias</div>
 
@@ -2254,6 +2302,21 @@
                             <span>Prazo</span>
                             <input type="date" data-task-detail-edit-due-date>
                         </label>
+                    </div>
+
+                    <div class="task-subtasks-editor">
+                        <span>Etapas / subtarefas</span>
+                        <div class="task-subtasks-edit-add">
+                            <input
+                                type="text"
+                                maxlength="120"
+                                placeholder="Nova etapa"
+                                data-task-detail-edit-subtask-input
+                            >
+                            <button type="button" class="btn btn-mini btn-ghost" data-task-detail-edit-subtask-add>Adicionar etapa</button>
+                        </div>
+                        <div class="task-subtasks-edit-list" data-task-detail-edit-subtasks-list></div>
+                        <textarea rows="1" data-task-detail-edit-subtasks hidden></textarea>
                     </div>
 
                     <div class="task-detail-edit-main-row">

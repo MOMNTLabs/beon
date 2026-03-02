@@ -1241,11 +1241,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $description = trim((string) ($_POST['description'] ?? ''));
                 $referenceLinksPosted = array_key_exists('reference_links_json', $_POST);
                 $referenceImagesPosted = array_key_exists('reference_images_json', $_POST);
+                $subtasksPosted = array_key_exists('subtasks_json', $_POST);
                 $referenceLinks = $referenceLinksPosted
                     ? decodeReferenceUrlList((string) ($_POST['reference_links_json'] ?? '[]'))
                     : null;
                 $referenceImages = $referenceImagesPosted
                     ? decodeReferenceImageList((string) ($_POST['reference_images_json'] ?? '[]'))
+                    : null;
+                $subtasks = $subtasksPosted
+                    ? decodeTaskSubtasks((string) ($_POST['subtasks_json'] ?? '[]'))
                     : null;
                 $overdueFlagPosted = array_key_exists('overdue_flag', $_POST);
                 $overdueFlag = $overdueFlagPosted
@@ -1305,9 +1309,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $overdueSinceDate = $normalized['overdue_since_date'];
                     $referenceLinks ??= [];
                     $referenceImages ??= [];
+                    $subtasks ??= [];
+                    $status = applyTaskSubtasksCompletionStatus($status, $subtasks);
                     $stmt = $pdo->prepare(
-                        'INSERT INTO tasks (workspace_id, title, description, status, priority, due_date, overdue_flag, overdue_since_date, created_by, assigned_to, assignee_ids_json, reference_links_json, reference_images_json, group_name, created_at, updated_at)
-                         VALUES (:workspace_id, :t, :d, :s, :p, :dd, :of, :osd, :cb, :at, :aj, :rl, :ri, :g, :c, :u)'
+                        'INSERT INTO tasks (workspace_id, title, description, status, priority, due_date, overdue_flag, overdue_since_date, created_by, assigned_to, assignee_ids_json, reference_links_json, reference_images_json, subtasks_json, group_name, created_at, updated_at)
+                         VALUES (:workspace_id, :t, :d, :s, :p, :dd, :of, :osd, :cb, :at, :aj, :rl, :ri, :sj, :g, :c, :u)'
                     );
                     $now = nowIso();
                     $stmt->execute([
@@ -1324,6 +1330,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':aj' => $assigneeIdsJson,
                         ':rl' => encodeReferenceUrlList($referenceLinks),
                         ':ri' => encodeReferenceImageList($referenceImages),
+                        ':sj' => encodeTaskSubtasks($subtasks),
                         ':g' => $groupName,
                         ':c' => $now,
                         ':u' => $now,
@@ -1368,7 +1375,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Tarefa invalida.');
                 }
                 $existingTaskStmt = $pdo->prepare(
-                    'SELECT title, status, priority, due_date, overdue_flag, overdue_since_date, assignee_ids_json, group_name, reference_links_json, reference_images_json
+                    'SELECT title, status, priority, due_date, overdue_flag, overdue_since_date, assignee_ids_json, group_name, reference_links_json, reference_images_json, subtasks_json
                      FROM tasks
                      WHERE id = :id
                        AND workspace_id = :workspace_id
@@ -1397,6 +1404,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($referenceImages === null) {
                     $referenceImages = decodeReferenceImageList($existingTaskRow['reference_images_json'] ?? null);
                 }
+                if ($subtasks === null) {
+                    $subtasks = decodeTaskSubtasks($existingTaskRow['subtasks_json'] ?? null);
+                }
                 if ($overdueFlag === null) {
                     $overdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
                 }
@@ -1417,6 +1427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $overdueFlag = $normalized['overdue_flag'];
                 $overdueSinceDate = $normalized['overdue_since_date'];
                 $overdueDays = (int) ($normalized['overdue_days'] ?? 0);
+                $status = applyTaskSubtasksCompletionStatus($status, $subtasks);
 
                 $stmt = $pdo->prepare(
                     'UPDATE tasks
@@ -1431,6 +1442,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          assignee_ids_json = :aj,
                          reference_links_json = :rl,
                          reference_images_json = :ri,
+                         subtasks_json = :sj,
                          group_name = :g,
                          updated_at = :u
                      WHERE id = :id
@@ -1449,6 +1461,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':aj' => $assigneeIdsJson,
                     ':rl' => encodeReferenceUrlList($referenceLinks ?? []),
                     ':ri' => encodeReferenceImageList($referenceImages ?? []),
+                    ':sj' => encodeTaskSubtasks($subtasks ?? []),
                     ':g' => $groupName,
                     ':u' => $updatedAt,
                     ':id' => $taskId,
@@ -1463,6 +1476,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingOverdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
                 $existingOverdueSinceDate = dueDateForStorage((string) ($existingTaskRow['overdue_since_date'] ?? ''));
                 $existingAssigneeIds = decodeAssigneeIds($existingTaskRow['assignee_ids_json'] ?? null);
+                $existingSubtasks = decodeTaskSubtasks($existingTaskRow['subtasks_json'] ?? null);
                 $statusOptions = taskStatuses();
                 $priorityOptions = taskPriorities();
 
@@ -1536,6 +1550,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $updatedAt
                     );
                 }
+                if ($existingSubtasks !== $subtasks) {
+                    $existingProgress = taskSubtasksProgress($existingSubtasks);
+                    $nextProgress = taskSubtasksProgress($subtasks ?? []);
+                    logTaskHistory(
+                        $pdo,
+                        $taskId,
+                        'subtasks_changed',
+                        [
+                            'old_total' => (int) ($existingProgress['total'] ?? 0),
+                            'new_total' => (int) ($nextProgress['total'] ?? 0),
+                            'old_completed' => (int) ($existingProgress['completed'] ?? 0),
+                            'new_completed' => (int) ($nextProgress['completed'] ?? 0),
+                        ],
+                        $actorUserId,
+                        $updatedAt
+                    );
+                }
                 if ($existingOverdueFlag !== $overdueFlag) {
                     if ($overdueFlag === 1) {
                         logTaskHistory(
@@ -1579,6 +1610,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'overdue_flag' => $overdueFlag,
                             'overdue_since_date' => $overdueSinceDate,
                             'overdue_days' => $overdueDays,
+                            'subtasks_json' => encodeTaskSubtasks($subtasks ?? []),
                             'reference_links_json' => encodeReferenceUrlList($referenceLinks ?? []),
                             'reference_images_json' => encodeReferenceImageList($referenceImages ?? []),
                             'history' => $taskHistory,
@@ -1922,8 +1954,8 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=65">
-    <script src="assets/app.js?v=41" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=66">
+    <script src="assets/app.js?v=42" defer></script>
 </head>
 <body
     class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"

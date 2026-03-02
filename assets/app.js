@@ -165,6 +165,9 @@ window.addEventListener("DOMContentLoaded", () => {
     "[data-due-entry-label]",
     "[data-due-entry-edit-label]",
     "[data-due-group-name-input]",
+    "[data-task-detail-edit-subtask-input]",
+    "[data-create-task-subtask-input]",
+    ".task-subtasks-edit-title",
   ].join(", ");
 
   const getTaskItemStatusValue = (taskItem) => {
@@ -1197,6 +1200,96 @@ window.addEventListener("DOMContentLoaded", () => {
     field.value = JSON.stringify(Array.isArray(history) ? history : []);
   };
 
+  const parseTaskSubtaskList = (value, maxItems = 40) => {
+    let source = [];
+    if (Array.isArray(value)) {
+      source = value;
+    } else if (typeof value === "string") {
+      const raw = value.trim();
+      if (!raw) {
+        source = [];
+      } else {
+        try {
+          const decoded = JSON.parse(raw);
+          source = Array.isArray(decoded) ? decoded : [];
+        } catch (_error) {
+          source = raw
+            .split(/\r?\n/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+      }
+    }
+
+    const normalized = [];
+    source.forEach((entry) => {
+      if (normalized.length >= maxItems) return;
+
+      let title = "";
+      let done = false;
+      if (typeof entry === "string") {
+        title = entry.trim();
+      } else if (entry && typeof entry === "object") {
+        title = String(entry.title || entry.name || "").trim();
+        done = Boolean(entry.done || entry.completed || entry.checked);
+      }
+
+      if (!title) return;
+      if (title.length > 120) {
+        title = title.slice(0, 120).trim();
+      }
+      title = forceFirstLetterUppercase(title);
+      if (!title) return;
+
+      normalized.push({
+        title,
+        done,
+      });
+    });
+
+    let unlockNext = true;
+    normalized.forEach((item) => {
+      if (!unlockNext) {
+        item.done = false;
+      }
+      if (!item.done) {
+        unlockNext = false;
+      }
+    });
+
+    return normalized;
+  };
+
+  const taskSubtasksProgressMeta = (subtasks) => {
+    const normalized = parseTaskSubtaskList(subtasks || []);
+    const total = normalized.length;
+    const completed = normalized.reduce((count, item) => count + (item.done ? 1 : 0), 0);
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    return {
+      total,
+      completed,
+      pending: Math.max(0, total - completed),
+      percent: Math.max(0, Math.min(100, percent)),
+      isComplete: total > 0 && completed >= total,
+      items: normalized,
+    };
+  };
+
+  const readTaskSubtasksField = (field) => {
+    if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLTextAreaElement)) {
+      return [];
+    }
+    return parseTaskSubtaskList(field.value || "[]");
+  };
+
+  const writeTaskSubtasksField = (field, subtasks) => {
+    if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLTextAreaElement)) {
+      return;
+    }
+    field.value = JSON.stringify(parseTaskSubtaskList(subtasks || []));
+  };
+
   const formatHistoryDate = (value) => {
     const raw = (value || "").trim();
     if (!raw) return "Sem prazo";
@@ -1242,6 +1335,10 @@ window.addEventListener("DOMContentLoaded", () => {
         return `Grupo: ${payload.old || "-"} ${transitionSymbol} ${payload.new || "-"}`;
       case "assignees_changed":
         return "Responsaveis atualizados";
+      case "subtasks_changed":
+        return `Etapas: ${Number(payload.old_completed) || 0}/${Number(payload.old_total) || 0} âžœ ${
+          Number(payload.new_completed) || 0
+        }/${Number(payload.new_total) || 0}`;
       case "overdue_started":
         return `Atraso detectado (${Math.max(0, Number(payload.overdue_days) || 0)} dia(s))`;
       case "overdue_cleared":
@@ -1825,6 +1922,17 @@ window.addEventListener("DOMContentLoaded", () => {
           imagesField.value = task.reference_images_json;
         }
       }
+      if (typeof task.subtasks_json === "string") {
+        const subtasksField = form.querySelector("[data-task-subtasks-json]");
+        if (subtasksField instanceof HTMLInputElement) {
+          subtasksField.value = task.subtasks_json;
+          const subtasks = readTaskSubtasksField(subtasksField);
+          writeTaskSubtasksField(subtasksField, subtasks);
+          if (taskItem instanceof HTMLElement) {
+            renderTaskRowSubtasksProgress(taskItem, subtasks);
+          }
+        }
+      }
       if (Object.prototype.hasOwnProperty.call(task, "due_date")) {
         const dueDateField = form.querySelector("[data-due-date-input]");
         if (dueDateField instanceof HTMLInputElement) {
@@ -1995,6 +2103,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll("[data-task-autosave-form]").forEach((form) => {
     syncTaskOverdueBadge(form);
+    syncTaskRowSubtasksFromField(form);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       submitTaskAutosave(form);
@@ -2589,6 +2698,10 @@ window.addEventListener("DOMContentLoaded", () => {
   const createTaskForm = document.querySelector("[data-create-task-form]");
   const createTaskLinksField = document.querySelector("[data-create-task-links]");
   const createTaskImagesField = document.querySelector("[data-create-task-images]");
+  const createTaskSubtasksField = document.querySelector("[data-create-task-subtasks]");
+  const createTaskSubtasksList = document.querySelector("[data-create-task-subtasks-list]");
+  const createTaskSubtaskInput = document.querySelector("[data-create-task-subtask-input]");
+  const createTaskSubtaskAddButton = document.querySelector("[data-create-task-subtask-add]");
   const createTaskImagePicker = document.querySelector("[data-create-task-image-picker]");
   const createTaskImageInput = document.querySelector("[data-create-task-image-input]");
   const createTaskImageAddButton = document.querySelector("[data-create-task-image-add]");
@@ -2658,6 +2771,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const taskDetailViewDue = document.querySelector("[data-task-detail-view-due]");
   const taskDetailViewAssignees = document.querySelector("[data-task-detail-view-assignees]");
   const taskDetailViewDescription = document.querySelector("[data-task-detail-view-description]");
+  const taskDetailViewSubtasksWrap = document.querySelector("[data-task-detail-view-subtasks-wrap]");
+  const taskDetailViewSubtasks = document.querySelector("[data-task-detail-view-subtasks]");
   const taskDetailViewReferences = document.querySelector("[data-task-detail-view-references]");
   const taskDetailViewLinksWrap = document.querySelector("[data-task-detail-view-links-wrap]");
   const taskDetailViewLinks = document.querySelector("[data-task-detail-view-links]");
@@ -2683,6 +2798,10 @@ window.addEventListener("DOMContentLoaded", () => {
   const taskDetailEditDescriptionToolbar = document.querySelector(
     "[data-task-detail-edit-description-toolbar]"
   );
+  const taskDetailEditSubtasksField = document.querySelector("[data-task-detail-edit-subtasks]");
+  const taskDetailEditSubtasksList = document.querySelector("[data-task-detail-edit-subtasks-list]");
+  const taskDetailEditSubtaskInput = document.querySelector("[data-task-detail-edit-subtask-input]");
+  const taskDetailEditSubtaskAddButton = document.querySelector("[data-task-detail-edit-subtask-add]");
   const taskDetailEditLinks = document.querySelector("[data-task-detail-edit-links]");
   const taskDetailEditImages = document.querySelector("[data-task-detail-edit-images]");
   const taskDetailImagePicker = document.querySelector("[data-task-detail-image-picker]");
@@ -2705,7 +2824,202 @@ window.addEventListener("DOMContentLoaded", () => {
   let confirmModalAction = null;
   let taskDetailContext = null;
   let taskDetailEditImageItems = [];
+  let taskDetailEditSubtaskItems = [];
   let createTaskImageItems = [];
+  let createTaskSubtaskItems = [];
+
+  const renderTaskRowSubtasksProgress = (taskItem, subtasks) => {
+    if (!(taskItem instanceof HTMLElement)) return;
+    const progressWrap = taskItem.querySelector("[data-task-subtasks-progress]");
+    if (!(progressWrap instanceof HTMLElement)) return;
+
+    const stepsWrap = progressWrap.querySelector("[data-task-subtasks-progress-steps]");
+    const textEl = progressWrap.querySelector("[data-task-subtasks-progress-text]");
+    const progress = taskSubtasksProgressMeta(subtasks);
+    const items = progress.items;
+
+    if (!(stepsWrap instanceof HTMLElement) || !(textEl instanceof HTMLElement)) {
+      return;
+    }
+
+    if (!items.length) {
+      progressWrap.classList.add("is-hidden");
+      stepsWrap.innerHTML = "";
+      textEl.textContent = "";
+      return;
+    }
+
+    progressWrap.classList.remove("is-hidden");
+    stepsWrap.innerHTML = "";
+
+    items.forEach((item, index) => {
+      const dot = document.createElement("span");
+      dot.className = "task-subtasks-progress-step";
+      if (item.done) {
+        dot.classList.add("is-done");
+      } else if (index > 0 && !items[index - 1]?.done) {
+        dot.classList.add("is-locked");
+      }
+      dot.setAttribute("aria-hidden", "true");
+      stepsWrap.append(dot);
+    });
+
+    textEl.textContent = `${progress.completed}/${progress.total} etapas`;
+  };
+
+  const syncTaskRowSubtasksFromField = (form, explicitTaskItem = null) => {
+    if (!(form instanceof HTMLFormElement)) return;
+    const subtasksField = form.querySelector("[data-task-subtasks-json]");
+    if (!(subtasksField instanceof HTMLInputElement)) return;
+
+    const taskItem =
+      explicitTaskItem instanceof HTMLElement
+        ? explicitTaskItem
+        : form.closest("[data-task-item]");
+    if (!(taskItem instanceof HTMLElement)) return;
+
+    const subtasks = readTaskSubtasksField(subtasksField);
+    writeTaskSubtasksField(subtasksField, subtasks);
+    renderTaskRowSubtasksProgress(taskItem, subtasks);
+  };
+
+  const renderTaskSubtasksViewList = ({ subtasks = [], readOnly = false, editable = true } = {}) => {
+    if (!(taskDetailViewSubtasks instanceof HTMLElement)) return;
+
+    const normalized = parseTaskSubtaskList(subtasks || []);
+    taskDetailViewSubtasks.innerHTML = "";
+
+    if (!normalized.length) {
+      if (taskDetailViewSubtasksWrap instanceof HTMLElement) {
+        taskDetailViewSubtasksWrap.hidden = true;
+      }
+      return;
+    }
+
+    if (taskDetailViewSubtasksWrap instanceof HTMLElement) {
+      taskDetailViewSubtasksWrap.hidden = false;
+    }
+
+    normalized.forEach((item, index) => {
+      const row = document.createElement("label");
+      row.className = "task-detail-subtask-row";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "task-detail-subtask-check";
+      checkbox.dataset.taskDetailSubtaskToggle = String(index);
+      checkbox.checked = Boolean(item.done);
+      const isUnlocked = index === 0 || Boolean(normalized[index - 1]?.done);
+      checkbox.disabled = readOnly || !editable || (!isUnlocked && !item.done);
+      if (!isUnlocked && !item.done) {
+        row.classList.add("is-locked");
+      }
+      if (item.done) {
+        row.classList.add("is-done");
+      }
+
+      const text = document.createElement("span");
+      text.className = "task-detail-subtask-text";
+      text.textContent = item.title || `Etapa ${index + 1}`;
+
+      row.append(checkbox, text);
+      taskDetailViewSubtasks.append(row);
+    });
+  };
+
+  const setTaskDetailEditSubtasks = (subtasks) => {
+    taskDetailEditSubtaskItems = parseTaskSubtaskList(subtasks || []);
+    if (taskDetailEditSubtasksField instanceof HTMLTextAreaElement) {
+      writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems);
+    }
+  };
+
+  const setCreateTaskSubtasks = (subtasks) => {
+    createTaskSubtaskItems = parseTaskSubtaskList(subtasks || []);
+    if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
+      writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems);
+    }
+  };
+
+  const renderTaskDetailSubtasksEditList = () => {
+    if (!(taskDetailEditSubtasksList instanceof HTMLElement)) return;
+
+    taskDetailEditSubtasksList.innerHTML = "";
+    if (!taskDetailEditSubtaskItems.length) return;
+
+    taskDetailEditSubtaskItems.forEach((item, index) => {
+      const row = document.createElement("div");
+      row.className = "task-subtasks-edit-row";
+
+      const check = document.createElement("input");
+      check.type = "checkbox";
+      check.className = "task-subtasks-edit-check";
+      check.dataset.taskDetailEditSubtaskDone = String(index);
+      check.checked = Boolean(item.done);
+      check.disabled = index > 0 && !taskDetailEditSubtaskItems[index - 1]?.done && !item.done;
+
+      const title = document.createElement("input");
+      title.type = "text";
+      title.maxLength = 120;
+      title.className = "task-subtasks-edit-title";
+      title.dataset.taskDetailEditSubtaskTitle = String(index);
+      title.value = item.title || "";
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "task-subtasks-edit-remove";
+      remove.dataset.taskDetailEditSubtaskRemove = String(index);
+      remove.setAttribute("aria-label", "Remover etapa");
+      remove.textContent = "x";
+
+      row.append(check, title, remove);
+      taskDetailEditSubtasksList.append(row);
+    });
+
+    if (taskDetailEditSubtasksField instanceof HTMLTextAreaElement) {
+      writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems);
+    }
+  };
+
+  const renderCreateTaskSubtasksEditList = () => {
+    if (!(createTaskSubtasksList instanceof HTMLElement)) return;
+
+    createTaskSubtasksList.innerHTML = "";
+    if (!createTaskSubtaskItems.length) return;
+
+    createTaskSubtaskItems.forEach((item, index) => {
+      const row = document.createElement("div");
+      row.className = "task-subtasks-edit-row";
+
+      const check = document.createElement("input");
+      check.type = "checkbox";
+      check.className = "task-subtasks-edit-check";
+      check.dataset.createTaskSubtaskDone = String(index);
+      check.checked = Boolean(item.done);
+      check.disabled = index > 0 && !createTaskSubtaskItems[index - 1]?.done && !item.done;
+
+      const title = document.createElement("input");
+      title.type = "text";
+      title.maxLength = 120;
+      title.className = "task-subtasks-edit-title";
+      title.dataset.createTaskSubtaskTitle = String(index);
+      title.value = item.title || "";
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "task-subtasks-edit-remove";
+      remove.dataset.createTaskSubtaskRemove = String(index);
+      remove.setAttribute("aria-label", "Remover etapa");
+      remove.textContent = "x";
+
+      row.append(check, title, remove);
+      createTaskSubtasksList.append(row);
+    });
+
+    if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
+      writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems);
+    }
+  };
 
   const closeTaskImagePreview = () => {
     if (!(taskImagePreviewModal instanceof HTMLElement)) return;
@@ -3199,6 +3513,163 @@ window.addEventListener("DOMContentLoaded", () => {
     renderCreateTaskImageList();
   });
 
+  const addTaskDetailSubtaskFromInput = () => {
+    if (!(taskDetailEditSubtaskInput instanceof HTMLInputElement)) return;
+    const title = (taskDetailEditSubtaskInput.value || "").trim();
+    if (!title) return;
+    taskDetailEditSubtaskItems = parseTaskSubtaskList([
+      ...taskDetailEditSubtaskItems,
+      { title, done: false },
+    ]);
+    taskDetailEditSubtaskInput.value = "";
+    renderTaskDetailSubtasksEditList();
+    taskDetailEditSubtaskInput.focus();
+  };
+
+  const addCreateTaskSubtaskFromInput = () => {
+    if (!(createTaskSubtaskInput instanceof HTMLInputElement)) return;
+    const title = (createTaskSubtaskInput.value || "").trim();
+    if (!title) return;
+    createTaskSubtaskItems = parseTaskSubtaskList([
+      ...createTaskSubtaskItems,
+      { title, done: false },
+    ]);
+    createTaskSubtaskInput.value = "";
+    renderCreateTaskSubtasksEditList();
+    createTaskSubtaskInput.focus();
+  };
+
+  if (taskDetailEditSubtaskAddButton instanceof HTMLButtonElement) {
+    taskDetailEditSubtaskAddButton.addEventListener("click", addTaskDetailSubtaskFromInput);
+  }
+  if (createTaskSubtaskAddButton instanceof HTMLButtonElement) {
+    createTaskSubtaskAddButton.addEventListener("click", addCreateTaskSubtaskFromInput);
+  }
+
+  if (taskDetailEditSubtaskInput instanceof HTMLInputElement) {
+    taskDetailEditSubtaskInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      addTaskDetailSubtaskFromInput();
+    });
+  }
+  if (createTaskSubtaskInput instanceof HTMLInputElement) {
+    createTaskSubtaskInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      addCreateTaskSubtaskFromInput();
+    });
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof Element)) return;
+
+    const removeDetailSubtask = target.closest("[data-task-detail-edit-subtask-remove]");
+    if (removeDetailSubtask instanceof HTMLButtonElement) {
+      const index = Number.parseInt(removeDetailSubtask.dataset.taskDetailEditSubtaskRemove || "-1", 10);
+      if (!Number.isFinite(index) || index < 0) return;
+      taskDetailEditSubtaskItems = taskDetailEditSubtaskItems.filter(
+        (_item, itemIndex) => itemIndex !== index
+      );
+      taskDetailEditSubtaskItems = parseTaskSubtaskList(taskDetailEditSubtaskItems);
+      renderTaskDetailSubtasksEditList();
+      return;
+    }
+
+    const removeCreateSubtask = target.closest("[data-create-task-subtask-remove]");
+    if (removeCreateSubtask instanceof HTMLButtonElement) {
+      const index = Number.parseInt(removeCreateSubtask.dataset.createTaskSubtaskRemove || "-1", 10);
+      if (!Number.isFinite(index) || index < 0) return;
+      createTaskSubtaskItems = createTaskSubtaskItems.filter(
+        (_item, itemIndex) => itemIndex !== index
+      );
+      createTaskSubtaskItems = parseTaskSubtaskList(createTaskSubtaskItems);
+      renderCreateTaskSubtasksEditList();
+      return;
+    }
+  });
+
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const detailTitleInput = target.closest("[data-task-detail-edit-subtask-title]");
+    if (detailTitleInput instanceof HTMLInputElement) {
+      const index = Number.parseInt(detailTitleInput.dataset.taskDetailEditSubtaskTitle || "-1", 10);
+      if (!Number.isFinite(index) || index < 0 || index >= taskDetailEditSubtaskItems.length) return;
+      taskDetailEditSubtaskItems[index].title = String(detailTitleInput.value || "").slice(0, 120);
+      if (taskDetailEditSubtasksField instanceof HTMLTextAreaElement) {
+        writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems);
+      }
+      return;
+    }
+
+    const createTitleInput = target.closest("[data-create-task-subtask-title]");
+    if (createTitleInput instanceof HTMLInputElement) {
+      const index = Number.parseInt(createTitleInput.dataset.createTaskSubtaskTitle || "-1", 10);
+      if (!Number.isFinite(index) || index < 0 || index >= createTaskSubtaskItems.length) return;
+      createTaskSubtaskItems[index].title = String(createTitleInput.value || "").slice(0, 120);
+      if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
+        writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems);
+      }
+    }
+  });
+
+  document.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const detailCheck = target.closest("[data-task-detail-edit-subtask-done]");
+    if (detailCheck instanceof HTMLInputElement) {
+      const index = Number.parseInt(detailCheck.dataset.taskDetailEditSubtaskDone || "-1", 10);
+      if (!Number.isFinite(index) || index < 0 || index >= taskDetailEditSubtaskItems.length) return;
+      taskDetailEditSubtaskItems[index].done = detailCheck.checked;
+      taskDetailEditSubtaskItems = parseTaskSubtaskList(taskDetailEditSubtaskItems);
+      renderTaskDetailSubtasksEditList();
+      return;
+    }
+
+    const createCheck = target.closest("[data-create-task-subtask-done]");
+    if (createCheck instanceof HTMLInputElement) {
+      const index = Number.parseInt(createCheck.dataset.createTaskSubtaskDone || "-1", 10);
+      if (!Number.isFinite(index) || index < 0 || index >= createTaskSubtaskItems.length) return;
+      createTaskSubtaskItems[index].done = createCheck.checked;
+      createTaskSubtaskItems = parseTaskSubtaskList(createTaskSubtaskItems);
+      renderCreateTaskSubtasksEditList();
+    }
+  });
+
+  document.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const subtaskToggle = target.closest("[data-task-detail-subtask-toggle]");
+    if (!(subtaskToggle instanceof HTMLInputElement)) return;
+    if (!taskDetailContext || taskDetailContext.readOnly) {
+      subtaskToggle.checked = !subtaskToggle.checked;
+      return;
+    }
+
+    const index = Number.parseInt(subtaskToggle.dataset.taskDetailSubtaskToggle || "-1", 10);
+    if (!Number.isFinite(index) || index < 0) return;
+    if (!(taskDetailContext.subtasksField instanceof HTMLInputElement)) return;
+
+    const current = readTaskSubtasksField(taskDetailContext.subtasksField);
+    if (index >= current.length) return;
+
+    current[index].done = subtaskToggle.checked;
+    const normalized = parseTaskSubtaskList(current);
+    writeTaskSubtasksField(taskDetailContext.subtasksField, normalized);
+    renderTaskRowSubtasksProgress(taskDetailContext.taskItem, normalized);
+    renderTaskSubtasksViewList({
+      subtasks: normalized,
+      readOnly: Boolean(taskDetailContext.readOnly),
+      editable: true,
+    });
+    scheduleTaskAutosave(taskDetailContext.form, 60);
+  });
+
   const setTaskDetailEditMode = (editing) => {
     if (!taskDetailModal) return;
     const isReadOnlyTask = Boolean(taskDetailContext?.readOnly);
@@ -3257,6 +3728,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const descriptionField = form.querySelector('textarea[name="description"]');
     const referenceLinksField = form.querySelector('[data-task-reference-links-json]');
     const referenceImagesField = form.querySelector('[data-task-reference-images-json]');
+    const subtasksField = form.querySelector("[data-task-subtasks-json]");
     const overdueFlagField = form.querySelector("[data-task-overdue-flag]");
     const overdueSinceDateField = form.querySelector("[data-task-overdue-since-date]");
     const overdueDaysField = form.querySelector("[data-task-overdue-days]");
@@ -3288,6 +3760,7 @@ window.addEventListener("DOMContentLoaded", () => {
       descriptionField,
       referenceLinksField: referenceLinksField instanceof HTMLInputElement ? referenceLinksField : null,
       referenceImagesField: referenceImagesField instanceof HTMLInputElement ? referenceImagesField : null,
+      subtasksField: subtasksField instanceof HTMLInputElement ? subtasksField : null,
       overdueFlagField: overdueFlagField instanceof HTMLInputElement ? overdueFlagField : null,
       overdueSinceDateField:
         overdueSinceDateField instanceof HTMLInputElement ? overdueSinceDateField : null,
@@ -3393,6 +3866,7 @@ window.addEventListener("DOMContentLoaded", () => {
       descriptionField,
       referenceLinksField,
       referenceImagesField,
+      subtasksField,
       overdueFlagField,
       overdueSinceDateField,
       overdueDaysField,
@@ -3410,6 +3884,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const description = (descriptionField.value || "").trim();
     const referenceLinks = readJsonUrlListField(referenceLinksField, parseReferenceUrlLines);
     const referenceImages = readJsonUrlListField(referenceImagesField, parseReferenceImageItems);
+    const subtasks = readTaskSubtasksField(subtasksField);
     const overdueFlag =
       overdueFlagField instanceof HTMLInputElement && overdueFlagField.value === "1" ? 1 : 0;
     const overdueSinceDate =
@@ -3441,6 +3916,11 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       taskDetailViewDescription.classList.toggle("is-empty", !description);
     }
+    renderTaskSubtasksViewList({
+      subtasks,
+      readOnly: Boolean(context.readOnly),
+      editable: true,
+    });
     renderTaskDetailReferencesView({ links: referenceLinks, images: referenceImages });
     renderTaskDetailHistoryView({
       history,
@@ -3491,6 +3971,8 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailEditLinks.value = referenceLinks.join("\n");
       syncReferenceTextareaLayout(taskDetailEditLinks);
     }
+    setTaskDetailEditSubtasks(subtasks);
+    renderTaskDetailSubtasksEditList();
     setTaskDetailEditImageItems(referenceImages);
     copyAssigneesToTaskDetailModal(rowAssigneePicker);
   };
@@ -3516,6 +3998,7 @@ window.addEventListener("DOMContentLoaded", () => {
     closeTaskImagePreview();
     taskDetailModal.hidden = true;
     taskDetailContext = null;
+    taskDetailEditSubtaskItems = [];
     setTaskDetailEditMode(false);
     if (taskDetailSaveButton instanceof HTMLButtonElement) {
       taskDetailSaveButton.disabled = false;
@@ -3564,6 +4047,11 @@ window.addEventListener("DOMContentLoaded", () => {
     if (context.referenceImagesField instanceof HTMLInputElement) {
       const referenceImages = parseReferenceImageItems(taskDetailEditImageItems);
       writeJsonUrlListField(context.referenceImagesField, referenceImages, parseReferenceImageItems);
+    }
+    if (context.subtasksField instanceof HTMLInputElement) {
+      const normalizedSubtasks = parseTaskSubtaskList(taskDetailEditSubtaskItems);
+      writeTaskSubtasksField(context.subtasksField, normalizedSubtasks);
+      renderTaskRowSubtasksProgress(context.taskItem, normalizedSubtasks);
     }
 
     const groupValue = (taskDetailEditGroup.value || "Geral").trim() || "Geral";
@@ -4044,6 +4532,10 @@ window.addEventListener("DOMContentLoaded", () => {
   applyStoredTaskGroupOrder();
   syncTaskGroupInputs();
   setTaskGroupReorderMode(false);
+  setCreateTaskSubtasks([]);
+  renderCreateTaskSubtasksEditList();
+  setTaskDetailEditSubtasks([]);
+  renderTaskDetailSubtasksEditList();
   groupPermissionModals.forEach((modal) => syncGroupPermissionsModal(modal));
   document.querySelectorAll("[data-task-group]").forEach((section) => {
     setTaskGroupCollapsed(section, resolveInitialGroupCollapsedState("tasks", section), {
@@ -4074,6 +4566,8 @@ window.addEventListener("DOMContentLoaded", () => {
     if (createTaskForm) {
       createTaskForm.reset();
       setCreateTaskImageItems([]);
+      setCreateTaskSubtasks([]);
+      renderCreateTaskSubtasksEditList();
       if (createTaskLinksField instanceof HTMLTextAreaElement) {
         createTaskLinksField.value = "";
       }
@@ -5080,6 +5574,11 @@ window.addEventListener("DOMContentLoaded", () => {
       if (createTaskImagesField instanceof HTMLTextAreaElement) {
         createTaskImagesField.value = JSON.stringify(
           parseReferenceImageItems(createTaskImageItems || [])
+        );
+      }
+      if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
+        createTaskSubtasksField.value = JSON.stringify(
+          parseTaskSubtaskList(createTaskSubtaskItems || [])
         );
       }
 

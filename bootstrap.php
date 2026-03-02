@@ -520,8 +520,11 @@ function ensureTaskExtendedSchema(PDO $pdo): void
             $pdo->exec("ALTER TABLE tasks ADD COLUMN overdue_since_date TEXT DEFAULT NULL");
         }
     }
+    if (!tableHasColumn($pdo, 'tasks', 'subtasks_json')) {
+        $pdo->exec("ALTER TABLE tasks ADD COLUMN subtasks_json TEXT NOT NULL DEFAULT '[]'");
+    }
 
-    $stmt = $pdo->query('SELECT id, assigned_to, group_name, assignee_ids_json, reference_links_json, reference_images_json FROM tasks');
+    $stmt = $pdo->query('SELECT id, assigned_to, group_name, assignee_ids_json, reference_links_json, reference_images_json, subtasks_json FROM tasks');
     $rows = $stmt ? $stmt->fetchAll() : [];
 
     $update = $pdo->prepare(
@@ -529,7 +532,8 @@ function ensureTaskExtendedSchema(PDO $pdo): void
          SET group_name = :group_name,
              assignee_ids_json = :assignee_ids_json,
              reference_links_json = :reference_links_json,
-             reference_images_json = :reference_images_json
+             reference_images_json = :reference_images_json,
+             subtasks_json = :subtasks_json
          WHERE id = :id'
     );
 
@@ -541,12 +545,14 @@ function ensureTaskExtendedSchema(PDO $pdo): void
         );
         $referenceLinks = decodeReferenceUrlList($row['reference_links_json'] ?? null);
         $referenceImages = decodeReferenceImageList($row['reference_images_json'] ?? null);
+        $subtasks = decodeTaskSubtasks($row['subtasks_json'] ?? null);
 
         $update->execute([
             ':group_name' => $groupName,
             ':assignee_ids_json' => encodeAssigneeIds($assigneeIds),
             ':reference_links_json' => encodeReferenceUrlList($referenceLinks),
             ':reference_images_json' => encodeReferenceImageList($referenceImages),
+            ':subtasks_json' => encodeTaskSubtasks($subtasks),
             ':id' => (int) $row['id'],
         ]);
     }
@@ -3742,6 +3748,135 @@ function normalizeTaskTitle(string $value): string
     return uppercaseFirstCharacter($value);
 }
 
+function normalizeTaskSubtaskTitle(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+
+    if (mb_strlen($value) > 120) {
+        $value = mb_substr($value, 0, 120);
+    }
+
+    return uppercaseFirstCharacter($value);
+}
+
+function taskSubtasksValueToList($value): array
+{
+    if (is_array($value)) {
+        return $value;
+    }
+
+    if (!is_string($value)) {
+        return [];
+    }
+
+    $raw = trim($value);
+    if ($raw === '') {
+        return [];
+    }
+
+    try {
+        $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        return is_array($decoded) ? $decoded : [];
+    } catch (Throwable $e) {
+        $lines = preg_split('/\R/u', $raw) ?: [];
+        return array_values(array_filter($lines, static fn ($line) => trim((string) $line) !== ''));
+    }
+}
+
+function normalizeTaskSubtasks($value, int $maxItems = 40): array
+{
+    $items = [];
+    $source = taskSubtasksValueToList($value);
+
+    foreach ($source as $entry) {
+        if (count($items) >= $maxItems) {
+            break;
+        }
+
+        $title = '';
+        $done = false;
+        if (is_array($entry)) {
+            $title = normalizeTaskSubtaskTitle((string) ($entry['title'] ?? $entry['name'] ?? ''));
+            $done = !empty($entry['done']) || !empty($entry['completed']) || !empty($entry['checked']);
+        } else {
+            $title = normalizeTaskSubtaskTitle((string) $entry);
+            $done = false;
+        }
+
+        if ($title === '') {
+            continue;
+        }
+
+        $items[] = [
+            'title' => $title,
+            'done' => $done,
+        ];
+    }
+
+    $allowDone = true;
+    foreach ($items as &$item) {
+        if (!$allowDone) {
+            $item['done'] = false;
+        }
+        if (empty($item['done'])) {
+            $allowDone = false;
+        }
+    }
+    unset($item);
+
+    return $items;
+}
+
+function decodeTaskSubtasks($value): array
+{
+    return normalizeTaskSubtasks($value);
+}
+
+function encodeTaskSubtasks(array $subtasks): string
+{
+    return json_encode(
+        normalizeTaskSubtasks($subtasks),
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    ) ?: '[]';
+}
+
+function taskSubtasksProgress(array $subtasks): array
+{
+    $normalized = normalizeTaskSubtasks($subtasks);
+    $total = count($normalized);
+    $completed = 0;
+    foreach ($normalized as $item) {
+        if (!empty($item['done'])) {
+            $completed++;
+        }
+    }
+
+    $percent = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
+
+    return [
+        'total' => $total,
+        'completed' => $completed,
+        'pending' => max(0, $total - $completed),
+        'percent' => max(0, min(100, $percent)),
+        'is_complete' => $total > 0 && $completed >= $total,
+    ];
+}
+
+function applyTaskSubtasksCompletionStatus(string $status, array $subtasks): string
+{
+    $normalizedStatus = normalizeTaskStatus($status);
+    $progress = taskSubtasksProgress($subtasks);
+
+    if ($progress['is_complete'] && !in_array($normalizedStatus, ['review', 'done'], true)) {
+        return 'review';
+    }
+
+    return $normalizedStatus;
+}
+
 function normalizeVaultEntryLabel(string $value): string
 {
     $value = trim($value);
@@ -5135,6 +5270,8 @@ function allTasks(?int $workspaceId = null): array
         $task['assignee_ids'] = $assigneeIds;
         $task['reference_links'] = decodeReferenceUrlList($task['reference_links_json'] ?? null);
         $task['reference_images'] = decodeReferenceImageList($task['reference_images_json'] ?? null);
+        $task['subtasks'] = decodeTaskSubtasks($task['subtasks_json'] ?? null);
+        $task['subtasks_progress'] = taskSubtasksProgress($task['subtasks']);
         $task['assignees'] = [];
 
         foreach ($assigneeIds as $id) {
