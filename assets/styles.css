@@ -6942,8 +6942,8 @@ textarea:focus,
 }
 
 .task-group {
-    border-color: rgba(126, 159, 195, 0.56);
-    background: linear-gradient(180deg, #d9e6f4 0%, #d2e1f1 100%);
+    border-color: rgba(140, 173, 206, 0.56);
+    background: linear-gradient(180deg, #e6f0fa 0%, #ddebf8 100%);
     overflow: hidden;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
 }
@@ -6951,10 +6951,10 @@ textarea:focus,
 .task-group-head {
     border-top-left-radius: inherit;
     border-top-right-radius: inherit;
-    border-bottom-color: rgba(113, 151, 191, 0.58);
+    border-bottom-color: rgba(126, 161, 196, 0.56);
     background:
-        radial-gradient(circle at 96% 0%, rgba(100, 176, 245, 0.24), transparent 42%),
-        linear-gradient(180deg, #c6daee 0%, #bbd1e8 100%);
+        radial-gradient(circle at 96% 0%, rgba(108, 184, 249, 0.26), transparent 42%),
+        linear-gradient(180deg, #d8e8f8 0%, #cfe2f4 100%);
 }
 
 .task-group-head h3,
