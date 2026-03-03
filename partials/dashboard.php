@@ -19,7 +19,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
 
 <header class="top-nav dashboard-nav">
     <a href="index.php" class="brand" aria-label="WorkForm">
-        <img src="assets/WorkForm - Logo.svg?v=1" alt="WorkForm" class="brand-lockup" width="116" height="29">
+        <img src="assets/WorkForm - Logo.svg?v=2" alt="WorkForm" class="brand-lockup" width="116" height="29">
     </a>
 
     <section class="stats-strip dashboard-stats dashboard-nav-stats" aria-label="Indicadores do workspace">

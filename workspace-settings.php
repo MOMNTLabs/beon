@@ -232,7 +232,7 @@ $flashes = getFlashes();
                     <span>Voltar</span>
                 </a>
                 <a href="index.php" class="brand" aria-label="WorkForm">
-                    <img src="assets/WorkForm - Logo.svg?v=1" alt="WorkForm" class="brand-lockup" width="116" height="29">
+                    <img src="assets/WorkForm - Logo.svg?v=2" alt="WorkForm" class="brand-lockup" width="116" height="29">
                 </a>
             </div>
 

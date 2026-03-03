@@ -6892,3 +6892,281 @@ textarea:focus,
     color: #1e5d96;
 }
 
+/* High-contrast pass requested by user */
+.top-nav.dashboard-nav {
+    background:
+        radial-gradient(circle at 0% 0%, rgba(104, 177, 245, 0.24), transparent 40%),
+        linear-gradient(135deg, #234d7e 0%, #1a3e68 55%, #16365d 100%);
+    border-color: rgba(128, 181, 234, 0.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 12px 30px rgba(19, 53, 92, 0.32);
+}
+
+.top-nav.dashboard-nav .brand {
+    background: #edf6ff;
+    border: 1px solid rgba(69, 130, 192, 0.34);
+    border-radius: 12px;
+    padding: 5px 10px;
+}
+
+.top-nav.dashboard-nav .brand-lockup {
+    filter: none !important;
+    opacity: 1 !important;
+}
+
+.top-nav.dashboard-nav .dashboard-nav-stats {
+    border-color: rgba(160, 202, 244, 0.5);
+    background: rgba(243, 250, 255, 0.96);
+}
+
+.top-nav.dashboard-nav .dashboard-nav-stats .stat-cell span {
+    color: #46658c;
+}
+
+.top-nav.dashboard-nav .dashboard-nav-stats .stat-cell strong {
+    color: #17375b;
+}
+
+.top-nav.dashboard-nav .user-chip {
+    border-color: rgba(165, 205, 244, 0.52);
+    background: rgba(245, 251, 255, 0.98);
+}
+
+.top-nav.dashboard-nav .user-chip strong {
+    color: #1f3c60;
+}
+
+.top-nav.dashboard-nav .user-chip span {
+    color: #4e6c93;
+}
+
+.task-group {
+    border-color: rgba(126, 159, 195, 0.56);
+    background: linear-gradient(180deg, #d9e6f4 0%, #d2e1f1 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
+}
+
+.task-group-head {
+    border-bottom-color: rgba(113, 151, 191, 0.58);
+    background:
+        radial-gradient(circle at 96% 0%, rgba(100, 176, 245, 0.24), transparent 42%),
+        linear-gradient(180deg, #c6daee 0%, #bbd1e8 100%);
+}
+
+.task-group-head h3,
+.task-group-count,
+.task-group-readonly .task-group-name-input {
+    color: #1b385a;
+}
+
+.task-list-item {
+    border-color: rgba(130, 164, 200, 0.5);
+    background: #f2f7fd;
+}
+
+.task-list-item.has-overdue-flag {
+    border-color: rgba(212, 121, 121, 0.42);
+}
+
+input,
+select,
+textarea,
+.tag-select,
+.due-date-input,
+.due-date-display,
+.group-tag-select,
+.row-inline-picker > summary,
+.assignee-picker > summary,
+.task-detail-inline-assignee-picker > summary {
+    border-color: rgba(93, 143, 194, 0.48);
+    background: #f7fbff;
+    color: #1f3f64;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.task-title-input:focus,
+.row-inline-picker[open] > summary,
+.assignee-picker[open] > summary,
+.task-detail-inline-assignee-picker[open] > summary {
+    border-color: rgba(44, 130, 209, 0.72);
+    background: #edf6ff;
+}
+
+.group-permissions-button,
+.group-add-button,
+.icon-gear-button,
+.header-notification-button,
+.vault-icon-button,
+.team-user-settings-button,
+.task-fab-action,
+.task-fab-main,
+.status-stepper-btn,
+.task-expand-toggle,
+.task-row-delete,
+.vault-entry-delete-button,
+.create-task-title-tag-trigger,
+.task-detail-edit-description-toolbar button {
+    border-color: rgba(80, 138, 196, 0.54);
+    background: #edf6ff;
+    color: #1d538a;
+}
+
+.group-permissions-button:hover,
+.group-permissions-button:focus-visible,
+.group-add-button:hover,
+.group-add-button:focus-visible,
+.icon-gear-button:hover,
+.icon-gear-button:focus-visible,
+.header-notification-button:hover,
+.header-notification-button:focus-visible,
+.header-notification-button.is-open,
+.vault-icon-button:hover,
+.vault-icon-button:focus-visible,
+.team-user-settings-button:hover,
+.team-user-settings-button:focus-visible,
+.task-fab-action:hover,
+.task-fab-action:focus-visible,
+.task-fab-main:hover,
+.task-fab-main:focus-visible,
+.status-stepper-btn:hover,
+.status-stepper-btn:focus-visible,
+.task-expand-toggle:hover,
+.task-expand-toggle:focus-visible,
+.create-task-title-tag-trigger:hover,
+.create-task-title-tag-trigger:focus-visible,
+.task-detail-edit-description-toolbar button:hover,
+.task-detail-edit-description-toolbar button:focus-visible {
+    border-color: rgba(41, 125, 204, 0.72);
+    background: #dfedff;
+    color: #0f5ba7;
+}
+
+.task-row-delete:hover,
+.task-row-delete:focus-visible,
+.vault-entry-delete-button:hover,
+.vault-entry-delete-button:focus-visible {
+    border-color: rgba(199, 86, 106, 0.66);
+    background: #ffe8ed;
+    color: #b43f57;
+}
+
+.btn,
+.btn-mini {
+    border-color: rgba(76, 135, 195, 0.54);
+    background: linear-gradient(180deg, #f4f9ff 0%, #e6f1ff 100%);
+    color: #1d538a;
+}
+
+.btn:hover,
+.btn:focus-visible,
+.btn-mini:hover,
+.btn-mini:focus-visible {
+    border-color: rgba(40, 126, 206, 0.74);
+    background: linear-gradient(180deg, #e9f4ff 0%, #dcebff 100%);
+    color: #0f5ba7;
+}
+
+.task-detail-modal,
+.modal-card {
+    color: #1f3a5a;
+}
+
+.task-detail-history-column,
+.task-detail-view-block,
+.task-detail-description-version,
+.task-detail-edit-image-picker,
+.task-detail-reference-input,
+.task-detail-edit-description-editor {
+    border-color: rgba(124, 161, 199, 0.5);
+    background: #f0f7ff;
+}
+
+.task-detail-history-item {
+    border-color: rgba(140, 173, 206, 0.54);
+    background: #ffffff;
+}
+
+.task-detail-history-item strong,
+.task-detail-view-title,
+.task-detail-view-description,
+.task-detail-view-description p,
+.task-detail-description-version > summary,
+.task-detail-description-version-body p,
+.task-detail-ref-title,
+.task-detail-ref-link,
+.task-detail-subtask-text,
+.task-detail-edit-description-editor,
+.task-detail-edit-description-editor strong,
+.task-detail-edit-description-editor em {
+    color: #1f3a5a;
+}
+
+.task-detail-history-item span,
+.task-detail-history-empty,
+.task-detail-view-label,
+.task-detail-view-assignees,
+.task-detail-view-meta,
+.task-detail-ref-link small,
+.task-detail-edit-description-editor:empty::before,
+.task-detail-inline-field > span,
+.task-detail-edit-images-field > span {
+    color: #4d6a90;
+}
+
+.task-detail-view-tag {
+    border-color: rgba(103, 146, 191, 0.48);
+    background: #eef6ff;
+    color: #24486f;
+}
+
+.task-detail-view-tag.status-todo {
+    color: #1d5f98;
+    border-color: rgba(68, 136, 196, 0.5);
+    background: #dfefff;
+}
+
+.task-detail-view-tag.status-in_progress {
+    color: #9b5a23;
+    border-color: rgba(213, 144, 85, 0.52);
+    background: #ffead6;
+}
+
+.task-detail-view-tag.status-review {
+    color: #664a9c;
+    border-color: rgba(135, 106, 198, 0.5);
+    background: #ece1ff;
+}
+
+.task-detail-view-tag.status-done {
+    color: #1f7a59;
+    border-color: rgba(70, 172, 132, 0.5);
+    background: #daf6e9;
+}
+
+.task-detail-view-tag.priority-low {
+    color: #1d5f98;
+    border-color: rgba(68, 136, 196, 0.5);
+    background: #dfefff;
+}
+
+.task-detail-view-tag.priority-medium {
+    color: #8e671f;
+    border-color: rgba(203, 160, 86, 0.5);
+    background: #fff1dd;
+}
+
+.task-detail-view-tag.priority-high {
+    color: #a55624;
+    border-color: rgba(216, 126, 74, 0.5);
+    background: #ffe6d6;
+}
+
+.task-detail-view-tag.priority-urgent {
+    color: #a53f4d;
+    border-color: rgba(210, 99, 117, 0.5);
+    background: #ffe1e8;
+}
+
