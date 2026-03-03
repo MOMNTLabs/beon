@@ -448,6 +448,35 @@ window.addEventListener("DOMContentLoaded", () => {
     .querySelectorAll(".status-select, .priority-select")
     .forEach(syncSelectColor);
 
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof Element)) return;
+
+    const quantityStepButton = target.closest("[data-inventory-inline-quantity-step]");
+    if (!(quantityStepButton instanceof HTMLButtonElement)) return;
+
+    event.preventDefault();
+    const quantityForm = quantityStepButton.closest("[data-inventory-inline-quantity-form]");
+    if (!(quantityForm instanceof HTMLFormElement)) return;
+    if (quantityForm.dataset.submitting === "1") return;
+
+    const quantityInput = quantityForm.querySelector("[data-inventory-inline-quantity-input]");
+    if (!(quantityInput instanceof HTMLInputElement)) return;
+
+    const rawStep = Number.parseInt(quantityStepButton.dataset.step || "0", 10);
+    if (!Number.isFinite(rawStep) || rawStep === 0) return;
+
+    const normalizedCurrentValue = normalizeInventoryIntegerInput(quantityInput.value);
+    const currentValue =
+      normalizedCurrentValue === null ? 0 : Number.parseInt(normalizedCurrentValue, 10);
+    const nextValue = Math.max(0, currentValue + rawStep);
+
+    if (nextValue === currentValue && normalizedCurrentValue !== null) return;
+
+    quantityInput.value = String(nextValue);
+    quantityInput.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
   document.addEventListener("change", (event) => {
     const target = getEventTargetElement(event);
     if (!(target instanceof Element)) return;

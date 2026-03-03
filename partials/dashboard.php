@@ -1400,16 +1400,32 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                                                     <input type="hidden" name="entry_id" value="<?= e((string) $inventoryEntryId) ?>">
                                                     <span class="inventory-entry-inline-label">Qtd.</span>
                                                     <label class="inventory-entry-qty-editor">
-                                                        <input
-                                                            type="number"
-                                                            name="quantity_value"
-                                                            min="0"
-                                                            step="1"
-                                                            value="<?= e($inventoryQuantityInput) ?>"
-                                                            class="inventory-entry-qty-input"
-                                                            data-inventory-inline-quantity-input
-                                                            aria-label="Quantidade de <?= e($inventoryLabel) ?>"
-                                                        >
+                                                        <span class="inventory-entry-qty-control">
+                                                            <input
+                                                                type="number"
+                                                                name="quantity_value"
+                                                                min="0"
+                                                                step="1"
+                                                                value="<?= e($inventoryQuantityInput) ?>"
+                                                                class="inventory-entry-qty-input"
+                                                                data-inventory-inline-quantity-input
+                                                                aria-label="Quantidade de <?= e($inventoryLabel) ?>"
+                                                            >
+                                                            <button
+                                                                type="button"
+                                                                class="inventory-entry-qty-step inventory-entry-qty-step-up"
+                                                                data-inventory-inline-quantity-step
+                                                                data-step="1"
+                                                                aria-label="Aumentar quantidade"
+                                                            >&#9652;</button>
+                                                            <button
+                                                                type="button"
+                                                                class="inventory-entry-qty-step inventory-entry-qty-step-down"
+                                                                data-inventory-inline-quantity-step
+                                                                data-step="-1"
+                                                                aria-label="Diminuir quantidade"
+                                                            >&#9662;</button>
+                                                        </span>
                                                         <span class="inventory-entry-qty-unit"><?= e($inventoryUnitLabel) ?></span>
                                                     </label>
                                                     <button type="submit" class="sr-only">Salvar quantidade</button>
