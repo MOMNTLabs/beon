@@ -1861,10 +1861,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const syncTaskRevisionBadge = (form) => {
     if (!(form instanceof HTMLFormElement)) return;
-    const dueTagField = form.querySelector(".due-tag-field");
+    const statusStepper = form.querySelector("[data-status-stepper]");
     const historyField = form.querySelector("[data-task-history-json]");
     const descriptionField = form.querySelector('textarea[name="description"]');
-    if (!(dueTagField instanceof HTMLElement)) {
+    if (!(statusStepper instanceof HTMLElement)) {
       return;
     }
 
@@ -1872,10 +1872,10 @@ window.addEventListener("DOMContentLoaded", () => {
       description: descriptionField instanceof HTMLTextAreaElement ? descriptionField.value || "" : "",
       history: readTaskHistoryField(historyField),
     });
-    const currentBadge = dueTagField.querySelector("[data-task-revision-badge]");
+    const currentBadge = statusStepper.querySelector("[data-task-revision-badge]");
 
     if (hasRevision && !(currentBadge instanceof HTMLElement)) {
-      dueTagField.prepend(createTaskRevisionBadge());
+      statusStepper.prepend(createTaskRevisionBadge());
       return;
     }
 

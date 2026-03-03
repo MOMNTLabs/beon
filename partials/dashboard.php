@@ -548,6 +548,13 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                                                 </div>
 
                                                 <div class="status-stepper" data-status-stepper>
+                                                    <?php if ($hasActiveRevisionRequest): ?>
+                                                        <span
+                                                            class="task-revision-badge"
+                                                            data-task-revision-badge
+                                                            title="Solicitacao de revisao pendente"
+                                                        >Revisao</span>
+                                                    <?php endif; ?>
                                                     <button
                                                         type="button"
                                                         class="status-stepper-btn"
@@ -648,13 +655,6 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
 
                                                 <div class="tag-field due-tag-field">
                                                     <span class="sr-only">Prazo</span>
-                                                    <?php if ($hasActiveRevisionRequest): ?>
-                                                        <span
-                                                            class="task-revision-badge"
-                                                            data-task-revision-badge
-                                                            title="Solicitacao de revisao pendente"
-                                                        >Revisao</span>
-                                                    <?php endif; ?>
                                                     <?php if ($isOverdueMarked): ?>
                                                         <button
                                                             type="button"

@@ -3596,24 +3596,6 @@ textarea:focus {
     position: relative;
 }
 
-.task-revision-badge {
-    position: absolute;
-    top: -8px;
-    left: 8px;
-    z-index: 3;
-    min-height: 18px;
-    border-radius: 999px;
-    border: 1px solid rgba(179, 148, 255, 0.38);
-    background: rgba(131, 95, 235, 0.14);
-    color: #e9dcff;
-    font-size: 0.64rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 2px 7px;
-    line-height: 1;
-    pointer-events: none;
-}
-
 .task-overdue-badge {
     position: absolute;
     top: -8px;
@@ -3751,11 +3733,31 @@ textarea:focus {
 }
 
 .status-stepper {
+    position: relative;
     min-width: 0;
     display: grid;
     grid-template-columns: 18px minmax(0, 1fr) 18px;
     gap: 4px;
     align-items: center;
+}
+
+.status-stepper .task-revision-badge {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    min-height: 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(179, 148, 255, 0.38);
+    background: rgba(131, 95, 235, 0.14);
+    color: #e9dcff;
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    line-height: 1;
+    pointer-events: none;
 }
 
 .status-stepper .tag-field {
