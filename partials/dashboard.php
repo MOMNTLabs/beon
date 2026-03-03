@@ -2721,23 +2721,28 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                 <div class="form-stack modal-form">
                     <label>
                         <span>Titulo</span>
-                        <div class="task-title-tag-editor">
-                            <select data-task-detail-edit-title-tag-select>
-                                <option value="">Sem tag</option>
-                                <?php foreach ($taskTitleTagPresetOptions as $tagOption): ?>
-                                    <option value="<?= e((string) $tagOption) ?>"><?= e((string) $tagOption) ?></option>
-                                <?php endforeach; ?>
-                                <option value="__custom__">Nova tag...</option>
-                            </select>
-                            <input
-                                type="text"
-                                maxlength="40"
-                                placeholder="Nova tag"
-                                data-task-detail-edit-title-tag-custom
-                                hidden
-                            >
+                        <div class="create-task-title-composer" data-task-detail-edit-title-composer>
+                            <div class="create-task-title-tag-picker" data-task-detail-edit-title-tag-picker>
+                                <button
+                                    type="button"
+                                    class="create-task-title-tag-trigger is-empty"
+                                    data-task-detail-edit-title-tag-trigger
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false"
+                                >tag</button>
+                                <input
+                                    type="text"
+                                    maxlength="40"
+                                    placeholder="Criar tag"
+                                    autocomplete="off"
+                                    data-task-detail-edit-title-tag-custom
+                                    hidden
+                                >
+                                <div class="create-task-title-tag-menu" data-task-detail-edit-title-tag-menu hidden></div>
+                            </div>
+                            <input type="text" maxlength="140" required data-task-detail-edit-title>
                         </div>
-                        <input type="text" maxlength="140" required data-task-detail-edit-title>
+                        <input type="hidden" value="" data-task-detail-edit-title-tag-input>
                     </label>
 
                     <div class="task-detail-inline-controls">
@@ -2806,21 +2811,6 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                         </label>
                     </div>
 
-                    <div class="task-subtasks-editor">
-                        <span>Etapas / subtarefas</span>
-                        <div class="task-subtasks-edit-add">
-                            <input
-                                type="text"
-                                maxlength="120"
-                                placeholder="Nova etapa"
-                                data-task-detail-edit-subtask-input
-                            >
-                            <button type="button" class="btn btn-mini btn-ghost" data-task-detail-edit-subtask-add>Adicionar etapa</button>
-                        </div>
-                        <div class="task-subtasks-edit-list" data-task-detail-edit-subtasks-list></div>
-                        <textarea rows="1" data-task-detail-edit-subtasks hidden></textarea>
-                    </div>
-
                     <div class="task-detail-edit-main-row">
                         <label class="task-detail-edit-description-field">
                             <span>Descricao</span>
@@ -2852,6 +2842,21 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                             </div>
                             <textarea rows="1" data-task-detail-edit-images hidden></textarea>
                         </div>
+                    </div>
+
+                    <div class="task-subtasks-editor">
+                        <span>Etapas / subtarefas</span>
+                        <div class="task-subtasks-edit-add">
+                            <input
+                                type="text"
+                                maxlength="120"
+                                placeholder="Nova etapa"
+                                data-task-detail-edit-subtask-input
+                            >
+                            <button type="button" class="btn btn-mini btn-ghost" data-task-detail-edit-subtask-add>Adicionar etapa</button>
+                        </div>
+                        <div class="task-subtasks-edit-list" data-task-detail-edit-subtasks-list></div>
+                        <textarea rows="1" data-task-detail-edit-subtasks hidden></textarea>
                     </div>
 
                     <label class="task-detail-edit-links-field">

@@ -636,7 +636,7 @@ select optgroup {
 }
 
 .dashboard-nav-stats {
-    width: fit-content;
+    width: min(100%, 860px);
     max-width: 100%;
     min-width: 0;
     border-radius: 12px;
@@ -646,7 +646,8 @@ select optgroup {
         rgba(3, 7, 18, 0.52);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     justify-self: center;
-    grid-template-columns: repeat(5, auto);
+    margin-inline: auto;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .stat-cell {
@@ -681,6 +682,8 @@ select optgroup {
     padding: 4px 10px;
     min-height: 34px;
     gap: 1px;
+    text-align: center;
+    justify-items: center;
 }
 
 .dashboard-nav-stats .stat-cell span {
@@ -700,8 +703,10 @@ select optgroup {
 }
 
 .is-dashboard .dashboard-nav-stats {
-    justify-content: flex-start;
-    grid-template-columns: repeat(5, auto);
+    width: min(100%, 860px);
+    max-width: 100%;
+    justify-content: stretch;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .stat-cell:last-child {
@@ -5170,7 +5175,8 @@ textarea:focus {
     background: rgba(8, 12, 25, 0.9);
 }
 
-.create-task-title-composer > [data-create-task-title-input] {
+.create-task-title-composer > [data-create-task-title-input],
+.create-task-title-composer > [data-task-detail-edit-title] {
     min-width: 0;
     flex: 1 1 auto;
     border: 0;
@@ -5181,7 +5187,8 @@ textarea:focus {
     font-weight: 600;
 }
 
-.create-task-title-composer > [data-create-task-title-input]:focus {
+.create-task-title-composer > [data-create-task-title-input]:focus,
+.create-task-title-composer > [data-task-detail-edit-title]:focus {
     border: 0;
     background: transparent;
 }
@@ -5193,7 +5200,8 @@ textarea:focus {
 }
 
 .create-task-title-tag-trigger,
-.create-task-title-tag-picker > [data-create-task-title-tag-custom] {
+.create-task-title-tag-picker > [data-create-task-title-tag-custom],
+.create-task-title-tag-picker > [data-task-detail-edit-title-tag-custom] {
     min-height: 34px;
     max-width: min(220px, 38vw);
     border-radius: 10px;
@@ -5208,12 +5216,14 @@ textarea:focus {
     padding: 6px 10px;
 }
 
-.create-task-title-tag-picker > [data-create-task-title-tag-custom] {
+.create-task-title-tag-picker > [data-create-task-title-tag-custom],
+.create-task-title-tag-picker > [data-task-detail-edit-title-tag-custom] {
     width: clamp(90px, 12vw, 180px);
     max-width: min(220px, 38vw);
 }
 
-.create-task-title-tag-picker > [data-create-task-title-tag-custom]::placeholder {
+.create-task-title-tag-picker > [data-create-task-title-tag-custom]::placeholder,
+.create-task-title-tag-picker > [data-task-detail-edit-title-tag-custom]::placeholder {
     color: rgba(192, 206, 228, 0.66);
 }
 

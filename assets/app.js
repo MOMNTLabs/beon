@@ -837,96 +837,11 @@ window.addEventListener("DOMContentLoaded", () => {
     return parts.join("");
   };
 
-  const TASK_TITLE_TAG_CUSTOM_VALUE = "__custom__";
-
   const normalizeTaskTitleTagValue = (value) => {
     const raw = String(value || "").trim();
     if (!raw) return "";
     const limited = raw.slice(0, 40);
     return forceFirstLetterUppercase(limited).trim();
-  };
-
-  const ensureTaskTitleTagOption = (selectEl, tagValue) => {
-    if (!(selectEl instanceof HTMLSelectElement)) return;
-    const normalizedTag = normalizeTaskTitleTagValue(tagValue);
-    if (!normalizedTag) return;
-    const hasOption = Array.from(selectEl.options).some(
-      (option) => normalizeTaskTitleTagValue(option.value) === normalizedTag
-    );
-    if (hasOption) return;
-
-    const option = document.createElement("option");
-    option.value = normalizedTag;
-    option.textContent = normalizedTag;
-
-    const customOption = Array.from(selectEl.options).find(
-      (entry) => entry.value === TASK_TITLE_TAG_CUSTOM_VALUE
-    );
-    if (customOption) {
-      customOption.insertAdjacentElement("beforebegin", option);
-    } else {
-      selectEl.append(option);
-    }
-  };
-
-  const syncTaskTitleTagEditorControls = ({
-    selectEl = null,
-    customInputEl = null,
-    currentTag = "",
-  } = {}) => {
-    if (!(selectEl instanceof HTMLSelectElement) || !(customInputEl instanceof HTMLInputElement)) {
-      return;
-    }
-
-    const normalizedCurrentTag = normalizeTaskTitleTagValue(currentTag);
-    if (normalizedCurrentTag) {
-      ensureTaskTitleTagOption(selectEl, normalizedCurrentTag);
-    }
-
-    if (!normalizedCurrentTag) {
-      selectEl.value = "";
-      customInputEl.hidden = true;
-      customInputEl.value = "";
-      return;
-    }
-
-    const hasOption = Array.from(selectEl.options).some(
-      (option) => normalizeTaskTitleTagValue(option.value) === normalizedCurrentTag
-    );
-    if (hasOption) {
-      selectEl.value = normalizedCurrentTag;
-      customInputEl.hidden = true;
-      customInputEl.value = "";
-      return;
-    }
-
-    selectEl.value = TASK_TITLE_TAG_CUSTOM_VALUE;
-    customInputEl.hidden = false;
-    customInputEl.value = normalizedCurrentTag;
-  };
-
-  const resolveTaskTitleTagFromEditor = ({
-    selectEl = null,
-    customInputEl = null,
-  } = {}) => {
-    if (!(selectEl instanceof HTMLSelectElement)) {
-      return "";
-    }
-
-    const selectedValue = String(selectEl.value || "").trim();
-    if (!selectedValue) {
-      return "";
-    }
-
-    if (selectedValue === TASK_TITLE_TAG_CUSTOM_VALUE) {
-      if (!(customInputEl instanceof HTMLInputElement)) {
-        return "";
-      }
-
-      return normalizeTaskTitleTagValue(customInputEl.value || "");
-    }
-
-    return normalizeTaskTitleTagValue(selectedValue);
   };
 
   const syncTaskTitleTagBadge = (taskItem, titleTag) => {
@@ -1910,10 +1825,6 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  document.querySelectorAll("[data-due-date-input]").forEach((input) => {
-    syncDueDateDisplay(input);
-  });
-
   const updateAssigneePickerSummary = (details) => {
     const summary = details.querySelector("summary");
     if (!summary) return;
@@ -1942,25 +1853,46 @@ window.addEventListener("DOMContentLoaded", () => {
     summary.setAttribute("aria-label", checkedNames.join(", "));
   };
 
-  document.querySelectorAll(".assignee-picker").forEach((details) => {
-    updateAssigneePickerSummary(details);
-  });
+  const bindTaskOverlayToggleListener = (details) => {
+    if (!(details instanceof HTMLDetailsElement)) return;
+    if (details.dataset.overlayToggleBound === "1") return;
+    details.dataset.overlayToggleBound = "1";
 
-  document
-    .querySelectorAll("[data-inline-select-source]")
-    .forEach((select) => syncInlineSelectPicker(select));
-
-  document
-    .querySelectorAll('.assignee-picker, [data-inline-select-picker]')
-    .forEach((details) => {
-      if (!(details instanceof HTMLDetailsElement)) return;
-      details.addEventListener("toggle", () => {
-        if (details.open) {
-          closeSiblingTaskOverlays(details);
-        }
-        syncTaskItemOverlayState(details);
-      });
+    details.addEventListener("toggle", () => {
+      if (details.open) {
+        closeSiblingTaskOverlays(details);
+      }
+      syncTaskItemOverlayState(details);
     });
+  };
+
+  const hydrateTaskInteractiveFields = (root = document) => {
+    if (!root || typeof root.querySelectorAll !== "function") return;
+
+    root
+      .querySelectorAll(".status-select, .priority-select")
+      .forEach(syncSelectColor);
+
+    root.querySelectorAll("[data-due-date-input]").forEach((input) => {
+      syncDueDateDisplay(input);
+    });
+
+    root.querySelectorAll(".assignee-picker").forEach((details) => {
+      updateAssigneePickerSummary(details);
+    });
+
+    root
+      .querySelectorAll("[data-inline-select-source]")
+      .forEach((select) => syncInlineSelectPicker(select));
+
+    root
+      .querySelectorAll('.assignee-picker, [data-inline-select-picker]')
+      .forEach((details) => {
+        bindTaskOverlayToggleListener(details);
+      });
+  };
+
+  hydrateTaskInteractiveFields(document);
 
   document.addEventListener("mousedown", (event) => {
     const target = event.target;
@@ -2340,11 +2272,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const taskNotificationState = {
     isPolling: false,
+    isSyncingTasks: false,
     intervalId: null,
     lastHistoryId: 0,
     seenHistoryId: 0,
     notifications: [],
     isDropdownOpen: false,
+    pendingTasksSync: false,
   };
 
   const taskNotificationStorageKey = () =>
@@ -2656,11 +2590,54 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  const isTaskRealtimeSyncBlocked = () => {
+    if (taskDetailModal instanceof HTMLElement && !taskDetailModal.hidden) {
+      return true;
+    }
+    if (createTaskModal instanceof HTMLElement && !createTaskModal.hidden) {
+      return true;
+    }
+    if (taskReviewModal instanceof HTMLElement && !taskReviewModal.hidden) {
+      return true;
+    }
+    if (confirmModal instanceof HTMLElement && !confirmModal.hidden) {
+      return true;
+    }
+
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && activeElement.closest("[data-task-groups-list]")) {
+      return true;
+    }
+
+    if (document.querySelector('[data-task-autosave-form][data-autosave-submitting="1"]')) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const syncTaskSectionAfterWorkspaceChange = async () => {
+    if (taskNotificationState.isSyncingTasks) return false;
+    if (isTaskRealtimeSyncBlocked()) return false;
+
+    taskNotificationState.isSyncingTasks = true;
+    try {
+      await refreshTasksSectionFromServer();
+      taskNotificationState.pendingTasksSync = false;
+      return true;
+    } catch (error) {
+      return false;
+    } finally {
+      taskNotificationState.isSyncingTasks = false;
+    }
+  };
+
   const pollTaskNotifications = async ({ initialize = false } = {}) => {
     if (taskNotificationState.isPolling) return;
 
     taskNotificationState.isPolling = true;
     try {
+      const previousHistoryId = taskNotificationState.lastHistoryId;
       const data = await fetchTaskNotificationsFeed({
         initialize,
         sinceHistoryId: taskNotificationState.lastHistoryId,
@@ -2680,6 +2657,17 @@ window.addEventListener("DOMContentLoaded", () => {
 
       taskNotificationState.lastHistoryId = Math.max(0, maxHistoryId);
       storeTaskNotificationHistoryId(taskNotificationState.lastHistoryId);
+
+      const hasWorkspaceChanges =
+        !initialize && taskNotificationState.lastHistoryId > previousHistoryId;
+      if (hasWorkspaceChanges) {
+        const synced = await syncTaskSectionAfterWorkspaceChange();
+        if (!synced) {
+          taskNotificationState.pendingTasksSync = true;
+        }
+      } else if (taskNotificationState.pendingTasksSync) {
+        await syncTaskSectionAfterWorkspaceChange();
+      }
 
       if (!initialize) {
         publishTaskNotifications(notifications);
@@ -2773,6 +2761,17 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!taskNotificationState.isDropdownOpen) return;
       setHeaderNotificationDropdownOpen(false);
     });
+
+    window.addEventListener("focus", () => {
+      if (!taskNotificationState.pendingTasksSync) return;
+      void syncTaskSectionAfterWorkspaceChange();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      if (!taskNotificationState.pendingTasksSync) return;
+      void syncTaskSectionAfterWorkspaceChange();
+    });
   };
 
   const syncSelectOptionsFromSource = (targetSelect, sourceSelect) => {
@@ -2789,6 +2788,160 @@ window.addEventListener("DOMContentLoaded", () => {
     targetSelect.disabled = sourceSelect.disabled;
     if (previousValue && Array.from(targetSelect.options).some((option) => option.value === previousValue)) {
       targetSelect.value = previousValue;
+    }
+  };
+
+  const parseLeadingIntegerFromText = (value) => {
+    const match = String(value || "").match(/(\d+)/);
+    if (!match) return null;
+    const parsed = Number.parseInt(match[1], 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const parseDashboardSummaryFromDocument = (doc) => {
+    if (!(doc instanceof Document)) return null;
+
+    const totalText = doc.querySelector("[data-dashboard-stat-total]")?.textContent || "";
+    const doneText = doc.querySelector("[data-dashboard-stat-done]")?.textContent || "";
+    const dueTodayText = doc.querySelector("[data-dashboard-stat-due-today]")?.textContent || "";
+    const urgentText = doc.querySelector("[data-dashboard-stat-urgent]")?.textContent || "";
+    const myOpenText = doc.querySelector("[data-dashboard-stat-my-open]")?.textContent || "";
+
+    const total = parseLeadingIntegerFromText(totalText);
+    const done = parseLeadingIntegerFromText(doneText);
+    const dueToday = parseLeadingIntegerFromText(dueTodayText);
+    const urgent = parseLeadingIntegerFromText(urgentText);
+    const myOpen = parseLeadingIntegerFromText(myOpenText);
+    const completionRateMatch = String(doneText).match(/\((\d+)\s*%\)/);
+    const completionRateFromText = completionRateMatch
+      ? Number.parseInt(completionRateMatch[1], 10)
+      : null;
+
+    if (
+      !Number.isFinite(total) &&
+      !Number.isFinite(done) &&
+      !Number.isFinite(dueToday) &&
+      !Number.isFinite(urgent) &&
+      !Number.isFinite(myOpen)
+    ) {
+      return null;
+    }
+
+    const normalizedTotal = Number.isFinite(total) ? total : 0;
+    const normalizedDone = Number.isFinite(done) ? done : 0;
+    const completionRate = Number.isFinite(completionRateFromText)
+      ? completionRateFromText
+      : normalizedTotal > 0
+        ? Math.round((normalizedDone / normalizedTotal) * 100)
+        : 0;
+
+    return {
+      total: normalizedTotal,
+      done: normalizedDone,
+      completion_rate: completionRate,
+      due_today: Number.isFinite(dueToday) ? dueToday : 0,
+      urgent: Number.isFinite(urgent) ? urgent : 0,
+      my_open: Number.isFinite(myOpen) ? myOpen : 0,
+    };
+  };
+
+  const refreshTasksSectionFromServer = async () => {
+    const url = `${window.location.pathname}${window.location.search}`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        Accept: "text/html",
+      },
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      throw new Error("Nao foi possivel atualizar tarefas.");
+    }
+
+    const html = await response.text();
+    const parser = new DOMParser();
+    const nextDoc = parser.parseFromString(html, "text/html");
+
+    const currentGroupsList =
+      taskGroupsListElement instanceof HTMLElement
+        ? taskGroupsListElement
+        : document.querySelector("[data-task-groups-list]");
+    const nextGroupsList = nextDoc.querySelector("[data-task-groups-list]");
+    if (currentGroupsList instanceof HTMLElement && nextGroupsList instanceof HTMLElement) {
+      currentGroupsList.innerHTML = nextGroupsList.innerHTML;
+    }
+
+    const currentVisible = document.querySelector("[data-board-visible-count]");
+    const nextVisible = nextDoc.querySelector("[data-board-visible-count]");
+    if (currentVisible instanceof HTMLElement && nextVisible instanceof HTMLElement) {
+      currentVisible.textContent = nextVisible.textContent || currentVisible.textContent;
+    }
+
+    const summary = parseDashboardSummaryFromDocument(nextDoc);
+    if (summary) {
+      renderDashboardSummary(summary);
+    }
+
+    syncSelectOptionsFromSource(
+      createTaskGroupInput,
+      nextDoc.querySelector("[data-create-task-group-input]")
+    );
+
+    const currentGroupFilterSelect = taskFilterForm?.querySelector('select[name="group"]');
+    const nextGroupFilterSelect = nextDoc.querySelector('[data-task-filter-form] select[name="group"]');
+    syncSelectOptionsFromSource(currentGroupFilterSelect, nextGroupFilterSelect);
+    syncInlineSelectPicker(currentGroupFilterSelect);
+
+    const currentAssigneeFilterSelect = taskFilterForm?.querySelector('select[name="assignee"]');
+    const nextAssigneeFilterSelect = nextDoc.querySelector(
+      '[data-task-filter-form] select[name="assignee"]'
+    );
+    syncSelectOptionsFromSource(currentAssigneeFilterSelect, nextAssigneeFilterSelect);
+    syncInlineSelectPicker(currentAssigneeFilterSelect);
+
+    if (taskGroupsDatalist instanceof HTMLDataListElement) {
+      const nextGroupsDatalist = nextDoc.querySelector("#task-group-options");
+      if (nextGroupsDatalist instanceof HTMLDataListElement) {
+        taskGroupsDatalist.innerHTML = nextGroupsDatalist.innerHTML;
+      }
+    }
+
+    if (typeof applyStoredTaskGroupOrder === "function") {
+      applyStoredTaskGroupOrder();
+    }
+
+    const taskGroupsRoot =
+      taskGroupsListElement instanceof HTMLElement
+        ? taskGroupsListElement
+        : document.querySelector("[data-task-groups-list]");
+    if (taskGroupsRoot instanceof HTMLElement) {
+      taskGroupsRoot.querySelectorAll("[data-task-group]").forEach((section) => {
+        setTaskGroupCollapsed(section, resolveInitialGroupCollapsedState("tasks", section), {
+          persist: false,
+        });
+        refreshTaskGroupSection(section);
+      });
+
+      taskGroupsRoot.querySelectorAll("[data-task-autosave-form]").forEach((form) => {
+        syncTaskRevisionBadge(form);
+        syncTaskOverdueBadge(form);
+      });
+
+      taskGroupsRoot.querySelectorAll("[data-task-item]").forEach((taskItem) => {
+        if (!(taskItem instanceof HTMLElement)) return;
+        const titleTagField = taskItem.querySelector("[data-task-title-tag]");
+        const titleTagValue =
+          titleTagField instanceof HTMLInputElement ? titleTagField.value || "" : "";
+        syncTaskTitleTagBadge(taskItem, titleTagValue);
+      });
+
+      hydrateTaskInteractiveFields(taskGroupsRoot);
+    }
+
+    if (typeof syncTaskGroupInputs === "function") {
+      syncTaskGroupInputs();
     }
   };
 
@@ -3823,9 +3976,15 @@ window.addEventListener("DOMContentLoaded", () => {
   const taskDetailViewHistory = document.querySelector("[data-task-detail-view-history]");
   const taskDetailViewCreatedBy = document.querySelector("[data-task-detail-view-created-by]");
   const taskDetailViewUpdatedAt = document.querySelector("[data-task-detail-view-updated-at]");
+  const taskDetailEditTitleComposer = document.querySelector("[data-task-detail-edit-title-composer]");
+  const taskDetailEditTitleTagPicker = document.querySelector("[data-task-detail-edit-title-tag-picker]");
+  const taskDetailEditTitleTagTrigger = document.querySelector(
+    "[data-task-detail-edit-title-tag-trigger]"
+  );
+  const taskDetailEditTitleTagMenu = document.querySelector("[data-task-detail-edit-title-tag-menu]");
   const taskDetailEditTitle = document.querySelector("[data-task-detail-edit-title]");
-  const taskDetailEditTitleTagSelect = document.querySelector(
-    "[data-task-detail-edit-title-tag-select]"
+  const taskDetailEditTitleTagInput = document.querySelector(
+    "[data-task-detail-edit-title-tag-input]"
   );
   const taskDetailEditTitleTagCustom = document.querySelector(
     "[data-task-detail-edit-title-tag-custom]"
@@ -3891,6 +4050,8 @@ window.addEventListener("DOMContentLoaded", () => {
   let createTaskTitleTagOptions = [];
   let createTaskCurrentTitleTag = "";
   let createTaskTitleTagIsCreating = false;
+  let taskDetailEditCurrentTitleTag = "";
+  let taskDetailEditTitleTagIsCreating = false;
 
   const normalizeTaskTitleTagCollection = (values = []) => {
     const uniqueMap = new Map();
@@ -4051,6 +4212,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     stopCreateTaskTitleTagCreation();
     renderCreateTaskTitleTagMenu();
+    renderTaskDetailTitleTagMenu();
     return normalizeTaskTitleTagValue(createTaskCurrentTitleTag);
   };
 
@@ -4075,8 +4237,187 @@ window.addEventListener("DOMContentLoaded", () => {
     setCreateTaskTitleTagValue("");
   };
 
+  const removeTaskTitleTagOption = (tagValue = "") => {
+    const removedTag = normalizeTaskTitleTagValue(tagValue);
+    if (!removedTag) return false;
+
+    const removedKey = removedTag.toLocaleLowerCase("pt-BR");
+    createTaskTitleTagOptions = createTaskTitleTagOptions.filter(
+      (tag) => normalizeTaskTitleTagValue(tag).toLocaleLowerCase("pt-BR") !== removedKey
+    );
+
+    if (createTaskCurrentTitleTag.toLocaleLowerCase("pt-BR") === removedKey) {
+      createTaskCurrentTitleTag = "";
+    }
+    if (taskDetailEditCurrentTitleTag.toLocaleLowerCase("pt-BR") === removedKey) {
+      taskDetailEditCurrentTitleTag = "";
+    }
+
+    syncCreateTaskTitleTagTrigger();
+    syncTaskDetailTitleTagTrigger();
+    renderCreateTaskTitleTagMenu();
+    renderTaskDetailTitleTagMenu();
+    return true;
+  };
+
+  const closeTaskDetailTitleTagMenu = () => {
+    if (taskDetailEditTitleTagMenu instanceof HTMLElement) {
+      taskDetailEditTitleTagMenu.hidden = true;
+    }
+    if (taskDetailEditTitleTagPicker instanceof HTMLElement) {
+      taskDetailEditTitleTagPicker.classList.remove("is-open");
+    }
+    if (taskDetailEditTitleTagTrigger instanceof HTMLButtonElement) {
+      taskDetailEditTitleTagTrigger.setAttribute("aria-expanded", "false");
+    }
+  };
+
+  const syncTaskDetailTitleTagTrigger = () => {
+    const normalizedTag = normalizeTaskTitleTagValue(taskDetailEditCurrentTitleTag);
+    taskDetailEditCurrentTitleTag = normalizedTag;
+
+    if (taskDetailEditTitleTagInput instanceof HTMLInputElement) {
+      taskDetailEditTitleTagInput.value = normalizedTag;
+    }
+
+    if (!(taskDetailEditTitleTagTrigger instanceof HTMLButtonElement)) return;
+
+    taskDetailEditTitleTagTrigger.textContent = normalizedTag || "tag";
+    taskDetailEditTitleTagTrigger.classList.toggle("is-empty", !normalizedTag);
+    taskDetailEditTitleTagTrigger.setAttribute(
+      "aria-label",
+      normalizedTag ? `Tag selecionada: ${normalizedTag}` : "Sem tag"
+    );
+  };
+
+  const renderTaskDetailTitleTagMenu = () => {
+    if (!(taskDetailEditTitleTagMenu instanceof HTMLElement)) return;
+
+    const selectedTag = normalizeTaskTitleTagValue(taskDetailEditCurrentTitleTag);
+    taskDetailEditTitleTagMenu.innerHTML = "";
+
+    const clearButton = document.createElement("button");
+    clearButton.type = "button";
+    clearButton.className = "create-task-title-tag-option is-clear";
+    clearButton.dataset.taskDetailEditTitleTagOption = "";
+    clearButton.textContent = "Sem tag";
+    if (!selectedTag) {
+      clearButton.classList.add("is-selected");
+    }
+    taskDetailEditTitleTagMenu.append(clearButton);
+
+    createTaskTitleTagOptions.forEach((tagValue) => {
+      const row = document.createElement("div");
+      row.className = "create-task-title-tag-menu-item";
+
+      const optionButton = document.createElement("button");
+      optionButton.type = "button";
+      optionButton.className = "create-task-title-tag-option";
+      optionButton.dataset.taskDetailEditTitleTagOption = tagValue;
+      optionButton.textContent = tagValue;
+      if (selectedTag === tagValue) {
+        optionButton.classList.add("is-selected");
+      }
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "create-task-title-tag-remove";
+      removeButton.dataset.taskDetailEditTitleTagRemove = tagValue;
+      removeButton.setAttribute("aria-label", `Remover tag ${tagValue}`);
+      removeButton.textContent = "x";
+
+      row.append(optionButton, removeButton);
+      taskDetailEditTitleTagMenu.append(row);
+    });
+
+    const createButton = document.createElement("button");
+    createButton.type = "button";
+    createButton.className = "create-task-title-tag-create";
+    createButton.dataset.taskDetailEditTitleTagCreate = "1";
+    createButton.textContent = "Criar tag";
+    taskDetailEditTitleTagMenu.append(createButton);
+  };
+
+  const openTaskDetailTitleTagMenu = () => {
+    if (!(taskDetailEditTitleTagMenu instanceof HTMLElement)) return;
+    if (taskDetailEditTitleTagIsCreating) return;
+
+    renderTaskDetailTitleTagMenu();
+    taskDetailEditTitleTagMenu.hidden = false;
+    if (taskDetailEditTitleTagPicker instanceof HTMLElement) {
+      taskDetailEditTitleTagPicker.classList.add("is-open");
+    }
+    if (taskDetailEditTitleTagTrigger instanceof HTMLButtonElement) {
+      taskDetailEditTitleTagTrigger.setAttribute("aria-expanded", "true");
+    }
+  };
+
+  const setTaskDetailTitleTagValue = (value = "") => {
+    taskDetailEditCurrentTitleTag = normalizeTaskTitleTagValue(value);
+    syncTaskDetailTitleTagTrigger();
+    renderTaskDetailTitleTagMenu();
+  };
+
+  const stopTaskDetailTitleTagCreation = ({ focusTrigger = false } = {}) => {
+    taskDetailEditTitleTagIsCreating = false;
+    if (taskDetailEditTitleComposer instanceof HTMLElement) {
+      taskDetailEditTitleComposer.classList.remove("is-creating-tag");
+    }
+    if (taskDetailEditTitleTagCustom instanceof HTMLInputElement) {
+      taskDetailEditTitleTagCustom.hidden = true;
+      taskDetailEditTitleTagCustom.value = "";
+    }
+    if (taskDetailEditTitleTagTrigger instanceof HTMLButtonElement) {
+      taskDetailEditTitleTagTrigger.hidden = false;
+      if (focusTrigger) {
+        taskDetailEditTitleTagTrigger.focus();
+      }
+    }
+    syncTaskDetailTitleTagTrigger();
+  };
+
+  const commitTaskDetailTitleTagCreation = () => {
+    if (taskDetailEditTitleTagCustom instanceof HTMLInputElement) {
+      applyFirstLetterUppercaseToInput(taskDetailEditTitleTagCustom);
+      const newTag = normalizeTaskTitleTagValue(taskDetailEditTitleTagCustom.value || "");
+      if (newTag) {
+        createTaskTitleTagOptions = normalizeTaskTitleTagCollection([
+          ...createTaskTitleTagOptions,
+          newTag,
+        ]);
+        taskDetailEditCurrentTitleTag = newTag;
+      }
+    }
+    stopTaskDetailTitleTagCreation();
+    renderTaskDetailTitleTagMenu();
+    renderCreateTaskTitleTagMenu();
+    return normalizeTaskTitleTagValue(taskDetailEditCurrentTitleTag);
+  };
+
+  const startTaskDetailTitleTagCreation = () => {
+    if (!(taskDetailEditTitleTagCustom instanceof HTMLInputElement)) return;
+    closeTaskDetailTitleTagMenu();
+    taskDetailEditTitleTagIsCreating = true;
+    if (taskDetailEditTitleComposer instanceof HTMLElement) {
+      taskDetailEditTitleComposer.classList.add("is-creating-tag");
+    }
+    if (taskDetailEditTitleTagTrigger instanceof HTMLButtonElement) {
+      taskDetailEditTitleTagTrigger.hidden = true;
+    }
+    taskDetailEditTitleTagCustom.hidden = false;
+    taskDetailEditTitleTagCustom.value = "";
+    taskDetailEditTitleTagCustom.focus();
+  };
+
+  const resetTaskDetailTitleTagPicker = (value = "") => {
+    closeTaskDetailTitleTagMenu();
+    stopTaskDetailTitleTagCreation();
+    setTaskDetailTitleTagValue(value);
+  };
+
   createTaskTitleTagOptions = normalizeTaskTitleTagCollection(readTaskTitleTagOptionsFromData());
   resetCreateTaskTitleTagPicker();
+  resetTaskDetailTitleTagPicker();
 
   function renderTaskRowSubtasksProgress(taskItem, subtasks) {
     if (!(taskItem instanceof HTMLElement)) return;
@@ -4971,6 +5312,12 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailCancelEditButton.hidden = !isEditing;
     }
     syncTaskDetailRevisionActionButtons({ isEditing });
+    if (!isEditing) {
+      closeTaskDetailTitleTagMenu();
+      if (taskDetailEditTitleTagIsCreating) {
+        stopTaskDetailTitleTagCreation();
+      }
+    }
 
     if (isEditing) {
       window.setTimeout(() => {
@@ -5214,11 +5561,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (taskDetailEditTitle instanceof HTMLInputElement) {
       taskDetailEditTitle.value = titleInput.value || "";
     }
-    syncTaskTitleTagEditorControls({
-      selectEl: taskDetailEditTitleTagSelect,
-      customInputEl: taskDetailEditTitleTagCustom,
-      currentTag: titleTag,
-    });
+    resetTaskDetailTitleTagPicker(titleTag);
     if (taskDetailEditStatus instanceof HTMLSelectElement) {
       taskDetailEditStatus.value = statusSelect.value || "todo";
       syncSelectColor(taskDetailEditStatus);
@@ -5282,6 +5625,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!taskDetailModal) return;
     closeTaskReviewModal();
     closeTaskImagePreview();
+    resetTaskDetailTitleTagPicker();
     taskDetailModal.hidden = true;
     taskDetailContext = null;
     taskDetailEditSubtaskItems = [];
@@ -5321,17 +5665,12 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     syncTaskDetailDescriptionTextareaFromEditor();
 
-    const nextTitleTag = resolveTaskTitleTagFromEditor({
-      selectEl: taskDetailEditTitleTagSelect,
-      customInputEl: taskDetailEditTitleTagCustom,
-    });
-    if (
-      taskDetailEditTitleTagSelect instanceof HTMLSelectElement &&
-      taskDetailEditTitleTagSelect.value === TASK_TITLE_TAG_CUSTOM_VALUE &&
-      taskDetailEditTitleTagCustom instanceof HTMLInputElement
-    ) {
-      taskDetailEditTitleTagCustom.value = nextTitleTag;
-    }
+    const nextTitleTag = taskDetailEditTitleTagIsCreating
+      ? commitTaskDetailTitleTagCreation()
+      : normalizeTaskTitleTagValue(
+          taskDetailEditTitleTagInput?.value || taskDetailEditCurrentTitleTag
+        );
+    setTaskDetailTitleTagValue(nextTitleTag);
 
     context.titleInput.value = taskDetailEditTitle.value;
     if (context.titleTagField instanceof HTMLInputElement) {
@@ -7420,20 +7759,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
       const removeTagTrigger = target.closest("[data-create-task-title-tag-remove]");
       if (removeTagTrigger instanceof HTMLButtonElement) {
-        const removedTag = normalizeTaskTitleTagValue(
-          removeTagTrigger.dataset.createTaskTitleTagRemove || ""
-        );
-        if (!removedTag) return;
-
-        const removedKey = removedTag.toLocaleLowerCase("pt-BR");
-        createTaskTitleTagOptions = createTaskTitleTagOptions.filter(
-          (tag) => normalizeTaskTitleTagValue(tag).toLocaleLowerCase("pt-BR") !== removedKey
-        );
-        if (createTaskCurrentTitleTag.toLocaleLowerCase("pt-BR") === removedKey) {
-          createTaskCurrentTitleTag = "";
-        }
-        syncCreateTaskTitleTagTrigger();
-        renderCreateTaskTitleTagMenu();
+        removeTaskTitleTagOption(removeTagTrigger.dataset.createTaskTitleTagRemove || "");
         return;
       }
 
@@ -7495,19 +7821,74 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  if (taskDetailEditTitleTagSelect instanceof HTMLSelectElement) {
-    taskDetailEditTitleTagSelect.addEventListener("change", () => {
-      const isCustom = taskDetailEditTitleTagSelect.value === TASK_TITLE_TAG_CUSTOM_VALUE;
-      if (taskDetailEditTitleTagCustom instanceof HTMLInputElement) {
-        taskDetailEditTitleTagCustom.hidden = !isCustom;
-        if (!isCustom) {
-          taskDetailEditTitleTagCustom.value = "";
+  if (taskDetailEditTitleTagPicker instanceof HTMLElement) {
+    taskDetailEditTitleTagPicker.addEventListener("click", (event) => {
+      const target = getEventTargetElement(event);
+      if (!(target instanceof Element)) return;
+
+      const removeTagTrigger = target.closest("[data-task-detail-edit-title-tag-remove]");
+      if (removeTagTrigger instanceof HTMLButtonElement) {
+        removeTaskTitleTagOption(removeTagTrigger.dataset.taskDetailEditTitleTagRemove || "");
+        return;
+      }
+
+      const selectTagTrigger = target.closest("[data-task-detail-edit-title-tag-option]");
+      if (selectTagTrigger instanceof HTMLButtonElement) {
+        setTaskDetailTitleTagValue(selectTagTrigger.dataset.taskDetailEditTitleTagOption || "");
+        closeTaskDetailTitleTagMenu();
+        return;
+      }
+
+      const createTagTrigger = target.closest("[data-task-detail-edit-title-tag-create]");
+      if (createTagTrigger instanceof HTMLButtonElement) {
+        startTaskDetailTitleTagCreation();
+        return;
+      }
+
+      const toggleMenuTrigger = target.closest("[data-task-detail-edit-title-tag-trigger]");
+      if (toggleMenuTrigger instanceof HTMLButtonElement) {
+        if (taskDetailEditTitleTagMenu instanceof HTMLElement && !taskDetailEditTitleTagMenu.hidden) {
+          closeTaskDetailTitleTagMenu();
         } else {
-          taskDetailEditTitleTagCustom.focus();
+          openTaskDetailTitleTagMenu();
         }
       }
     });
   }
+
+  if (taskDetailEditTitleTagCustom instanceof HTMLInputElement) {
+    taskDetailEditTitleTagCustom.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commitTaskDetailTitleTagCreation();
+        taskDetailEditTitle?.focus();
+        return;
+      }
+
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      stopTaskDetailTitleTagCreation({ focusTrigger: true });
+    });
+
+    taskDetailEditTitleTagCustom.addEventListener("blur", () => {
+      window.setTimeout(() => {
+        if (!taskDetailEditTitleTagIsCreating) return;
+        commitTaskDetailTitleTagCreation();
+      }, 0);
+    });
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof Element)) return;
+    if (!(taskDetailEditTitleTagPicker instanceof HTMLElement)) return;
+    if (taskDetailEditTitleTagPicker.contains(target)) return;
+
+    closeTaskDetailTitleTagMenu();
+    if (taskDetailEditTitleTagIsCreating) {
+      commitTaskDetailTitleTagCreation();
+    }
+  });
 
   if (createTaskForm) {
     createTaskForm.addEventListener("submit", () => {
