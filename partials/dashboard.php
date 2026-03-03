@@ -2213,11 +2213,6 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                 <input type="number" name="min_quantity_value" min="0" step="1" data-inventory-entry-min-quantity>
             </label>
 
-            <label>
-                <span>Observacoes</span>
-                <textarea name="notes" rows="3" maxlength="1000" data-inventory-entry-notes></textarea>
-            </label>
-
             <div class="modal-actions">
                 <button type="button" class="btn btn-mini btn-ghost" data-close-inventory-entry-modal>Cancelar</button>
                 <button type="submit" class="btn btn-pill" <?= empty($inventoryGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar</button>
@@ -2273,11 +2268,6 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
             <label>
                 <span>Estoque minimo</span>
                 <input type="number" name="min_quantity_value" min="0" step="1" data-inventory-entry-edit-min-quantity>
-            </label>
-
-            <label>
-                <span>Observacoes</span>
-                <textarea name="notes" rows="3" maxlength="1000" data-inventory-entry-edit-notes></textarea>
             </label>
 
             <div class="modal-actions">

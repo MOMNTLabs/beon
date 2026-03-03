@@ -2412,10 +2412,10 @@ textarea:focus {
 }
 
 .inventory-entry-qty-input {
-    width: 62px;
-    min-width: 62px;
+    width: 68px;
+    min-width: 68px;
     height: 30px;
-    padding: 3px 8px;
+    padding: 3px 18px;
     border-radius: 8px;
     border: 1px solid rgba(129, 214, 255, 0.42);
     background: rgba(5, 17, 30, 0.78);
@@ -2443,33 +2443,32 @@ textarea:focus {
 .inventory-entry-qty-step {
     position: absolute;
     top: 50%;
-    width: 16px;
-    height: 16px;
+    width: 10px;
+    height: 100%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(120, 198, 255, 0.58);
-    border-radius: 999px;
-    background: rgba(13, 41, 68, 0.98);
-    color: rgba(221, 241, 255, 0.98);
-    font-size: 0.68rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: rgba(205, 233, 255, 0.92);
+    font-size: 0.64rem;
     font-weight: 700;
     line-height: 1;
     padding: 0;
     transform: translateY(-50%);
     cursor: pointer;
-    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    transition: transform 120ms ease, color 120ms ease;
     z-index: 1;
 }
 
 .inventory-entry-qty-step:hover {
-    background: rgba(24, 58, 89, 0.98);
-    border-color: rgba(163, 223, 255, 0.85);
+    color: rgba(236, 248, 255, 0.99);
 }
 
 .inventory-entry-qty-step:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(78, 154, 210, 0.28);
+    color: rgba(236, 248, 255, 0.99);
 }
 
 .inventory-entry-qty-step:active {
@@ -2477,11 +2476,11 @@ textarea:focus {
 }
 
 .inventory-entry-qty-step-left {
-    left: -6px;
+    left: 5px;
 }
 
 .inventory-entry-qty-step-right {
-    right: -6px;
+    right: 5px;
 }
 
 .inventory-entry-qty-unit {
