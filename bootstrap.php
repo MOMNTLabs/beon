@@ -1292,7 +1292,7 @@ function ensureWorkspaceInventorySchema(PDO $pdo): void
              WHERE id = :id'
         );
         foreach ($rows as $row) {
-            $quantityValue = normalizeInventoryQuantityValue($row['quantity_value'] ?? null) ?? 0.0;
+            $quantityValue = normalizeInventoryQuantityValue($row['quantity_value'] ?? null) ?? 0;
             $minQuantityValue = normalizeInventoryQuantityValue($row['min_quantity_value'] ?? null);
             $normalizeStmt->execute([
                 ':label' => normalizeInventoryEntryLabel((string) ($row['label'] ?? '')),
@@ -4036,18 +4036,23 @@ function normalizeInventoryEntryNotes(string $value): string
     return $value;
 }
 
-function normalizeInventoryQuantityValue($value): ?float
+function normalizeInventoryQuantityValue($value): ?int
 {
     if ($value === null) {
         return null;
     }
 
-    if (is_int($value) || is_float($value)) {
-        $numeric = (float) $value;
+    if (is_int($value)) {
+        return $value >= 0 ? $value : null;
+    }
+
+    if (is_float($value)) {
+        $numeric = $value;
         if ($numeric < 0) {
             return null;
         }
-        return round($numeric, 2);
+
+        return (int) round($numeric);
     }
 
     $raw = trim((string) $value);
@@ -4056,14 +4061,16 @@ function normalizeInventoryQuantityValue($value): ?float
     }
 
     $raw = str_replace(['R$', 'r$', ' '], '', $raw);
-    if (strpos($raw, ',') !== false) {
-        if (strpos($raw, '.') !== false) {
-            $raw = str_replace('.', '', $raw);
-        }
+    if (preg_match('/^\d{1,3}(?:\.\d{3})+(?:,\d+)?$/', $raw) === 1) {
+        $raw = str_replace('.', '', $raw);
+        $raw = str_replace(',', '.', $raw);
+    } elseif (preg_match('/^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/', $raw) === 1) {
+        $raw = str_replace(',', '', $raw);
+    } elseif (strpos($raw, ',') !== false && strpos($raw, '.') === false) {
         $raw = str_replace(',', '.', $raw);
     }
 
-    if (!preg_match('/^\d+(?:\.\d{1,2})?$/', $raw)) {
+    if (!is_numeric($raw)) {
         return null;
     }
 
@@ -4072,13 +4079,13 @@ function normalizeInventoryQuantityValue($value): ?float
         return null;
     }
 
-    return round($numeric, 2);
+    return (int) round($numeric);
 }
 
 function inventoryQuantityStorageValue($value): string
 {
-    $normalized = normalizeInventoryQuantityValue($value) ?? 0.0;
-    return number_format($normalized, 2, '.', '');
+    $normalized = normalizeInventoryQuantityValue($value) ?? 0;
+    return (string) $normalized;
 }
 
 function inventoryQuantityInputValue($value): string
@@ -4088,18 +4095,13 @@ function inventoryQuantityInputValue($value): string
         return '';
     }
 
-    $formatted = number_format($normalized, 2, '.', '');
-    $formatted = rtrim(rtrim($formatted, '0'), '.');
-    return $formatted !== '' ? $formatted : '0';
+    return (string) $normalized;
 }
 
 function inventoryQuantityLabel($value): string
 {
-    $normalized = normalizeInventoryQuantityValue($value) ?? 0.0;
-    $formatted = number_format($normalized, 2, ',', '.');
-    $formatted = preg_replace('/,00$/', '', $formatted) ?? $formatted;
-    $formatted = preg_replace('/(\,\d*[1-9])0$/', '$1', $formatted) ?? $formatted;
-    return $formatted;
+    $normalized = normalizeInventoryQuantityValue($value) ?? 0;
+    return number_format((float) $normalized, 0, ',', '.');
 }
 
 function findInventoryGroupByName(string $groupName, ?int $workspaceId = null): ?string
@@ -4276,7 +4278,7 @@ function workspaceInventoryEntriesList(?int $workspaceId = null): array
     $rows = $stmt->fetchAll();
 
     foreach ($rows as &$row) {
-        $quantityValue = normalizeInventoryQuantityValue($row['quantity_value'] ?? null) ?? 0.0;
+        $quantityValue = normalizeInventoryQuantityValue($row['quantity_value'] ?? null) ?? 0;
         $minQuantityValue = normalizeInventoryQuantityValue($row['min_quantity_value'] ?? null);
         $row['id'] = (int) ($row['id'] ?? 0);
         $row['workspace_id'] = (int) ($row['workspace_id'] ?? 0);

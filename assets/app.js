@@ -152,6 +152,24 @@ window.addEventListener("DOMContentLoaded", () => {
     return true;
   };
 
+  const normalizeInventoryIntegerInput = (value, { allowEmpty = false } = {}) => {
+    const raw = String(value || "").trim();
+    if (raw === "") {
+      return allowEmpty ? "" : null;
+    }
+
+    if (!/^\d+$/.test(raw)) {
+      return null;
+    }
+
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return null;
+    }
+
+    return String(parsed);
+  };
+
   const uppercaseRequiredInputSelector = [
     ".task-title-input",
     "[data-create-task-title-input]",
@@ -448,11 +466,13 @@ window.addEventListener("DOMContentLoaded", () => {
       );
       if (!(quantityForm instanceof HTMLFormElement)) return;
 
-      const nextQuantity = String(inventoryInlineQuantityInput.value || "").trim();
-      if (nextQuantity === "") {
+      const normalizedQuantity = normalizeInventoryIntegerInput(inventoryInlineQuantityInput.value);
+      if (normalizedQuantity === null) {
         inventoryInlineQuantityInput.value = inventoryInlineQuantityInput.defaultValue || "0";
+        showClientFlash("error", "Use apenas numeros inteiros na quantidade.");
         return;
       }
+      inventoryInlineQuantityInput.value = normalizedQuantity;
 
       if (quantityForm.dataset.submitting === "1") return;
       quantityForm.dataset.submitting = "1";
@@ -6911,6 +6931,21 @@ window.addEventListener("DOMContentLoaded", () => {
       if (inventoryEntryLabelField instanceof HTMLInputElement) {
         applyFirstLetterUppercaseToInput(inventoryEntryLabelField);
       }
+      if (inventoryEntryQuantityField instanceof HTMLInputElement) {
+        const normalizedQuantity = normalizeInventoryIntegerInput(inventoryEntryQuantityField.value);
+        if (normalizedQuantity !== null) {
+          inventoryEntryQuantityField.value = normalizedQuantity;
+        }
+      }
+      if (inventoryEntryMinQuantityField instanceof HTMLInputElement) {
+        const normalizedMinQuantity = normalizeInventoryIntegerInput(
+          inventoryEntryMinQuantityField.value,
+          { allowEmpty: true }
+        );
+        if (normalizedMinQuantity !== null) {
+          inventoryEntryMinQuantityField.value = normalizedMinQuantity;
+        }
+      }
       if (inventoryEntryUnitField instanceof HTMLInputElement) {
         const normalizedUnit = String(inventoryEntryUnitField.value || "").trim().toLowerCase();
         inventoryEntryUnitField.value = normalizedUnit || "un";
@@ -6947,6 +6982,21 @@ window.addEventListener("DOMContentLoaded", () => {
     inventoryEntryEditForm.addEventListener("submit", () => {
       if (inventoryEntryEditLabelField instanceof HTMLInputElement) {
         applyFirstLetterUppercaseToInput(inventoryEntryEditLabelField);
+      }
+      if (inventoryEntryEditQuantityField instanceof HTMLInputElement) {
+        const normalizedQuantity = normalizeInventoryIntegerInput(inventoryEntryEditQuantityField.value);
+        if (normalizedQuantity !== null) {
+          inventoryEntryEditQuantityField.value = normalizedQuantity;
+        }
+      }
+      if (inventoryEntryEditMinQuantityField instanceof HTMLInputElement) {
+        const normalizedMinQuantity = normalizeInventoryIntegerInput(
+          inventoryEntryEditMinQuantityField.value,
+          { allowEmpty: true }
+        );
+        if (normalizedMinQuantity !== null) {
+          inventoryEntryEditMinQuantityField.value = normalizedMinQuantity;
+        }
       }
       if (inventoryEntryEditUnitField instanceof HTMLInputElement) {
         const normalizedUnit = String(inventoryEntryEditUnitField.value || "").trim().toLowerCase();

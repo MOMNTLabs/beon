@@ -1360,7 +1360,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                                     <?php
                                     $inventoryEntryId = (int) ($inventoryEntry['id'] ?? 0);
                                     $inventoryLabel = (string) ($inventoryEntry['label'] ?? '');
-                                    $inventoryQuantityValue = normalizeInventoryQuantityValue($inventoryEntry['quantity_value'] ?? null) ?? 0.0;
+                                    $inventoryQuantityValue = normalizeInventoryQuantityValue($inventoryEntry['quantity_value'] ?? null) ?? 0;
                                     $inventoryQuantityDisplay = (string) ($inventoryEntry['quantity_display'] ?? inventoryQuantityLabel($inventoryQuantityValue));
                                     $inventoryQuantityInput = (string) ($inventoryEntry['quantity_value_input'] ?? inventoryQuantityInputValue($inventoryQuantityValue));
                                     $inventoryMinQuantityValue = normalizeInventoryQuantityValue($inventoryEntry['min_quantity_value'] ?? null);
@@ -1404,7 +1404,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                                                             type="number"
                                                             name="quantity_value"
                                                             min="0"
-                                                            step="0.01"
+                                                            step="1"
                                                             value="<?= e($inventoryQuantityInput) ?>"
                                                             class="inventory-entry-qty-input"
                                                             data-inventory-inline-quantity-input
@@ -2184,7 +2184,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
             <div class="form-row">
                 <label>
                     <span>Quantidade</span>
-                    <input type="number" name="quantity_value" min="0" step="0.01" required data-inventory-entry-quantity>
+                    <input type="number" name="quantity_value" min="0" step="1" required data-inventory-entry-quantity>
                 </label>
                 <label>
                     <span>Unidade</span>
@@ -2194,7 +2194,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
 
             <label>
                 <span>Estoque minimo</span>
-                <input type="number" name="min_quantity_value" min="0" step="0.01" data-inventory-entry-min-quantity>
+                <input type="number" name="min_quantity_value" min="0" step="1" data-inventory-entry-min-quantity>
             </label>
 
             <label>
@@ -2246,7 +2246,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
             <div class="form-row">
                 <label>
                     <span>Quantidade</span>
-                    <input type="number" name="quantity_value" min="0" step="0.01" required data-inventory-entry-edit-quantity>
+                    <input type="number" name="quantity_value" min="0" step="1" required data-inventory-entry-edit-quantity>
                 </label>
                 <label>
                     <span>Unidade</span>
@@ -2256,7 +2256,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
 
             <label>
                 <span>Estoque minimo</span>
-                <input type="number" name="min_quantity_value" min="0" step="0.01" data-inventory-entry-edit-min-quantity>
+                <input type="number" name="min_quantity_value" min="0" step="1" data-inventory-entry-edit-min-quantity>
             </label>
 
             <label>
