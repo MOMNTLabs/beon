@@ -317,10 +317,10 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                             <summary aria-label="Filtrar por criador">
                                 <span class="row-inline-picker-summary-text" data-inline-select-text>
                                     <?php if ($creatorFilterValue === ''): ?>
-                                        Todos Criados por
+                                        Criado por
                                     <?php else: ?>
                                         <?php
-                                        $creatorLabel = 'Todos Criados por';
+                                        $creatorLabel = 'Criado por';
                                         foreach ($users as $user) {
                                             if ((string) ((int) $user['id']) === $creatorFilterValue) {
                                                 $creatorLabel = (string) $user['name'];
@@ -338,10 +338,10 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                                     class="row-inline-picker-option<?= $creatorFilterValue === '' ? ' is-active' : '' ?>"
                                     data-inline-select-option
                                     data-value=""
-                                    data-label="Todos Criados por"
+                                    data-label="Criado por"
                                     role="option"
                                     aria-selected="<?= $creatorFilterValue === '' ? 'true' : 'false' ?>"
-                                >Todos Criados por</button>
+                                >Criado por</button>
                                 <?php foreach ($users as $user): ?>
                                     <?php $optionValue = (string) ((int) $user['id']); ?>
                                     <button
@@ -357,7 +357,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                             </div>
                         </details>
                         <select name="created_by" class="tag-select row-inline-picker-native" data-inline-select-source hidden>
-                            <option value="">Todos Criados por</option>
+                            <option value="">Criado por</option>
                             <?php foreach ($users as $user): ?>
                                 <option value="<?= e((string) $user['id']) ?>"<?= $creatorFilterId === (int) $user['id'] ? ' selected' : '' ?>>
                                     <?= e((string) $user['name']) ?>
