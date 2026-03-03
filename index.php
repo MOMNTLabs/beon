@@ -2110,9 +2110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $taskStatus = normalizeTaskStatus((string) ($taskRow['status'] ?? 'todo'));
-                if ($taskStatus !== 'review') {
-                    throw new RuntimeException('A remocao de ajuste so pode ser feita em tarefas em revisao.');
-                }
 
                 $currentDescription = trim((string) ($taskRow['description'] ?? ''));
                 if ($currentDescription === '') {
@@ -2538,7 +2535,7 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css?v=79">
-    <script src="assets/app.js?v=53" defer></script>
+    <script src="assets/app.js?v=54" defer></script>
 </head>
 <body
     class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"

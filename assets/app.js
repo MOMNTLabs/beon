@@ -4918,8 +4918,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const canUseRevisionActions =
       !isEditing &&
       Boolean(taskDetailContext) &&
-      !Boolean(taskDetailContext?.readOnly) &&
-      statusValue === "review";
+      !Boolean(taskDetailContext?.readOnly);
+    const canRequestRevision = canUseRevisionActions && statusValue === "review";
 
     const currentDescription = String(taskDetailContext?.descriptionField?.value || "").trim();
     const history = readTaskHistoryField(taskDetailContext?.historyField);
@@ -4929,7 +4929,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     if (hasRequestButton) {
-      taskDetailRequestRevisionButton.hidden = !canUseRevisionActions;
+      taskDetailRequestRevisionButton.hidden = !canRequestRevision;
     }
     if (hasRemoveButton) {
       taskDetailRemoveRevisionButton.hidden = !canUseRevisionActions || !hasActiveRevision;
