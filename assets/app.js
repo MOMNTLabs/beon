@@ -167,6 +167,9 @@ window.addEventListener("DOMContentLoaded", () => {
     "[data-due-entry-label]",
     "[data-due-entry-edit-label]",
     "[data-due-group-name-input]",
+    "[data-inventory-entry-label]",
+    "[data-inventory-entry-edit-label]",
+    "[data-inventory-group-name-input]",
     "[data-task-detail-edit-subtask-input]",
     "[data-create-task-subtask-input]",
     ".task-subtasks-edit-title",
@@ -2086,6 +2089,21 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const setInventoryGroupCollapsed = (groupSection, collapsed, options = {}) => {
+    if (!(groupSection instanceof HTMLElement)) return;
+    const rows = groupSection.querySelector("[data-inventory-group-rows]");
+    const shouldCollapse = Boolean(collapsed);
+    const shouldPersist = options.persist !== false;
+
+    groupSection.classList.toggle("is-collapsed", shouldCollapse);
+    if (rows instanceof HTMLElement) {
+      rows.hidden = shouldCollapse;
+    }
+    if (shouldPersist) {
+      setStoredGroupCollapsedState("inventory", groupSection.dataset.groupName || "", shouldCollapse);
+    }
+  };
+
   const isGroupHeadToggleTargetBlocked = (target, groupHead) => {
     if (!(target instanceof HTMLElement) || !(groupHead instanceof HTMLElement)) return true;
     const blockedTarget = target.closest(
@@ -2907,6 +2925,7 @@ window.addEventListener("DOMContentLoaded", () => {
     return normalized === "tasks" ||
       normalized === "vault" ||
       normalized === "dues" ||
+      normalized === "inventory" ||
       normalized === "users"
       ? normalized
       : "";
@@ -3054,6 +3073,28 @@ window.addEventListener("DOMContentLoaded", () => {
   const dueEntryEditAnnualMonthField = document.querySelector("[data-due-entry-edit-annual-month]");
   const dueEntryEditAnnualDayField = document.querySelector("[data-due-entry-edit-annual-day]");
   const dueEntryEditDateField = document.querySelector("[data-due-entry-edit-date]");
+  const inventoryGroupModal = document.querySelector("[data-inventory-group-modal]");
+  const inventoryGroupForm = document.querySelector("[data-inventory-group-form]");
+  const inventoryGroupNameInput = document.querySelector("[data-inventory-group-name-input]");
+  const inventoryEntryModal = document.querySelector("[data-inventory-entry-modal]");
+  const inventoryEntryForm = document.querySelector("[data-inventory-entry-form]");
+  const inventoryEntryGroupField = document.querySelector("[data-inventory-entry-group]");
+  const inventoryEntryLabelField = document.querySelector("[data-inventory-entry-label]");
+  const inventoryEntryQuantityField = document.querySelector("[data-inventory-entry-quantity]");
+  const inventoryEntryUnitField = document.querySelector("[data-inventory-entry-unit]");
+  const inventoryEntryMinQuantityField = document.querySelector("[data-inventory-entry-min-quantity]");
+  const inventoryEntryNotesField = document.querySelector("[data-inventory-entry-notes]");
+  const inventoryEntryEditModal = document.querySelector("[data-inventory-entry-edit-modal]");
+  const inventoryEntryEditForm = document.querySelector("[data-inventory-entry-edit-form]");
+  const inventoryEntryEditIdField = document.querySelector("[data-inventory-entry-edit-id]");
+  const inventoryEntryEditGroupField = document.querySelector("[data-inventory-entry-edit-group]");
+  const inventoryEntryEditLabelField = document.querySelector("[data-inventory-entry-edit-label]");
+  const inventoryEntryEditQuantityField = document.querySelector("[data-inventory-entry-edit-quantity]");
+  const inventoryEntryEditUnitField = document.querySelector("[data-inventory-entry-edit-unit]");
+  const inventoryEntryEditMinQuantityField = document.querySelector(
+    "[data-inventory-entry-edit-min-quantity]"
+  );
+  const inventoryEntryEditNotesField = document.querySelector("[data-inventory-entry-edit-notes]");
   const taskDetailModal = document.querySelector("[data-task-detail-modal]");
   const taskDetailTitle = document.querySelector("[data-task-detail-title]");
   const taskDetailViewPanel = document.querySelector("[data-task-detail-view]");
@@ -4881,6 +4922,9 @@ window.addEventListener("DOMContentLoaded", () => {
       dueGroupModal,
       dueEntryModal,
       dueEntryEditModal,
+      inventoryGroupModal,
+      inventoryEntryModal,
+      inventoryEntryEditModal,
       taskDetailModal,
       taskReviewModal,
       taskImagePreviewModal,
@@ -5283,6 +5327,11 @@ window.addEventListener("DOMContentLoaded", () => {
       persist: false,
     });
   });
+  document.querySelectorAll("[data-inventory-group]").forEach((section) => {
+    setInventoryGroupCollapsed(section, resolveInitialGroupCollapsedState("inventory", section), {
+      persist: false,
+    });
+  });
   document.querySelectorAll("[data-vault-password-cell]").forEach((cell) => {
     syncVaultPasswordCell(cell, false);
   });
@@ -5419,6 +5468,14 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const setDueGroupSelectValue = (select, value) => {
+    if (!(select instanceof HTMLSelectElement)) return;
+    const next = (value || "").trim();
+    if (!next) return;
+    if (!Array.from(select.options).some((option) => option.value === next)) return;
+    select.value = next;
+  };
+
+  const setInventoryGroupSelectValue = (select, value) => {
     if (!(select instanceof HTMLSelectElement)) return;
     const next = (value || "").trim();
     if (!next) return;
@@ -5842,6 +5899,115 @@ window.addEventListener("DOMContentLoaded", () => {
     syncBodyModalLock();
   };
 
+  const openInventoryGroupModal = () => {
+    if (!(inventoryGroupModal instanceof HTMLElement)) return;
+    if (inventoryGroupForm instanceof HTMLFormElement) {
+      inventoryGroupForm.reset();
+    }
+    inventoryGroupModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      inventoryGroupNameInput?.focus();
+    }, 20);
+  };
+
+  const closeInventoryGroupModal = () => {
+    if (!(inventoryGroupModal instanceof HTMLElement)) return;
+    inventoryGroupModal.hidden = true;
+    syncBodyModalLock();
+  };
+
+  const openInventoryEntryModal = (groupName = "") => {
+    if (!(inventoryEntryModal instanceof HTMLElement)) return;
+    if (inventoryEntryGroupField instanceof HTMLSelectElement && inventoryEntryGroupField.disabled) {
+      return;
+    }
+    if (inventoryEntryForm instanceof HTMLFormElement) {
+      inventoryEntryForm.reset();
+    }
+    if (inventoryEntryGroupField instanceof HTMLSelectElement) {
+      setInventoryGroupSelectValue(inventoryEntryGroupField, groupName);
+    }
+    if (inventoryEntryQuantityField instanceof HTMLInputElement) {
+      inventoryEntryQuantityField.value = "1";
+    }
+    if (inventoryEntryUnitField instanceof HTMLInputElement) {
+      inventoryEntryUnitField.value = "un";
+    }
+    if (inventoryEntryMinQuantityField instanceof HTMLInputElement) {
+      inventoryEntryMinQuantityField.value = "";
+    }
+    if (inventoryEntryNotesField instanceof HTMLTextAreaElement) {
+      inventoryEntryNotesField.value = "";
+    }
+
+    inventoryEntryModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      inventoryEntryLabelField?.focus();
+    }, 20);
+  };
+
+  const closeInventoryEntryModal = () => {
+    if (!(inventoryEntryModal instanceof HTMLElement)) return;
+    inventoryEntryModal.hidden = true;
+    syncBodyModalLock();
+  };
+
+  const openInventoryEntryEditModalFromRow = (entryRow) => {
+    if (!(entryRow instanceof HTMLElement)) return;
+    if (!(inventoryEntryEditModal instanceof HTMLElement)) return;
+    if (!(inventoryEntryEditForm instanceof HTMLFormElement)) return;
+    if (
+      inventoryEntryEditGroupField instanceof HTMLSelectElement &&
+      inventoryEntryEditGroupField.disabled
+    ) {
+      return;
+    }
+
+    const entryId = (entryRow.dataset.entryId || "").trim();
+    const label = (entryRow.dataset.entryLabel || "").trim();
+    const quantityValue = (entryRow.dataset.entryQuantityValue || "").trim();
+    const minQuantityValue = (entryRow.dataset.entryMinQuantityValue || "").trim();
+    const unitLabel = (entryRow.dataset.entryUnitLabel || "").trim();
+    const groupName = (entryRow.dataset.entryGroup || "").trim();
+    const notes = (entryRow.dataset.entryNotes || "").trim();
+
+    if (!(inventoryEntryEditIdField instanceof HTMLInputElement)) return;
+    inventoryEntryEditForm.reset();
+    inventoryEntryEditIdField.value = entryId;
+    if (inventoryEntryEditLabelField instanceof HTMLInputElement) {
+      inventoryEntryEditLabelField.value = label;
+    }
+    if (inventoryEntryEditQuantityField instanceof HTMLInputElement) {
+      inventoryEntryEditQuantityField.value = quantityValue;
+    }
+    if (inventoryEntryEditMinQuantityField instanceof HTMLInputElement) {
+      inventoryEntryEditMinQuantityField.value = minQuantityValue;
+    }
+    if (inventoryEntryEditUnitField instanceof HTMLInputElement) {
+      inventoryEntryEditUnitField.value = unitLabel || "un";
+    }
+    if (inventoryEntryEditNotesField instanceof HTMLTextAreaElement) {
+      inventoryEntryEditNotesField.value = notes;
+    }
+    if (inventoryEntryEditGroupField instanceof HTMLSelectElement) {
+      setInventoryGroupSelectValue(inventoryEntryEditGroupField, groupName);
+    }
+
+    inventoryEntryEditModal.hidden = false;
+    syncBodyModalLock();
+    window.setTimeout(() => {
+      inventoryEntryEditLabelField?.focus();
+    }, 20);
+  };
+
+  const closeInventoryEntryEditModal = () => {
+    if (!(inventoryEntryEditModal instanceof HTMLElement)) return;
+    inventoryEntryEditModal.hidden = true;
+    syncBodyModalLock();
+  };
+
   syncDueCreateRecurrenceFields();
   syncDueEditRecurrenceFields();
 
@@ -5938,6 +6104,12 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const openInventoryGroupTrigger = target.closest("[data-open-inventory-group-modal]");
+    if (openInventoryGroupTrigger) {
+      openInventoryGroupModal();
+      return;
+    }
+
     const openVaultEntryTrigger = target.closest("[data-open-vault-entry-modal]");
     if (openVaultEntryTrigger instanceof HTMLElement) {
       openVaultEntryModal((openVaultEntryTrigger.dataset.createGroup || "").trim());
@@ -5947,6 +6119,12 @@ window.addEventListener("DOMContentLoaded", () => {
     const openDueEntryTrigger = target.closest("[data-open-due-entry-modal]");
     if (openDueEntryTrigger instanceof HTMLElement) {
       openDueEntryModal((openDueEntryTrigger.dataset.createGroup || "").trim());
+      return;
+    }
+
+    const openInventoryEntryTrigger = target.closest("[data-open-inventory-entry-modal]");
+    if (openInventoryEntryTrigger instanceof HTMLElement) {
+      openInventoryEntryModal((openInventoryEntryTrigger.dataset.createGroup || "").trim());
       return;
     }
 
@@ -5961,6 +6139,13 @@ window.addEventListener("DOMContentLoaded", () => {
     if (openDueEditTrigger instanceof HTMLElement) {
       const row = openDueEditTrigger.closest("[data-due-entry]");
       openDueEntryEditModalFromRow(row);
+      return;
+    }
+
+    const openInventoryEditTrigger = target.closest("[data-open-inventory-edit-modal]");
+    if (openInventoryEditTrigger instanceof HTMLElement) {
+      const row = openInventoryEditTrigger.closest("[data-inventory-entry]");
+      openInventoryEntryEditModalFromRow(row);
       return;
     }
 
@@ -6032,6 +6217,27 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const inventoryDeleteTrigger = target.closest("[data-inventory-delete-entry]");
+    if (inventoryDeleteTrigger instanceof HTMLElement) {
+      const formId = inventoryDeleteTrigger.dataset.deleteFormId || "";
+      const deleteForm = formId ? document.getElementById(formId) : null;
+      const row = inventoryDeleteTrigger.closest("[data-inventory-entry]");
+      const label = (row?.dataset?.entryLabel || "").trim() || "este item de estoque";
+
+      if (deleteForm instanceof HTMLFormElement) {
+        openConfirmModal({
+          title: "Excluir item de estoque",
+          message: `Remover ${label}?`,
+          confirmLabel: "Excluir",
+          confirmVariant: "danger",
+          onConfirm: async () => {
+            deleteForm.submit();
+          },
+        });
+      }
+      return;
+    }
+
     const vaultGroupHeadToggle = target.closest("[data-vault-group-head-toggle]");
     if (vaultGroupHeadToggle instanceof HTMLElement) {
       if (!isGroupHeadToggleTargetBlocked(target, vaultGroupHeadToggle)) {
@@ -6051,6 +6257,18 @@ window.addEventListener("DOMContentLoaded", () => {
         if (groupSection instanceof HTMLElement) {
           const shouldCollapse = !groupSection.classList.contains("is-collapsed");
           setDueGroupCollapsed(groupSection, shouldCollapse);
+        }
+        return;
+      }
+    }
+
+    const inventoryGroupHeadToggle = target.closest("[data-inventory-group-head-toggle]");
+    if (inventoryGroupHeadToggle instanceof HTMLElement) {
+      if (!isGroupHeadToggleTargetBlocked(target, inventoryGroupHeadToggle)) {
+        const groupSection = inventoryGroupHeadToggle.closest("[data-inventory-group]");
+        if (groupSection instanceof HTMLElement) {
+          const shouldCollapse = !groupSection.classList.contains("is-collapsed");
+          setInventoryGroupCollapsed(groupSection, shouldCollapse);
         }
         return;
       }
@@ -6190,6 +6408,12 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const closeInventoryGroupTrigger = target.closest("[data-close-inventory-group-modal]");
+    if (closeInventoryGroupTrigger) {
+      closeInventoryGroupModal();
+      return;
+    }
+
     const closeVaultEntryTrigger = target.closest("[data-close-vault-entry-modal]");
     if (closeVaultEntryTrigger) {
       closeVaultEntryModal();
@@ -6202,6 +6426,12 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const closeInventoryEntryTrigger = target.closest("[data-close-inventory-entry-modal]");
+    if (closeInventoryEntryTrigger) {
+      closeInventoryEntryModal();
+      return;
+    }
+
     const closeVaultEntryEditTrigger = target.closest("[data-close-vault-entry-edit-modal]");
     if (closeVaultEntryEditTrigger) {
       closeVaultEntryEditModal();
@@ -6211,6 +6441,12 @@ window.addEventListener("DOMContentLoaded", () => {
     const closeDueEntryEditTrigger = target.closest("[data-close-due-entry-edit-modal]");
     if (closeDueEntryEditTrigger) {
       closeDueEntryEditModal();
+      return;
+    }
+
+    const closeInventoryEntryEditTrigger = target.closest("[data-close-inventory-entry-edit-modal]");
+    if (closeInventoryEntryEditTrigger) {
+      closeInventoryEntryEditModal();
       return;
     }
 
@@ -6314,17 +6550,26 @@ window.addEventListener("DOMContentLoaded", () => {
     if (dueGroupModal && !dueGroupModal.hidden) {
       closeDueGroupModal();
     }
+    if (inventoryGroupModal && !inventoryGroupModal.hidden) {
+      closeInventoryGroupModal();
+    }
     if (vaultEntryModal && !vaultEntryModal.hidden) {
       closeVaultEntryModal();
     }
     if (dueEntryModal && !dueEntryModal.hidden) {
       closeDueEntryModal();
     }
+    if (inventoryEntryModal && !inventoryEntryModal.hidden) {
+      closeInventoryEntryModal();
+    }
     if (vaultEntryEditModal && !vaultEntryEditModal.hidden) {
       closeVaultEntryEditModal();
     }
     if (dueEntryEditModal && !dueEntryEditModal.hidden) {
       closeDueEntryEditModal();
+    }
+    if (inventoryEntryEditModal && !inventoryEntryEditModal.hidden) {
+      closeInventoryEntryEditModal();
     }
     if (taskReviewModal && !taskReviewModal.hidden) {
       closeTaskReviewModal();
@@ -6539,6 +6784,15 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (inventoryGroupForm instanceof HTMLFormElement) {
+    inventoryGroupForm.addEventListener("submit", () => {
+      if (inventoryGroupNameInput instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(inventoryGroupNameInput);
+      }
+      syncBodyModalLock();
+    });
+  }
+
   if (dueEntryRecurrenceField instanceof HTMLSelectElement) {
     dueEntryRecurrenceField.addEventListener("change", () => {
       syncDueCreateRecurrenceFields();
@@ -6623,6 +6877,19 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (inventoryEntryForm instanceof HTMLFormElement) {
+    inventoryEntryForm.addEventListener("submit", () => {
+      if (inventoryEntryLabelField instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(inventoryEntryLabelField);
+      }
+      if (inventoryEntryUnitField instanceof HTMLInputElement) {
+        const normalizedUnit = String(inventoryEntryUnitField.value || "").trim().toLowerCase();
+        inventoryEntryUnitField.value = normalizedUnit || "un";
+      }
+      syncBodyModalLock();
+    });
+  }
+
   if (vaultEntryEditForm instanceof HTMLFormElement) {
     vaultEntryEditForm.addEventListener("submit", () => {
       if (vaultEntryEditLabelField instanceof HTMLInputElement) {
@@ -6642,6 +6909,19 @@ window.addEventListener("DOMContentLoaded", () => {
         dueEntryEditMonthlyDayField.value = normalizeDueMonthlyDayInput(
           dueEntryEditMonthlyDayField.value
         );
+      }
+      syncBodyModalLock();
+    });
+  }
+
+  if (inventoryEntryEditForm instanceof HTMLFormElement) {
+    inventoryEntryEditForm.addEventListener("submit", () => {
+      if (inventoryEntryEditLabelField instanceof HTMLInputElement) {
+        applyFirstLetterUppercaseToInput(inventoryEntryEditLabelField);
+      }
+      if (inventoryEntryEditUnitField instanceof HTMLInputElement) {
+        const normalizedUnit = String(inventoryEntryEditUnitField.value || "").trim().toLowerCase();
+        inventoryEntryEditUnitField.value = normalizedUnit || "un";
       }
       syncBodyModalLock();
     });

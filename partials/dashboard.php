@@ -169,6 +169,23 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                         </span>
                         <span class="sidebar-view-toggle-label">Vencimentos</span>
                     </button>
+                    <button
+                        type="button"
+                        class="sidebar-view-toggle"
+                        data-dashboard-view-toggle
+                        data-view="inventory"
+                        aria-pressed="false"
+                    >
+                        <span class="sidebar-view-toggle-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M4 7.5 12 4l8 3.5-8 3.5-8-3.5Z"></path>
+                                <path d="M4 12.5 12 16l8-3.5"></path>
+                                <path d="M4 17.5 12 21l8-3.5"></path>
+                                <path d="M12 11v10"></path>
+                            </svg>
+                        </span>
+                        <span class="sidebar-view-toggle-label">Estoque</span>
+                    </button>
                     <?php if (!empty($showUsersDashboardTab)): ?>
                         <button
                             type="button"
@@ -1230,6 +1247,201 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
             </div>
         </section>
 
+        <section class="inventory-wrap panel" id="inventory" data-dashboard-view-panel="inventory" hidden>
+            <div class="panel-header board-header due-header">
+                <div>
+                    <h2>Estoque</h2>
+                </div>
+                <div class="board-summary inventory-summary">
+                    <button
+                        type="button"
+                        class="icon-gear-button vault-summary-button"
+                        data-open-inventory-group-modal
+                        aria-label="Criar grupo de estoque"
+                    >
+                        <span class="vault-summary-button-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M3 8a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"></path>
+                                <path d="M12 11v5"></path>
+                                <path d="M9.5 13.5h5"></path>
+                            </svg>
+                        </span>
+                        <span class="vault-summary-button-label">Novo grupo</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="icon-gear-button vault-summary-button"
+                        data-open-inventory-entry-modal
+                        aria-label="Adicionar item ao estoque"
+                        <?= empty($inventoryGroupsWithAccess) ? 'disabled' : '' ?>
+                    >
+                        <span class="vault-summary-button-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 5v14"></path>
+                                <path d="M5 12h14"></path>
+                                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                            </svg>
+                        </span>
+                        <span class="vault-summary-button-label">Novo item</span>
+                    </button>
+                    <span><?= e((string) count($inventoryEntries)) ?> item(ns)</span>
+                </div>
+            </div>
+
+            <div class="inventory-groups-list">
+                <?php if (empty($inventoryEntriesByGroup)): ?>
+                    <div class="empty-card">
+                        <p>Nenhum item de estoque cadastrado ainda.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($inventoryEntriesByGroup as $inventoryGroupName => $groupInventoryEntries): ?>
+                        <section
+                            class="task-group inventory-group"
+                            data-inventory-group
+                            data-group-name="<?= e((string) $inventoryGroupName) ?>"
+                        >
+                            <header class="task-group-head" data-inventory-group-head-toggle>
+                                <div class="task-group-head-main">
+                                    <form method="post" class="task-group-rename-form">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                        <input type="hidden" name="action" value="rename_inventory_group">
+                                        <input type="hidden" name="old_group_name" value="<?= e((string) $inventoryGroupName) ?>">
+                                        <h3>
+                                            <input
+                                                type="text"
+                                                name="new_group_name"
+                                                value="<?= e((string) $inventoryGroupName) ?>"
+                                                maxlength="60"
+                                                class="task-group-name-input"
+                                                aria-label="Nome do grupo de estoque"
+                                                spellcheck="false"
+                                            >
+                                        </h3>
+                                        <button type="submit" class="sr-only">Salvar grupo</button>
+                                    </form>
+                                </div>
+                                <div class="task-group-head-actions">
+                                    <span class="task-group-collapse" data-group-toggle-indicator aria-hidden="true"><span>&#9662;</span></span>
+                                    <button
+                                        type="button"
+                                        class="group-add-button"
+                                        data-open-inventory-entry-modal
+                                        data-create-group="<?= e((string) $inventoryGroupName) ?>"
+                                        aria-label="Adicionar item no grupo <?= e((string) $inventoryGroupName) ?>"
+                                    >+</button>
+                                    <form method="post" class="task-group-delete-form">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                        <input type="hidden" name="action" value="delete_inventory_group">
+                                        <input type="hidden" name="group_name" value="<?= e((string) $inventoryGroupName) ?>">
+                                        <button
+                                            type="submit"
+                                            class="task-group-delete"
+                                            aria-label="Excluir grupo de estoque <?= e((string) $inventoryGroupName) ?>"
+                                        ><span aria-hidden="true">&#10005;</span></button>
+                                    </form>
+                                    <span class="task-group-count"><?= e((string) count($groupInventoryEntries)) ?></span>
+                                </div>
+                            </header>
+
+                            <div class="inventory-group-rows" data-inventory-group-rows>
+                                <?php if (!$groupInventoryEntries): ?>
+                                    <div class="task-group-empty-row">
+                                        <button
+                                            type="button"
+                                            class="task-group-empty-add"
+                                            data-open-inventory-entry-modal
+                                            data-create-group="<?= e((string) $inventoryGroupName) ?>"
+                                            aria-label="Adicionar item no grupo <?= e((string) $inventoryGroupName) ?>"
+                                        >+</button>
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php foreach ($groupInventoryEntries as $inventoryEntry): ?>
+                                    <?php
+                                    $inventoryEntryId = (int) ($inventoryEntry['id'] ?? 0);
+                                    $inventoryLabel = (string) ($inventoryEntry['label'] ?? '');
+                                    $inventoryQuantityValue = normalizeInventoryQuantityValue($inventoryEntry['quantity_value'] ?? null) ?? 0.0;
+                                    $inventoryQuantityDisplay = (string) ($inventoryEntry['quantity_display'] ?? inventoryQuantityLabel($inventoryQuantityValue));
+                                    $inventoryQuantityInput = (string) ($inventoryEntry['quantity_value_input'] ?? inventoryQuantityInputValue($inventoryQuantityValue));
+                                    $inventoryMinQuantityValue = normalizeInventoryQuantityValue($inventoryEntry['min_quantity_value'] ?? null);
+                                    $inventoryMinQuantityDisplay = $inventoryMinQuantityValue !== null
+                                        ? (string) ($inventoryEntry['min_quantity_display'] ?? inventoryQuantityLabel($inventoryMinQuantityValue))
+                                        : '';
+                                    $inventoryMinQuantityInput = $inventoryMinQuantityValue !== null
+                                        ? (string) ($inventoryEntry['min_quantity_value_input'] ?? inventoryQuantityInputValue($inventoryMinQuantityValue))
+                                        : '';
+                                    $inventoryUnitLabel = normalizeInventoryUnitLabel((string) ($inventoryEntry['unit_label'] ?? 'un'));
+                                    $inventoryGroupValue = (string) ($inventoryEntry['group_name'] ?? $inventoryGroupName);
+                                    $inventoryNotes = (string) ($inventoryEntry['notes'] ?? '');
+                                    $inventoryLowStock = ((int) ($inventoryEntry['is_low_stock'] ?? 0)) === 1;
+                                    ?>
+                                    <article
+                                        class="inventory-entry-row"
+                                        data-inventory-entry
+                                        data-entry-id="<?= e((string) $inventoryEntryId) ?>"
+                                        data-entry-label="<?= e($inventoryLabel) ?>"
+                                        data-entry-quantity-value="<?= e($inventoryQuantityInput) ?>"
+                                        data-entry-min-quantity-value="<?= e($inventoryMinQuantityInput) ?>"
+                                        data-entry-unit-label="<?= e($inventoryUnitLabel) ?>"
+                                        data-entry-group="<?= e($inventoryGroupValue) ?>"
+                                        data-entry-notes="<?= e($inventoryNotes) ?>"
+                                    >
+                                        <div class="inventory-entry-main">
+                                            <div class="inventory-entry-line">
+                                                <span class="inventory-entry-title"><?= e($inventoryLabel) ?></span>
+                                                <span class="inventory-entry-qty" title="Quantidade disponivel">
+                                                    <span class="inventory-entry-inline-label">Qtd.</span>
+                                                    <strong><?= e($inventoryQuantityDisplay) ?> <?= e($inventoryUnitLabel) ?></strong>
+                                                </span>
+                                                <?php if ($inventoryMinQuantityValue !== null): ?>
+                                                    <span class="inventory-entry-min" title="Estoque minimo recomendado">
+                                                        <span class="inventory-entry-inline-label">Min.</span>
+                                                        <strong><?= e($inventoryMinQuantityDisplay) ?> <?= e($inventoryUnitLabel) ?></strong>
+                                                    </span>
+                                                <?php endif; ?>
+                                                <?php if ($inventoryLowStock): ?>
+                                                    <span class="inventory-entry-alert" title="Quantidade atual abaixo do estoque minimo">Baixo estoque</span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+
+                                        <div class="vault-entry-tools">
+                                            <button
+                                                type="button"
+                                                class="vault-icon-button"
+                                                data-open-inventory-edit-modal
+                                                aria-label="Editar item de estoque"
+                                            >
+                                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path d="M4 20h4l10-10-4-4L4 16v4Z"></path>
+                                                    <path d="m12 6 4 4"></path>
+                                                </svg>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="vault-entry-delete-button"
+                                                data-inventory-delete-entry
+                                                data-delete-form-id="delete-inventory-entry-<?= e((string) $inventoryEntryId) ?>"
+                                                aria-label="Excluir item de estoque"
+                                            >
+                                                <span aria-hidden="true">&#10005;</span>
+                                            </button>
+                                        </div>
+
+                                        <form method="post" id="delete-inventory-entry-<?= e((string) $inventoryEntryId) ?>" class="vault-entry-delete-form">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                            <input type="hidden" name="action" value="delete_inventory_entry">
+                                            <input type="hidden" name="entry_id" value="<?= e((string) $inventoryEntryId) ?>">
+                                        </form>
+                                    </article>
+                                <?php endforeach; ?>
+                            </div>
+                        </section>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </section>
+
         <?php if (!empty($showUsersDashboardTab)): ?>
             <section class="users-wrap panel" id="users" data-dashboard-view-panel="users" hidden>
                 <div class="panel-header board-header users-board-header">
@@ -1884,6 +2096,156 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
             <div class="modal-actions">
                 <button type="button" class="btn btn-mini btn-ghost" data-close-due-entry-edit-modal>Cancelar</button>
                 <button type="submit" class="btn btn-pill" <?= empty($dueGroupsWithAccess) ? 'disabled' : '' ?>>Salvar</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="modal-backdrop" data-inventory-group-modal hidden>
+    <div class="modal-scrim" data-close-inventory-group-modal></div>
+    <section class="modal-card create-group-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-group-modal-title">
+        <header class="modal-head">
+            <h2 id="inventory-group-modal-title">Novo grupo de estoque</h2>
+            <button type="button" class="modal-close-button" data-close-inventory-group-modal aria-label="Fechar modal">
+                <span aria-hidden="true">&#10005;</span>
+            </button>
+        </header>
+
+        <form method="post" class="form-stack modal-form" data-inventory-group-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="create_inventory_group">
+
+            <label>
+                <span>Nome do grupo</span>
+                <input type="text" name="group_name" maxlength="60" required data-inventory-group-name-input>
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-inventory-group-modal>Cancelar</button>
+                <button type="submit" class="btn btn-pill">Criar grupo</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="modal-backdrop" data-inventory-entry-modal hidden>
+    <div class="modal-scrim" data-close-inventory-entry-modal></div>
+    <section class="modal-card create-task-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-entry-modal-title">
+        <header class="modal-head">
+            <h2 id="inventory-entry-modal-title">Novo item de estoque</h2>
+            <button type="button" class="modal-close-button" data-close-inventory-entry-modal aria-label="Fechar modal">
+                <span aria-hidden="true">&#10005;</span>
+            </button>
+        </header>
+
+        <form method="post" class="form-stack modal-form" data-inventory-entry-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="create_inventory_entry">
+
+            <label>
+                <span>Grupo</span>
+                <select name="group_name" data-inventory-entry-group <?= empty($inventoryGroupsWithAccess) ? 'disabled' : '' ?>>
+                    <?php if (!$inventoryGroupsWithAccess): ?>
+                        <option value="">Sem grupo com acesso</option>
+                    <?php else: ?>
+                        <?php foreach ($inventoryGroupsWithAccess as $inventoryGroupOption): ?>
+                            <option value="<?= e((string) $inventoryGroupOption) ?>"><?= e((string) $inventoryGroupOption) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </label>
+
+            <label>
+                <span>Item</span>
+                <input type="text" name="label" maxlength="120" required data-inventory-entry-label>
+            </label>
+
+            <div class="form-row">
+                <label>
+                    <span>Quantidade</span>
+                    <input type="number" name="quantity_value" min="0" step="0.01" required data-inventory-entry-quantity>
+                </label>
+                <label>
+                    <span>Unidade</span>
+                    <input type="text" name="unit_label" maxlength="30" value="un" required data-inventory-entry-unit>
+                </label>
+            </div>
+
+            <label>
+                <span>Estoque minimo</span>
+                <input type="number" name="min_quantity_value" min="0" step="0.01" data-inventory-entry-min-quantity>
+            </label>
+
+            <label>
+                <span>Observacoes</span>
+                <textarea name="notes" rows="3" maxlength="1000" data-inventory-entry-notes></textarea>
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-inventory-entry-modal>Cancelar</button>
+                <button type="submit" class="btn btn-pill" <?= empty($inventoryGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="modal-backdrop" data-inventory-entry-edit-modal hidden>
+    <div class="modal-scrim" data-close-inventory-entry-edit-modal></div>
+    <section class="modal-card create-task-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-entry-edit-modal-title">
+        <header class="modal-head">
+            <h2 id="inventory-entry-edit-modal-title">Editar item de estoque</h2>
+            <button type="button" class="modal-close-button" data-close-inventory-entry-edit-modal aria-label="Fechar modal">
+                <span aria-hidden="true">&#10005;</span>
+            </button>
+        </header>
+
+        <form method="post" class="form-stack modal-form" data-inventory-entry-edit-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+            <input type="hidden" name="action" value="update_inventory_entry">
+            <input type="hidden" name="entry_id" value="" data-inventory-entry-edit-id>
+
+            <label>
+                <span>Grupo</span>
+                <select name="group_name" data-inventory-entry-edit-group <?= empty($inventoryGroupsWithAccess) ? 'disabled' : '' ?>>
+                    <?php if (!$inventoryGroupsWithAccess): ?>
+                        <option value="">Sem grupo com acesso</option>
+                    <?php else: ?>
+                        <?php foreach ($inventoryGroupsWithAccess as $inventoryGroupOption): ?>
+                            <option value="<?= e((string) $inventoryGroupOption) ?>"><?= e((string) $inventoryGroupOption) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </label>
+
+            <label>
+                <span>Item</span>
+                <input type="text" name="label" maxlength="120" required data-inventory-entry-edit-label>
+            </label>
+
+            <div class="form-row">
+                <label>
+                    <span>Quantidade</span>
+                    <input type="number" name="quantity_value" min="0" step="0.01" required data-inventory-entry-edit-quantity>
+                </label>
+                <label>
+                    <span>Unidade</span>
+                    <input type="text" name="unit_label" maxlength="30" required data-inventory-entry-edit-unit>
+                </label>
+            </div>
+
+            <label>
+                <span>Estoque minimo</span>
+                <input type="number" name="min_quantity_value" min="0" step="0.01" data-inventory-entry-edit-min-quantity>
+            </label>
+
+            <label>
+                <span>Observacoes</span>
+                <textarea name="notes" rows="3" maxlength="1000" data-inventory-entry-edit-notes></textarea>
+            </label>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-inventory-entry-edit-modal>Cancelar</button>
+                <button type="submit" class="btn btn-pill" <?= empty($inventoryGroupsWithAccess) ? 'disabled' : '' ?>>Salvar</button>
             </div>
         </form>
     </section>

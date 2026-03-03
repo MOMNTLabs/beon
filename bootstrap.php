@@ -154,6 +154,7 @@ function migrate(PDO $pdo): void
     ensureWorkspaceSchema($pdo);
     ensureWorkspaceVaultSchema($pdo);
     ensureWorkspaceDueSchema($pdo);
+    ensureWorkspaceInventorySchema($pdo);
     ensureTaskExtendedSchema($pdo);
     ensureTaskGroupsSchema($pdo);
     ensureTaskHistorySchema($pdo);
@@ -1160,6 +1161,196 @@ function ensureWorkspaceDueSchema(PDO $pdo): void
         }
 
         upsertDueGroup(
+            $pdo,
+            'Geral',
+            isset($workspaceRow['created_by']) ? (int) $workspaceRow['created_by'] : null,
+            $workspaceId
+        );
+    }
+}
+
+function ensureWorkspaceInventorySchema(PDO $pdo): void
+{
+    if (dbDriverName($pdo) === 'pgsql') {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_inventory_entries (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                label TEXT NOT NULL,
+                quantity_value NUMERIC(12,2) NOT NULL DEFAULT 0,
+                min_quantity_value NUMERIC(12,2) DEFAULT NULL,
+                unit_label VARCHAR(30) NOT NULL DEFAULT \'un\',
+                group_name TEXT NOT NULL DEFAULT \'Geral\',
+                notes TEXT NOT NULL DEFAULT \'\',
+                created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_inventory_groups (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+    } else {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_inventory_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                label TEXT NOT NULL,
+                quantity_value REAL NOT NULL DEFAULT 0,
+                min_quantity_value REAL DEFAULT NULL,
+                unit_label TEXT NOT NULL DEFAULT \'un\',
+                group_name TEXT NOT NULL DEFAULT \'Geral\',
+                notes TEXT NOT NULL DEFAULT \'\',
+                created_by INTEGER DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_inventory_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                created_by INTEGER DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+    }
+
+    if (!tableHasColumn($pdo, 'workspace_inventory_entries', 'group_name')) {
+        $pdo->exec("ALTER TABLE workspace_inventory_entries ADD COLUMN group_name TEXT NOT NULL DEFAULT 'Geral'");
+    }
+    if (!tableHasColumn($pdo, 'workspace_inventory_entries', 'quantity_value')) {
+        if (dbDriverName($pdo) === 'pgsql') {
+            $pdo->exec("ALTER TABLE workspace_inventory_entries ADD COLUMN quantity_value NUMERIC(12,2) NOT NULL DEFAULT 0");
+        } else {
+            $pdo->exec("ALTER TABLE workspace_inventory_entries ADD COLUMN quantity_value REAL NOT NULL DEFAULT 0");
+        }
+    }
+    if (!tableHasColumn($pdo, 'workspace_inventory_entries', 'min_quantity_value')) {
+        if (dbDriverName($pdo) === 'pgsql') {
+            $pdo->exec("ALTER TABLE workspace_inventory_entries ADD COLUMN min_quantity_value NUMERIC(12,2) DEFAULT NULL");
+        } else {
+            $pdo->exec("ALTER TABLE workspace_inventory_entries ADD COLUMN min_quantity_value REAL DEFAULT NULL");
+        }
+    }
+    if (!tableHasColumn($pdo, 'workspace_inventory_entries', 'unit_label')) {
+        if (dbDriverName($pdo) === 'pgsql') {
+            $pdo->exec("ALTER TABLE workspace_inventory_entries ADD COLUMN unit_label VARCHAR(30) NOT NULL DEFAULT 'un'");
+        } else {
+            $pdo->exec("ALTER TABLE workspace_inventory_entries ADD COLUMN unit_label TEXT NOT NULL DEFAULT 'un'");
+        }
+    }
+    if (!tableHasColumn($pdo, 'workspace_inventory_entries', 'notes')) {
+        $pdo->exec("ALTER TABLE workspace_inventory_entries ADD COLUMN notes TEXT NOT NULL DEFAULT ''");
+    }
+
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_inventory_entries_workspace
+         ON workspace_inventory_entries(workspace_id)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_inventory_entries_workspace_group
+         ON workspace_inventory_entries(workspace_id, group_name)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_inventory_entries_workspace_label
+         ON workspace_inventory_entries(workspace_id, label)'
+    );
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_inventory_groups_workspace_name_unique
+         ON workspace_inventory_groups(workspace_id, name)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_inventory_groups_workspace
+         ON workspace_inventory_groups(workspace_id)'
+    );
+
+    $rows = $pdo->query(
+        'SELECT id, label, quantity_value, min_quantity_value, unit_label, group_name, notes
+         FROM workspace_inventory_entries'
+    )->fetchAll();
+    if ($rows) {
+        $normalizeStmt = $pdo->prepare(
+            'UPDATE workspace_inventory_entries
+             SET label = :label,
+                 quantity_value = :quantity_value,
+                 min_quantity_value = :min_quantity_value,
+                 unit_label = :unit_label,
+                 group_name = :group_name,
+                 notes = :notes
+             WHERE id = :id'
+        );
+        foreach ($rows as $row) {
+            $quantityValue = normalizeInventoryQuantityValue($row['quantity_value'] ?? null) ?? 0.0;
+            $minQuantityValue = normalizeInventoryQuantityValue($row['min_quantity_value'] ?? null);
+            $normalizeStmt->execute([
+                ':label' => normalizeInventoryEntryLabel((string) ($row['label'] ?? '')),
+                ':quantity_value' => inventoryQuantityStorageValue($quantityValue),
+                ':min_quantity_value' => $minQuantityValue !== null
+                    ? inventoryQuantityStorageValue($minQuantityValue)
+                    : null,
+                ':unit_label' => normalizeInventoryUnitLabel((string) ($row['unit_label'] ?? 'un')),
+                ':group_name' => normalizeInventoryGroupName((string) ($row['group_name'] ?? 'Geral')),
+                ':notes' => normalizeInventoryEntryNotes((string) ($row['notes'] ?? '')),
+                ':id' => (int) ($row['id'] ?? 0),
+            ]);
+        }
+    }
+
+    $entryGroups = $pdo->query(
+        'SELECT workspace_id, group_name, MIN(created_by) AS created_by
+         FROM workspace_inventory_entries
+         WHERE workspace_id IS NOT NULL
+         GROUP BY workspace_id, group_name'
+    )->fetchAll();
+    foreach ($entryGroups as $entryGroupRow) {
+        $workspaceId = (int) ($entryGroupRow['workspace_id'] ?? 0);
+        if ($workspaceId <= 0) {
+            continue;
+        }
+
+        upsertInventoryGroup(
+            $pdo,
+            (string) ($entryGroupRow['group_name'] ?? 'Geral'),
+            isset($entryGroupRow['created_by']) ? (int) $entryGroupRow['created_by'] : null,
+            $workspaceId
+        );
+    }
+
+    $workspaceRows = $pdo->query(
+        'SELECT id, created_by
+         FROM workspaces
+         ORDER BY id ASC'
+    )->fetchAll();
+    foreach ($workspaceRows as $workspaceRow) {
+        $workspaceId = (int) ($workspaceRow['id'] ?? 0);
+        if ($workspaceId <= 0) {
+            continue;
+        }
+
+        $groupCountStmt = $pdo->prepare(
+            'SELECT COUNT(*)
+             FROM workspace_inventory_groups
+             WHERE workspace_id = :workspace_id'
+        );
+        $groupCountStmt->execute([':workspace_id' => $workspaceId]);
+        $groupCount = (int) $groupCountStmt->fetchColumn();
+        if ($groupCount > 0) {
+            continue;
+        }
+
+        upsertInventoryGroup(
             $pdo,
             'Geral',
             isset($workspaceRow['created_by']) ? (int) $workspaceRow['created_by'] : null,
@@ -3778,6 +3969,562 @@ function deleteWorkspaceDueEntry(PDO $pdo, int $workspaceId, int $entryId): void
 
     $stmt = $pdo->prepare(
         'DELETE FROM workspace_due_entries
+         WHERE id = :id
+           AND workspace_id = :workspace_id'
+    );
+    $stmt->execute([
+        ':id' => $entryId,
+        ':workspace_id' => $workspaceId,
+    ]);
+
+    if ($stmt->rowCount() <= 0) {
+        throw new RuntimeException('Registro nao encontrado.');
+    }
+}
+
+function normalizeInventoryGroupName(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 'Geral';
+    }
+
+    $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+    if (mb_strlen($value) > 60) {
+        $value = mb_substr($value, 0, 60);
+    }
+
+    return uppercaseFirstCharacter($value);
+}
+
+function normalizeInventoryEntryLabel(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+
+    if (mb_strlen($value) > 120) {
+        $value = mb_substr($value, 0, 120);
+    }
+
+    return uppercaseFirstCharacter($value);
+}
+
+function normalizeInventoryUnitLabel(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 'un';
+    }
+
+    $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+    if (mb_strlen($value) > 30) {
+        $value = mb_substr($value, 0, 30);
+    }
+
+    return mb_strtolower($value);
+}
+
+function normalizeInventoryEntryNotes(string $value): string
+{
+    $value = trim($value);
+    if (mb_strlen($value) > 1000) {
+        $value = mb_substr($value, 0, 1000);
+    }
+
+    return $value;
+}
+
+function normalizeInventoryQuantityValue($value): ?float
+{
+    if ($value === null) {
+        return null;
+    }
+
+    if (is_int($value) || is_float($value)) {
+        $numeric = (float) $value;
+        if ($numeric < 0) {
+            return null;
+        }
+        return round($numeric, 2);
+    }
+
+    $raw = trim((string) $value);
+    if ($raw === '') {
+        return null;
+    }
+
+    $raw = str_replace(['R$', 'r$', ' '], '', $raw);
+    if (strpos($raw, ',') !== false) {
+        if (strpos($raw, '.') !== false) {
+            $raw = str_replace('.', '', $raw);
+        }
+        $raw = str_replace(',', '.', $raw);
+    }
+
+    if (!preg_match('/^\d+(?:\.\d{1,2})?$/', $raw)) {
+        return null;
+    }
+
+    $numeric = (float) $raw;
+    if ($numeric < 0) {
+        return null;
+    }
+
+    return round($numeric, 2);
+}
+
+function inventoryQuantityStorageValue($value): string
+{
+    $normalized = normalizeInventoryQuantityValue($value) ?? 0.0;
+    return number_format($normalized, 2, '.', '');
+}
+
+function inventoryQuantityInputValue($value): string
+{
+    $normalized = normalizeInventoryQuantityValue($value);
+    if ($normalized === null) {
+        return '';
+    }
+
+    $formatted = number_format($normalized, 2, '.', '');
+    $formatted = rtrim(rtrim($formatted, '0'), '.');
+    return $formatted !== '' ? $formatted : '0';
+}
+
+function inventoryQuantityLabel($value): string
+{
+    $normalized = normalizeInventoryQuantityValue($value) ?? 0.0;
+    $formatted = number_format($normalized, 2, ',', '.');
+    $formatted = preg_replace('/,00$/', '', $formatted) ?? $formatted;
+    $formatted = preg_replace('/(\,\d*[1-9])0$/', '$1', $formatted) ?? $formatted;
+    return $formatted;
+}
+
+function findInventoryGroupByName(string $groupName, ?int $workspaceId = null): ?string
+{
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return null;
+    }
+
+    $needle = mb_strtolower(normalizeInventoryGroupName($groupName));
+    foreach (inventoryGroupsList($workspaceId) as $existingName) {
+        if (mb_strtolower($existingName) === $needle) {
+            return $existingName;
+        }
+    }
+
+    return null;
+}
+
+function defaultInventoryGroupName(?int $workspaceId = null): string
+{
+    $pdo = db();
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return 'Geral';
+    }
+
+    $rowStmt = $pdo->prepare(
+        'SELECT name
+         FROM workspace_inventory_groups
+         WHERE workspace_id = :workspace_id
+         ORDER BY id ASC
+         LIMIT 1'
+    );
+    $rowStmt->execute([':workspace_id' => $workspaceId]);
+    $row = $rowStmt->fetch();
+    $groupName = trim((string) ($row['name'] ?? ''));
+    if ($groupName !== '') {
+        return normalizeInventoryGroupName($groupName);
+    }
+
+    $entryStmt = $pdo->prepare(
+        "SELECT group_name
+         FROM workspace_inventory_entries
+         WHERE workspace_id = :workspace_id
+           AND group_name IS NOT NULL
+           AND group_name <> ''
+         ORDER BY id ASC
+         LIMIT 1"
+    );
+    $entryStmt->execute([':workspace_id' => $workspaceId]);
+    $entryRow = $entryStmt->fetch();
+    $entryGroupName = trim((string) ($entryRow['group_name'] ?? ''));
+    if ($entryGroupName !== '') {
+        $normalized = normalizeInventoryGroupName($entryGroupName);
+        upsertInventoryGroup($pdo, $normalized, null, $workspaceId);
+        return $normalized;
+    }
+
+    upsertInventoryGroup($pdo, 'Geral', null, $workspaceId);
+    return 'Geral';
+}
+
+function upsertInventoryGroup(PDO $pdo, string $groupName, ?int $createdBy = null, ?int $workspaceId = null): string
+{
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        throw new RuntimeException('Workspace ativo nao encontrado.');
+    }
+
+    $normalized = normalizeInventoryGroupName($groupName);
+    $createdAt = nowIso();
+
+    if (dbDriverName($pdo) === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO workspace_inventory_groups (workspace_id, name, created_by, created_at)
+             VALUES (:workspace_id, :name, :created_by, :created_at)
+             ON CONFLICT (workspace_id, name) DO NOTHING'
+        );
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT OR IGNORE INTO workspace_inventory_groups (workspace_id, name, created_by, created_at)
+             VALUES (:workspace_id, :name, :created_by, :created_at)'
+        );
+    }
+
+    $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
+    $stmt->bindValue(':name', $normalized, PDO::PARAM_STR);
+    if ($createdBy !== null && $createdBy > 0) {
+        $stmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+    } else {
+        $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+    }
+    $stmt->bindValue(':created_at', $createdAt, PDO::PARAM_STR);
+    $stmt->execute();
+
+    return $normalized;
+}
+
+function inventoryGroupsList(?int $workspaceId = null): array
+{
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return ['Geral'];
+    }
+
+    $groups = [];
+
+    $storedSql = dbDriverName(db()) === 'pgsql'
+        ? 'SELECT name
+           FROM workspace_inventory_groups
+           WHERE workspace_id = :workspace_id
+           ORDER BY LOWER(name) ASC'
+        : 'SELECT name
+           FROM workspace_inventory_groups
+           WHERE workspace_id = :workspace_id
+           ORDER BY name COLLATE NOCASE ASC';
+
+    $storedStmt = db()->prepare($storedSql);
+    $storedStmt->execute([':workspace_id' => $workspaceId]);
+    foreach ($storedStmt->fetchAll() as $row) {
+        $groupName = normalizeInventoryGroupName((string) ($row['name'] ?? ''));
+        $groups[$groupName] = $groupName;
+    }
+
+    $entryStmt = db()->prepare(
+        'SELECT DISTINCT group_name
+         FROM workspace_inventory_entries
+         WHERE workspace_id = :workspace_id'
+    );
+    $entryStmt->execute([':workspace_id' => $workspaceId]);
+    foreach ($entryStmt->fetchAll() as $row) {
+        $groupName = normalizeInventoryGroupName((string) ($row['group_name'] ?? ''));
+        $groups[$groupName] = $groupName;
+    }
+
+    if (!$groups) {
+        $default = defaultInventoryGroupName($workspaceId);
+        return [$default];
+    }
+
+    $values = array_values($groups);
+    usort($values, static fn ($a, $b) => strcasecmp($a, $b));
+
+    return $values;
+}
+
+function workspaceInventoryEntriesList(?int $workspaceId = null): array
+{
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return [];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT ie.id,
+                ie.workspace_id,
+                ie.label,
+                ie.quantity_value,
+                ie.min_quantity_value,
+                ie.unit_label,
+                ie.group_name,
+                ie.notes,
+                ie.created_by,
+                ie.created_at,
+                ie.updated_at,
+                u.name AS created_by_name
+         FROM workspace_inventory_entries ie
+         LEFT JOIN users u ON u.id = ie.created_by
+         WHERE ie.workspace_id = :workspace_id
+         ORDER BY ie.group_name ASC, ie.updated_at DESC, ie.id DESC'
+    );
+    $stmt->execute([':workspace_id' => $workspaceId]);
+    $rows = $stmt->fetchAll();
+
+    foreach ($rows as &$row) {
+        $quantityValue = normalizeInventoryQuantityValue($row['quantity_value'] ?? null) ?? 0.0;
+        $minQuantityValue = normalizeInventoryQuantityValue($row['min_quantity_value'] ?? null);
+        $row['id'] = (int) ($row['id'] ?? 0);
+        $row['workspace_id'] = (int) ($row['workspace_id'] ?? 0);
+        $row['created_by'] = isset($row['created_by']) ? (int) $row['created_by'] : null;
+        $row['label'] = normalizeInventoryEntryLabel((string) ($row['label'] ?? ''));
+        $row['quantity_value'] = $quantityValue;
+        $row['quantity_value_input'] = inventoryQuantityInputValue($quantityValue);
+        $row['quantity_display'] = inventoryQuantityLabel($quantityValue);
+        $row['min_quantity_value'] = $minQuantityValue;
+        $row['min_quantity_value_input'] = inventoryQuantityInputValue($minQuantityValue);
+        $row['min_quantity_display'] = $minQuantityValue !== null ? inventoryQuantityLabel($minQuantityValue) : '';
+        $row['unit_label'] = normalizeInventoryUnitLabel((string) ($row['unit_label'] ?? 'un'));
+        $row['group_name'] = normalizeInventoryGroupName((string) ($row['group_name'] ?? 'Geral'));
+        $row['notes'] = normalizeInventoryEntryNotes((string) ($row['notes'] ?? ''));
+        $row['is_low_stock'] = $minQuantityValue !== null && $quantityValue <= $minQuantityValue ? 1 : 0;
+    }
+    unset($row);
+
+    usort(
+        $rows,
+        static function (array $a, array $b): int {
+            $groupCompare = strcasecmp(
+                (string) ($a['group_name'] ?? ''),
+                (string) ($b['group_name'] ?? '')
+            );
+            if ($groupCompare !== 0) {
+                return $groupCompare;
+            }
+
+            $lowA = ((int) ($a['is_low_stock'] ?? 0)) === 1 ? 0 : 1;
+            $lowB = ((int) ($b['is_low_stock'] ?? 0)) === 1 ? 0 : 1;
+            if ($lowA !== $lowB) {
+                return $lowA <=> $lowB;
+            }
+
+            $labelCompare = strcasecmp(
+                (string) ($a['label'] ?? ''),
+                (string) ($b['label'] ?? '')
+            );
+            if ($labelCompare !== 0) {
+                return $labelCompare;
+            }
+
+            return ((int) ($b['id'] ?? 0)) <=> ((int) ($a['id'] ?? 0));
+        }
+    );
+
+    return $rows;
+}
+
+function inventoryEntriesByGroup(array $entries, ?array $groupNames = null): array
+{
+    $groups = [];
+    if ($groupNames !== null) {
+        foreach ($groupNames as $groupName) {
+            $normalized = normalizeInventoryGroupName((string) $groupName);
+            $groups[$normalized] = [];
+        }
+    }
+
+    foreach ($entries as $entry) {
+        $groupName = normalizeInventoryGroupName((string) ($entry['group_name'] ?? 'Geral'));
+        if (!array_key_exists($groupName, $groups)) {
+            $groups[$groupName] = [];
+        }
+        $groups[$groupName][] = $entry;
+    }
+
+    return $groups;
+}
+
+function createWorkspaceInventoryEntry(
+    PDO $pdo,
+    int $workspaceId,
+    string $label,
+    $quantityValue,
+    string $unitLabel,
+    string $groupName = 'Geral',
+    $minQuantityValue = null,
+    string $notes = '',
+    ?int $createdBy = null
+): int {
+    if ($workspaceId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $label = normalizeInventoryEntryLabel($label);
+    if ($label === '') {
+        throw new RuntimeException('Informe um nome para o item.');
+    }
+
+    $quantity = normalizeInventoryQuantityValue($quantityValue);
+    if ($quantity === null) {
+        throw new RuntimeException('Informe uma quantidade valida.');
+    }
+
+    $minQuantity = normalizeInventoryQuantityValue($minQuantityValue);
+    $unit = normalizeInventoryUnitLabel($unitLabel);
+    $groupName = normalizeInventoryGroupName($groupName);
+    $notes = normalizeInventoryEntryNotes($notes);
+    upsertInventoryGroup($pdo, $groupName, $createdBy, $workspaceId);
+
+    $createdAt = nowIso();
+    $updatedAt = $createdAt;
+
+    if (dbDriverName($pdo) === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO workspace_inventory_entries (
+                workspace_id, label, quantity_value, min_quantity_value, unit_label, group_name, notes, created_by, created_at, updated_at
+            ) VALUES (
+                :workspace_id, :label, :quantity_value, :min_quantity_value, :unit_label, :group_name, :notes, :created_by, :created_at, :updated_at
+            )
+            RETURNING id'
+        );
+        $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
+        $stmt->bindValue(':label', $label, PDO::PARAM_STR);
+        $stmt->bindValue(':quantity_value', inventoryQuantityStorageValue($quantity), PDO::PARAM_STR);
+        if ($minQuantity !== null) {
+            $stmt->bindValue(':min_quantity_value', inventoryQuantityStorageValue($minQuantity), PDO::PARAM_STR);
+        } else {
+            $stmt->bindValue(':min_quantity_value', null, PDO::PARAM_NULL);
+        }
+        $stmt->bindValue(':unit_label', $unit, PDO::PARAM_STR);
+        $stmt->bindValue(':group_name', $groupName, PDO::PARAM_STR);
+        $stmt->bindValue(':notes', $notes, PDO::PARAM_STR);
+        if ($createdBy !== null && $createdBy > 0) {
+            $stmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+        }
+        $stmt->bindValue(':created_at', $createdAt, PDO::PARAM_STR);
+        $stmt->bindValue(':updated_at', $updatedAt, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO workspace_inventory_entries (
+            workspace_id, label, quantity_value, min_quantity_value, unit_label, group_name, notes, created_by, created_at, updated_at
+        ) VALUES (
+            :workspace_id, :label, :quantity_value, :min_quantity_value, :unit_label, :group_name, :notes, :created_by, :created_at, :updated_at
+        )'
+    );
+    $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
+    $stmt->bindValue(':label', $label, PDO::PARAM_STR);
+    $stmt->bindValue(':quantity_value', inventoryQuantityStorageValue($quantity), PDO::PARAM_STR);
+    if ($minQuantity !== null) {
+        $stmt->bindValue(':min_quantity_value', inventoryQuantityStorageValue($minQuantity), PDO::PARAM_STR);
+    } else {
+        $stmt->bindValue(':min_quantity_value', null, PDO::PARAM_NULL);
+    }
+    $stmt->bindValue(':unit_label', $unit, PDO::PARAM_STR);
+    $stmt->bindValue(':group_name', $groupName, PDO::PARAM_STR);
+    $stmt->bindValue(':notes', $notes, PDO::PARAM_STR);
+    if ($createdBy !== null && $createdBy > 0) {
+        $stmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+    } else {
+        $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+    }
+    $stmt->bindValue(':created_at', $createdAt, PDO::PARAM_STR);
+    $stmt->bindValue(':updated_at', $updatedAt, PDO::PARAM_STR);
+    $stmt->execute();
+
+    return (int) $pdo->lastInsertId();
+}
+
+function updateWorkspaceInventoryEntry(
+    PDO $pdo,
+    int $workspaceId,
+    int $entryId,
+    string $label,
+    $quantityValue,
+    string $unitLabel,
+    string $groupName = 'Geral',
+    $minQuantityValue = null,
+    string $notes = ''
+): void {
+    if ($workspaceId <= 0 || $entryId <= 0) {
+        throw new RuntimeException('Registro invalido.');
+    }
+
+    $label = normalizeInventoryEntryLabel($label);
+    if ($label === '') {
+        throw new RuntimeException('Informe um nome para o item.');
+    }
+
+    $quantity = normalizeInventoryQuantityValue($quantityValue);
+    if ($quantity === null) {
+        throw new RuntimeException('Informe uma quantidade valida.');
+    }
+
+    $minQuantity = normalizeInventoryQuantityValue($minQuantityValue);
+    $unit = normalizeInventoryUnitLabel($unitLabel);
+    $groupName = normalizeInventoryGroupName($groupName);
+    $notes = normalizeInventoryEntryNotes($notes);
+    upsertInventoryGroup($pdo, $groupName, null, $workspaceId);
+
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_inventory_entries
+         SET label = :label,
+             quantity_value = :quantity_value,
+             min_quantity_value = :min_quantity_value,
+             unit_label = :unit_label,
+             group_name = :group_name,
+             notes = :notes,
+             updated_at = :updated_at
+         WHERE id = :id
+           AND workspace_id = :workspace_id'
+    );
+    $stmt->execute([
+        ':label' => $label,
+        ':quantity_value' => inventoryQuantityStorageValue($quantity),
+        ':min_quantity_value' => $minQuantity !== null ? inventoryQuantityStorageValue($minQuantity) : null,
+        ':unit_label' => $unit,
+        ':group_name' => $groupName,
+        ':notes' => $notes,
+        ':updated_at' => nowIso(),
+        ':id' => $entryId,
+        ':workspace_id' => $workspaceId,
+    ]);
+
+    if ($stmt->rowCount() <= 0) {
+        $existsStmt = $pdo->prepare(
+            'SELECT 1
+             FROM workspace_inventory_entries
+             WHERE id = :id
+               AND workspace_id = :workspace_id
+             LIMIT 1'
+        );
+        $existsStmt->execute([
+            ':id' => $entryId,
+            ':workspace_id' => $workspaceId,
+        ]);
+        if (!$existsStmt->fetchColumn()) {
+            throw new RuntimeException('Registro nao encontrado.');
+        }
+    }
+}
+
+function deleteWorkspaceInventoryEntry(PDO $pdo, int $workspaceId, int $entryId): void
+{
+    if ($workspaceId <= 0 || $entryId <= 0) {
+        throw new RuntimeException('Registro invalido.');
+    }
+
+    $stmt = $pdo->prepare(
+        'DELETE FROM workspace_inventory_entries
          WHERE id = :id
            AND workspace_id = :workspace_id'
     );

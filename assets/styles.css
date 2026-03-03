@@ -2085,6 +2085,21 @@ textarea:focus {
     padding-bottom: 6px;
 }
 
+.inventory-wrap {
+    min-height: 720px;
+    position: relative;
+    padding-bottom: 16px;
+}
+
+.is-dashboard .inventory-wrap {
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 6px;
+}
+
 .users-wrap {
     min-height: 720px;
     position: relative;
@@ -2129,6 +2144,10 @@ textarea:focus {
 }
 
 .due-summary {
+    align-items: center;
+}
+
+.inventory-summary {
     align-items: center;
 }
 
@@ -2209,6 +2228,17 @@ textarea:focus {
     padding-right: 2px;
 }
 
+.inventory-groups-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: grid;
+    align-content: start;
+    grid-auto-rows: max-content;
+    gap: 10px;
+    padding-right: 2px;
+}
+
 .vault-group-rows {
     display: grid;
     gap: 8px;
@@ -2216,6 +2246,12 @@ textarea:focus {
 }
 
 .due-group-rows {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+}
+
+.inventory-group-rows {
     display: grid;
     gap: 8px;
     padding: 10px;
@@ -2241,11 +2277,31 @@ textarea:focus {
     background: rgba(5, 8, 18, 0.52);
 }
 
+.inventory-entry-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(5, 8, 18, 0.52);
+}
+
+.inventory-entry-row .vault-entry-delete-form {
+    display: none;
+}
+
 .due-entry-row .vault-entry-delete-form {
     display: none;
 }
 
 .due-entry-main {
+    min-width: 0;
+    display: block;
+}
+
+.inventory-entry-main {
     min-width: 0;
     display: block;
 }
@@ -2258,7 +2314,26 @@ textarea:focus {
     flex-wrap: nowrap;
 }
 
+.inventory-entry-line {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
 .due-entry-title {
+    min-width: 0;
+    flex: 1 1 auto;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: rgba(244, 248, 255, 0.96);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.inventory-entry-title {
     min-width: 0;
     flex: 1 1 auto;
     font-size: 0.92rem;
@@ -2283,6 +2358,54 @@ textarea:focus {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.inventory-entry-qty,
+.inventory-entry-min {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.inventory-entry-qty {
+    border: 1px solid rgba(129, 214, 255, 0.4);
+    background: rgba(16, 40, 66, 0.62);
+    color: rgba(198, 231, 255, 0.95);
+}
+
+.inventory-entry-min {
+    border: 1px solid rgba(255, 208, 122, 0.42);
+    background: rgba(58, 42, 20, 0.58);
+    color: rgba(255, 233, 189, 0.95);
+}
+
+.inventory-entry-inline-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(218, 232, 250, 0.82);
+}
+
+.inventory-entry-qty strong,
+.inventory-entry-min strong {
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.inventory-entry-alert {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 134, 134, 0.46);
+    background: rgba(88, 24, 24, 0.52);
+    color: rgba(255, 210, 210, 0.98);
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
 }
 
 .due-entry-next {
@@ -2623,7 +2746,8 @@ textarea:focus {
 
 [data-task-group-head-toggle],
 [data-vault-group-head-toggle],
-[data-due-group-head-toggle] {
+[data-due-group-head-toggle],
+[data-inventory-group-head-toggle] {
     cursor: pointer;
 }
 
@@ -2728,6 +2852,10 @@ textarea:focus {
 .task-group.is-collapsed .task-list-rows,
 .vault-group.is-collapsed .vault-group-rows,
 .due-group.is-collapsed .due-group-rows {
+    display: none;
+}
+
+.inventory-group.is-collapsed .inventory-group-rows {
     display: none;
 }
 
@@ -3605,6 +3733,7 @@ textarea:focus {
 .is-dashboard .task-groups-list,
 .vault-groups-list,
 .due-groups-list,
+.inventory-groups-list,
 .users-wrap .workspace-settings-members,
 .assignee-picker-menu,
 .create-task-modal,
@@ -3617,6 +3746,7 @@ textarea:focus {
 .is-dashboard .task-groups-list::-webkit-scrollbar,
 .vault-groups-list::-webkit-scrollbar,
 .due-groups-list::-webkit-scrollbar,
+.inventory-groups-list::-webkit-scrollbar,
 .users-wrap .workspace-settings-members::-webkit-scrollbar,
 .assignee-picker-menu::-webkit-scrollbar,
 .create-task-modal::-webkit-scrollbar,
@@ -3629,6 +3759,7 @@ textarea:focus {
 .is-dashboard .task-groups-list::-webkit-scrollbar-track,
 .vault-groups-list::-webkit-scrollbar-track,
 .due-groups-list::-webkit-scrollbar-track,
+.inventory-groups-list::-webkit-scrollbar-track,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-track,
 .assignee-picker-menu::-webkit-scrollbar-track,
 .create-task-modal::-webkit-scrollbar-track,
@@ -3641,6 +3772,7 @@ textarea:focus {
 .is-dashboard .task-groups-list::-webkit-scrollbar-thumb,
 .vault-groups-list::-webkit-scrollbar-thumb,
 .due-groups-list::-webkit-scrollbar-thumb,
+.inventory-groups-list::-webkit-scrollbar-thumb,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb,
 .assignee-picker-menu::-webkit-scrollbar-thumb,
 .create-task-modal::-webkit-scrollbar-thumb,
@@ -3655,6 +3787,7 @@ textarea:focus {
 .is-dashboard .task-groups-list::-webkit-scrollbar-thumb:hover,
 .vault-groups-list::-webkit-scrollbar-thumb:hover,
 .due-groups-list::-webkit-scrollbar-thumb:hover,
+.inventory-groups-list::-webkit-scrollbar-thumb:hover,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb:hover,
 .assignee-picker-menu::-webkit-scrollbar-thumb:hover,
 .create-task-modal::-webkit-scrollbar-thumb:hover,
@@ -5523,6 +5656,10 @@ textarea:focus {
         grid-template-columns: minmax(0, 1fr) auto;
     }
 
+    .inventory-entry-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
     .due-entry-schedule-grid {
         grid-template-columns: 1fr;
     }
@@ -5645,13 +5782,27 @@ textarea:focus {
         grid-template-columns: 1fr;
     }
 
+    .inventory-entry-row {
+        grid-template-columns: 1fr;
+    }
+
     .due-entry-line {
         width: 100%;
         flex-wrap: wrap;
         align-items: flex-start;
     }
 
+    .inventory-entry-line {
+        width: 100%;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
     .due-entry-title {
+        flex-basis: 100%;
+    }
+
+    .inventory-entry-title {
         flex-basis: 100%;
     }
 

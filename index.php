@@ -956,6 +956,234 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'Vencimento removido.');
                 redirectTo('index.php#dues');
 
+            case 'create_inventory_group':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $groupName = normalizeInventoryGroupName((string) ($_POST['group_name'] ?? ''));
+                if (findInventoryGroupByName($groupName, $workspaceId) !== null) {
+                    throw new RuntimeException('Este grupo de estoque ja existe.');
+                }
+
+                upsertInventoryGroup($pdo, $groupName, (int) $authUser['id'], $workspaceId);
+                flash('success', 'Grupo de estoque criado.');
+                redirectTo('index.php#inventory');
+
+            case 'rename_inventory_group':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $oldGroupInput = normalizeInventoryGroupName((string) ($_POST['old_group_name'] ?? ''));
+                $newGroupName = normalizeInventoryGroupName((string) ($_POST['new_group_name'] ?? ''));
+                $existingOldGroupName = findInventoryGroupByName($oldGroupInput, $workspaceId);
+                if ($existingOldGroupName === null) {
+                    throw new RuntimeException('Grupo de estoque nao encontrado.');
+                }
+
+                $existingTargetGroupName = findInventoryGroupByName($newGroupName, $workspaceId);
+                if (
+                    $existingTargetGroupName !== null &&
+                    mb_strtolower($existingTargetGroupName) !== mb_strtolower($existingOldGroupName)
+                ) {
+                    throw new RuntimeException('Ja existe um grupo de estoque com este nome.');
+                }
+
+                if (mb_strtolower($existingOldGroupName) !== mb_strtolower($newGroupName)) {
+                    $pdo->beginTransaction();
+                    try {
+                        $renameGroupStmt = $pdo->prepare(
+                            'UPDATE workspace_inventory_groups
+                             SET name = :new_group_name
+                             WHERE workspace_id = :workspace_id
+                               AND name = :old_group_name'
+                        );
+                        $renameGroupStmt->execute([
+                            ':new_group_name' => $newGroupName,
+                            ':workspace_id' => $workspaceId,
+                            ':old_group_name' => $existingOldGroupName,
+                        ]);
+
+                        $renameEntriesStmt = $pdo->prepare(
+                            'UPDATE workspace_inventory_entries
+                             SET group_name = :new_group_name,
+                                 updated_at = :updated_at
+                             WHERE workspace_id = :workspace_id
+                               AND group_name = :old_group_name'
+                        );
+                        $renameEntriesStmt->execute([
+                            ':new_group_name' => $newGroupName,
+                            ':updated_at' => nowIso(),
+                            ':workspace_id' => $workspaceId,
+                            ':old_group_name' => $existingOldGroupName,
+                        ]);
+
+                        $pdo->commit();
+                    } catch (Throwable $e) {
+                        if ($pdo->inTransaction()) {
+                            $pdo->rollBack();
+                        }
+                        throw $e;
+                    }
+                }
+
+                flash('success', 'Grupo de estoque renomeado.');
+                redirectTo('index.php#inventory');
+
+            case 'delete_inventory_group':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $groupName = normalizeInventoryGroupName((string) ($_POST['group_name'] ?? ''));
+                $existingGroupName = findInventoryGroupByName($groupName, $workspaceId);
+                if ($existingGroupName === null) {
+                    throw new RuntimeException('Grupo de estoque nao encontrado.');
+                }
+
+                $pdo->beginTransaction();
+                try {
+                    $deleteEntriesStmt = $pdo->prepare(
+                        'DELETE FROM workspace_inventory_entries
+                         WHERE workspace_id = :workspace_id
+                           AND group_name = :group_name'
+                    );
+                    $deleteEntriesStmt->execute([
+                        ':workspace_id' => $workspaceId,
+                        ':group_name' => $existingGroupName,
+                    ]);
+                    $deletedEntriesCount = (int) $deleteEntriesStmt->rowCount();
+
+                    $deleteGroupStmt = $pdo->prepare(
+                        'DELETE FROM workspace_inventory_groups
+                         WHERE workspace_id = :workspace_id
+                           AND name = :group_name'
+                    );
+                    $deleteGroupStmt->execute([
+                        ':workspace_id' => $workspaceId,
+                        ':group_name' => $existingGroupName,
+                    ]);
+                    if ($deleteGroupStmt->rowCount() <= 0) {
+                        throw new RuntimeException('Nao foi possivel remover o grupo de estoque.');
+                    }
+
+                    $pdo->commit();
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $e;
+                }
+
+                flash(
+                    'success',
+                    $deletedEntriesCount > 0
+                        ? sprintf('Grupo de estoque removido. %d item(ns) excluido(s).', $deletedEntriesCount)
+                        : 'Grupo de estoque removido.'
+                );
+                redirectTo('index.php#inventory');
+
+            case 'create_inventory_entry':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $groupNameInput = normalizeInventoryGroupName((string) ($_POST['group_name'] ?? ''));
+                $groupName = findInventoryGroupByName($groupNameInput, $workspaceId) ?? $groupNameInput;
+
+                createWorkspaceInventoryEntry(
+                    $pdo,
+                    $workspaceId,
+                    (string) ($_POST['label'] ?? ''),
+                    $_POST['quantity_value'] ?? null,
+                    (string) ($_POST['unit_label'] ?? 'un'),
+                    $groupName,
+                    $_POST['min_quantity_value'] ?? null,
+                    (string) ($_POST['notes'] ?? ''),
+                    (int) $authUser['id']
+                );
+
+                flash('success', 'Item de estoque criado.');
+                redirectTo('index.php#inventory');
+
+            case 'update_inventory_entry':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $entryId = (int) ($_POST['entry_id'] ?? 0);
+                $groupNameInput = normalizeInventoryGroupName((string) ($_POST['group_name'] ?? ''));
+                $groupName = findInventoryGroupByName($groupNameInput, $workspaceId) ?? $groupNameInput;
+                $entryGroupStmt = $pdo->prepare(
+                    'SELECT group_name
+                     FROM workspace_inventory_entries
+                     WHERE id = :id
+                       AND workspace_id = :workspace_id
+                     LIMIT 1'
+                );
+                $entryGroupStmt->execute([
+                    ':id' => $entryId,
+                    ':workspace_id' => $workspaceId,
+                ]);
+                $entryGroupName = $entryGroupStmt->fetchColumn();
+                if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
+                    throw new RuntimeException('Registro nao encontrado.');
+                }
+
+                updateWorkspaceInventoryEntry(
+                    $pdo,
+                    $workspaceId,
+                    $entryId,
+                    (string) ($_POST['label'] ?? ''),
+                    $_POST['quantity_value'] ?? null,
+                    (string) ($_POST['unit_label'] ?? 'un'),
+                    $groupName,
+                    $_POST['min_quantity_value'] ?? null,
+                    (string) ($_POST['notes'] ?? '')
+                );
+
+                flash('success', 'Item de estoque atualizado.');
+                redirectTo('index.php#inventory');
+
+            case 'delete_inventory_entry':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $entryId = (int) ($_POST['entry_id'] ?? 0);
+                $entryGroupStmt = $pdo->prepare(
+                    'SELECT group_name
+                     FROM workspace_inventory_entries
+                     WHERE id = :id
+                       AND workspace_id = :workspace_id
+                     LIMIT 1'
+                );
+                $entryGroupStmt->execute([
+                    ':id' => $entryId,
+                    ':workspace_id' => $workspaceId,
+                ]);
+                $entryGroupName = $entryGroupStmt->fetchColumn();
+                if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
+                    throw new RuntimeException('Registro nao encontrado.');
+                }
+
+                deleteWorkspaceInventoryEntry($pdo, $workspaceId, $entryId);
+                flash('success', 'Item de estoque removido.');
+                redirectTo('index.php#inventory');
+
             case 'create_group':
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
@@ -2037,6 +2265,7 @@ $showUsersDashboardTab = !$isPersonalWorkspace;
 $taskGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? taskGroupsList($currentWorkspaceId) : ['Geral'];
 $vaultGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? vaultGroupsList($currentWorkspaceId) : ['Geral'];
 $dueGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? dueGroupsList($currentWorkspaceId) : ['Geral'];
+$inventoryGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? inventoryGroupsList($currentWorkspaceId) : ['Geral'];
 
 $taskGroupPermissions = [];
 $taskGroupPermissionsByUserMap = [];
@@ -2052,6 +2281,9 @@ $dueGroupPermissions = [];
 $dueGroupPermissionsByUserMap = [];
 $dueGroups = [];
 $dueGroupsWithAccess = [];
+
+$inventoryGroups = [];
+$inventoryGroupsWithAccess = [];
 
 if ($currentUser && $currentWorkspaceId !== null) {
     $currentUserId = (int) $currentUser['id'];
@@ -2115,6 +2347,9 @@ if ($currentUser && $currentWorkspaceId !== null) {
     $dueGroupsWithAccess = $dueGroupsAll;
 }
 
+$inventoryGroups = $inventoryGroupsAll;
+$inventoryGroupsWithAccess = $inventoryGroupsAll;
+
 $vaultVisibleKeys = [];
 foreach ($vaultGroups as $vaultGroupName) {
     $vaultVisibleKeys[mb_strtolower(normalizeVaultGroupName($vaultGroupName))] = true;
@@ -2142,6 +2377,8 @@ $dueEntries = array_values(array_filter(
     }
 ));
 $dueEntriesByGroup = $currentUser ? dueEntriesByGroup($dueEntries, $dueGroups) : [];
+$inventoryEntries = ($currentUser && $currentWorkspaceId !== null) ? workspaceInventoryEntriesList($currentWorkspaceId) : [];
+$inventoryEntriesByGroup = $currentUser ? inventoryEntriesByGroup($inventoryEntries, $inventoryGroups) : [];
 $groupFilter = isset($_GET['group']) && trim((string) $_GET['group']) !== ''
     ? normalizeTaskGroupName((string) $_GET['group'])
     : null;
@@ -2188,8 +2425,8 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=67">
-    <script src="assets/app.js?v=45" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=68">
+    <script src="assets/app.js?v=46" defer></script>
 </head>
 <body
     class="<?= $currentUser ? 'is-dashboard' : 'is-auth' ?>"
