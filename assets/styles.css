@@ -7188,7 +7188,7 @@ textarea:focus,
 .is-dashboard .app-shell {
     width: 100%;
     margin: 0;
-    padding: 0 10px 10px;
+    padding: 0;
 }
 
 .is-dashboard .dashboard {
@@ -7228,5 +7228,54 @@ textarea:focus,
 .is-dashboard .inventory-wrap,
 .is-dashboard .users-wrap {
     border-left: 0;
+}
+
+/* Subtasks progress readability */
+.task-subtasks-progress-text {
+    color: #4f6d93;
+    font-weight: 600;
+}
+
+.task-subtasks-progress-step {
+    border-color: rgba(72, 138, 197, 0.62);
+    background: rgba(160, 205, 244, 0.9);
+}
+
+.task-subtasks-progress-step.is-done {
+    border-color: rgba(72, 174, 132, 0.62);
+    background: rgba(154, 229, 199, 0.92);
+}
+
+.task-subtasks-progress-step.is-locked {
+    border-color: rgba(142, 167, 199, 0.62);
+    background: rgba(217, 229, 242, 0.96);
+}
+
+/* Minimal inline controls (no boxes) */
+.status-stepper-btn,
+.task-expand-toggle,
+.task-row-delete,
+.vault-entry-delete-button {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0;
+    color: #5d7a9f;
+}
+
+.status-stepper-btn:hover,
+.status-stepper-btn:focus-visible,
+.task-expand-toggle:hover,
+.task-expand-toggle:focus-visible {
+    color: #1a5d9f;
+    background: transparent !important;
+}
+
+.task-row-delete:hover,
+.task-row-delete:focus-visible,
+.vault-entry-delete-button:hover,
+.vault-entry-delete-button:focus-visible {
+    color: #b43f57;
+    background: transparent !important;
 }
 
