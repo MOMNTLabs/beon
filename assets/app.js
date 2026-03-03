@@ -1697,6 +1697,10 @@ window.addEventListener("DOMContentLoaded", () => {
   const renderTaskDetailReferencesView = ({ links = [], images = [] } = {}) => {
     const safeLinks = parseReferenceUrlLines(links || []);
     const safeImages = parseReferenceImageItems(images || []);
+    taskImagePreviewState.images = [...safeImages];
+    if (!safeImages.length) {
+      taskImagePreviewState.currentIndex = -1;
+    }
 
     if (taskDetailViewLinks instanceof HTMLElement) {
       taskDetailViewLinks.innerHTML = "";
@@ -1716,11 +1720,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (taskDetailViewImages instanceof HTMLElement) {
       taskDetailViewImages.innerHTML = "";
-      safeImages.forEach((url) => {
+      safeImages.forEach((url, index) => {
         const trigger = document.createElement("button");
         trigger.type = "button";
         trigger.className = "task-detail-ref-image-link";
         trigger.dataset.taskRefImagePreview = url;
+        trigger.dataset.taskRefImageIndex = String(index);
         trigger.setAttribute("aria-label", "Ampliar imagem de referencia");
 
         const img = document.createElement("img");
@@ -3981,6 +3986,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const taskDetailViewImages = document.querySelector("[data-task-detail-view-images]");
   const taskImagePreviewModal = document.querySelector("[data-task-image-preview-modal]");
   const taskImagePreviewImage = document.querySelector("[data-task-image-preview-img]");
+  const taskImagePreviewPrevButton = document.querySelector("[data-task-image-preview-prev]");
+  const taskImagePreviewNextButton = document.querySelector("[data-task-image-preview-next]");
   const taskDetailViewHistory = document.querySelector("[data-task-detail-view-history]");
   const taskDetailViewCreatedBy = document.querySelector("[data-task-detail-view-created-by]");
   const taskDetailViewUpdatedAt = document.querySelector("[data-task-detail-view-updated-at]");
@@ -4060,6 +4067,11 @@ window.addEventListener("DOMContentLoaded", () => {
   let createTaskTitleTagIsCreating = false;
   let taskDetailEditCurrentTitleTag = "";
   let taskDetailEditTitleTagIsCreating = false;
+  let taskDetailSaveInFlight = false;
+  const taskImagePreviewState = {
+    images: [],
+    currentIndex: -1,
+  };
 
   const normalizeTaskTitleTagCollection = (values = []) => {
     const uniqueMap = new Map();
@@ -4620,22 +4632,93 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const normalizeTaskImagePreviewCollection = (images = []) => {
+    return parseReferenceImageItems(images || []);
+  };
+
+  const syncTaskImagePreviewNavigation = () => {
+    const total = taskImagePreviewState.images.length;
+    const hasMultiple = total > 1;
+
+    if (taskImagePreviewPrevButton instanceof HTMLButtonElement) {
+      const canGoPrev = hasMultiple && taskImagePreviewState.currentIndex > 0;
+      taskImagePreviewPrevButton.hidden = !hasMultiple;
+      taskImagePreviewPrevButton.disabled = !canGoPrev;
+    }
+
+    if (taskImagePreviewNextButton instanceof HTMLButtonElement) {
+      const canGoNext = hasMultiple && taskImagePreviewState.currentIndex < total - 1;
+      taskImagePreviewNextButton.hidden = !hasMultiple;
+      taskImagePreviewNextButton.disabled = !canGoNext;
+    }
+  };
+
+  const showTaskImagePreviewByIndex = (index) => {
+    if (!(taskImagePreviewImage instanceof HTMLImageElement)) return false;
+    const total = taskImagePreviewState.images.length;
+    if (!(total > 0)) return false;
+
+    const nextIndex = Math.max(0, Math.min(total - 1, Number.parseInt(String(index || "0"), 10) || 0));
+    const imageSrc = String(taskImagePreviewState.images[nextIndex] || "").trim();
+    if (!imageSrc) return false;
+
+    taskImagePreviewState.currentIndex = nextIndex;
+    if (taskImagePreviewImage.src !== imageSrc) {
+      taskImagePreviewImage.src = imageSrc;
+    }
+    taskImagePreviewImage.alt = `Imagem de referencia ${nextIndex + 1} de ${total}`;
+    syncTaskImagePreviewNavigation();
+    return true;
+  };
+
+  const stepTaskImagePreview = (step = 0) => {
+    const delta = Number.parseInt(String(step || "0"), 10) || 0;
+    if (!delta) return;
+    if (!(taskImagePreviewState.images.length > 1)) return;
+    const targetIndex = taskImagePreviewState.currentIndex + delta;
+    showTaskImagePreviewByIndex(targetIndex);
+  };
+
   const closeTaskImagePreview = () => {
     if (!(taskImagePreviewModal instanceof HTMLElement)) return;
     taskImagePreviewModal.hidden = true;
+    taskImagePreviewState.currentIndex = -1;
     if (taskImagePreviewImage instanceof HTMLImageElement) {
       taskImagePreviewImage.removeAttribute("src");
+      taskImagePreviewImage.alt = "Imagem de referencia ampliada";
     }
+    syncTaskImagePreviewNavigation();
     syncBodyModalLock();
   };
 
-  const openTaskImagePreview = (src) => {
-    const imageSrc = String(src || "").trim();
+  const openTaskImagePreview = ({ src = "", images = null, index = 0 } = {}) => {
     if (!(taskImagePreviewModal instanceof HTMLElement)) return;
     if (!(taskImagePreviewImage instanceof HTMLImageElement)) return;
-    if (!imageSrc) return;
 
-    taskImagePreviewImage.src = imageSrc;
+    const sourceImages = Array.isArray(images) ? images : taskImagePreviewState.images;
+    const normalizedImages = normalizeTaskImagePreviewCollection(sourceImages);
+    const fallbackSrc = String(src || "").trim();
+    if (!normalizedImages.length && !fallbackSrc) return;
+
+    if (!normalizedImages.length && fallbackSrc) {
+      normalizedImages.push(fallbackSrc);
+    } else if (fallbackSrc && !normalizedImages.includes(fallbackSrc)) {
+      normalizedImages.push(fallbackSrc);
+    }
+
+    taskImagePreviewState.images = normalizedImages;
+
+    const parsedIndex = Number.parseInt(String(index || "0"), 10);
+    const hasProvidedIndex = Number.isFinite(parsedIndex) && parsedIndex >= 0;
+    const fallbackIndex = fallbackSrc ? normalizedImages.indexOf(fallbackSrc) : 0;
+    const startIndex = hasProvidedIndex
+      ? parsedIndex
+      : fallbackIndex >= 0
+        ? fallbackIndex
+        : 0;
+
+    if (!showTaskImagePreviewByIndex(startIndex)) return;
+
     taskImagePreviewModal.hidden = false;
     syncBodyModalLock();
   };
@@ -6029,43 +6112,38 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const saveTaskDetailModal = async () => {
     if (!taskDetailContext) return;
+    if (taskDetailSaveInFlight) return;
     if (!copyTaskDetailModalToRow(taskDetailContext)) return;
-    setTaskDetailEditMode(false);
+    taskDetailSaveInFlight = true;
+    try {
+      if (taskDetailSaveButton instanceof HTMLButtonElement) {
+        taskDetailSaveButton.disabled = true;
+        taskDetailSaveButton.classList.add("is-loading");
+        taskDetailSaveButton.textContent = "Salvando";
+      }
 
-    if (taskDetailSaveButton instanceof HTMLButtonElement) {
-      taskDetailSaveButton.disabled = true;
-      taskDetailSaveButton.classList.add("is-loading");
-      taskDetailSaveButton.textContent = "Salvando";
-    }
-
-    if (taskDetailContext.form.dataset.autosaveSubmitting === "1") {
-      const idle = await waitForFormAutosaveIdle(taskDetailContext.form);
-      if (!idle) {
-        if (taskDetailSaveButton instanceof HTMLButtonElement) {
-          taskDetailSaveButton.disabled = false;
-          taskDetailSaveButton.classList.remove("is-loading");
-          taskDetailSaveButton.textContent = "Salvar";
+      if (taskDetailContext.form.dataset.autosaveSubmitting === "1") {
+        const idle = await waitForFormAutosaveIdle(taskDetailContext.form);
+        if (!idle) {
+          return;
         }
-        setTaskDetailEditMode(true);
+      }
+
+      const ok = await submitTaskAutosave(taskDetailContext.form);
+      if (!ok) {
         return;
       }
+
+      populateTaskDetailModalFromRow(taskDetailContext);
+      setTaskDetailEditMode(false);
+    } finally {
+      taskDetailSaveInFlight = false;
+      if (taskDetailSaveButton instanceof HTMLButtonElement) {
+        taskDetailSaveButton.disabled = false;
+        taskDetailSaveButton.classList.remove("is-loading");
+        taskDetailSaveButton.textContent = "Salvar";
+      }
     }
-
-    const ok = await submitTaskAutosave(taskDetailContext.form);
-
-    if (taskDetailSaveButton instanceof HTMLButtonElement) {
-      taskDetailSaveButton.disabled = false;
-      taskDetailSaveButton.classList.remove("is-loading");
-      taskDetailSaveButton.textContent = "Salvar";
-    }
-
-    if (!ok) {
-      setTaskDetailEditMode(true);
-      return;
-    }
-
-    populateTaskDetailModalFromRow(taskDetailContext);
-    setTaskDetailEditMode(false);
   };
 
   const syncBodyModalLock = () => {
@@ -7442,7 +7520,15 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const previewImageTrigger = target.closest("[data-task-ref-image-preview]");
     if (previewImageTrigger instanceof HTMLElement) {
-      openTaskImagePreview(previewImageTrigger.dataset.taskRefImagePreview || "");
+      const previewIndex = Number.parseInt(
+        String(previewImageTrigger.dataset.taskRefImageIndex || "-1"),
+        10
+      );
+      openTaskImagePreview({
+        src: previewImageTrigger.dataset.taskRefImagePreview || "",
+        images: taskImagePreviewState.images,
+        index: Number.isFinite(previewIndex) && previewIndex >= 0 ? previewIndex : 0,
+      });
       return;
     }
 
@@ -7634,6 +7720,18 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const previousImageTrigger = target.closest("[data-task-image-preview-prev]");
+    if (previousImageTrigger) {
+      stepTaskImagePreview(-1);
+      return;
+    }
+
+    const nextImageTrigger = target.closest("[data-task-image-preview-next]");
+    if (nextImageTrigger) {
+      stepTaskImagePreview(1);
+      return;
+    }
+
     const confirmSubmitTrigger = target.closest("[data-confirm-modal-submit]");
     if (confirmSubmitTrigger) {
       if (confirmModalSubmit instanceof HTMLButtonElement) {
@@ -7656,6 +7754,19 @@ window.addEventListener("DOMContentLoaded", () => {
 
   document.addEventListener("keydown", (event) => {
     const target = event.target;
+    const isImagePreviewOpen =
+      taskImagePreviewModal instanceof HTMLElement && !taskImagePreviewModal.hidden;
+    if (isImagePreviewOpen && event.key === "ArrowLeft") {
+      event.preventDefault();
+      stepTaskImagePreview(-1);
+      return;
+    }
+    if (isImagePreviewOpen && event.key === "ArrowRight") {
+      event.preventDefault();
+      stepTaskImagePreview(1);
+      return;
+    }
+
     if (
       event.key === "Enter" &&
       target instanceof HTMLElement &&

@@ -2916,7 +2916,25 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
             </button>
         </header>
         <div class="task-image-preview-body">
+            <button
+                type="button"
+                class="task-image-preview-nav task-image-preview-nav-prev"
+                data-task-image-preview-prev
+                aria-label="Imagem anterior"
+                hidden
+            >
+                <span aria-hidden="true">&#8249;</span>
+            </button>
             <img src="" alt="Imagem de referencia ampliada" data-task-image-preview-img>
+            <button
+                type="button"
+                class="task-image-preview-nav task-image-preview-nav-next"
+                data-task-image-preview-next
+                aria-label="Proxima imagem"
+                hidden
+            >
+                <span aria-hidden="true">&#8250;</span>
+            </button>
         </div>
     </section>
 </div>
