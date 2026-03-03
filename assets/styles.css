@@ -2409,7 +2409,7 @@ textarea:focus {
     width: 92px;
     min-width: 92px;
     height: 30px;
-    padding: 3px 26px 3px 10px;
+    padding: 3px 10px;
     border-radius: 8px;
     border: 1px solid rgba(129, 214, 255, 0.42);
     background: rgba(5, 17, 30, 0.78);
@@ -2418,6 +2418,8 @@ textarea:focus {
     font-weight: 700;
     text-align: left;
     line-height: 1.1;
+    appearance: textfield;
+    -moz-appearance: textfield;
 }
 
 .inventory-entry-qty-input:focus {
@@ -2428,9 +2430,8 @@ textarea:focus {
 
 .inventory-entry-qty-input::-webkit-outer-spin-button,
 .inventory-entry-qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
     margin: 0;
-    opacity: 1;
-    width: 14px;
 }
 
 .inventory-entry-qty-unit {
