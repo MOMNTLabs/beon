@@ -7282,13 +7282,15 @@ textarea:focus,
 /* Dashboard split layout: full-height sidebar + content header on right */
 .is-dashboard .tasklist-layout {
     grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     align-items: stretch;
 }
 
 .is-dashboard .tasklist-layout > .users-sidebar {
     grid-column: 1;
-    grid-row: 1 / -1;
-    min-height: 100dvh;
+    grid-row: 1 / 3;
+    min-height: 100%;
+    height: 100%;
 }
 
 .is-dashboard .tasklist-layout > :not(.users-sidebar) {
@@ -7296,14 +7298,25 @@ textarea:focus,
 }
 
 .dashboard-content-nav {
+    grid-row: 1;
+    align-self: start;
     grid-template-columns: minmax(0, 1fr) auto;
     border-left: 0;
     border-right: 0;
 }
 
 .dashboard-content-nav .dashboard-nav-stats {
+    align-self: center;
     justify-self: start;
     width: min(980px, 100%);
+}
+
+.is-dashboard .tasklist-layout > .tasklist-wrap,
+.is-dashboard .tasklist-layout > .vault-wrap,
+.is-dashboard .tasklist-layout > .due-wrap,
+.is-dashboard .tasklist-layout > .inventory-wrap,
+.is-dashboard .tasklist-layout > .users-wrap {
+    grid-row: 2;
 }
 
 .sidebar-brand {
@@ -7323,6 +7336,7 @@ textarea:focus,
 @media (max-width: 1180px) {
     .is-dashboard .tasklist-layout {
         grid-template-columns: 1fr;
+        grid-template-rows: auto;
     }
 
     .is-dashboard .tasklist-layout > .users-sidebar,
@@ -7333,6 +7347,14 @@ textarea:focus,
 
     .is-dashboard .tasklist-layout > .users-sidebar {
         min-height: 0;
+    }
+
+    .is-dashboard .tasklist-layout > .tasklist-wrap,
+    .is-dashboard .tasklist-layout > .vault-wrap,
+    .is-dashboard .tasklist-layout > .due-wrap,
+    .is-dashboard .tasklist-layout > .inventory-wrap,
+    .is-dashboard .tasklist-layout > .users-wrap {
+        grid-row: auto;
     }
 }
 
