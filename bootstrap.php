@@ -9,6 +9,8 @@ const APP_NAME = 'WorkForm';
 const DB_PATH = __DIR__ . '/storage/app.sqlite';
 const REMEMBER_COOKIE_NAME = 'wf_remember';
 const REMEMBER_TOKEN_DAYS = 30;
+const LAST_WORKSPACE_COOKIE_NAME = 'wf_last_workspace';
+const LAST_WORKSPACE_COOKIE_DAYS = 365;
 
 function ensureStorage(): void
 {
@@ -1690,6 +1692,64 @@ function clearRememberCookie(): void
     unset($_COOKIE[REMEMBER_COOKIE_NAME]);
 }
 
+function setLastWorkspaceCookie(int $userId, ?int $workspaceId): void
+{
+    if ($userId <= 0 || $workspaceId === null || $workspaceId <= 0) {
+        clearLastWorkspaceCookie();
+        return;
+    }
+
+    $cookieValue = $userId . ':' . $workspaceId;
+    $expiresTs = (new DateTimeImmutable('+' . LAST_WORKSPACE_COOKIE_DAYS . ' days'))->getTimestamp();
+
+    setcookie(LAST_WORKSPACE_COOKIE_NAME, $cookieValue, [
+        'expires' => $expiresTs,
+        'path' => '/',
+        'domain' => '',
+        'secure' => requestIsHttps(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    $_COOKIE[LAST_WORKSPACE_COOKIE_NAME] = $cookieValue;
+}
+
+function clearLastWorkspaceCookie(): void
+{
+    setcookie(LAST_WORKSPACE_COOKIE_NAME, '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'domain' => '',
+        'secure' => requestIsHttps(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    unset($_COOKIE[LAST_WORKSPACE_COOKIE_NAME]);
+}
+
+function lastWorkspaceIdFromCookieForUser(int $userId): ?int
+{
+    if ($userId <= 0) {
+        return null;
+    }
+
+    $raw = trim((string) ($_COOKIE[LAST_WORKSPACE_COOKIE_NAME] ?? ''));
+    if ($raw === '' || !str_contains($raw, ':')) {
+        return null;
+    }
+
+    [$cookieUserId, $workspaceId] = explode(':', $raw, 2);
+    if (!ctype_digit($cookieUserId) || !ctype_digit($workspaceId)) {
+        return null;
+    }
+
+    if ((int) $cookieUserId !== $userId) {
+        return null;
+    }
+
+    $parsedWorkspaceId = (int) $workspaceId;
+    return $parsedWorkspaceId > 0 ? $parsedWorkspaceId : null;
+}
+
 function requestIsHttps(): bool
 {
     $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
@@ -2620,12 +2680,20 @@ function workspaceMembersList(int $workspaceId): array
 
 function setActiveWorkspaceId(?int $workspaceId): void
 {
+    $userId = (int) ($_SESSION['user_id'] ?? 0);
+
     if ($workspaceId !== null && $workspaceId > 0) {
         $_SESSION['workspace_id'] = $workspaceId;
+        if ($userId > 0) {
+            setLastWorkspaceCookie($userId, $workspaceId);
+        }
         return;
     }
 
     unset($_SESSION['workspace_id']);
+    if ($userId > 0) {
+        setLastWorkspaceCookie($userId, null);
+    }
 }
 
 function personalWorkspaceDefaultName(int $userId): string
@@ -2716,6 +2784,12 @@ function ensureActiveWorkspaceSessionForUser(int $userId): void
 
     $sessionWorkspaceId = (int) ($_SESSION['workspace_id'] ?? 0);
     if ($sessionWorkspaceId > 0 && userHasWorkspaceAccess($userId, $sessionWorkspaceId)) {
+        return;
+    }
+
+    $cookieWorkspaceId = lastWorkspaceIdFromCookieForUser($userId);
+    if ($cookieWorkspaceId !== null && userHasWorkspaceAccess($userId, $cookieWorkspaceId)) {
+        setActiveWorkspaceId($cookieWorkspaceId);
         return;
     }
 
