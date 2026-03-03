@@ -4642,13 +4642,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (taskImagePreviewPrevButton instanceof HTMLButtonElement) {
       const canGoPrev = hasMultiple && taskImagePreviewState.currentIndex > 0;
-      taskImagePreviewPrevButton.hidden = !hasMultiple;
+      taskImagePreviewPrevButton.hidden = !canGoPrev;
       taskImagePreviewPrevButton.disabled = !canGoPrev;
     }
 
     if (taskImagePreviewNextButton instanceof HTMLButtonElement) {
       const canGoNext = hasMultiple && taskImagePreviewState.currentIndex < total - 1;
-      taskImagePreviewNextButton.hidden = !hasMultiple;
+      taskImagePreviewNextButton.hidden = !canGoNext;
       taskImagePreviewNextButton.disabled = !canGoNext;
     }
   };
