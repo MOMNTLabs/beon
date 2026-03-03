@@ -1,4 +1,21 @@
-<?php $taskTitleTagPresetOptions = taskTitleTagPresets(); ?>
+<?php
+$taskTitleTagPresetOptions = taskTitleTagPresets();
+$taskTitleTagOptions = $taskTitleTagPresetOptions;
+foreach ($tasks as $taskWithTagOption) {
+    $taskTagOption = normalizeTaskTitleTag((string) ($taskWithTagOption['title_tag'] ?? ''));
+    if ($taskTagOption !== '') {
+        $taskTitleTagOptions[] = $taskTagOption;
+    }
+}
+$taskTitleTagOptions = array_values(array_unique(array_filter($taskTitleTagOptions, static fn ($value) => trim((string) $value) !== '')));
+natcasesort($taskTitleTagOptions);
+$taskTitleTagOptions = array_values($taskTitleTagOptions);
+?>
+<script
+    type="application/json"
+    id="task-title-tag-options-data"
+    data-workspace-id="<?= e((string) ($currentWorkspaceId ?? 0)) ?>"
+><?= json_encode($taskTitleTagOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 
 <header class="top-nav dashboard-nav">
     <a href="index.php" class="brand" aria-label="WorkForm">
@@ -1353,24 +1370,28 @@
 
             <label>
                 <span>Titulo</span>
-                <div class="task-title-tag-editor">
-                    <select data-create-task-title-tag-select>
-                        <option value="">Sem tag</option>
-                        <?php foreach ($taskTitleTagPresetOptions as $tagOption): ?>
-                            <option value="<?= e((string) $tagOption) ?>"><?= e((string) $tagOption) ?></option>
-                        <?php endforeach; ?>
-                        <option value="__custom__">Nova tag...</option>
-                    </select>
-                    <input
-                        type="text"
-                        maxlength="40"
-                        placeholder="Nova tag"
-                        data-create-task-title-tag-custom
-                        hidden
-                    >
-                    <input type="hidden" name="title_tag" value="" data-create-task-title-tag-input>
+                <div class="create-task-title-composer" data-create-task-title-composer>
+                    <div class="create-task-title-tag-picker" data-create-task-title-tag-picker>
+                        <button
+                            type="button"
+                            class="create-task-title-tag-trigger is-empty"
+                            data-create-task-title-tag-trigger
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
+                        >tag</button>
+                        <input
+                            type="text"
+                            maxlength="40"
+                            placeholder="Criar tag"
+                            autocomplete="off"
+                            data-create-task-title-tag-custom
+                            hidden
+                        >
+                        <div class="create-task-title-tag-menu" data-create-task-title-tag-menu hidden></div>
+                    </div>
+                    <input type="text" name="title" maxlength="140" required data-create-task-title-input>
                 </div>
-                <input type="text" name="title" maxlength="140" required data-create-task-title-input>
+                <input type="hidden" name="title_tag" value="" data-create-task-title-tag-input>
             </label>
 
             <div class="task-detail-inline-controls">

@@ -2981,10 +2981,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const createTaskModal = document.querySelector("[data-create-modal]");
   const createTaskGroupInput = document.querySelector("[data-create-task-group-input]");
+  const createTaskTitleComposer = document.querySelector("[data-create-task-title-composer]");
+  const createTaskTitleTagPicker = document.querySelector("[data-create-task-title-tag-picker]");
+  const createTaskTitleTagTrigger = document.querySelector("[data-create-task-title-tag-trigger]");
+  const createTaskTitleTagMenu = document.querySelector("[data-create-task-title-tag-menu]");
   const createTaskTitleInput = document.querySelector("[data-create-task-title-input]");
-  const createTaskTitleTagSelect = document.querySelector("[data-create-task-title-tag-select]");
   const createTaskTitleTagCustom = document.querySelector("[data-create-task-title-tag-custom]");
   const createTaskTitleTagInput = document.querySelector("[data-create-task-title-tag-input]");
+  const taskTitleTagOptionsDataElement = document.querySelector("#task-title-tag-options-data");
   const createTaskForm = document.querySelector("[data-create-task-form]");
   const createTaskLinksField = document.querySelector("[data-create-task-links]");
   const createTaskImagesField = document.querySelector("[data-create-task-images]");
@@ -3142,6 +3146,195 @@ window.addEventListener("DOMContentLoaded", () => {
   let taskDetailEditSubtaskItems = [];
   let createTaskImageItems = [];
   let createTaskSubtaskItems = [];
+  let createTaskTitleTagOptions = [];
+  let createTaskCurrentTitleTag = "";
+  let createTaskTitleTagIsCreating = false;
+
+  const normalizeTaskTitleTagCollection = (values = []) => {
+    const uniqueMap = new Map();
+    (Array.isArray(values) ? values : []).forEach((value) => {
+      const normalized = normalizeTaskTitleTagValue(value);
+      if (!normalized) return;
+      const key = normalized.toLocaleLowerCase("pt-BR");
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, normalized);
+      }
+    });
+
+    return Array.from(uniqueMap.values()).sort((left, right) =>
+      left.localeCompare(right, "pt-BR", { sensitivity: "base" })
+    );
+  };
+
+  const readTaskTitleTagOptionsFromData = () => {
+    if (!(taskTitleTagOptionsDataElement instanceof HTMLScriptElement)) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(taskTitleTagOptionsDataElement.textContent || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  };
+
+  const closeCreateTaskTitleTagMenu = () => {
+    if (createTaskTitleTagMenu instanceof HTMLElement) {
+      createTaskTitleTagMenu.hidden = true;
+    }
+    if (createTaskTitleTagPicker instanceof HTMLElement) {
+      createTaskTitleTagPicker.classList.remove("is-open");
+    }
+    if (createTaskTitleTagTrigger instanceof HTMLButtonElement) {
+      createTaskTitleTagTrigger.setAttribute("aria-expanded", "false");
+    }
+  };
+
+  const syncCreateTaskTitleTagTrigger = () => {
+    const normalizedTag = normalizeTaskTitleTagValue(createTaskCurrentTitleTag);
+    createTaskCurrentTitleTag = normalizedTag;
+
+    if (createTaskTitleTagInput instanceof HTMLInputElement) {
+      createTaskTitleTagInput.value = normalizedTag;
+    }
+
+    if (!(createTaskTitleTagTrigger instanceof HTMLButtonElement)) return;
+
+    createTaskTitleTagTrigger.textContent = normalizedTag || "tag";
+    createTaskTitleTagTrigger.classList.toggle("is-empty", !normalizedTag);
+    createTaskTitleTagTrigger.setAttribute(
+      "aria-label",
+      normalizedTag ? `Tag selecionada: ${normalizedTag}` : "Sem tag"
+    );
+  };
+
+  const renderCreateTaskTitleTagMenu = () => {
+    if (!(createTaskTitleTagMenu instanceof HTMLElement)) return;
+
+    const selectedTag = normalizeTaskTitleTagValue(createTaskCurrentTitleTag);
+    createTaskTitleTagMenu.innerHTML = "";
+
+    const clearButton = document.createElement("button");
+    clearButton.type = "button";
+    clearButton.className = "create-task-title-tag-option is-clear";
+    clearButton.dataset.createTaskTitleTagOption = "";
+    clearButton.textContent = "Sem tag";
+    if (!selectedTag) {
+      clearButton.classList.add("is-selected");
+    }
+    createTaskTitleTagMenu.append(clearButton);
+
+    createTaskTitleTagOptions.forEach((tagValue) => {
+      const row = document.createElement("div");
+      row.className = "create-task-title-tag-menu-item";
+
+      const optionButton = document.createElement("button");
+      optionButton.type = "button";
+      optionButton.className = "create-task-title-tag-option";
+      optionButton.dataset.createTaskTitleTagOption = tagValue;
+      optionButton.textContent = tagValue;
+      if (selectedTag === tagValue) {
+        optionButton.classList.add("is-selected");
+      }
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "create-task-title-tag-remove";
+      removeButton.dataset.createTaskTitleTagRemove = tagValue;
+      removeButton.setAttribute("aria-label", `Remover tag ${tagValue}`);
+      removeButton.textContent = "x";
+
+      row.append(optionButton, removeButton);
+      createTaskTitleTagMenu.append(row);
+    });
+
+    const createButton = document.createElement("button");
+    createButton.type = "button";
+    createButton.className = "create-task-title-tag-create";
+    createButton.dataset.createTaskTitleTagCreate = "1";
+    createButton.textContent = "Criar tag";
+    createTaskTitleTagMenu.append(createButton);
+  };
+
+  const openCreateTaskTitleTagMenu = () => {
+    if (!(createTaskTitleTagMenu instanceof HTMLElement)) return;
+    if (createTaskTitleTagIsCreating) return;
+
+    renderCreateTaskTitleTagMenu();
+    createTaskTitleTagMenu.hidden = false;
+    if (createTaskTitleTagPicker instanceof HTMLElement) {
+      createTaskTitleTagPicker.classList.add("is-open");
+    }
+    if (createTaskTitleTagTrigger instanceof HTMLButtonElement) {
+      createTaskTitleTagTrigger.setAttribute("aria-expanded", "true");
+    }
+  };
+
+  const setCreateTaskTitleTagValue = (value = "") => {
+    createTaskCurrentTitleTag = normalizeTaskTitleTagValue(value);
+    syncCreateTaskTitleTagTrigger();
+    renderCreateTaskTitleTagMenu();
+  };
+
+  const stopCreateTaskTitleTagCreation = ({ focusTrigger = false } = {}) => {
+    createTaskTitleTagIsCreating = false;
+    if (createTaskTitleComposer instanceof HTMLElement) {
+      createTaskTitleComposer.classList.remove("is-creating-tag");
+    }
+    if (createTaskTitleTagCustom instanceof HTMLInputElement) {
+      createTaskTitleTagCustom.hidden = true;
+      createTaskTitleTagCustom.value = "";
+    }
+    if (createTaskTitleTagTrigger instanceof HTMLButtonElement) {
+      createTaskTitleTagTrigger.hidden = false;
+      if (focusTrigger) {
+        createTaskTitleTagTrigger.focus();
+      }
+    }
+    syncCreateTaskTitleTagTrigger();
+  };
+
+  const commitCreateTaskTitleTagCreation = () => {
+    if (createTaskTitleTagCustom instanceof HTMLInputElement) {
+      applyFirstLetterUppercaseToInput(createTaskTitleTagCustom);
+      const newTag = normalizeTaskTitleTagValue(createTaskTitleTagCustom.value || "");
+      if (newTag) {
+        createTaskTitleTagOptions = normalizeTaskTitleTagCollection([
+          ...createTaskTitleTagOptions,
+          newTag,
+        ]);
+        createTaskCurrentTitleTag = newTag;
+      }
+    }
+    stopCreateTaskTitleTagCreation();
+    renderCreateTaskTitleTagMenu();
+    return normalizeTaskTitleTagValue(createTaskCurrentTitleTag);
+  };
+
+  const startCreateTaskTitleTagCreation = () => {
+    if (!(createTaskTitleTagCustom instanceof HTMLInputElement)) return;
+    closeCreateTaskTitleTagMenu();
+    createTaskTitleTagIsCreating = true;
+    if (createTaskTitleComposer instanceof HTMLElement) {
+      createTaskTitleComposer.classList.add("is-creating-tag");
+    }
+    if (createTaskTitleTagTrigger instanceof HTMLButtonElement) {
+      createTaskTitleTagTrigger.hidden = true;
+    }
+    createTaskTitleTagCustom.hidden = false;
+    createTaskTitleTagCustom.value = "";
+    createTaskTitleTagCustom.focus();
+  };
+
+  const resetCreateTaskTitleTagPicker = () => {
+    closeCreateTaskTitleTagMenu();
+    stopCreateTaskTitleTagCreation();
+    setCreateTaskTitleTagValue("");
+  };
+
+  createTaskTitleTagOptions = normalizeTaskTitleTagCollection(readTaskTitleTagOptionsFromData());
+  resetCreateTaskTitleTagPicker();
 
   function renderTaskRowSubtasksProgress(taskItem, subtasks) {
     if (!(taskItem instanceof HTMLElement)) return;
@@ -5123,14 +5316,7 @@ window.addEventListener("DOMContentLoaded", () => {
         .querySelectorAll(".status-select, .priority-select")
         .forEach(syncSelectColor);
     }
-    syncTaskTitleTagEditorControls({
-      selectEl: createTaskTitleTagSelect,
-      customInputEl: createTaskTitleTagCustom,
-      currentTag: "",
-    });
-    if (createTaskTitleTagInput instanceof HTMLInputElement) {
-      createTaskTitleTagInput.value = "";
-    }
+    resetCreateTaskTitleTagPicker();
     if (createTaskGroupInput) {
       const nextGroup = (groupName || "").trim() || getDefaultGroupName();
       if (
@@ -6091,6 +6277,23 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if (event.key === "Escape" && createTaskTitleTagIsCreating) {
+      event.preventDefault();
+      stopCreateTaskTitleTagCreation({ focusTrigger: true });
+      return;
+    }
+
+    if (
+      event.key === "Escape" &&
+      createTaskTitleTagMenu instanceof HTMLElement &&
+      !createTaskTitleTagMenu.hidden
+    ) {
+      event.preventDefault();
+      closeCreateTaskTitleTagMenu();
+      createTaskTitleTagTrigger?.focus();
+      return;
+    }
+
     if (event.key !== "Escape") return;
 
     if (fabWrap?.classList.contains("is-open")) {
@@ -6142,19 +6345,87 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  if (createTaskTitleTagSelect instanceof HTMLSelectElement) {
-    createTaskTitleTagSelect.addEventListener("change", () => {
-      const isCustom = createTaskTitleTagSelect.value === TASK_TITLE_TAG_CUSTOM_VALUE;
-      if (createTaskTitleTagCustom instanceof HTMLInputElement) {
-        createTaskTitleTagCustom.hidden = !isCustom;
-        if (!isCustom) {
-          createTaskTitleTagCustom.value = "";
+  if (createTaskTitleTagPicker instanceof HTMLElement) {
+    createTaskTitleTagPicker.addEventListener("click", (event) => {
+      const target = getEventTargetElement(event);
+      if (!(target instanceof Element)) return;
+
+      const removeTagTrigger = target.closest("[data-create-task-title-tag-remove]");
+      if (removeTagTrigger instanceof HTMLButtonElement) {
+        const removedTag = normalizeTaskTitleTagValue(
+          removeTagTrigger.dataset.createTaskTitleTagRemove || ""
+        );
+        if (!removedTag) return;
+
+        const removedKey = removedTag.toLocaleLowerCase("pt-BR");
+        createTaskTitleTagOptions = createTaskTitleTagOptions.filter(
+          (tag) => normalizeTaskTitleTagValue(tag).toLocaleLowerCase("pt-BR") !== removedKey
+        );
+        if (createTaskCurrentTitleTag.toLocaleLowerCase("pt-BR") === removedKey) {
+          createTaskCurrentTitleTag = "";
+        }
+        syncCreateTaskTitleTagTrigger();
+        renderCreateTaskTitleTagMenu();
+        return;
+      }
+
+      const selectTagTrigger = target.closest("[data-create-task-title-tag-option]");
+      if (selectTagTrigger instanceof HTMLButtonElement) {
+        setCreateTaskTitleTagValue(selectTagTrigger.dataset.createTaskTitleTagOption || "");
+        closeCreateTaskTitleTagMenu();
+        return;
+      }
+
+      const createTagTrigger = target.closest("[data-create-task-title-tag-create]");
+      if (createTagTrigger instanceof HTMLButtonElement) {
+        startCreateTaskTitleTagCreation();
+        return;
+      }
+
+      const toggleMenuTrigger = target.closest("[data-create-task-title-tag-trigger]");
+      if (toggleMenuTrigger instanceof HTMLButtonElement) {
+        if (createTaskTitleTagMenu instanceof HTMLElement && !createTaskTitleTagMenu.hidden) {
+          closeCreateTaskTitleTagMenu();
         } else {
-          createTaskTitleTagCustom.focus();
+          openCreateTaskTitleTagMenu();
         }
       }
     });
   }
+
+  if (createTaskTitleTagCustom instanceof HTMLInputElement) {
+    createTaskTitleTagCustom.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commitCreateTaskTitleTagCreation();
+        createTaskTitleInput?.focus();
+        return;
+      }
+
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      stopCreateTaskTitleTagCreation({ focusTrigger: true });
+    });
+
+    createTaskTitleTagCustom.addEventListener("blur", () => {
+      window.setTimeout(() => {
+        if (!createTaskTitleTagIsCreating) return;
+        commitCreateTaskTitleTagCreation();
+      }, 0);
+    });
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof Element)) return;
+    if (!(createTaskTitleTagPicker instanceof HTMLElement)) return;
+    if (createTaskTitleTagPicker.contains(target)) return;
+
+    closeCreateTaskTitleTagMenu();
+    if (createTaskTitleTagIsCreating) {
+      commitCreateTaskTitleTagCreation();
+    }
+  });
 
   if (taskDetailEditTitleTagSelect instanceof HTMLSelectElement) {
     taskDetailEditTitleTagSelect.addEventListener("change", () => {
@@ -6175,23 +6446,10 @@ window.addEventListener("DOMContentLoaded", () => {
       if (createTaskTitleInput instanceof HTMLInputElement) {
         applyFirstLetterUppercaseToInput(createTaskTitleInput);
       }
-      if (createTaskTitleTagCustom instanceof HTMLInputElement) {
-        applyFirstLetterUppercaseToInput(createTaskTitleTagCustom);
-      }
-      const createTitleTag = resolveTaskTitleTagFromEditor({
-        selectEl: createTaskTitleTagSelect,
-        customInputEl: createTaskTitleTagCustom,
-      });
-      if (createTaskTitleTagInput instanceof HTMLInputElement) {
-        createTaskTitleTagInput.value = createTitleTag;
-      }
-      if (
-        createTaskTitleTagSelect instanceof HTMLSelectElement &&
-        createTaskTitleTagSelect.value === TASK_TITLE_TAG_CUSTOM_VALUE &&
-        createTaskTitleTagCustom instanceof HTMLInputElement
-      ) {
-        createTaskTitleTagCustom.value = createTitleTag;
-      }
+      const createTitleTag = createTaskTitleTagIsCreating
+        ? commitCreateTaskTitleTagCreation()
+        : normalizeTaskTitleTagValue(createTaskTitleTagInput?.value || createTaskCurrentTitleTag);
+      setCreateTaskTitleTagValue(createTitleTag);
 
       if (createTaskLinksField instanceof HTMLTextAreaElement) {
         createTaskLinksField.value = JSON.stringify(
