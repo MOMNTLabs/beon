@@ -581,11 +581,13 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
 
                                                 <div class="status-stepper" data-status-stepper>
                                                     <?php if ($hasActiveRevisionRequest): ?>
-                                                        <span
+                                                        <button
+                                                            type="button"
                                                             class="task-revision-badge"
                                                             data-task-revision-badge
-                                                            title="Solicitacao de revisao pendente"
-                                                        >Revisao</span>
+                                                            title="Solicitacao de revisao ativa. Clique para remover."
+                                                            aria-label="Remover solicitacao de revisao"
+                                                        >Revisao</button>
                                                     <?php endif; ?>
                                                     <button
                                                         type="button"

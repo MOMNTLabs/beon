@@ -1851,11 +1851,13 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const createTaskRevisionBadge = () => {
-    const badge = document.createElement("span");
+    const badge = document.createElement("button");
+    badge.type = "button";
     badge.className = "task-revision-badge";
     badge.dataset.taskRevisionBadge = "";
     badge.textContent = "Revisao";
-    badge.title = "Solicitacao de revisao pendente";
+    badge.title = "Solicitacao de revisao ativa. Clique para remover.";
+    badge.setAttribute("aria-label", "Remover solicitacao de revisao");
     return badge;
   };
 
@@ -3435,6 +3437,15 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const dueDisplay = target.closest("[data-due-date-display]");
+    const revisionBadgeTrigger = target.closest("[data-task-revision-badge]");
+    if (revisionBadgeTrigger) {
+      const form = revisionBadgeTrigger.closest("[data-task-autosave-form]");
+      if (form instanceof HTMLFormElement) {
+        void submitTaskRevisionRemovalFromRow(form);
+      }
+      return;
+    }
+
     const overdueBadgeTrigger = target.closest("[data-task-overdue-badge]");
     if (overdueBadgeTrigger) {
       const form = overdueBadgeTrigger.closest("[data-task-autosave-form]");
@@ -5493,31 +5504,85 @@ window.addEventListener("DOMContentLoaded", () => {
   const submitTaskRevisionRemoval = async () => {
     if (!(taskRemoveRevisionForm instanceof HTMLFormElement)) return;
     if (!(taskRemoveRevisionTaskIdInput instanceof HTMLInputElement)) return;
-    if (!(taskDetailContext?.form instanceof HTMLFormElement)) return;
-    if (Boolean(taskDetailContext.readOnly)) {
+    const sourceForm = taskDetailContext?.form;
+    if (!(sourceForm instanceof HTMLFormElement)) return;
+    if (Boolean(taskDetailContext?.readOnly)) {
       showClientFlash("error", "Voce nao possui acesso para remover ajuste desta tarefa.");
       return;
     }
 
-    const taskIdField = taskDetailContext.form.querySelector('input[name="task_id"]');
-    const csrfField = taskDetailContext.form.querySelector('input[name="csrf_token"]');
-    if (!(taskIdField instanceof HTMLInputElement) || !(csrfField instanceof HTMLInputElement)) {
-      return;
-    }
+    const removeRevisionFromForm = async (form) => {
+      if (!(form instanceof HTMLFormElement)) return false;
+      if (form.dataset.revisionRemoving === "1") return false;
 
-    taskRemoveRevisionTaskIdInput.value = taskIdField.value;
-    const removeCsrfField = taskRemoveRevisionForm.querySelector('input[name="csrf_token"]');
-    if (removeCsrfField instanceof HTMLInputElement) {
-      removeCsrfField.value = csrfField.value;
-    }
-
-    if (taskDetailContext.form.dataset.autosaveSubmitting === "1") {
-      const idle = await waitForFormAutosaveIdle(taskDetailContext.form);
-      if (!idle) {
-        showClientFlash("error", "Aguarde a tarefa terminar de salvar para remover o ajuste.");
-        return;
+      const taskIdField = form.querySelector('input[name="task_id"]');
+      const csrfField = form.querySelector('input[name="csrf_token"]');
+      if (!(taskIdField instanceof HTMLInputElement) || !(csrfField instanceof HTMLInputElement)) {
+        return false;
       }
-    }
+
+      taskRemoveRevisionTaskIdInput.value = taskIdField.value;
+      const removeCsrfField = taskRemoveRevisionForm.querySelector('input[name="csrf_token"]');
+      if (removeCsrfField instanceof HTMLInputElement) {
+        removeCsrfField.value = csrfField.value;
+      }
+
+      if (form.dataset.autosaveSubmitting === "1") {
+        const idle = await waitForFormAutosaveIdle(form);
+        if (!idle) {
+          showClientFlash("error", "Aguarde a tarefa terminar de salvar para remover o ajuste.");
+          return false;
+        }
+      }
+
+      form.dataset.revisionRemoving = "1";
+      try {
+        const data = await postFormJson(taskRemoveRevisionForm);
+        const task = data.task || {};
+
+        const descriptionField = form.querySelector('textarea[name="description"]');
+        const historyField = form.querySelector("[data-task-history-json]");
+        const statusField = form.querySelector('select[name="status"]');
+
+        if (typeof task.description === "string" && descriptionField instanceof HTMLTextAreaElement) {
+          descriptionField.value = task.description;
+        }
+        if (Array.isArray(task.history) && historyField instanceof HTMLInputElement) {
+          writeTaskHistoryField(historyField, task.history);
+        }
+        if (typeof task.updated_at_label === "string") {
+          refreshTaskUpdatedAtMeta(form, task.updated_at_label);
+        }
+        if (typeof task.status === "string" && statusField instanceof HTMLSelectElement) {
+          statusField.value = task.status;
+          syncSelectColor(statusField);
+        }
+
+        syncTaskRevisionBadge(form);
+        renderDashboardSummary(data.dashboard);
+
+        if (
+          taskDetailContext &&
+          taskDetailContext.form === form &&
+          taskDetailModal instanceof HTMLElement &&
+          !taskDetailModal.hidden
+        ) {
+          populateTaskDetailModalFromRow(taskDetailContext);
+          setTaskDetailEditMode(false);
+        }
+
+        showClientFlash("success", "Solicitacao de ajuste removida.");
+        return true;
+      } catch (error) {
+        showClientFlash(
+          "error",
+          error instanceof Error ? error.message : "Nao foi possivel remover a solicitacao de ajuste."
+        );
+        return false;
+      } finally {
+        delete form.dataset.revisionRemoving;
+      }
+    };
 
     if (taskDetailRemoveRevisionButton instanceof HTMLButtonElement) {
       taskDetailRemoveRevisionButton.disabled = true;
@@ -5526,39 +5591,92 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const data = await postFormJson(taskRemoveRevisionForm);
-      const task = data.task || {};
-
-      if (typeof task.description === "string") {
-        taskDetailContext.descriptionField.value = task.description;
-      }
-      if (Array.isArray(task.history) && taskDetailContext.historyField instanceof HTMLInputElement) {
-        writeTaskHistoryField(taskDetailContext.historyField, task.history);
-      }
-      if (typeof task.updated_at_label === "string") {
-        refreshTaskUpdatedAtMeta(taskDetailContext.form, task.updated_at_label);
-      }
-      if (typeof task.status === "string" && taskDetailContext.statusSelect instanceof HTMLSelectElement) {
-        taskDetailContext.statusSelect.value = task.status;
-        syncSelectColor(taskDetailContext.statusSelect);
-      }
-      syncTaskRevisionBadge(taskDetailContext.form);
-
-      renderDashboardSummary(data.dashboard);
-      populateTaskDetailModalFromRow(taskDetailContext);
-      setTaskDetailEditMode(false);
-      showClientFlash("success", "Solicitacao de ajuste removida.");
-    } catch (error) {
-      showClientFlash(
-        "error",
-        error instanceof Error ? error.message : "Nao foi possivel remover a solicitacao de ajuste."
-      );
+      await removeRevisionFromForm(sourceForm);
     } finally {
       if (taskDetailRemoveRevisionButton instanceof HTMLButtonElement) {
         taskDetailRemoveRevisionButton.disabled = false;
         taskDetailRemoveRevisionButton.classList.remove("is-loading");
         taskDetailRemoveRevisionButton.removeAttribute("aria-busy");
       }
+    }
+  };
+
+  const submitTaskRevisionRemovalFromRow = async (form) => {
+    if (!(taskRemoveRevisionForm instanceof HTMLFormElement)) return false;
+    if (!(taskRemoveRevisionTaskIdInput instanceof HTMLInputElement)) return false;
+    if (!(form instanceof HTMLFormElement)) return false;
+    if (form.dataset.revisionRemoving === "1") return false;
+
+    const fieldset = form.querySelector("fieldset");
+    if (fieldset instanceof HTMLFieldSetElement && fieldset.disabled) {
+      return false;
+    }
+
+    const taskIdField = form.querySelector('input[name="task_id"]');
+    const csrfField = form.querySelector('input[name="csrf_token"]');
+    if (!(taskIdField instanceof HTMLInputElement) || !(csrfField instanceof HTMLInputElement)) {
+      return false;
+    }
+
+    taskRemoveRevisionTaskIdInput.value = String(taskIdField.value || "");
+    const removeCsrfField = taskRemoveRevisionForm.querySelector('input[name="csrf_token"]');
+    if (removeCsrfField instanceof HTMLInputElement) {
+      removeCsrfField.value = csrfField.value;
+    }
+
+    if (form.dataset.autosaveSubmitting === "1") {
+      const idle = await waitForFormAutosaveIdle(form);
+      if (!idle) {
+        showClientFlash("error", "Aguarde a tarefa terminar de salvar para remover o ajuste.");
+        return false;
+      }
+    }
+
+    form.dataset.revisionRemoving = "1";
+    try {
+      const data = await postFormJson(taskRemoveRevisionForm);
+      const task = data.task || {};
+
+      const descriptionField = form.querySelector('textarea[name="description"]');
+      const historyField = form.querySelector("[data-task-history-json]");
+      const statusField = form.querySelector('select[name="status"]');
+
+      if (typeof task.description === "string" && descriptionField instanceof HTMLTextAreaElement) {
+        descriptionField.value = task.description;
+      }
+      if (Array.isArray(task.history) && historyField instanceof HTMLInputElement) {
+        writeTaskHistoryField(historyField, task.history);
+      }
+      if (typeof task.updated_at_label === "string") {
+        refreshTaskUpdatedAtMeta(form, task.updated_at_label);
+      }
+      if (typeof task.status === "string" && statusField instanceof HTMLSelectElement) {
+        statusField.value = task.status;
+        syncSelectColor(statusField);
+      }
+      syncTaskRevisionBadge(form);
+
+      renderDashboardSummary(data.dashboard);
+      if (
+        taskDetailContext &&
+        taskDetailContext.form === form &&
+        taskDetailModal instanceof HTMLElement &&
+        !taskDetailModal.hidden
+      ) {
+        populateTaskDetailModalFromRow(taskDetailContext);
+        setTaskDetailEditMode(false);
+      }
+
+      showClientFlash("success", "Solicitacao de ajuste removida.");
+      return true;
+    } catch (error) {
+      showClientFlash(
+        "error",
+        error instanceof Error ? error.message : "Nao foi possivel remover a solicitacao de ajuste."
+      );
+      return false;
+    } finally {
+      delete form.dataset.revisionRemoving;
     }
   };
 

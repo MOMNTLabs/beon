@@ -3923,7 +3923,15 @@ textarea:focus {
     text-transform: uppercase;
     padding: 2px 7px;
     line-height: 1;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.status-stepper .task-revision-badge:hover,
+.status-stepper .task-revision-badge:focus-visible {
+    border-color: rgba(191, 164, 255, 0.62);
+    background: rgba(138, 104, 235, 0.22);
+    outline: none;
 }
 
 .status-stepper .tag-field {
