@@ -153,6 +153,9 @@ select optgroup {
         radial-gradient(circle at 14% 0%, rgba(255, 132, 167, 0.16), transparent 42%),
         radial-gradient(circle at 100% 0%, rgba(0, 194, 255, 0.16), transparent 38%),
         rgba(6, 10, 22, 0.7);
+    position: relative;
+    z-index: 30;
+    overflow: visible;
 }
 
 .dashboard-nav-main {
@@ -633,7 +636,7 @@ select optgroup {
 }
 
 .dashboard-nav-stats {
-    width: 100%;
+    width: min(100%, 940px);
     min-width: 0;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -641,6 +644,7 @@ select optgroup {
         radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.03), transparent 32%),
         rgba(3, 7, 18, 0.52);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    justify-self: center;
 }
 
 .stat-cell {
@@ -1152,43 +1156,42 @@ textarea:focus {
 .header-notification-menu {
     position: relative;
     display: inline-flex;
+    align-items: center;
 }
 
 .header-notification-button {
     width: 36px;
     height: 36px;
-    border-radius: 12px;
-    border: 1px solid rgba(126, 210, 255, 0.24);
-    background:
-        radial-gradient(circle at 16% 12%, rgba(255, 132, 167, 0.18), transparent 48%),
-        linear-gradient(145deg, rgba(7, 17, 34, 0.9), rgba(5, 11, 25, 0.9));
+    border-radius: 999px;
+    border: 0;
+    background: transparent;
     display: grid;
     place-items: center;
     color: rgba(225, 243, 255, 0.84);
     cursor: pointer;
-    transition: border-color 160ms ease, transform 160ms ease, color 160ms ease;
+    transition: transform 160ms ease, color 160ms ease;
+    padding: 0;
 }
 
 .header-notification-button:hover,
 .header-notification-button:focus-visible,
 .header-notification-button.is-open {
     color: rgba(244, 250, 255, 0.98);
-    border-color: rgba(120, 204, 255, 0.44);
     transform: translateY(-1px);
     outline: none;
 }
 
 .header-notification-icon {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 
 .header-notification-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.6;
@@ -1229,7 +1232,7 @@ textarea:focus {
         rgba(6, 11, 24, 0.96);
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
     backdrop-filter: blur(16px);
-    z-index: 40;
+    z-index: 120;
     overflow: hidden;
 }
 
@@ -1250,6 +1253,7 @@ textarea:focus {
 
 .header-notification-list {
     max-height: 320px;
+    min-height: 62px;
     overflow: auto;
     display: grid;
     align-content: start;
