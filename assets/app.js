@@ -2330,15 +2330,27 @@ window.addEventListener("DOMContentLoaded", () => {
     String(document.body?.dataset?.userId || "").trim() || "0",
     10
   );
+  const headerNotificationsRoot = document.querySelector("[data-header-notifications]");
+  const headerNotificationsToggle = document.querySelector("[data-header-notifications-toggle]");
+  const headerNotificationsDropdown = document.querySelector("[data-header-notifications-dropdown]");
+  const headerNotificationsList = document.querySelector("[data-header-notifications-list]");
+  const headerNotificationsCount = document.querySelector("[data-header-notifications-count]");
 
   const taskNotificationState = {
     isPolling: false,
     intervalId: null,
     lastHistoryId: 0,
+    seenHistoryId: 0,
+    notifications: [],
+    isDropdownOpen: false,
   };
 
   const taskNotificationStorageKey = () =>
     `wf_task_notification_last_history:${notificationUserId}:${notificationWorkspaceId}`;
+  const taskNotificationListStorageKey = () =>
+    `wf_task_notification_items:${notificationUserId}:${notificationWorkspaceId}`;
+  const taskNotificationSeenStorageKey = () =>
+    `wf_task_notification_seen_history:${notificationUserId}:${notificationWorkspaceId}`;
 
   const readStoredTaskNotificationHistoryId = () => {
     if (!window.localStorage) return 0;
@@ -2360,6 +2372,195 @@ window.addEventListener("DOMContentLoaded", () => {
       window.localStorage.setItem(taskNotificationStorageKey(), String(nextValue));
     } catch (error) {
       // noop
+    }
+  };
+
+  const normalizeTaskNotificationEntry = (value) => {
+    const historyId = Number.parseInt(String(value?.history_id || "0"), 10) || 0;
+    const taskId = Number.parseInt(String(value?.task_id || "0"), 10) || 0;
+    const title = String(value?.title || "").trim();
+    const message = String(value?.message || "").trim();
+    const createdAt = String(value?.created_at || "").trim();
+    const eventType = String(value?.event_type || "").trim();
+
+    if (!(historyId > 0) || !(taskId > 0) || !message) {
+      return null;
+    }
+
+    return {
+      history_id: historyId,
+      task_id: taskId,
+      title: title || "Notificacao",
+      message,
+      created_at: createdAt,
+      event_type: eventType,
+    };
+  };
+
+  const normalizeTaskNotificationCollection = (items = []) => {
+    const map = new Map();
+    (Array.isArray(items) ? items : []).forEach((item) => {
+      const normalized = normalizeTaskNotificationEntry(item);
+      if (!normalized) return;
+      map.set(normalized.history_id, normalized);
+    });
+
+    return Array.from(map.values())
+      .sort((a, b) => b.history_id - a.history_id)
+      .slice(0, 60);
+  };
+
+  const readStoredTaskNotificationItems = () => {
+    if (!window.localStorage) return [];
+    try {
+      const raw = window.localStorage.getItem(taskNotificationListStorageKey());
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return normalizeTaskNotificationCollection(parsed);
+    } catch (error) {
+      return [];
+    }
+  };
+
+  const storeTaskNotificationItems = (items = []) => {
+    if (!window.localStorage) return;
+    try {
+      const normalized = normalizeTaskNotificationCollection(items);
+      window.localStorage.setItem(taskNotificationListStorageKey(), JSON.stringify(normalized));
+    } catch (error) {
+      // noop
+    }
+  };
+
+  const readStoredTaskNotificationSeenHistoryId = () => {
+    if (!window.localStorage) return 0;
+    try {
+      const raw = String(window.localStorage.getItem(taskNotificationSeenStorageKey()) || "").trim();
+      const parsed = Number.parseInt(raw || "0", 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    } catch (error) {
+      return 0;
+    }
+  };
+
+  const storeTaskNotificationSeenHistoryId = (historyId) => {
+    if (!window.localStorage) return;
+    const nextValue = Number.parseInt(String(historyId || "0"), 10);
+    if (!Number.isFinite(nextValue) || nextValue < 0) return;
+
+    try {
+      window.localStorage.setItem(taskNotificationSeenStorageKey(), String(nextValue));
+    } catch (error) {
+      // noop
+    }
+  };
+
+  const maxTaskNotificationHistoryId = (items = []) => {
+    return normalizeTaskNotificationCollection(items).reduce((maxId, item) => {
+      const historyId = Number.parseInt(String(item?.history_id || "0"), 10) || 0;
+      return historyId > maxId ? historyId : maxId;
+    }, 0);
+  };
+
+  const updateHeaderNotificationCount = () => {
+    if (!(headerNotificationsCount instanceof HTMLElement)) return;
+    const unread = taskNotificationState.notifications.filter((item) => {
+      const historyId = Number.parseInt(String(item?.history_id || "0"), 10) || 0;
+      return historyId > taskNotificationState.seenHistoryId;
+    }).length;
+
+    if (unread <= 0) {
+      headerNotificationsCount.hidden = true;
+      headerNotificationsCount.textContent = "0";
+      return;
+    }
+
+    headerNotificationsCount.hidden = false;
+    headerNotificationsCount.textContent = unread > 99 ? "99+" : String(unread);
+  };
+
+  const renderHeaderTaskNotifications = () => {
+    if (!(headerNotificationsList instanceof HTMLElement)) return;
+
+    headerNotificationsList.innerHTML = "";
+    if (taskNotificationState.notifications.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "header-notification-empty";
+      empty.textContent = "Sem notificacoes.";
+      headerNotificationsList.append(empty);
+      updateHeaderNotificationCount();
+      return;
+    }
+
+    taskNotificationState.notifications.forEach((item) => {
+      const historyId = Number.parseInt(String(item?.history_id || "0"), 10) || 0;
+      const taskId = Number.parseInt(String(item?.task_id || "0"), 10) || 0;
+      const unread = historyId > taskNotificationState.seenHistoryId;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `header-notification-item${unread ? " is-unread" : ""}`;
+      button.dataset.taskNotificationItem = "";
+      button.dataset.taskNotificationHistoryId = String(historyId);
+      button.dataset.taskNotificationTaskId = String(taskId);
+
+      const title = document.createElement("p");
+      title.className = "header-notification-item-title";
+      title.textContent = String(item?.title || "Notificacao");
+
+      const message = document.createElement("p");
+      message.className = "header-notification-item-message";
+      message.textContent = String(item?.message || "");
+
+      const time = document.createElement("p");
+      time.className = "header-notification-item-time";
+      const formattedTime = formatHistoryDateTime(String(item?.created_at || ""));
+      time.textContent = formattedTime || "Agora";
+
+      button.append(title, message, time);
+      headerNotificationsList.append(button);
+    });
+
+    updateHeaderNotificationCount();
+  };
+
+  const mergeTaskNotifications = (notifications = []) => {
+    const merged = normalizeTaskNotificationCollection([
+      ...taskNotificationState.notifications,
+      ...(Array.isArray(notifications) ? notifications : []),
+    ]);
+    taskNotificationState.notifications = merged;
+    storeTaskNotificationItems(merged);
+    renderHeaderTaskNotifications();
+  };
+
+  const markTaskNotificationsAsSeen = () => {
+    const highestId = maxTaskNotificationHistoryId(taskNotificationState.notifications);
+    if (highestId <= taskNotificationState.seenHistoryId) {
+      updateHeaderNotificationCount();
+      return;
+    }
+
+    taskNotificationState.seenHistoryId = highestId;
+    storeTaskNotificationSeenHistoryId(highestId);
+    renderHeaderTaskNotifications();
+  };
+
+  const setHeaderNotificationDropdownOpen = (open) => {
+    const nextOpen = Boolean(open);
+    taskNotificationState.isDropdownOpen = nextOpen;
+
+    if (headerNotificationsToggle instanceof HTMLButtonElement) {
+      headerNotificationsToggle.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+      headerNotificationsToggle.classList.toggle("is-open", nextOpen);
+    }
+
+    if (headerNotificationsDropdown instanceof HTMLElement) {
+      headerNotificationsDropdown.hidden = !nextOpen;
+    }
+
+    if (nextOpen) {
+      markTaskNotificationsAsSeen();
     }
   };
 
@@ -2465,6 +2666,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
       const notifications = Array.isArray(data.notifications) ? data.notifications : [];
       const latestHistoryId = Number.parseInt(String(data.latest_history_id || "0"), 10) || 0;
+      mergeTaskNotifications(notifications);
 
       let maxHistoryId = Math.max(taskNotificationState.lastHistoryId, latestHistoryId);
       notifications.forEach((item) => {
@@ -2492,8 +2694,15 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    taskNotificationState.notifications = readStoredTaskNotificationItems();
+    taskNotificationState.seenHistoryId = readStoredTaskNotificationSeenHistoryId();
+    taskNotificationState.lastHistoryId = Math.max(
+      readStoredTaskNotificationHistoryId(),
+      maxTaskNotificationHistoryId(taskNotificationState.notifications)
+    );
+    renderHeaderTaskNotifications();
+
     maybeEnableBrowserNotifications();
-    taskNotificationState.lastHistoryId = readStoredTaskNotificationHistoryId();
     if (taskNotificationState.lastHistoryId <= 0) {
       void pollTaskNotifications({ initialize: true });
     } else {
@@ -2507,6 +2716,61 @@ window.addEventListener("DOMContentLoaded", () => {
     taskNotificationState.intervalId = window.setInterval(() => {
       void pollTaskNotifications();
     }, 20000);
+
+    if (headerNotificationsToggle instanceof HTMLButtonElement) {
+      headerNotificationsToggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setHeaderNotificationDropdownOpen(!taskNotificationState.isDropdownOpen);
+      });
+    }
+
+    if (headerNotificationsList instanceof HTMLElement) {
+      headerNotificationsList.addEventListener("click", (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const row = target?.closest?.("[data-task-notification-item]");
+        if (!(row instanceof HTMLElement)) return;
+
+        const taskId = Number.parseInt(String(row.dataset.taskNotificationTaskId || "0"), 10) || 0;
+        if (!(taskId > 0)) {
+          return;
+        }
+
+        const tasksViewToggle = document.querySelector(
+          '[data-dashboard-view-toggle][data-view="tasks"]'
+        );
+        if (
+          tasksViewToggle instanceof HTMLButtonElement &&
+          tasksViewToggle.getAttribute("aria-pressed") !== "true"
+        ) {
+          tasksViewToggle.click();
+        }
+
+        setHeaderNotificationDropdownOpen(false);
+        const taskAnchorId = `task-${taskId}`;
+        const taskRow = document.getElementById(taskAnchorId);
+        if (taskRow instanceof HTMLElement) {
+          taskRow.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        window.location.hash = taskAnchorId;
+      });
+    }
+
+    document.addEventListener("mousedown", (event) => {
+      if (!taskNotificationState.isDropdownOpen) return;
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (headerNotificationsRoot instanceof HTMLElement && headerNotificationsRoot.contains(target)) {
+        return;
+      }
+      setHeaderNotificationDropdownOpen(false);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (!taskNotificationState.isDropdownOpen) return;
+      setHeaderNotificationDropdownOpen(false);
+    });
   };
 
   const syncSelectOptionsFromSource = (targetSelect, sourceSelect) => {

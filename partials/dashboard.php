@@ -55,6 +55,38 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
         </div>
 
         <div class="top-nav-actions">
+            <div class="header-notification-menu" data-header-notifications>
+                <button
+                    type="button"
+                    class="header-notification-button"
+                    data-header-notifications-toggle
+                    aria-label="Notificacoes"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                >
+                    <span class="header-notification-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M7.5 9.5a4.5 4.5 0 1 1 9 0v2.2c0 1.2.4 2.4 1.1 3.4l.9 1.3H5.5l.9-1.3c.7-1 1.1-2.2 1.1-3.4V9.5Z"></path>
+                            <path d="M10 19a2 2 0 0 0 4 0"></path>
+                        </svg>
+                    </span>
+                    <span class="header-notification-count" data-header-notifications-count hidden>0</span>
+                </button>
+                <div
+                    class="header-notification-dropdown"
+                    data-header-notifications-dropdown
+                    role="menu"
+                    aria-label="Lista de notificacoes"
+                    hidden
+                >
+                    <div class="header-notification-dropdown-head">
+                        <strong>Notificacoes</strong>
+                    </div>
+                    <div class="header-notification-list" data-header-notifications-list>
+                        <p class="header-notification-empty">Sem notificacoes.</p>
+                    </div>
+                </div>
+            </div>
             <a
                 href="account-settings.php"
                 class="icon-gear-button top-account-settings-button"
