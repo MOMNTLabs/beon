@@ -1588,6 +1588,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 $title = normalizeTaskTitle((string) ($_POST['title'] ?? ''));
                 $titleTag = normalizeTaskTitleTag((string) ($_POST['title_tag'] ?? ''));
+                $titleTagColor = normalizeTaskTitleTagColor((string) ($_POST['title_tag_color'] ?? ''));
                 $description = trim((string) ($_POST['description'] ?? ''));
                 $referenceLinksPosted = array_key_exists('reference_links_json', $_POST);
                 $referenceImagesPosted = array_key_exists('reference_images_json', $_POST);
@@ -1688,6 +1689,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':u' => $now,
                     ]);
                     $createdTaskId = (int) $pdo->lastInsertId();
+                    $taskTitleTagColors = taskTitleTagColorsByWorkspace($workspaceId, $pdo);
+                    if ($titleTag !== '') {
+                        $taskTitleTagColors = setTaskTitleTagColorForWorkspace(
+                            $pdo,
+                            $workspaceId,
+                            $titleTag,
+                            $titleTagColor
+                        );
+                    }
+                    $titleTagColor = taskTitleTagColorForTag($titleTag, $taskTitleTagColors);
                     if ($createdTaskId > 0) {
                         logTaskHistory(
                             $pdo,
@@ -1742,6 +1753,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$existingTaskRow) {
                     throw new RuntimeException('Tarefa invalida.');
                 }
+                $taskTitleTagColors = taskTitleTagColorsByWorkspace($workspaceId, $pdo);
                 $existingTaskGroupName = normalizeTaskGroupName((string) ($existingTaskRow['group_name'] ?? 'Geral'));
                 if (!userCanAccessTaskGroup($actorUserId, $workspaceId, $existingTaskGroupName)) {
                     throw new RuntimeException('Voce nao possui acesso para editar tarefas deste grupo.');
@@ -1836,6 +1848,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingSubtasks = decodeTaskSubtasks($existingTaskRow['subtasks_json'] ?? null);
                 $statusOptions = taskStatuses();
                 $priorityOptions = taskPriorities();
+                if ($titleTag !== '') {
+                    $taskTitleTagColors = setTaskTitleTagColorForWorkspace(
+                        $pdo,
+                        $workspaceId,
+                        $titleTag,
+                        $titleTagColor
+                    );
+                }
+                $titleTagColor = taskTitleTagColorForTag($titleTag, $taskTitleTagColors);
 
                 if ($existingTitle !== $title) {
                     logTaskHistory(
@@ -1978,6 +1999,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'id' => $taskId,
                         'group_name' => $groupName,
                         'title_tag' => $titleTag,
+                        'title_tag_color' => $titleTagColor,
                         'due_date' => $dueDate,
                         'status' => $status,
                         'priority' => $priority,
@@ -2007,6 +2029,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     flash('success', 'Tarefa atualizada.');
                 }
                 redirectTo('index.php#task-' . $taskId);
+
+            case 'set_task_title_tag_color':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $titleTag = normalizeTaskTitleTag((string) ($_POST['title_tag'] ?? ''));
+                if ($titleTag === '') {
+                    throw new RuntimeException('Tag invalida.');
+                }
+
+                $titleTagColor = normalizeTaskTitleTagColor((string) ($_POST['title_tag_color'] ?? ''));
+                $taskTitleTagColors = setTaskTitleTagColorForWorkspace(
+                    $pdo,
+                    $workspaceId,
+                    $titleTag,
+                    $titleTagColor
+                );
+                $resolvedColor = taskTitleTagColorForTag($titleTag, $taskTitleTagColors);
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'title_tag' => $titleTag,
+                        'title_tag_color' => $resolvedColor,
+                    ]);
+                }
+
+                flash('success', 'Cor da tag atualizada.');
+                redirectTo('index.php#tasks');
 
             case 'request_task_revision':
                 $authUser = requireAuth();

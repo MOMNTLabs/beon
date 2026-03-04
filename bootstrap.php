@@ -4690,6 +4690,37 @@ function taskTitleTagPresets(): array
     ];
 }
 
+function taskTitleTagPalette(): array
+{
+    return [
+        '#6967AE',
+        '#D1495B',
+        '#F28F3B',
+        '#E9C46A',
+        '#2A9D8F',
+        '#4CC9F0',
+        '#4361EE',
+        '#3A0CA3',
+        '#B5179E',
+        '#F72585',
+        '#6C757D',
+        '#2B9348',
+        '#0077B6',
+        '#E76F51',
+        '#8D99AE',
+        '#8338EC',
+        '#00B4D8',
+        '#588157',
+        '#EF476F',
+        '#118AB2',
+    ];
+}
+
+function taskTitleTagDefaultColor(): string
+{
+    return '#6967AE';
+}
+
 function normalizeTaskStatus(string $value): string
 {
     return array_key_exists($value, taskStatuses()) ? $value : 'todo';
@@ -4744,6 +4775,121 @@ function normalizeTaskTitleTag(string $value): string
     }
 
     return uppercaseFirstCharacter($value);
+}
+
+function normalizeTaskTitleTagColor(string $value): string
+{
+    $normalized = strtoupper(trim($value));
+    if (!preg_match('/^#[0-9A-F]{6}$/', $normalized)) {
+        return taskTitleTagDefaultColor();
+    }
+
+    return in_array($normalized, taskTitleTagPalette(), true)
+        ? $normalized
+        : taskTitleTagDefaultColor();
+}
+
+function normalizeTaskTitleTagColorMap(array $tagColors): array
+{
+    $normalizedMap = [];
+    foreach ($tagColors as $tag => $color) {
+        $normalizedTag = normalizeTaskTitleTag((string) $tag);
+        if ($normalizedTag === '') {
+            continue;
+        }
+
+        $normalizedKey = mb_strtolower($normalizedTag, 'UTF-8');
+        $normalizedMap[$normalizedKey] = normalizeTaskTitleTagColor((string) $color);
+    }
+
+    return $normalizedMap;
+}
+
+function taskTitleTagColorsMetaKey(int $workspaceId): string
+{
+    return 'workspace_' . max(0, $workspaceId) . '_task_title_tag_colors_v1';
+}
+
+function taskTitleTagColorsByWorkspace(int $workspaceId, ?PDO $pdo = null): array
+{
+    if ($workspaceId <= 0) {
+        return [];
+    }
+
+    $pdo = $pdo instanceof PDO ? $pdo : db();
+    $raw = appMetaGet($pdo, taskTitleTagColorsMetaKey($workspaceId));
+    if (!is_string($raw) || trim($raw) === '') {
+        return [];
+    }
+
+    try {
+        $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+    } catch (Throwable $e) {
+        $decoded = [];
+    }
+
+    return is_array($decoded)
+        ? normalizeTaskTitleTagColorMap($decoded)
+        : [];
+}
+
+function saveTaskTitleTagColorsByWorkspace(PDO $pdo, int $workspaceId, array $tagColors): void
+{
+    if ($workspaceId <= 0) {
+        return;
+    }
+
+    $normalizedMap = normalizeTaskTitleTagColorMap($tagColors);
+    $encodedMap = json_encode(
+        $normalizedMap,
+        JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    );
+    if (!is_string($encodedMap) || $encodedMap === '') {
+        $encodedMap = '{}';
+    }
+
+    appMetaSet(
+        $pdo,
+        taskTitleTagColorsMetaKey($workspaceId),
+        $encodedMap
+    );
+}
+
+function setTaskTitleTagColorForWorkspace(PDO $pdo, int $workspaceId, string $tag, string $color): array
+{
+    $normalizedTag = normalizeTaskTitleTag($tag);
+    if ($workspaceId <= 0 || $normalizedTag === '') {
+        return [];
+    }
+
+    $colorMap = taskTitleTagColorsByWorkspace($workspaceId, $pdo);
+    $colorMap[mb_strtolower($normalizedTag, 'UTF-8')] = normalizeTaskTitleTagColor($color);
+    saveTaskTitleTagColorsByWorkspace($pdo, $workspaceId, $colorMap);
+
+    return $colorMap;
+}
+
+function taskTitleTagColorForTag(string $tag, array $tagColors = []): string
+{
+    $normalizedTag = normalizeTaskTitleTag($tag);
+    if ($normalizedTag === '') {
+        return taskTitleTagDefaultColor();
+    }
+
+    $normalizedMap = normalizeTaskTitleTagColorMap($tagColors);
+    $normalizedKey = mb_strtolower($normalizedTag, 'UTF-8');
+    if (isset($normalizedMap[$normalizedKey])) {
+        return normalizeTaskTitleTagColor((string) $normalizedMap[$normalizedKey]);
+    }
+
+    $palette = taskTitleTagPalette();
+    if (!$palette) {
+        return taskTitleTagDefaultColor();
+    }
+
+    $hash = abs((int) crc32($normalizedTag));
+    $index = $hash % count($palette);
+    return normalizeTaskTitleTagColor((string) ($palette[$index] ?? taskTitleTagDefaultColor()));
 }
 
 function normalizeTaskSubtaskTitle(string $value): string

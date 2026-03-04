@@ -3475,8 +3475,8 @@ textarea:focus {
     width: 10px;
     height: 10px;
     border-radius: 3px;
-    border: 1px solid rgba(120, 204, 255, 0.45);
-    background: rgba(86, 139, 217, 0.16);
+    border: 1px solid rgba(119, 141, 167, 0.72);
+    background: rgba(186, 202, 220, 0.96);
 }
 
 .task-subtasks-progress-step.is-done {
@@ -7318,8 +7318,8 @@ textarea:focus,
 }
 
 .task-subtasks-progress-step {
-    border-color: rgba(72, 138, 197, 0.62);
-    background: rgba(160, 205, 244, 0.9);
+    border-color: rgba(119, 141, 167, 0.72);
+    background: rgba(186, 202, 220, 0.96);
 }
 
 .task-subtasks-progress-step.is-done {
@@ -8297,6 +8297,68 @@ select option:checked,
     border-color: rgba(212, 121, 92, 0.52);
     background: #ffe7dc;
     color: #9a4a31;
+}
+
+/* Tag picker with color circle */
+.task-title-tag-badge,
+.create-task-title-tag-trigger,
+.create-task-title-tag-color {
+    --wf-tag-color: #6967ae;
+}
+
+.task-title-tag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border-color: rgba(143, 170, 210, 0.58);
+    background: rgba(237, 244, 255, 0.9);
+    color: #355579;
+}
+
+.task-title-tag-badge.has-color-dot::before,
+.create-task-title-tag-trigger.has-color-dot::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--wf-tag-color);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+    flex: 0 0 auto;
+}
+
+.create-task-title-tag-trigger {
+    justify-content: flex-start;
+    gap: 7px;
+}
+
+.create-task-title-tag-menu-item {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 7px;
+}
+
+.create-task-title-tag-color {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(236, 232, 255, 0.86);
+    background: var(--wf-tag-color);
+    cursor: pointer;
+    padding: 0;
+    box-shadow: 0 0 0 1px rgba(30, 25, 74, 0.2);
+}
+
+.create-task-title-tag-color:hover,
+.create-task-title-tag-color:focus-visible {
+    outline: none;
+    transform: scale(1.05);
+    box-shadow: 0 0 0 2px rgba(237, 232, 255, 0.4);
+}
+
+.create-task-title-tag-option {
+    min-width: 0;
 }
 
 @media (max-width: 1180px) {

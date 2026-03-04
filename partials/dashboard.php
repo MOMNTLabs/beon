@@ -1,6 +1,11 @@
 <?php
 $taskTitleTagPresetOptions = taskTitleTagPresets();
 $taskTitleTagOptions = $taskTitleTagPresetOptions;
+if (($currentWorkspaceId ?? null) !== null) {
+    $taskTitleTagColors = taskTitleTagColorsByWorkspace((int) $currentWorkspaceId);
+} else {
+    $taskTitleTagColors = [];
+}
 foreach ($tasks as $taskWithTagOption) {
     $taskTagOption = normalizeTaskTitleTag((string) ($taskWithTagOption['title_tag'] ?? ''));
     if ($taskTagOption !== '') {
@@ -10,12 +15,30 @@ foreach ($tasks as $taskWithTagOption) {
 $taskTitleTagOptions = array_values(array_unique(array_filter($taskTitleTagOptions, static fn ($value) => trim((string) $value) !== '')));
 natcasesort($taskTitleTagOptions);
 $taskTitleTagOptions = array_values($taskTitleTagOptions);
+$taskTitleTagOptionsPayload = [];
+$taskTitleTagColorsPayload = [];
+foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
+    $taskTitleTagColorValue = taskTitleTagColorForTag((string) $taskTitleTagOptionValue, $taskTitleTagColors);
+    $taskTitleTagOptionsPayload[] = [
+        'value' => (string) $taskTitleTagOptionValue,
+        'color' => $taskTitleTagColorValue,
+    ];
+    $taskTitleTagColorsPayload[(string) $taskTitleTagOptionValue] = $taskTitleTagColorValue;
+}
 ?>
 <script
     type="application/json"
     id="task-title-tag-options-data"
     data-workspace-id="<?= e((string) ($currentWorkspaceId ?? 0)) ?>"
-><?= json_encode($taskTitleTagOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
+><?= json_encode(
+    [
+        'options' => $taskTitleTagOptionsPayload,
+        'tag_colors' => $taskTitleTagColorsPayload,
+        'palette' => taskTitleTagPalette(),
+        'default_color' => taskTitleTagDefaultColor(),
+    ],
+    JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+) ?></script>
 
 <main class="dashboard dashboard-compact">
     <section class="workspace-layout tasklist-layout">
@@ -516,6 +539,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                                     $taskSubtasksTotal = (int) ($taskSubtasksProgress['total'] ?? 0);
                                     $taskSubtasksCompleted = (int) ($taskSubtasksProgress['completed'] ?? 0);
                                     $taskTitleTag = normalizeTaskTitleTag((string) ($task['title_tag'] ?? ''));
+                                    $taskTitleTagColor = taskTitleTagColorForTag($taskTitleTag, $taskTitleTagColors);
                                     $hasActiveRevisionRequest = taskHasActiveRevisionRequest(
                                         (string) ($task['description'] ?? ''),
                                         is_array($task['history'] ?? null) ? $task['history'] : []
@@ -537,6 +561,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                                             <input type="hidden" name="reference_links_json" value="<?= e(encodeReferenceUrlList($task['reference_links'] ?? [])) ?>" data-task-reference-links-json>
                                             <input type="hidden" name="subtasks_json" value="<?= e(encodeTaskSubtasks($taskSubtasks)) ?>" data-task-subtasks-json>
                                             <input type="hidden" name="title_tag" value="<?= e($taskTitleTag) ?>" data-task-title-tag>
+                                            <input type="hidden" name="title_tag_color" value="<?= e($taskTitleTagColor) ?>" data-task-title-tag-color>
                                             <input type="hidden" name="overdue_flag" value="<?= $isOverdueMarked ? '1' : '0' ?>" data-task-overdue-flag>
                                             <input type="hidden" name="overdue_since_date" value="<?= e((string) ($task['overdue_since_date'] ?? '')) ?>" data-task-overdue-since-date>
                                             <input type="hidden" value="<?= e((string) (($task['overdue_days'] ?? 0))) ?>" data-task-overdue-days>
@@ -545,7 +570,13 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                                             <fieldset class="task-row-fieldset" <?= $taskGroupCanAccess ? '' : 'disabled' ?>>
                                             <div class="task-line-row">
                                                 <div class="task-line-title">
-                                                    <span class="task-title-tag-badge" data-task-title-tag-badge<?= $taskTitleTag === '' ? ' hidden' : '' ?>><?= e($taskTitleTag) ?></span>
+                                                    <span
+                                                        class="task-title-tag-badge"
+                                                        data-task-title-tag-badge
+                                                        data-tag-color="<?= e($taskTitleTagColor) ?>"
+                                                        style="--wf-tag-color: <?= e($taskTitleTagColor) ?>;"
+                                                        <?= $taskTitleTag === '' ? ' hidden' : '' ?>
+                                                    ><?= e($taskTitleTag) ?></span>
                                                     <input
                                                         type="text"
                                                         name="title"
@@ -1681,6 +1712,7 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                     <input type="text" name="title" maxlength="140" required data-create-task-title-input>
                 </div>
                 <input type="hidden" name="title_tag" value="" data-create-task-title-tag-input>
+                <input type="hidden" name="title_tag_color" value="<?= e(taskTitleTagDefaultColor()) ?>" data-create-task-title-tag-color-input>
             </label>
 
             <div class="task-detail-inline-controls">
@@ -2806,7 +2838,8 @@ $taskTitleTagOptions = array_values($taskTitleTagOptions);
                             </div>
                             <input type="text" maxlength="140" required data-task-detail-edit-title>
                         </div>
-                        <input type="hidden" value="" data-task-detail-edit-title-tag-input>
+                        <input type="hidden" name="title_tag" value="" data-task-detail-edit-title-tag-input>
+                        <input type="hidden" name="title_tag_color" value="<?= e(taskTitleTagDefaultColor()) ?>" data-task-detail-edit-title-tag-color-input>
                     </label>
 
                     <div class="task-detail-inline-controls">

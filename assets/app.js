@@ -862,12 +862,22 @@ window.addEventListener("DOMContentLoaded", () => {
     return forceFirstLetterUppercase(limited).trim();
   };
 
-  const syncTaskTitleTagBadge = (taskItem, titleTag) => {
+  const syncTaskTitleTagBadge = (taskItem, titleTag, titleTagColor = "") => {
     if (!(taskItem instanceof HTMLElement)) return;
     const normalizedTag = normalizeTaskTitleTagValue(titleTag);
     const field = taskItem.querySelector("[data-task-title-tag]");
     if (field instanceof HTMLInputElement) {
       field.value = normalizedTag;
+    }
+    const colorField = taskItem.querySelector("[data-task-title-tag-color]");
+    const resolvedColor = normalizedTag
+      ? resolveTaskTitleTagColor(
+          normalizedTag,
+          titleTagColor || (colorField instanceof HTMLInputElement ? colorField.value || "" : "")
+        )
+      : normalizeTaskTitleTagColorValue(titleTagColor, taskTitleTagDefaultColor);
+    if (colorField instanceof HTMLInputElement) {
+      colorField.value = resolvedColor;
     }
 
     const badge = taskItem.querySelector("[data-task-title-tag-badge]");
@@ -875,24 +885,29 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!normalizedTag) {
       badge.hidden = true;
       badge.textContent = "";
+      paintTagColorSwatch(badge, resolvedColor, false);
       return;
     }
 
     badge.hidden = false;
     badge.textContent = normalizedTag;
+    paintTagColorSwatch(badge, resolvedColor, true);
   };
 
-  const syncTaskDetailViewTitleTag = (titleTag) => {
+  const syncTaskDetailViewTitleTag = (titleTag, titleTagColor = "") => {
     if (!(taskDetailViewTitleTag instanceof HTMLElement)) return;
     const normalizedTag = normalizeTaskTitleTagValue(titleTag);
     if (!normalizedTag) {
       taskDetailViewTitleTag.hidden = true;
       taskDetailViewTitleTag.textContent = "";
+      paintTagColorSwatch(taskDetailViewTitleTag, titleTagColor, false);
       return;
     }
 
+    const resolvedColor = resolveTaskTitleTagColor(normalizedTag, titleTagColor);
     taskDetailViewTitleTag.hidden = false;
     taskDetailViewTitleTag.textContent = normalizedTag;
+    paintTagColorSwatch(taskDetailViewTitleTag, resolvedColor, true);
   };
 
   const buildActiveTaskRevisionStack = (history = []) => {
@@ -3189,12 +3204,25 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       if (Object.prototype.hasOwnProperty.call(task, "title_tag")) {
         const titleTagField = form.querySelector("[data-task-title-tag]");
+        const titleTagColorField = form.querySelector("[data-task-title-tag-color]");
         const normalizedTag = normalizeTaskTitleTagValue(task.title_tag || "");
+        const normalizedColor = normalizedTag
+          ? resolveTaskTitleTagColor(
+              normalizedTag,
+              task.title_tag_color || (titleTagColorField instanceof HTMLInputElement ? titleTagColorField.value || "" : "")
+            )
+          : normalizeTaskTitleTagColorValue(
+              task.title_tag_color || (titleTagColorField instanceof HTMLInputElement ? titleTagColorField.value || "" : ""),
+              taskTitleTagDefaultColor
+            );
         if (titleTagField instanceof HTMLInputElement) {
           titleTagField.value = normalizedTag;
         }
+        if (titleTagColorField instanceof HTMLInputElement) {
+          titleTagColorField.value = normalizedColor;
+        }
         if (taskItem instanceof HTMLElement) {
-          syncTaskTitleTagBadge(taskItem, normalizedTag);
+          syncTaskTitleTagBadge(taskItem, normalizedTag, normalizedColor);
         }
       }
       if (Object.prototype.hasOwnProperty.call(task, "due_date")) {
@@ -4001,6 +4029,9 @@ window.addEventListener("DOMContentLoaded", () => {
   const createTaskTitleInput = document.querySelector("[data-create-task-title-input]");
   const createTaskTitleTagCustom = document.querySelector("[data-create-task-title-tag-custom]");
   const createTaskTitleTagInput = document.querySelector("[data-create-task-title-tag-input]");
+  const createTaskTitleTagColorInput = document.querySelector(
+    "[data-create-task-title-tag-color-input]"
+  );
   const taskTitleTagOptionsDataElement = document.querySelector("#task-title-tag-options-data");
   const createTaskForm = document.querySelector("[data-create-task-form]");
   const createTaskLinksField = document.querySelector("[data-create-task-links]");
@@ -4128,6 +4159,9 @@ window.addEventListener("DOMContentLoaded", () => {
   const taskDetailEditTitleTagInput = document.querySelector(
     "[data-task-detail-edit-title-tag-input]"
   );
+  const taskDetailEditTitleTagColorInput = document.querySelector(
+    "[data-task-detail-edit-title-tag-color-input]"
+  );
   const taskDetailEditTitleTagCustom = document.querySelector(
     "[data-task-detail-edit-title-tag-custom]"
   );
@@ -4189,10 +4223,37 @@ window.addEventListener("DOMContentLoaded", () => {
   let taskDetailEditSubtaskItems = [];
   let createTaskImageItems = [];
   let createTaskSubtaskItems = [];
+  const TASK_TITLE_TAG_DEFAULT_PALETTE = [
+    "#6967AE",
+    "#D1495B",
+    "#F28F3B",
+    "#E9C46A",
+    "#2A9D8F",
+    "#4CC9F0",
+    "#4361EE",
+    "#3A0CA3",
+    "#B5179E",
+    "#F72585",
+    "#6C757D",
+    "#2B9348",
+    "#0077B6",
+    "#E76F51",
+    "#8D99AE",
+    "#8338EC",
+    "#00B4D8",
+    "#588157",
+    "#EF476F",
+    "#118AB2",
+  ];
+  let taskTitleTagPalette = [...TASK_TITLE_TAG_DEFAULT_PALETTE];
+  let taskTitleTagDefaultColor = TASK_TITLE_TAG_DEFAULT_PALETTE[0];
+  let taskTitleTagColorsByKey = new Map();
   let createTaskTitleTagOptions = [];
   let createTaskCurrentTitleTag = "";
+  let createTaskCurrentTitleTagColor = taskTitleTagDefaultColor;
   let createTaskTitleTagIsCreating = false;
   let taskDetailEditCurrentTitleTag = "";
+  let taskDetailEditCurrentTitleTagColor = taskTitleTagDefaultColor;
   let taskDetailEditTitleTagIsCreating = false;
   let taskDetailSaveInFlight = false;
   const taskImagePreviewState = {
@@ -4216,16 +4277,224 @@ window.addEventListener("DOMContentLoaded", () => {
     );
   };
 
+  const taskTitleTagColorKey = (tagValue = "") =>
+    normalizeTaskTitleTagValue(tagValue).toLocaleLowerCase("pt-BR");
+
+  const normalizeTaskTitleTagPalette = (values = []) => {
+    const unique = [];
+    (Array.isArray(values) ? values : []).forEach((value) => {
+      const normalized = String(value || "").trim().toUpperCase();
+      if (!/^#[0-9A-F]{6}$/.test(normalized)) return;
+      if (unique.includes(normalized)) return;
+      unique.push(normalized);
+    });
+    return unique.length ? unique : [...TASK_TITLE_TAG_DEFAULT_PALETTE];
+  };
+
+  const normalizeTaskTitleTagColorLoose = (value = "") => {
+    const normalized = String(value || "").trim().toUpperCase();
+    if (!/^#[0-9A-F]{6}$/.test(normalized)) {
+      return "";
+    }
+    return taskTitleTagPalette.includes(normalized) ? normalized : "";
+  };
+
+  const normalizeTaskTitleTagColorValue = (value = "", fallback = "") => {
+    const direct = normalizeTaskTitleTagColorLoose(value);
+    if (direct) {
+      return direct;
+    }
+
+    const fallbackDirect = normalizeTaskTitleTagColorLoose(fallback);
+    if (fallbackDirect) {
+      return fallbackDirect;
+    }
+
+    return (
+      taskTitleTagPalette[0] ||
+      TASK_TITLE_TAG_DEFAULT_PALETTE[0] ||
+      "#6967AE"
+    );
+  };
+
+  const hashTaskTitleTag = (tagValue = "") => {
+    const normalized = normalizeTaskTitleTagValue(tagValue);
+    if (!normalized) return 0;
+    let hash = 0;
+    Array.from(normalized).forEach((char) => {
+      hash = (hash * 31 + char.codePointAt(0)) % 2147483647;
+    });
+    return Math.abs(hash);
+  };
+
+  const setTaskTitleTagColorForTag = (tagValue = "", colorValue = "") => {
+    const normalizedTag = normalizeTaskTitleTagValue(tagValue);
+    if (!normalizedTag) return "";
+    const normalizedColor = normalizeTaskTitleTagColorValue(colorValue);
+    taskTitleTagColorsByKey.set(taskTitleTagColorKey(normalizedTag), normalizedColor);
+    return normalizedColor;
+  };
+
+  const resolveTaskTitleTagColor = (tagValue = "", explicitColor = "") => {
+    const normalizedTag = normalizeTaskTitleTagValue(tagValue);
+    if (!normalizedTag) {
+      return normalizeTaskTitleTagColorValue(explicitColor, taskTitleTagDefaultColor);
+    }
+
+    const key = taskTitleTagColorKey(normalizedTag);
+    const explicitNormalized = normalizeTaskTitleTagColorLoose(explicitColor);
+    if (explicitNormalized) {
+      taskTitleTagColorsByKey.set(key, explicitNormalized);
+      return explicitNormalized;
+    }
+
+    const current = normalizeTaskTitleTagColorLoose(taskTitleTagColorsByKey.get(key) || "");
+    if (current) {
+      return current;
+    }
+
+    const palette = taskTitleTagPalette.length ? taskTitleTagPalette : TASK_TITLE_TAG_DEFAULT_PALETTE;
+    const fallbackColor = palette[hashTaskTitleTag(normalizedTag) % palette.length] || taskTitleTagDefaultColor;
+    taskTitleTagColorsByKey.set(key, fallbackColor);
+    return fallbackColor;
+  };
+
+  const cycleTaskTitleTagColor = (tagValue = "") => {
+    const normalizedTag = normalizeTaskTitleTagValue(tagValue);
+    if (!normalizedTag) return taskTitleTagDefaultColor;
+
+    const palette = taskTitleTagPalette.length ? taskTitleTagPalette : TASK_TITLE_TAG_DEFAULT_PALETTE;
+    const current = resolveTaskTitleTagColor(normalizedTag);
+    const currentIndex = palette.indexOf(current);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % palette.length : 0;
+    return setTaskTitleTagColorForTag(normalizedTag, palette[nextIndex]);
+  };
+
+  const paintTagColorSwatch = (element, colorValue = "", enabled = true) => {
+    if (!(element instanceof HTMLElement)) return;
+
+    if (!enabled) {
+      element.classList.remove("has-color-dot");
+      element.style.removeProperty("--wf-tag-color");
+      delete element.dataset.tagColor;
+      return;
+    }
+
+    const normalizedColor = normalizeTaskTitleTagColorValue(colorValue, taskTitleTagDefaultColor);
+    element.classList.add("has-color-dot");
+    element.style.setProperty("--wf-tag-color", normalizedColor);
+    element.dataset.tagColor = normalizedColor;
+  };
+
   const readTaskTitleTagOptionsFromData = () => {
+    const baseConfig = {
+      options: [],
+      tagColors: {},
+      palette: [...TASK_TITLE_TAG_DEFAULT_PALETTE],
+      defaultColor: TASK_TITLE_TAG_DEFAULT_PALETTE[0],
+    };
+
     if (!(taskTitleTagOptionsDataElement instanceof HTMLScriptElement)) {
-      return [];
+      return baseConfig;
     }
 
     try {
       const parsed = JSON.parse(taskTitleTagOptionsDataElement.textContent || "[]");
-      return Array.isArray(parsed) ? parsed : [];
+      if (Array.isArray(parsed)) {
+        return {
+          ...baseConfig,
+          options: parsed,
+        };
+      }
+
+      if (!parsed || typeof parsed !== "object") {
+        return baseConfig;
+      }
+
+      const options = [];
+      const tagColors = {};
+      const optionsSource = Array.isArray(parsed.options)
+        ? parsed.options
+        : Array.isArray(parsed.tags)
+          ? parsed.tags
+          : [];
+
+      optionsSource.forEach((entry) => {
+        if (typeof entry === "string") {
+          const normalized = normalizeTaskTitleTagValue(entry);
+          if (normalized) {
+            options.push(normalized);
+          }
+          return;
+        }
+
+        if (!entry || typeof entry !== "object") return;
+        const normalized = normalizeTaskTitleTagValue(entry.value || entry.label || entry.name || "");
+        if (!normalized) return;
+        options.push(normalized);
+        if (typeof entry.color === "string" && entry.color.trim()) {
+          tagColors[normalized] = entry.color;
+        }
+      });
+
+      if (parsed.tag_colors && typeof parsed.tag_colors === "object") {
+        Object.entries(parsed.tag_colors).forEach(([tag, color]) => {
+          const normalized = normalizeTaskTitleTagValue(tag);
+          if (!normalized) return;
+          tagColors[normalized] = String(color || "");
+        });
+      }
+
+      const palette = normalizeTaskTitleTagPalette(parsed.palette || []);
+      const rawDefaultColor =
+        typeof parsed.default_color === "string"
+          ? parsed.default_color
+          : typeof parsed.defaultColor === "string"
+            ? parsed.defaultColor
+            : "";
+      const normalizedDefaultColor = /^#[0-9A-F]{6}$/i.test(rawDefaultColor)
+        ? rawDefaultColor.trim().toUpperCase()
+        : "";
+
+      return {
+        options,
+        tagColors,
+        palette,
+        defaultColor: palette.includes(normalizedDefaultColor)
+          ? normalizedDefaultColor
+          : palette[0] || TASK_TITLE_TAG_DEFAULT_PALETTE[0],
+      };
     } catch (error) {
-      return [];
+      return baseConfig;
+    }
+  };
+
+  const persistTaskTitleTagColorSelection = async (tagValue = "", colorValue = "") => {
+    const normalizedTag = normalizeTaskTitleTagValue(tagValue);
+    if (!normalizedTag) return false;
+
+    const normalizedColor = normalizeTaskTitleTagColorValue(colorValue, taskTitleTagDefaultColor);
+    const csrfField =
+      (createTaskForm instanceof HTMLFormElement
+        ? createTaskForm.querySelector('input[name="csrf_token"]')
+        : null) ||
+      (taskDetailContext?.form instanceof HTMLFormElement
+        ? taskDetailContext.form.querySelector('input[name="csrf_token"]')
+        : null) ||
+      document.querySelector('input[name="csrf_token"]');
+
+    const csrfToken = csrfField instanceof HTMLInputElement ? csrfField.value.trim() : "";
+    if (!csrfToken) return false;
+
+    try {
+      await postActionJson("set_task_title_tag_color", {
+        csrf_token: csrfToken,
+        title_tag: normalizedTag,
+        title_tag_color: normalizedColor,
+      });
+      return true;
+    } catch (_error) {
+      return false;
     }
   };
 
@@ -4244,15 +4513,23 @@ window.addEventListener("DOMContentLoaded", () => {
   const syncCreateTaskTitleTagTrigger = () => {
     const normalizedTag = normalizeTaskTitleTagValue(createTaskCurrentTitleTag);
     createTaskCurrentTitleTag = normalizedTag;
+    const normalizedColor = normalizedTag
+      ? resolveTaskTitleTagColor(normalizedTag, createTaskCurrentTitleTagColor)
+      : normalizeTaskTitleTagColorValue(createTaskCurrentTitleTagColor, taskTitleTagDefaultColor);
+    createTaskCurrentTitleTagColor = normalizedColor;
 
     if (createTaskTitleTagInput instanceof HTMLInputElement) {
       createTaskTitleTagInput.value = normalizedTag;
+    }
+    if (createTaskTitleTagColorInput instanceof HTMLInputElement) {
+      createTaskTitleTagColorInput.value = normalizedColor;
     }
 
     if (!(createTaskTitleTagTrigger instanceof HTMLButtonElement)) return;
 
     createTaskTitleTagTrigger.textContent = normalizedTag || "tag";
     createTaskTitleTagTrigger.classList.toggle("is-empty", !normalizedTag);
+    paintTagColorSwatch(createTaskTitleTagTrigger, normalizedColor, Boolean(normalizedTag));
     createTaskTitleTagTrigger.setAttribute(
       "aria-label",
       normalizedTag ? `Tag selecionada: ${normalizedTag}` : "Sem tag"
@@ -4278,6 +4555,14 @@ window.addEventListener("DOMContentLoaded", () => {
     createTaskTitleTagOptions.forEach((tagValue) => {
       const row = document.createElement("div");
       row.className = "create-task-title-tag-menu-item";
+      const tagColor = resolveTaskTitleTagColor(tagValue);
+
+      const colorButton = document.createElement("button");
+      colorButton.type = "button";
+      colorButton.className = "create-task-title-tag-color";
+      colorButton.dataset.createTaskTitleTagColor = tagValue;
+      colorButton.setAttribute("aria-label", `Alterar cor da tag ${tagValue}`);
+      paintTagColorSwatch(colorButton, tagColor, true);
 
       const optionButton = document.createElement("button");
       optionButton.type = "button";
@@ -4295,7 +4580,7 @@ window.addEventListener("DOMContentLoaded", () => {
       removeButton.setAttribute("aria-label", `Remover tag ${tagValue}`);
       removeButton.textContent = "x";
 
-      row.append(optionButton, removeButton);
+      row.append(colorButton, optionButton, removeButton);
       createTaskTitleTagMenu.append(row);
     });
 
@@ -4321,8 +4606,11 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const setCreateTaskTitleTagValue = (value = "") => {
+  const setCreateTaskTitleTagValue = (value = "", colorValue = "") => {
     createTaskCurrentTitleTag = normalizeTaskTitleTagValue(value);
+    createTaskCurrentTitleTagColor = createTaskCurrentTitleTag
+      ? resolveTaskTitleTagColor(createTaskCurrentTitleTag, colorValue || createTaskCurrentTitleTagColor)
+      : normalizeTaskTitleTagColorValue(colorValue || createTaskCurrentTitleTagColor, taskTitleTagDefaultColor);
     syncCreateTaskTitleTagTrigger();
     renderCreateTaskTitleTagMenu();
   };
@@ -4355,6 +4643,7 @@ window.addEventListener("DOMContentLoaded", () => {
           newTag,
         ]);
         createTaskCurrentTitleTag = newTag;
+        createTaskCurrentTitleTagColor = resolveTaskTitleTagColor(newTag);
       }
     }
     stopCreateTaskTitleTagCreation();
@@ -4378,10 +4667,10 @@ window.addEventListener("DOMContentLoaded", () => {
     createTaskTitleTagCustom.focus();
   };
 
-  const resetCreateTaskTitleTagPicker = () => {
+  const resetCreateTaskTitleTagPicker = (value = "", colorValue = "") => {
     closeCreateTaskTitleTagMenu();
     stopCreateTaskTitleTagCreation();
-    setCreateTaskTitleTagValue("");
+    setCreateTaskTitleTagValue(value, colorValue);
   };
 
   const removeTaskTitleTagOption = (tagValue = "") => {
@@ -4392,12 +4681,15 @@ window.addEventListener("DOMContentLoaded", () => {
     createTaskTitleTagOptions = createTaskTitleTagOptions.filter(
       (tag) => normalizeTaskTitleTagValue(tag).toLocaleLowerCase("pt-BR") !== removedKey
     );
+    taskTitleTagColorsByKey.delete(removedKey);
 
     if (createTaskCurrentTitleTag.toLocaleLowerCase("pt-BR") === removedKey) {
       createTaskCurrentTitleTag = "";
+      createTaskCurrentTitleTagColor = taskTitleTagDefaultColor;
     }
     if (taskDetailEditCurrentTitleTag.toLocaleLowerCase("pt-BR") === removedKey) {
       taskDetailEditCurrentTitleTag = "";
+      taskDetailEditCurrentTitleTagColor = taskTitleTagDefaultColor;
     }
 
     syncCreateTaskTitleTagTrigger();
@@ -4422,15 +4714,23 @@ window.addEventListener("DOMContentLoaded", () => {
   const syncTaskDetailTitleTagTrigger = () => {
     const normalizedTag = normalizeTaskTitleTagValue(taskDetailEditCurrentTitleTag);
     taskDetailEditCurrentTitleTag = normalizedTag;
+    const normalizedColor = normalizedTag
+      ? resolveTaskTitleTagColor(normalizedTag, taskDetailEditCurrentTitleTagColor)
+      : normalizeTaskTitleTagColorValue(taskDetailEditCurrentTitleTagColor, taskTitleTagDefaultColor);
+    taskDetailEditCurrentTitleTagColor = normalizedColor;
 
     if (taskDetailEditTitleTagInput instanceof HTMLInputElement) {
       taskDetailEditTitleTagInput.value = normalizedTag;
+    }
+    if (taskDetailEditTitleTagColorInput instanceof HTMLInputElement) {
+      taskDetailEditTitleTagColorInput.value = normalizedColor;
     }
 
     if (!(taskDetailEditTitleTagTrigger instanceof HTMLButtonElement)) return;
 
     taskDetailEditTitleTagTrigger.textContent = normalizedTag || "tag";
     taskDetailEditTitleTagTrigger.classList.toggle("is-empty", !normalizedTag);
+    paintTagColorSwatch(taskDetailEditTitleTagTrigger, normalizedColor, Boolean(normalizedTag));
     taskDetailEditTitleTagTrigger.setAttribute(
       "aria-label",
       normalizedTag ? `Tag selecionada: ${normalizedTag}` : "Sem tag"
@@ -4456,6 +4756,14 @@ window.addEventListener("DOMContentLoaded", () => {
     createTaskTitleTagOptions.forEach((tagValue) => {
       const row = document.createElement("div");
       row.className = "create-task-title-tag-menu-item";
+      const tagColor = resolveTaskTitleTagColor(tagValue);
+
+      const colorButton = document.createElement("button");
+      colorButton.type = "button";
+      colorButton.className = "create-task-title-tag-color";
+      colorButton.dataset.taskDetailEditTitleTagColor = tagValue;
+      colorButton.setAttribute("aria-label", `Alterar cor da tag ${tagValue}`);
+      paintTagColorSwatch(colorButton, tagColor, true);
 
       const optionButton = document.createElement("button");
       optionButton.type = "button";
@@ -4473,7 +4781,7 @@ window.addEventListener("DOMContentLoaded", () => {
       removeButton.setAttribute("aria-label", `Remover tag ${tagValue}`);
       removeButton.textContent = "x";
 
-      row.append(optionButton, removeButton);
+      row.append(colorButton, optionButton, removeButton);
       taskDetailEditTitleTagMenu.append(row);
     });
 
@@ -4499,8 +4807,17 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const setTaskDetailTitleTagValue = (value = "") => {
+  const setTaskDetailTitleTagValue = (value = "", colorValue = "") => {
     taskDetailEditCurrentTitleTag = normalizeTaskTitleTagValue(value);
+    taskDetailEditCurrentTitleTagColor = taskDetailEditCurrentTitleTag
+      ? resolveTaskTitleTagColor(
+          taskDetailEditCurrentTitleTag,
+          colorValue || taskDetailEditCurrentTitleTagColor
+        )
+      : normalizeTaskTitleTagColorValue(
+          colorValue || taskDetailEditCurrentTitleTagColor,
+          taskTitleTagDefaultColor
+        );
     syncTaskDetailTitleTagTrigger();
     renderTaskDetailTitleTagMenu();
   };
@@ -4533,6 +4850,7 @@ window.addEventListener("DOMContentLoaded", () => {
           newTag,
         ]);
         taskDetailEditCurrentTitleTag = newTag;
+        taskDetailEditCurrentTitleTagColor = resolveTaskTitleTagColor(newTag);
       }
     }
     stopTaskDetailTitleTagCreation();
@@ -4556,13 +4874,25 @@ window.addEventListener("DOMContentLoaded", () => {
     taskDetailEditTitleTagCustom.focus();
   };
 
-  const resetTaskDetailTitleTagPicker = (value = "") => {
+  const resetTaskDetailTitleTagPicker = (value = "", colorValue = "") => {
     closeTaskDetailTitleTagMenu();
     stopTaskDetailTitleTagCreation();
-    setTaskDetailTitleTagValue(value);
+    setTaskDetailTitleTagValue(value, colorValue);
   };
 
-  createTaskTitleTagOptions = normalizeTaskTitleTagCollection(readTaskTitleTagOptionsFromData());
+  const taskTitleTagConfig = readTaskTitleTagOptionsFromData();
+  taskTitleTagPalette = normalizeTaskTitleTagPalette(taskTitleTagConfig.palette || []);
+  taskTitleTagDefaultColor = normalizeTaskTitleTagColorValue(
+    taskTitleTagConfig.defaultColor || "",
+    taskTitleTagPalette[0] || TASK_TITLE_TAG_DEFAULT_PALETTE[0]
+  );
+  taskTitleTagColorsByKey = new Map();
+  if (taskTitleTagConfig.tagColors && typeof taskTitleTagConfig.tagColors === "object") {
+    Object.entries(taskTitleTagConfig.tagColors).forEach(([tagValue, colorValue]) => {
+      setTaskTitleTagColorForTag(tagValue, String(colorValue || ""));
+    });
+  }
+  createTaskTitleTagOptions = normalizeTaskTitleTagCollection(taskTitleTagConfig.options || []);
   resetCreateTaskTitleTagPicker();
   resetTaskDetailTitleTagPicker();
 
@@ -5576,6 +5906,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const groupSelect = form.querySelector('[name="group_name"]');
     const descriptionField = form.querySelector('textarea[name="description"]');
     const titleTagField = form.querySelector("[data-task-title-tag]");
+    const titleTagColorField = form.querySelector("[data-task-title-tag-color]");
     const referenceLinksField = form.querySelector('[data-task-reference-links-json]');
     const referenceImagesField = form.querySelector('[data-task-reference-images-json]');
     const subtasksField = form.querySelector("[data-task-subtasks-json]");
@@ -5610,6 +5941,7 @@ window.addEventListener("DOMContentLoaded", () => {
       groupSelect,
       descriptionField,
       titleTagField: titleTagField instanceof HTMLInputElement ? titleTagField : null,
+      titleTagColorField: titleTagColorField instanceof HTMLInputElement ? titleTagColorField : null,
       referenceLinksField: referenceLinksField instanceof HTMLInputElement ? referenceLinksField : null,
       referenceImagesField: referenceImagesField instanceof HTMLInputElement ? referenceImagesField : null,
       subtasksField: subtasksField instanceof HTMLInputElement ? subtasksField : null,
@@ -5822,6 +6154,7 @@ window.addEventListener("DOMContentLoaded", () => {
       groupSelect,
       descriptionField,
       titleTagField,
+      titleTagColorField,
       referenceLinksField,
       referenceImagesField,
       subtasksField,
@@ -5840,6 +6173,9 @@ window.addEventListener("DOMContentLoaded", () => {
       groupSelect.options[groupSelect.selectedIndex]?.textContent?.trim() || groupSelect.value || "Geral";
     const dueMeta = dueDateMeta(dueDateInput.value || "");
     const titleTag = normalizeTaskTitleTagValue(titleTagField?.value || "");
+    const titleTagColor = titleTag
+      ? resolveTaskTitleTagColor(titleTag, titleTagColorField?.value || "")
+      : normalizeTaskTitleTagColorValue(titleTagColorField?.value || "", taskTitleTagDefaultColor);
     const assigneeNames = getCheckedAssigneeNames(rowAssigneePicker);
     const description = (descriptionField.value || "").trim();
     const referenceLinks = readJsonUrlListField(referenceLinksField, parseReferenceUrlLines);
@@ -5869,8 +6205,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const updatedAtText = metaRow?.querySelector("[data-task-updated-at]")?.textContent?.trim() || "";
 
     if (taskDetailTitle) taskDetailTitle.textContent = titleValue;
-    syncTaskTitleTagBadge(context.taskItem, titleTag);
-    syncTaskDetailViewTitleTag(titleTag);
+    syncTaskTitleTagBadge(context.taskItem, titleTag, titleTagColor);
+    syncTaskDetailViewTitleTag(titleTag, titleTagColor);
     syncTaskDetailViewStatusTag(statusSelect.value || "todo", statusLabel);
     syncTaskDetailViewPriorityTag(prioritySelect.value || "medium");
     if (taskDetailViewGroup) taskDetailViewGroup.textContent = groupLabel;
@@ -5902,7 +6238,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (taskDetailEditTitle instanceof HTMLInputElement) {
       taskDetailEditTitle.value = titleInput.value || "";
     }
-    resetTaskDetailTitleTagPicker(titleTag);
+    resetTaskDetailTitleTagPicker(titleTag, titleTagColor);
     if (taskDetailEditStatus instanceof HTMLSelectElement) {
       taskDetailEditStatus.value = statusSelect.value || "todo";
       syncSelectColor(taskDetailEditStatus);
@@ -6013,13 +6349,25 @@ window.addEventListener("DOMContentLoaded", () => {
       : normalizeTaskTitleTagValue(
           taskDetailEditTitleTagInput?.value || taskDetailEditCurrentTitleTag
         );
-    setTaskDetailTitleTagValue(nextTitleTag);
+    const nextTitleTagColor = nextTitleTag
+      ? resolveTaskTitleTagColor(
+          nextTitleTag,
+          taskDetailEditTitleTagColorInput?.value || taskDetailEditCurrentTitleTagColor
+        )
+      : normalizeTaskTitleTagColorValue(
+          taskDetailEditTitleTagColorInput?.value || taskDetailEditCurrentTitleTagColor,
+          taskTitleTagDefaultColor
+        );
+    setTaskDetailTitleTagValue(nextTitleTag, nextTitleTagColor);
 
     context.titleInput.value = taskDetailEditTitle.value;
     if (context.titleTagField instanceof HTMLInputElement) {
       context.titleTagField.value = nextTitleTag;
     }
-    syncTaskTitleTagBadge(context.taskItem, nextTitleTag);
+    if (context.titleTagColorField instanceof HTMLInputElement) {
+      context.titleTagColorField.value = nextTitleTagColor;
+    }
+    syncTaskTitleTagBadge(context.taskItem, nextTitleTag, nextTitleTagColor);
     context.statusSelect.value = taskDetailEditStatus.value;
     context.prioritySelect.value = taskDetailEditPriority.value;
     context.dueDateInput.value = taskDetailEditDueDate.value;
@@ -6903,9 +7251,12 @@ window.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-task-item]").forEach((taskItem) => {
     if (!(taskItem instanceof HTMLElement)) return;
     const titleTagField = taskItem.querySelector("[data-task-title-tag]");
+    const titleTagColorField = taskItem.querySelector("[data-task-title-tag-color]");
     const titleTagValue =
       titleTagField instanceof HTMLInputElement ? titleTagField.value || "" : "";
-    syncTaskTitleTagBadge(taskItem, titleTagValue);
+    const titleTagColorValue =
+      titleTagColorField instanceof HTMLInputElement ? titleTagColorField.value || "" : "";
+    syncTaskTitleTagBadge(taskItem, titleTagValue, titleTagColorValue);
   });
 
   const openCreateModal = (groupName) => {
@@ -8213,6 +8564,41 @@ window.addEventListener("DOMContentLoaded", () => {
       const target = getEventTargetElement(event);
       if (!(target instanceof Element)) return;
 
+      const colorTagTrigger = target.closest("[data-create-task-title-tag-color]");
+      if (colorTagTrigger instanceof HTMLButtonElement) {
+        const tagValue = normalizeTaskTitleTagValue(
+          colorTagTrigger.dataset.createTaskTitleTagColor || ""
+        );
+        if (tagValue) {
+          const nextColor = cycleTaskTitleTagColor(tagValue);
+          if (normalizeTaskTitleTagValue(createTaskCurrentTitleTag) === tagValue) {
+            createTaskCurrentTitleTagColor = nextColor;
+            syncCreateTaskTitleTagTrigger();
+          }
+          if (normalizeTaskTitleTagValue(taskDetailEditCurrentTitleTag) === tagValue) {
+            taskDetailEditCurrentTitleTagColor = nextColor;
+            syncTaskDetailTitleTagTrigger();
+          }
+          document.querySelectorAll("[data-task-item]").forEach((taskItem) => {
+            if (!(taskItem instanceof HTMLElement)) return;
+            const tagField = taskItem.querySelector("[data-task-title-tag]");
+            const currentTag = tagField instanceof HTMLInputElement ? tagField.value || "" : "";
+            if (normalizeTaskTitleTagValue(currentTag) !== tagValue) return;
+            syncTaskTitleTagBadge(taskItem, currentTag, nextColor);
+          });
+          if (taskDetailContext && taskDetailContext.titleTagField instanceof HTMLInputElement) {
+            const currentTag = normalizeTaskTitleTagValue(taskDetailContext.titleTagField.value || "");
+            if (currentTag === tagValue) {
+              syncTaskDetailViewTitleTag(currentTag, nextColor);
+            }
+          }
+          renderCreateTaskTitleTagMenu();
+          renderTaskDetailTitleTagMenu();
+          void persistTaskTitleTagColorSelection(tagValue, nextColor);
+        }
+        return;
+      }
+
       const removeTagTrigger = target.closest("[data-create-task-title-tag-remove]");
       if (removeTagTrigger instanceof HTMLButtonElement) {
         removeTaskTitleTagOption(removeTagTrigger.dataset.createTaskTitleTagRemove || "");
@@ -8281,6 +8667,41 @@ window.addEventListener("DOMContentLoaded", () => {
     taskDetailEditTitleTagPicker.addEventListener("click", (event) => {
       const target = getEventTargetElement(event);
       if (!(target instanceof Element)) return;
+
+      const colorTagTrigger = target.closest("[data-task-detail-edit-title-tag-color]");
+      if (colorTagTrigger instanceof HTMLButtonElement) {
+        const tagValue = normalizeTaskTitleTagValue(
+          colorTagTrigger.dataset.taskDetailEditTitleTagColor || ""
+        );
+        if (tagValue) {
+          const nextColor = cycleTaskTitleTagColor(tagValue);
+          if (normalizeTaskTitleTagValue(createTaskCurrentTitleTag) === tagValue) {
+            createTaskCurrentTitleTagColor = nextColor;
+            syncCreateTaskTitleTagTrigger();
+          }
+          if (normalizeTaskTitleTagValue(taskDetailEditCurrentTitleTag) === tagValue) {
+            taskDetailEditCurrentTitleTagColor = nextColor;
+            syncTaskDetailTitleTagTrigger();
+          }
+          document.querySelectorAll("[data-task-item]").forEach((taskItem) => {
+            if (!(taskItem instanceof HTMLElement)) return;
+            const tagField = taskItem.querySelector("[data-task-title-tag]");
+            const currentTag = tagField instanceof HTMLInputElement ? tagField.value || "" : "";
+            if (normalizeTaskTitleTagValue(currentTag) !== tagValue) return;
+            syncTaskTitleTagBadge(taskItem, currentTag, nextColor);
+          });
+          if (taskDetailContext && taskDetailContext.titleTagField instanceof HTMLInputElement) {
+            const currentTag = normalizeTaskTitleTagValue(taskDetailContext.titleTagField.value || "");
+            if (currentTag === tagValue) {
+              syncTaskDetailViewTitleTag(currentTag, nextColor);
+            }
+          }
+          renderTaskDetailTitleTagMenu();
+          renderCreateTaskTitleTagMenu();
+          void persistTaskTitleTagColorSelection(tagValue, nextColor);
+        }
+        return;
+      }
 
       const removeTagTrigger = target.closest("[data-task-detail-edit-title-tag-remove]");
       if (removeTagTrigger instanceof HTMLButtonElement) {
@@ -8354,7 +8775,16 @@ window.addEventListener("DOMContentLoaded", () => {
       const createTitleTag = createTaskTitleTagIsCreating
         ? commitCreateTaskTitleTagCreation()
         : normalizeTaskTitleTagValue(createTaskTitleTagInput?.value || createTaskCurrentTitleTag);
-      setCreateTaskTitleTagValue(createTitleTag);
+      const createTitleTagColor = createTitleTag
+        ? resolveTaskTitleTagColor(
+            createTitleTag,
+            createTaskTitleTagColorInput?.value || createTaskCurrentTitleTagColor
+          )
+        : normalizeTaskTitleTagColorValue(
+            createTaskTitleTagColorInput?.value || createTaskCurrentTitleTagColor,
+            taskTitleTagDefaultColor
+          );
+      setCreateTaskTitleTagValue(createTitleTag, createTitleTagColor);
 
       if (createTaskLinksField instanceof HTMLTextAreaElement) {
         createTaskLinksField.value = JSON.stringify(
