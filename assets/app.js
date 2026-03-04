@@ -225,8 +225,18 @@ window.addEventListener("DOMContentLoaded", () => {
   const getTaskItemStatusValue = (taskItem) => {
     if (!(taskItem instanceof HTMLElement)) return "";
     const select = taskItem.querySelector("select.status-select");
-    if (!(select instanceof HTMLSelectElement)) return "";
-    return (select.value || "").trim();
+    if (select instanceof HTMLSelectElement) {
+      const selectedValue = (select.value || "").trim();
+      if (selectedValue) {
+        return selectedValue;
+      }
+    }
+
+    const classStatus = Array.from(taskItem.classList).find((className) =>
+      className.startsWith("task-status-")
+    );
+    if (!classStatus) return "";
+    return classStatus.replace("task-status-", "").trim();
   };
 
   const getTaskItemPriorityValue = (taskItem) => {
@@ -2164,6 +2174,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const { totalTaskCount, visibleTaskCount, hiddenDoneCount } =
       syncTaskGroupDoneVisibility(groupSection);
+
+    // Re-sort after toggling hidden/visible states to keep auto ordering stable.
+    sortGroupTaskItemsByStatus(dropzone);
 
     const countEl = groupSection.querySelector(".task-group-count");
     if (countEl) countEl.textContent = String(totalTaskCount);
