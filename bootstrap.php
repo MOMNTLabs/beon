@@ -1907,8 +1907,7 @@ function verifyCsrf(): void
     $sessionToken = $_SESSION['csrf_token'] ?? '';
 
     if (!$token || !$sessionToken || !hash_equals($sessionToken, $token)) {
-        http_response_code(419);
-        exit('Token CSRF inválido.');
+        throw new RuntimeException('Sessao expirada ou token CSRF invalido. Recarregue a pagina e tente novamente.');
     }
 }
 
