@@ -7946,52 +7946,56 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  applyStoredTaskGroupOrder();
-  syncTaskGroupInputs();
-  setTaskGroupReorderMode(false);
-  setCreateTaskSubtasks([]);
-  renderCreateTaskSubtasksEditList();
-  setTaskDetailEditSubtasks([]);
-  renderTaskDetailSubtasksEditList();
-  groupPermissionModals.forEach((modal) => syncGroupPermissionsModal(modal));
-  document.querySelectorAll("[data-task-group]").forEach((section) => {
-    setTaskGroupCollapsed(section, resolveInitialGroupCollapsedState("tasks", section), {
-      persist: false,
+  try {
+    applyStoredTaskGroupOrder();
+    syncTaskGroupInputs();
+    setTaskGroupReorderMode(false);
+    setCreateTaskSubtasks([]);
+    renderCreateTaskSubtasksEditList();
+    setTaskDetailEditSubtasks([]);
+    renderTaskDetailSubtasksEditList();
+    groupPermissionModals.forEach((modal) => syncGroupPermissionsModal(modal));
+    document.querySelectorAll("[data-task-group]").forEach((section) => {
+      setTaskGroupCollapsed(section, resolveInitialGroupCollapsedState("tasks", section), {
+        persist: false,
+      });
+      setTaskGroupDoneHidden(section, resolveInitialTaskGroupDoneHiddenState(section), {
+        persist: false,
+        refresh: false,
+      });
+      refreshTaskGroupSection(section);
     });
-    setTaskGroupDoneHidden(section, resolveInitialTaskGroupDoneHiddenState(section), {
-      persist: false,
-      refresh: false,
+    document.querySelectorAll("[data-vault-group]").forEach((section) => {
+      setVaultGroupCollapsed(section, resolveInitialGroupCollapsedState("vault", section), {
+        persist: false,
+      });
     });
-    refreshTaskGroupSection(section);
-  });
-  document.querySelectorAll("[data-vault-group]").forEach((section) => {
-    setVaultGroupCollapsed(section, resolveInitialGroupCollapsedState("vault", section), {
-      persist: false,
+    document.querySelectorAll("[data-due-group]").forEach((section) => {
+      setDueGroupCollapsed(section, resolveInitialGroupCollapsedState("dues", section), {
+        persist: false,
+      });
     });
-  });
-  document.querySelectorAll("[data-due-group]").forEach((section) => {
-    setDueGroupCollapsed(section, resolveInitialGroupCollapsedState("dues", section), {
-      persist: false,
+    document.querySelectorAll("[data-inventory-group]").forEach((section) => {
+      setInventoryGroupCollapsed(section, resolveInitialGroupCollapsedState("inventory", section), {
+        persist: false,
+      });
     });
-  });
-  document.querySelectorAll("[data-inventory-group]").forEach((section) => {
-    setInventoryGroupCollapsed(section, resolveInitialGroupCollapsedState("inventory", section), {
-      persist: false,
+    document.querySelectorAll("[data-vault-password-cell]").forEach((cell) => {
+      syncVaultPasswordCell(cell, false);
     });
-  });
-  document.querySelectorAll("[data-vault-password-cell]").forEach((cell) => {
-    syncVaultPasswordCell(cell, false);
-  });
-  document.querySelectorAll("[data-task-item]").forEach((taskItem) => {
-    if (!(taskItem instanceof HTMLElement)) return;
-    const titleTagField = taskItem.querySelector("[data-task-title-tag]");
-    const titleTagColorField = taskItem.querySelector("[data-task-title-tag-color]");
-    const titleTagValue =
-      titleTagField instanceof HTMLInputElement ? titleTagField.value || "" : "";
-    const titleTagColorValue =
-      titleTagColorField instanceof HTMLInputElement ? titleTagColorField.value || "" : "";
-    syncTaskTitleTagBadge(taskItem, titleTagValue, titleTagColorValue);
-  });
+    document.querySelectorAll("[data-task-item]").forEach((taskItem) => {
+      if (!(taskItem instanceof HTMLElement)) return;
+      const titleTagField = taskItem.querySelector("[data-task-title-tag]");
+      const titleTagColorField = taskItem.querySelector("[data-task-title-tag-color]");
+      const titleTagValue =
+        titleTagField instanceof HTMLInputElement ? titleTagField.value || "" : "";
+      const titleTagColorValue =
+        titleTagColorField instanceof HTMLInputElement ? titleTagColorField.value || "" : "";
+      syncTaskTitleTagBadge(taskItem, titleTagValue, titleTagColorValue);
+    });
+  } catch (error) {
+    console.error("[WorkForm] Falha ao inicializar estado do dashboard.", error);
+  }
 
   const openCreateModal = (groupName) => {
     if (!createTaskModal) return;
