@@ -406,15 +406,17 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                             <path d="M5 17h.01"></path>
                         </svg>
                     </button>
-                    <button
-                        type="button"
-                        class="icon-gear-button task-filters-create-group"
-                        data-open-create-group-modal
-                        aria-label="Criar grupo"
-                    >
-                        <span class="task-filters-create-group-plus" aria-hidden="true">+</span>
-                        <span>Grupo</span>
-                    </button>
+                    <?php if (!empty($canManageWorkspace)): ?>
+                        <button
+                            type="button"
+                            class="icon-gear-button task-filters-create-group"
+                            data-open-create-group-modal
+                            aria-label="Criar grupo"
+                        >
+                            <span class="task-filters-create-group-plus" aria-hidden="true">+</span>
+                            <span>Grupo</span>
+                        </button>
+                    <?php endif; ?>
                 </div>
             </form>
 
@@ -541,10 +543,11 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     $dueDateValue = (string) ($task['due_date'] ?? '');
                                     $dueDateUi = taskDueDatePresentation($dueDateValue);
                                     $isOverdueMarked = ((int) ($task['overdue_flag'] ?? 0)) === 1;
+                                    $taskSubtasksDependencyEnabled = normalizePermissionFlag($task['subtasks_dependency_enabled'] ?? 0);
                                     $taskSubtasks = is_array($task['subtasks'] ?? null)
                                         ? $task['subtasks']
-                                        : decodeTaskSubtasks($task['subtasks_json'] ?? null);
-                                    $taskSubtasksProgress = taskSubtasksProgress($taskSubtasks);
+                                        : decodeTaskSubtasks($task['subtasks_json'] ?? null, $taskSubtasksDependencyEnabled === 1);
+                                    $taskSubtasksProgress = taskSubtasksProgress($taskSubtasks, $taskSubtasksDependencyEnabled === 1);
                                     $taskSubtasksTotal = (int) ($taskSubtasksProgress['total'] ?? 0);
                                     $taskSubtasksCompleted = (int) ($taskSubtasksProgress['completed'] ?? 0);
                                     $taskTitleTag = normalizeTaskTitleTag((string) ($task['title_tag'] ?? ''));
@@ -568,7 +571,8 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                             <input type="hidden" name="task_id" value="<?= e((string) $taskId) ?>">
                                             <input type="hidden" name="autosave" value="1">
                                             <input type="hidden" name="reference_links_json" value="<?= e(encodeReferenceUrlList($task['reference_links'] ?? [])) ?>" data-task-reference-links-json>
-                                            <input type="hidden" name="subtasks_json" value="<?= e(encodeTaskSubtasks($taskSubtasks)) ?>" data-task-subtasks-json>
+                                            <input type="hidden" name="subtasks_json" value="<?= e(encodeTaskSubtasks($taskSubtasks, $taskSubtasksDependencyEnabled === 1)) ?>" data-task-subtasks-json>
+                                            <input type="hidden" name="subtasks_dependency_enabled" value="<?= $taskSubtasksDependencyEnabled === 1 ? '1' : '0' ?>" data-task-subtasks-dependency>
                                             <input type="hidden" name="title_tag" value="<?= e($taskTitleTag) ?>" data-task-title-tag>
                                             <input type="hidden" name="title_tag_color" value="<?= e($taskTitleTagColor) ?>" data-task-title-tag-color>
                                             <input type="hidden" name="overdue_flag" value="<?= $isOverdueMarked ? '1' : '0' ?>" data-task-overdue-flag>
@@ -601,16 +605,13 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                                         aria-label="Progresso das subtarefas"
                                                     >
                                                         <div class="task-subtasks-progress-steps" data-task-subtasks-progress-steps>
-                                                            <?php foreach ($taskSubtasks as $index => $subtask): ?>
-                                                                <?php
-                                                                $isDoneStep = !empty($subtask['done']);
-                                                                $isLockedStep = $index > 0 && empty($taskSubtasks[$index - 1]['done']);
-                                                                ?>
+                                                            <?php for ($index = 0; $index < $taskSubtasksTotal; $index++): ?>
+                                                                <?php $isDoneStep = $index < $taskSubtasksCompleted; ?>
                                                                 <span
-                                                                    class="task-subtasks-progress-step<?= $isDoneStep ? ' is-done' : '' ?><?= $isLockedStep ? ' is-locked' : '' ?>"
+                                                                    class="task-subtasks-progress-step<?= $isDoneStep ? ' is-done' : '' ?>"
                                                                     aria-hidden="true"
                                                                 ></span>
-                                                            <?php endforeach; ?>
+                                                            <?php endfor; ?>
                                                         </div>
                                                         <span class="task-subtasks-progress-text" data-task-subtasks-progress-text>
                                                             <?= e((string) $taskSubtasksCompleted) ?>/<?= e((string) $taskSubtasksTotal) ?> etapas
@@ -1914,6 +1915,13 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
 
             <div class="task-subtasks-editor">
                 <span>Etapas / subtarefas</span>
+                <label class="task-subtasks-dependency-toggle">
+                    <input
+                        type="checkbox"
+                        data-create-task-subtasks-dependency-toggle
+                    >
+                    <span>Ativar dependência entre etapas</span>
+                </label>
                 <div class="task-subtasks-edit-add">
                     <input
                         type="text"
@@ -1925,6 +1933,7 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                 </div>
                 <div class="task-subtasks-edit-list" data-create-task-subtasks-list></div>
                 <textarea name="subtasks_json" rows="1" data-create-task-subtasks hidden></textarea>
+                <input type="hidden" name="subtasks_dependency_enabled" value="0" data-create-task-subtasks-dependency>
             </div>
 
             <div class="modal-actions">
@@ -1935,32 +1944,108 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
     </section>
 </div>
 
-<div class="modal-backdrop" data-create-group-modal hidden>
-    <div class="modal-scrim" data-close-create-group-modal></div>
-    <section class="modal-card create-group-modal" role="dialog" aria-modal="true" aria-labelledby="create-group-title">
-        <header class="modal-head">
-            <h2 id="create-group-title">Novo grupo</h2>
-            <button type="button" class="modal-close-button" data-close-create-group-modal aria-label="Fechar modal">
-                <span aria-hidden="true">&#10005;</span>
-            </button>
-        </header>
+<?php if (!empty($canManageWorkspace)): ?>
+    <?php
+    $createGroupPermissionRows = [];
+    $createGroupEnabledCount = 0;
+    $createGroupCurrentUserId = (int) ($currentUser['id'] ?? 0);
+    foreach ($workspaceMembers as $workspaceMember) {
+        $memberId = (int) ($workspaceMember['id'] ?? 0);
+        if ($memberId <= 0) {
+            continue;
+        }
+        $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+        $memberEnabled = true;
+        if ($memberEnabled) {
+            $createGroupEnabledCount++;
+        }
+        $createGroupPermissionRows[] = [
+            'id' => $memberId,
+            'name' => (string) ($workspaceMember['name'] ?? 'Usuario'),
+            'email' => (string) ($workspaceMember['email'] ?? ''),
+            'enabled' => $memberEnabled,
+            'required' => $memberId === $createGroupCurrentUserId,
+            'role_label' => $memberRole === 'admin' ? 'Administrador' : 'Membro',
+        ];
+    }
+    $createGroupTotalCount = count($createGroupPermissionRows);
+    $createGroupAllEnabled = $createGroupTotalCount > 0 && $createGroupEnabledCount === $createGroupTotalCount;
+    $createGroupCounterLabel = $createGroupEnabledCount . '/' . $createGroupTotalCount;
+    ?>
+    <div class="modal-backdrop" data-create-group-modal data-group-permissions-modal="task-group-create" hidden>
+        <div class="modal-scrim" data-close-create-group-modal></div>
+        <section class="modal-card create-group-modal" role="dialog" aria-modal="true" aria-labelledby="create-group-title">
+            <header class="modal-head">
+                <h2 id="create-group-title">Novo grupo</h2>
+                <button type="button" class="modal-close-button" data-close-create-group-modal aria-label="Fechar modal">
+                    <span aria-hidden="true">&#10005;</span>
+                </button>
+            </header>
 
-        <form method="post" class="form-stack modal-form" data-create-group-form>
-            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-            <input type="hidden" name="action" value="create_group">
+            <form method="post" class="form-stack modal-form" data-create-group-form>
+                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                <input type="hidden" name="action" value="create_group">
 
-            <label>
-                <span>Nome do grupo</span>
-                <input type="text" name="group_name" maxlength="60" required data-create-group-name-input>
-            </label>
+                <label>
+                    <span>Nome do grupo</span>
+                    <input type="text" name="group_name" maxlength="60" required data-create-group-name-input>
+                </label>
 
-            <div class="modal-actions">
-                <button type="button" class="btn btn-mini btn-ghost" data-close-create-group-modal>Cancelar</button>
-                <button type="submit" class="btn btn-pill">Criar grupo</button>
-            </div>
-        </form>
-    </section>
-</div>
+                <div class="group-permissions-scope" data-group-permissions-scope>
+                    <label class="group-permissions-toggle group-permissions-toggle-master">
+                        <input
+                            type="checkbox"
+                            data-permission-all-checkbox
+                            <?= $createGroupAllEnabled ? 'checked' : '' ?>
+                            <?= $createGroupTotalCount === 0 ? 'disabled' : '' ?>
+                        >
+                        <span>Aplicar a todos</span>
+                    </label>
+                    <span class="group-permissions-counter" data-permission-counter><?= e($createGroupCounterLabel) ?> permitidos</span>
+                </div>
+
+                <details class="group-permissions-members" open>
+                    <summary>
+                        <span>Acesso inicial do grupo</span>
+                        <span class="group-permissions-summary-count" data-permission-summary-count><?= e($createGroupCounterLabel) ?></span>
+                    </summary>
+                    <div class="group-permissions-list">
+                        <?php if (!$createGroupPermissionRows): ?>
+                            <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
+                        <?php else: ?>
+                            <?php foreach ($createGroupPermissionRows as $createGroupPermissionRow): ?>
+                                <div class="group-permissions-row">
+                                    <input type="hidden" name="member_ids[]" value="<?= e((string) $createGroupPermissionRow['id']) ?>">
+                                    <div class="group-permissions-user">
+                                        <strong><?= e((string) $createGroupPermissionRow['name']) ?></strong>
+                                        <span><?= e((string) $createGroupPermissionRow['email']) ?></span>
+                                        <span><?= e((string) $createGroupPermissionRow['role_label']) ?></span>
+                                    </div>
+                                    <label class="group-permissions-toggle">
+                                        <input
+                                            type="checkbox"
+                                            name="permissions[<?= e((string) $createGroupPermissionRow['id']) ?>][enabled]"
+                                            value="1"
+                                            <?= !empty($createGroupPermissionRow['enabled']) ? 'checked' : '' ?>
+                                            <?= !empty($createGroupPermissionRow['required']) ? 'disabled' : '' ?>
+                                            data-permission-enabled-checkbox
+                                        >
+                                        <span><?= !empty($createGroupPermissionRow['required']) ? 'Obrigatorio' : 'Permitido' ?></span>
+                                    </label>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </details>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-mini btn-ghost" data-close-create-group-modal>Cancelar</button>
+                    <button type="submit" class="btn btn-pill">Criar grupo</button>
+                </div>
+            </form>
+        </section>
+    </div>
+<?php endif; ?>
 
 <div class="modal-backdrop" data-vault-group-modal hidden>
     <div class="modal-scrim" data-close-vault-group-modal></div>
@@ -2456,12 +2541,13 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                             continue;
                         }
                         $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
-                        if ($memberRole === 'admin') {
-                            continue;
-                        }
                         $memberPermission = $taskPermissionsByUser[$memberId] ?? [];
                         $memberEnabled = (bool) ($memberPermission['can_view'] ?? true)
                             && (bool) ($memberPermission['can_access'] ?? true);
+                        $isRequiredMember = $memberId === (int) ($currentUser['id'] ?? 0);
+                        if ($isRequiredMember) {
+                            $memberEnabled = true;
+                        }
                         if ($memberEnabled) {
                             $taskEnabledCount++;
                         }
@@ -2470,6 +2556,8 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                             'name' => (string) ($workspaceMember['name'] ?? 'Usuario'),
                             'email' => (string) ($workspaceMember['email'] ?? ''),
                             'enabled' => $memberEnabled,
+                            'required' => $isRequiredMember,
+                            'role_label' => $memberRole === 'admin' ? 'Administrador' : 'Membro',
                         ];
                     }
                     $taskTotalCount = count($taskPermissionRows);
@@ -2505,6 +2593,7 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                         <div class="group-permissions-user">
                                             <strong><?= e((string) $taskPermissionRow['name']) ?></strong>
                                             <span><?= e((string) $taskPermissionRow['email']) ?></span>
+                                            <span><?= e((string) $taskPermissionRow['role_label']) ?></span>
                                         </div>
                                         <label class="group-permissions-toggle">
                                             <input
@@ -2512,9 +2601,10 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                                 name="permissions[<?= e((string) $taskPermissionRow['id']) ?>][enabled]"
                                                 value="1"
                                                 <?= !empty($taskPermissionRow['enabled']) ? 'checked' : '' ?>
+                                                <?= !empty($taskPermissionRow['required']) ? 'disabled' : '' ?>
                                                 data-permission-enabled-checkbox
                                             >
-                                            <span>Permitido</span>
+                                            <span><?= !empty($taskPermissionRow['required']) ? 'Obrigatorio' : 'Permitido' ?></span>
                                         </label>
                                     </div>
                                 <?php endforeach; ?>
@@ -3019,6 +3109,13 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
 
                     <div class="task-subtasks-editor">
                         <span>Etapas / subtarefas</span>
+                        <label class="task-subtasks-dependency-toggle">
+                            <input
+                                type="checkbox"
+                                data-task-detail-edit-subtasks-dependency-toggle
+                            >
+                            <span>Ativar dependência entre etapas</span>
+                        </label>
                         <div class="task-subtasks-edit-add">
                             <input
                                 type="text"
@@ -3030,6 +3127,7 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                         </div>
                         <div class="task-subtasks-edit-list" data-task-detail-edit-subtasks-list></div>
                         <textarea rows="1" data-task-detail-edit-subtasks hidden></textarea>
+                        <input type="hidden" value="0" data-task-detail-edit-subtasks-dependency>
                     </div>
 
                     <label class="task-detail-edit-links-field">

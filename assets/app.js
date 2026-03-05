@@ -1611,7 +1611,34 @@ window.addEventListener("DOMContentLoaded", () => {
     field.value = hasActiveRevision ? "1" : "0";
   };
 
-  const parseTaskSubtaskList = (value, maxItems = 40) => {
+  const normalizeTaskSubtasksDependencyValue = (value, fallback = false) => {
+    const raw = String(value ?? "").trim().toLowerCase();
+    if (raw === "1" || raw === "true" || raw === "on" || raw === "yes") {
+      return true;
+    }
+    if (raw === "0" || raw === "false" || raw === "off" || raw === "no" || raw === "") {
+      return false;
+    }
+    return Boolean(fallback);
+  };
+
+  const readTaskSubtasksDependencyField = (field, fallback = false) => {
+    if (!(field instanceof HTMLInputElement)) {
+      return Boolean(fallback);
+    }
+    return normalizeTaskSubtasksDependencyValue(field.value, fallback);
+  };
+
+  const writeTaskSubtasksDependencyField = (field, enabled) => {
+    if (!(field instanceof HTMLInputElement)) return;
+    field.value = enabled ? "1" : "0";
+  };
+
+  const parseTaskSubtaskList = (
+    value,
+    maxItems = 40,
+    { enforceDependency = false } = {}
+  ) => {
     let source = [];
     if (Array.isArray(value)) {
       source = value;
@@ -1658,21 +1685,25 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    let unlockNext = true;
-    normalized.forEach((item) => {
-      if (!unlockNext) {
-        item.done = false;
-      }
-      if (!item.done) {
-        unlockNext = false;
-      }
-    });
+    if (enforceDependency) {
+      let unlockNext = true;
+      normalized.forEach((item) => {
+        if (!unlockNext) {
+          item.done = false;
+        }
+        if (!item.done) {
+          unlockNext = false;
+        }
+      });
+    }
 
     return normalized;
   };
 
-  const taskSubtasksProgressMeta = (subtasks) => {
-    const normalized = parseTaskSubtaskList(subtasks || []);
+  const taskSubtasksProgressMeta = (subtasks, { enforceDependency = false } = {}) => {
+    const normalized = parseTaskSubtaskList(subtasks || [], 40, {
+      enforceDependency,
+    });
     const total = normalized.length;
     const completed = normalized.reduce((count, item) => count + (item.done ? 1 : 0), 0);
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -1687,18 +1718,24 @@ window.addEventListener("DOMContentLoaded", () => {
     };
   };
 
-  const readTaskSubtasksField = (field) => {
+  const readTaskSubtasksField = (field, { enforceDependency = false } = {}) => {
     if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLTextAreaElement)) {
       return [];
     }
-    return parseTaskSubtaskList(field.value || "[]");
+    return parseTaskSubtaskList(field.value || "[]", 40, {
+      enforceDependency,
+    });
   };
 
-  const writeTaskSubtasksField = (field, subtasks) => {
+  const writeTaskSubtasksField = (field, subtasks, { enforceDependency = false } = {}) => {
     if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLTextAreaElement)) {
       return;
     }
-    field.value = JSON.stringify(parseTaskSubtaskList(subtasks || []));
+    field.value = JSON.stringify(
+      parseTaskSubtaskList(subtasks || [], 40, {
+        enforceDependency,
+      })
+    );
   };
 
   const formatHistoryDate = (value) => {
@@ -3482,12 +3519,45 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       if (typeof task.subtasks_json === "string") {
         const subtasksField = form.querySelector("[data-task-subtasks-json]");
+        const subtasksDependencyField = ensureTaskHiddenField(form, {
+          name: "subtasks_dependency_enabled",
+          withName: true,
+          dataSelector: "[data-task-subtasks-dependency]",
+          dataAttrName: "data-task-subtasks-dependency",
+        });
+        const dependencyEnabled = Object.prototype.hasOwnProperty.call(
+          task,
+          "subtasks_dependency_enabled"
+        )
+          ? normalizeTaskSubtasksDependencyValue(task.subtasks_dependency_enabled, false)
+          : readTaskSubtasksDependencyField(subtasksDependencyField, false);
+        if (subtasksDependencyField instanceof HTMLInputElement) {
+          writeTaskSubtasksDependencyField(subtasksDependencyField, dependencyEnabled);
+        }
         if (subtasksField instanceof HTMLInputElement) {
-          subtasksField.value = task.subtasks_json;
-          const subtasks = readTaskSubtasksField(subtasksField);
-          writeTaskSubtasksField(subtasksField, subtasks);
+          const subtasks = parseTaskSubtaskList(task.subtasks_json, 40, {
+            enforceDependency: dependencyEnabled,
+          });
+          writeTaskSubtasksField(subtasksField, subtasks, {
+            enforceDependency: dependencyEnabled,
+          });
           if (taskItem instanceof HTMLElement) {
             renderTaskRowSubtasksProgress(taskItem, subtasks);
+          }
+          if (
+            taskDetailContext &&
+            taskDetailContext.form === form &&
+            taskDetailContext.subtasksField instanceof HTMLInputElement
+          ) {
+            writeTaskSubtasksField(taskDetailContext.subtasksField, subtasks, {
+              enforceDependency: dependencyEnabled,
+            });
+            if (taskDetailContext.subtasksDependencyField instanceof HTMLInputElement) {
+              writeTaskSubtasksDependencyField(
+                taskDetailContext.subtasksDependencyField,
+                dependencyEnabled
+              );
+            }
           }
         }
       }
@@ -3658,6 +3728,7 @@ window.addEventListener("DOMContentLoaded", () => {
       if (permissionModal instanceof HTMLElement && target instanceof HTMLInputElement) {
         permissionModal.querySelectorAll("[data-permission-enabled-checkbox]").forEach((checkbox) => {
           if (!(checkbox instanceof HTMLInputElement)) return;
+          if (checkbox.disabled) return;
           checkbox.checked = target.checked;
         });
         syncGroupPermissionsModal(permissionModal);
@@ -4356,6 +4427,12 @@ window.addEventListener("DOMContentLoaded", () => {
   const createTaskImagesField = document.querySelector("[data-create-task-images]");
   const createTaskSubtasksField = document.querySelector("[data-create-task-subtasks]");
   const createTaskSubtasksList = document.querySelector("[data-create-task-subtasks-list]");
+  const createTaskSubtasksDependencyInput = document.querySelector(
+    "[data-create-task-subtasks-dependency]"
+  );
+  const createTaskSubtasksDependencyToggle = document.querySelector(
+    "[data-create-task-subtasks-dependency-toggle]"
+  );
   const createTaskSubtaskInput = document.querySelector("[data-create-task-subtask-input]");
   const createTaskSubtaskAddButton = document.querySelector("[data-create-task-subtask-add]");
   const createTaskImagePicker = document.querySelector("[data-create-task-image-picker]");
@@ -4499,6 +4576,12 @@ window.addEventListener("DOMContentLoaded", () => {
   );
   const taskDetailEditSubtasksField = document.querySelector("[data-task-detail-edit-subtasks]");
   const taskDetailEditSubtasksList = document.querySelector("[data-task-detail-edit-subtasks-list]");
+  const taskDetailEditSubtasksDependencyInput = document.querySelector(
+    "[data-task-detail-edit-subtasks-dependency]"
+  );
+  const taskDetailEditSubtasksDependencyToggle = document.querySelector(
+    "[data-task-detail-edit-subtasks-dependency-toggle]"
+  );
   const taskDetailEditSubtaskInput = document.querySelector("[data-task-detail-edit-subtask-input]");
   const taskDetailEditSubtaskAddButton = document.querySelector("[data-task-detail-edit-subtask-add]");
   const taskDetailEditLinks = document.querySelector("[data-task-detail-edit-links]");
@@ -4539,8 +4622,10 @@ window.addEventListener("DOMContentLoaded", () => {
   let taskDetailContext = null;
   let taskDetailEditImageItems = [];
   let taskDetailEditSubtaskItems = [];
+  let taskDetailEditSubtasksDependencyEnabled = false;
   let createTaskImageItems = [];
   let createTaskSubtaskItems = [];
+  let createTaskSubtasksDependencyEnabled = false;
   const TASK_TITLE_TAG_DEFAULT_PALETTE = [
     "#6967AE",
     "#D1495B",
@@ -4860,7 +4945,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const normalizedTag = normalizeTaskTitleTagValue(createTaskCurrentTitleTag);
     createTaskCurrentTitleTag = normalizedTag;
     const normalizedColor = normalizedTag
-      ? resolveTaskTitleTagColor(normalizedTag, createTaskCurrentTitleTagColor)
+      ? resolveTaskTitleTagColor(normalizedTag)
       : normalizeTaskTitleTagColorValue(createTaskCurrentTitleTagColor, taskTitleTagDefaultColor);
     createTaskCurrentTitleTagColor = normalizedColor;
 
@@ -4995,8 +5080,11 @@ window.addEventListener("DOMContentLoaded", () => {
   const setCreateTaskTitleTagValue = (value = "", colorValue = "") => {
     createTaskCurrentTitleTag = normalizeTaskTitleTagValue(value);
     createTaskOpenColorPaletteTag = "";
+    const explicitColor = normalizeTaskTitleTagColorLoose(colorValue);
     createTaskCurrentTitleTagColor = createTaskCurrentTitleTag
-      ? resolveTaskTitleTagColor(createTaskCurrentTitleTag, colorValue || createTaskCurrentTitleTagColor)
+      ? explicitColor
+        ? resolveTaskTitleTagColor(createTaskCurrentTitleTag, explicitColor)
+        : resolveTaskTitleTagColor(createTaskCurrentTitleTag)
       : normalizeTaskTitleTagColorValue(colorValue || createTaskCurrentTitleTagColor, taskTitleTagDefaultColor);
     syncCreateTaskTitleTagTrigger();
     renderCreateTaskTitleTagMenu();
@@ -5109,7 +5197,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const normalizedTag = normalizeTaskTitleTagValue(taskDetailEditCurrentTitleTag);
     taskDetailEditCurrentTitleTag = normalizedTag;
     const normalizedColor = normalizedTag
-      ? resolveTaskTitleTagColor(normalizedTag, taskDetailEditCurrentTitleTagColor)
+      ? resolveTaskTitleTagColor(normalizedTag)
       : normalizeTaskTitleTagColorValue(taskDetailEditCurrentTitleTagColor, taskTitleTagDefaultColor);
     taskDetailEditCurrentTitleTagColor = normalizedColor;
 
@@ -5244,11 +5332,11 @@ window.addEventListener("DOMContentLoaded", () => {
   const setTaskDetailTitleTagValue = (value = "", colorValue = "") => {
     taskDetailEditCurrentTitleTag = normalizeTaskTitleTagValue(value);
     taskDetailEditOpenColorPaletteTag = "";
+    const explicitColor = normalizeTaskTitleTagColorLoose(colorValue);
     taskDetailEditCurrentTitleTagColor = taskDetailEditCurrentTitleTag
-      ? resolveTaskTitleTagColor(
-          taskDetailEditCurrentTitleTag,
-          colorValue || taskDetailEditCurrentTitleTagColor
-        )
+      ? explicitColor
+        ? resolveTaskTitleTagColor(taskDetailEditCurrentTitleTag, explicitColor)
+        : resolveTaskTitleTagColor(taskDetailEditCurrentTitleTag)
       : normalizeTaskTitleTagColorValue(
           colorValue || taskDetailEditCurrentTitleTagColor,
           taskTitleTagDefaultColor
@@ -5331,6 +5419,61 @@ window.addEventListener("DOMContentLoaded", () => {
   resetCreateTaskTitleTagPicker();
   resetTaskDetailTitleTagPicker();
 
+  const setCreateTaskSubtasksDependencyEnabled = (enabled) => {
+    createTaskSubtasksDependencyEnabled = Boolean(enabled);
+    if (createTaskSubtasksDependencyToggle instanceof HTMLInputElement) {
+      createTaskSubtasksDependencyToggle.checked = createTaskSubtasksDependencyEnabled;
+    }
+    writeTaskSubtasksDependencyField(
+      createTaskSubtasksDependencyInput,
+      createTaskSubtasksDependencyEnabled
+    );
+    if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
+      writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems, {
+        enforceDependency: createTaskSubtasksDependencyEnabled,
+      });
+    }
+  };
+
+  const setTaskDetailEditSubtasksDependencyEnabled = (enabled) => {
+    taskDetailEditSubtasksDependencyEnabled = Boolean(enabled);
+    if (taskDetailEditSubtasksDependencyToggle instanceof HTMLInputElement) {
+      taskDetailEditSubtasksDependencyToggle.checked = taskDetailEditSubtasksDependencyEnabled;
+    }
+    writeTaskSubtasksDependencyField(
+      taskDetailEditSubtasksDependencyInput,
+      taskDetailEditSubtasksDependencyEnabled
+    );
+    if (taskDetailEditSubtasksField instanceof HTMLTextAreaElement) {
+      writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems, {
+        enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+      });
+    }
+  };
+
+  const readTaskRowSubtasksDependencyEnabled = (scope) => {
+    if (scope instanceof HTMLFormElement) {
+      return readTaskSubtasksDependencyField(
+        scope.querySelector("[data-task-subtasks-dependency]"),
+        false
+      );
+    }
+
+    if (scope instanceof HTMLElement) {
+      const form = scope.matches("form")
+        ? scope
+        : scope.querySelector?.("[data-task-autosave-form]");
+      if (form instanceof HTMLFormElement) {
+        return readTaskSubtasksDependencyField(
+          form.querySelector("[data-task-subtasks-dependency]"),
+          false
+        );
+      }
+    }
+
+    return false;
+  };
+
   function renderTaskRowSubtasksProgress(taskItem, subtasks) {
     if (!(taskItem instanceof HTMLElement)) return;
     const progressWrap = taskItem.querySelector("[data-task-subtasks-progress]");
@@ -5338,7 +5481,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const stepsWrap = progressWrap.querySelector("[data-task-subtasks-progress-steps]");
     const textEl = progressWrap.querySelector("[data-task-subtasks-progress-text]");
-    const progress = taskSubtasksProgressMeta(subtasks);
+    const dependencyEnabled = readTaskRowSubtasksDependencyEnabled(taskItem);
+    const progress = taskSubtasksProgressMeta(subtasks, {
+      enforceDependency: dependencyEnabled,
+    });
     const items = progress.items;
 
     if (!(stepsWrap instanceof HTMLElement) || !(textEl instanceof HTMLElement)) {
@@ -5355,13 +5501,11 @@ window.addEventListener("DOMContentLoaded", () => {
     progressWrap.classList.remove("is-hidden");
     stepsWrap.innerHTML = "";
 
-    items.forEach((item, index) => {
+    items.forEach((_item, index) => {
       const dot = document.createElement("span");
       dot.className = "task-subtasks-progress-step";
-      if (item.done) {
+      if (index < progress.completed) {
         dot.classList.add("is-done");
-      } else if (index > 0 && !items[index - 1]?.done) {
-        dot.classList.add("is-locked");
       }
       dot.setAttribute("aria-hidden", "true");
       stepsWrap.append(dot);
@@ -5381,15 +5525,27 @@ window.addEventListener("DOMContentLoaded", () => {
         : form.closest("[data-task-item]");
     if (!(taskItem instanceof HTMLElement)) return;
 
-    const subtasks = readTaskSubtasksField(subtasksField);
-    writeTaskSubtasksField(subtasksField, subtasks);
+    const dependencyEnabled = readTaskRowSubtasksDependencyEnabled(form);
+    const subtasks = readTaskSubtasksField(subtasksField, {
+      enforceDependency: dependencyEnabled,
+    });
+    writeTaskSubtasksField(subtasksField, subtasks, {
+      enforceDependency: dependencyEnabled,
+    });
     renderTaskRowSubtasksProgress(taskItem, subtasks);
   }
 
-  const renderTaskSubtasksViewList = ({ subtasks = [], readOnly = false, editable = true } = {}) => {
+  const renderTaskSubtasksViewList = ({
+    subtasks = [],
+    readOnly = false,
+    editable = true,
+    dependencyEnabled = false,
+  } = {}) => {
     if (!(taskDetailViewSubtasks instanceof HTMLElement)) return;
 
-    const normalized = parseTaskSubtaskList(subtasks || []);
+    const normalized = parseTaskSubtaskList(subtasks || [], 40, {
+      enforceDependency: dependencyEnabled,
+    });
     taskDetailViewSubtasks.innerHTML = "";
 
     if (!normalized.length) {
@@ -5412,9 +5568,10 @@ window.addEventListener("DOMContentLoaded", () => {
       checkbox.className = "task-detail-subtask-check";
       checkbox.dataset.taskDetailSubtaskToggle = String(index);
       checkbox.checked = Boolean(item.done);
-      const isUnlocked = index === 0 || Boolean(normalized[index - 1]?.done);
-      checkbox.disabled = readOnly || !editable || (!isUnlocked && !item.done);
-      if (!isUnlocked && !item.done) {
+      const isUnlocked =
+        !dependencyEnabled || index === 0 || Boolean(normalized[index - 1]?.done) || item.done;
+      checkbox.disabled = readOnly || !editable || (dependencyEnabled && !isUnlocked && !item.done);
+      if (dependencyEnabled && !isUnlocked && !item.done) {
         row.classList.add("is-locked");
       }
       if (item.done) {
@@ -5430,17 +5587,27 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  const setTaskDetailEditSubtasks = (subtasks) => {
-    taskDetailEditSubtaskItems = parseTaskSubtaskList(subtasks || []);
+  const setTaskDetailEditSubtasks = (subtasks, { dependencyEnabled = false } = {}) => {
+    setTaskDetailEditSubtasksDependencyEnabled(dependencyEnabled);
+    taskDetailEditSubtaskItems = parseTaskSubtaskList(subtasks || [], 40, {
+      enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+    });
     if (taskDetailEditSubtasksField instanceof HTMLTextAreaElement) {
-      writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems);
+      writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems, {
+        enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+      });
     }
   };
 
-  const setCreateTaskSubtasks = (subtasks) => {
-    createTaskSubtaskItems = parseTaskSubtaskList(subtasks || []);
+  const setCreateTaskSubtasks = (subtasks, { dependencyEnabled = false } = {}) => {
+    setCreateTaskSubtasksDependencyEnabled(dependencyEnabled);
+    createTaskSubtaskItems = parseTaskSubtaskList(subtasks || [], 40, {
+      enforceDependency: createTaskSubtasksDependencyEnabled,
+    });
     if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
-      writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems);
+      writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems, {
+        enforceDependency: createTaskSubtasksDependencyEnabled,
+      });
     }
   };
 
@@ -5459,7 +5626,15 @@ window.addEventListener("DOMContentLoaded", () => {
       check.className = "task-subtasks-edit-check";
       check.dataset.taskDetailEditSubtaskDone = String(index);
       check.checked = Boolean(item.done);
-      check.disabled = index > 0 && !taskDetailEditSubtaskItems[index - 1]?.done && !item.done;
+      const checkLocked =
+        taskDetailEditSubtasksDependencyEnabled &&
+        index > 0 &&
+        !taskDetailEditSubtaskItems[index - 1]?.done &&
+        !item.done;
+      check.disabled = checkLocked;
+      if (checkLocked) {
+        row.classList.add("is-locked");
+      }
 
       const title = document.createElement("input");
       title.type = "text";
@@ -5473,14 +5648,16 @@ window.addEventListener("DOMContentLoaded", () => {
       remove.className = "task-subtasks-edit-remove";
       remove.dataset.taskDetailEditSubtaskRemove = String(index);
       remove.setAttribute("aria-label", "Remover etapa");
-      remove.textContent = "x";
+      remove.textContent = "Excluir";
 
       row.append(check, title, remove);
       taskDetailEditSubtasksList.append(row);
     });
 
     if (taskDetailEditSubtasksField instanceof HTMLTextAreaElement) {
-      writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems);
+      writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems, {
+        enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+      });
     }
   };
 
@@ -5499,7 +5676,15 @@ window.addEventListener("DOMContentLoaded", () => {
       check.className = "task-subtasks-edit-check";
       check.dataset.createTaskSubtaskDone = String(index);
       check.checked = Boolean(item.done);
-      check.disabled = index > 0 && !createTaskSubtaskItems[index - 1]?.done && !item.done;
+      const checkLocked =
+        createTaskSubtasksDependencyEnabled &&
+        index > 0 &&
+        !createTaskSubtaskItems[index - 1]?.done &&
+        !item.done;
+      check.disabled = checkLocked;
+      if (checkLocked) {
+        row.classList.add("is-locked");
+      }
 
       const title = document.createElement("input");
       title.type = "text";
@@ -5513,14 +5698,16 @@ window.addEventListener("DOMContentLoaded", () => {
       remove.className = "task-subtasks-edit-remove";
       remove.dataset.createTaskSubtaskRemove = String(index);
       remove.setAttribute("aria-label", "Remover etapa");
-      remove.textContent = "x";
+      remove.textContent = "Excluir";
 
       row.append(check, title, remove);
       createTaskSubtasksList.append(row);
     });
 
     if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
-      writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems);
+      writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems, {
+        enforceDependency: createTaskSubtasksDependencyEnabled,
+      });
     }
   };
 
@@ -6094,7 +6281,9 @@ window.addEventListener("DOMContentLoaded", () => {
     taskDetailEditSubtaskItems = parseTaskSubtaskList([
       ...taskDetailEditSubtaskItems,
       { title, done: false },
-    ]);
+    ], 40, {
+      enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+    });
     taskDetailEditSubtaskInput.value = "";
     renderTaskDetailSubtasksEditList();
     taskDetailEditSubtaskInput.focus();
@@ -6107,7 +6296,9 @@ window.addEventListener("DOMContentLoaded", () => {
     createTaskSubtaskItems = parseTaskSubtaskList([
       ...createTaskSubtaskItems,
       { title, done: false },
-    ]);
+    ], 40, {
+      enforceDependency: createTaskSubtasksDependencyEnabled,
+    });
     createTaskSubtaskInput.value = "";
     renderCreateTaskSubtasksEditList();
     createTaskSubtaskInput.focus();
@@ -6118,6 +6309,26 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   if (createTaskSubtaskAddButton instanceof HTMLButtonElement) {
     createTaskSubtaskAddButton.addEventListener("click", addCreateTaskSubtaskFromInput);
+  }
+
+  if (taskDetailEditSubtasksDependencyToggle instanceof HTMLInputElement) {
+    taskDetailEditSubtasksDependencyToggle.addEventListener("change", () => {
+      setTaskDetailEditSubtasksDependencyEnabled(taskDetailEditSubtasksDependencyToggle.checked);
+      taskDetailEditSubtaskItems = parseTaskSubtaskList(taskDetailEditSubtaskItems, 40, {
+        enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+      });
+      renderTaskDetailSubtasksEditList();
+    });
+  }
+
+  if (createTaskSubtasksDependencyToggle instanceof HTMLInputElement) {
+    createTaskSubtasksDependencyToggle.addEventListener("change", () => {
+      setCreateTaskSubtasksDependencyEnabled(createTaskSubtasksDependencyToggle.checked);
+      createTaskSubtaskItems = parseTaskSubtaskList(createTaskSubtaskItems, 40, {
+        enforceDependency: createTaskSubtasksDependencyEnabled,
+      });
+      renderCreateTaskSubtasksEditList();
+    });
   }
 
   if (taskDetailEditSubtaskInput instanceof HTMLInputElement) {
@@ -6146,7 +6357,9 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailEditSubtaskItems = taskDetailEditSubtaskItems.filter(
         (_item, itemIndex) => itemIndex !== index
       );
-      taskDetailEditSubtaskItems = parseTaskSubtaskList(taskDetailEditSubtaskItems);
+      taskDetailEditSubtaskItems = parseTaskSubtaskList(taskDetailEditSubtaskItems, 40, {
+        enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+      });
       renderTaskDetailSubtasksEditList();
       return;
     }
@@ -6158,7 +6371,9 @@ window.addEventListener("DOMContentLoaded", () => {
       createTaskSubtaskItems = createTaskSubtaskItems.filter(
         (_item, itemIndex) => itemIndex !== index
       );
-      createTaskSubtaskItems = parseTaskSubtaskList(createTaskSubtaskItems);
+      createTaskSubtaskItems = parseTaskSubtaskList(createTaskSubtaskItems, 40, {
+        enforceDependency: createTaskSubtasksDependencyEnabled,
+      });
       renderCreateTaskSubtasksEditList();
       return;
     }
@@ -6174,7 +6389,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!Number.isFinite(index) || index < 0 || index >= taskDetailEditSubtaskItems.length) return;
       taskDetailEditSubtaskItems[index].title = String(detailTitleInput.value || "").slice(0, 120);
       if (taskDetailEditSubtasksField instanceof HTMLTextAreaElement) {
-        writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems);
+        writeTaskSubtasksField(taskDetailEditSubtasksField, taskDetailEditSubtaskItems, {
+          enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+        });
       }
       return;
     }
@@ -6185,7 +6402,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!Number.isFinite(index) || index < 0 || index >= createTaskSubtaskItems.length) return;
       createTaskSubtaskItems[index].title = String(createTitleInput.value || "").slice(0, 120);
       if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
-        writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems);
+        writeTaskSubtasksField(createTaskSubtasksField, createTaskSubtaskItems, {
+          enforceDependency: createTaskSubtasksDependencyEnabled,
+        });
       }
     }
   });
@@ -6199,7 +6418,9 @@ window.addEventListener("DOMContentLoaded", () => {
       const index = Number.parseInt(detailCheck.dataset.taskDetailEditSubtaskDone || "-1", 10);
       if (!Number.isFinite(index) || index < 0 || index >= taskDetailEditSubtaskItems.length) return;
       taskDetailEditSubtaskItems[index].done = detailCheck.checked;
-      taskDetailEditSubtaskItems = parseTaskSubtaskList(taskDetailEditSubtaskItems);
+      taskDetailEditSubtaskItems = parseTaskSubtaskList(taskDetailEditSubtaskItems, 40, {
+        enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+      });
       renderTaskDetailSubtasksEditList();
       return;
     }
@@ -6209,7 +6430,9 @@ window.addEventListener("DOMContentLoaded", () => {
       const index = Number.parseInt(createCheck.dataset.createTaskSubtaskDone || "-1", 10);
       if (!Number.isFinite(index) || index < 0 || index >= createTaskSubtaskItems.length) return;
       createTaskSubtaskItems[index].done = createCheck.checked;
-      createTaskSubtaskItems = parseTaskSubtaskList(createTaskSubtaskItems);
+      createTaskSubtaskItems = parseTaskSubtaskList(createTaskSubtaskItems, 40, {
+        enforceDependency: createTaskSubtasksDependencyEnabled,
+      });
       renderCreateTaskSubtasksEditList();
     }
   });
@@ -6229,17 +6452,28 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!Number.isFinite(index) || index < 0) return;
     if (!(taskDetailContext.subtasksField instanceof HTMLInputElement)) return;
 
-    const current = readTaskSubtasksField(taskDetailContext.subtasksField);
+    const dependencyEnabled = readTaskSubtasksDependencyField(
+      taskDetailContext?.subtasksDependencyField,
+      false
+    );
+    const current = readTaskSubtasksField(taskDetailContext.subtasksField, {
+      enforceDependency: dependencyEnabled,
+    });
     if (index >= current.length) return;
 
     current[index].done = subtaskToggle.checked;
-    const normalized = parseTaskSubtaskList(current);
-    writeTaskSubtasksField(taskDetailContext.subtasksField, normalized);
+    const normalized = parseTaskSubtaskList(current, 40, {
+      enforceDependency: dependencyEnabled,
+    });
+    writeTaskSubtasksField(taskDetailContext.subtasksField, normalized, {
+      enforceDependency: dependencyEnabled,
+    });
     renderTaskRowSubtasksProgress(taskDetailContext.taskItem, normalized);
     renderTaskSubtasksViewList({
       subtasks: normalized,
       readOnly: Boolean(taskDetailContext.readOnly),
       editable: true,
+      dependencyEnabled,
     });
     scheduleTaskAutosave(taskDetailContext.form, 60);
   });
@@ -6345,6 +6579,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const referenceLinksField = form.querySelector('[data-task-reference-links-json]');
     const referenceImagesField = form.querySelector('[data-task-reference-images-json]');
     const subtasksField = form.querySelector("[data-task-subtasks-json]");
+    const subtasksDependencyField = form.querySelector("[data-task-subtasks-dependency]");
     const overdueFlagField = form.querySelector("[data-task-overdue-flag]");
     const overdueSinceDateField = form.querySelector("[data-task-overdue-since-date]");
     const overdueDaysField = form.querySelector("[data-task-overdue-days]");
@@ -6380,6 +6615,8 @@ window.addEventListener("DOMContentLoaded", () => {
       referenceLinksField: referenceLinksField instanceof HTMLInputElement ? referenceLinksField : null,
       referenceImagesField: referenceImagesField instanceof HTMLInputElement ? referenceImagesField : null,
       subtasksField: subtasksField instanceof HTMLInputElement ? subtasksField : null,
+      subtasksDependencyField:
+        subtasksDependencyField instanceof HTMLInputElement ? subtasksDependencyField : null,
       overdueFlagField: overdueFlagField instanceof HTMLInputElement ? overdueFlagField : null,
       overdueSinceDateField:
         overdueSinceDateField instanceof HTMLInputElement ? overdueSinceDateField : null,
@@ -6448,9 +6685,34 @@ window.addEventListener("DOMContentLoaded", () => {
         dataSelector: "[data-task-subtasks-json]",
         dataAttrName: "data-task-subtasks-json",
       });
+      const subtasksDependencyField = ensureTaskHiddenField(context.form, {
+        name: "subtasks_dependency_enabled",
+        withName: true,
+        dataSelector: "[data-task-subtasks-dependency]",
+        dataAttrName: "data-task-subtasks-dependency",
+      });
+      if (subtasksDependencyField instanceof HTMLInputElement) {
+        const nextDependencyValue = Object.prototype.hasOwnProperty.call(
+          task,
+          "subtasks_dependency_enabled"
+        )
+          ? normalizeTaskSubtasksDependencyValue(task.subtasks_dependency_enabled, false)
+          : readTaskSubtasksDependencyField(subtasksDependencyField, false);
+        writeTaskSubtasksDependencyField(subtasksDependencyField, nextDependencyValue);
+        context.subtasksDependencyField = subtasksDependencyField;
+      }
       if (subtasksField instanceof HTMLInputElement) {
+        const enforceDependency = readTaskSubtasksDependencyField(
+          context.subtasksDependencyField,
+          false
+        );
         if (typeof task.subtasks_json === "string") {
-          subtasksField.value = task.subtasks_json;
+          const parsedSubtasks = parseTaskSubtaskList(task.subtasks_json, 40, {
+            enforceDependency,
+          });
+          writeTaskSubtasksField(subtasksField, parsedSubtasks, {
+            enforceDependency,
+          });
         }
         context.subtasksField = subtasksField;
       }
@@ -6593,6 +6855,7 @@ window.addEventListener("DOMContentLoaded", () => {
       referenceLinksField,
       referenceImagesField,
       subtasksField,
+      subtasksDependencyField,
       overdueFlagField,
       overdueSinceDateField,
       overdueDaysField,
@@ -6615,7 +6878,10 @@ window.addEventListener("DOMContentLoaded", () => {
     const description = (descriptionField.value || "").trim();
     const referenceLinks = readJsonUrlListField(referenceLinksField, parseReferenceUrlLines);
     const referenceImages = readJsonUrlListField(referenceImagesField, parseReferenceImageItems);
-    const subtasks = readTaskSubtasksField(subtasksField);
+    const subtasksDependencyEnabled = readTaskSubtasksDependencyField(subtasksDependencyField, false);
+    const subtasks = readTaskSubtasksField(subtasksField, {
+      enforceDependency: subtasksDependencyEnabled,
+    });
     const overdueFlag =
       overdueFlagField instanceof HTMLInputElement && overdueFlagField.value === "1" ? 1 : 0;
     const overdueSinceDate =
@@ -6656,6 +6922,7 @@ window.addEventListener("DOMContentLoaded", () => {
       subtasks,
       readOnly: Boolean(context.readOnly),
       editable: true,
+      dependencyEnabled: subtasksDependencyEnabled,
     });
     renderTaskDetailReferencesView({ links: referenceLinks, images: referenceImages });
     renderTaskDetailHistoryView({
@@ -6708,7 +6975,9 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailEditLinks.value = referenceLinks.join("\n");
       syncReferenceTextareaLayout(taskDetailEditLinks);
     }
-    setTaskDetailEditSubtasks(subtasks);
+    setTaskDetailEditSubtasks(subtasks, {
+      dependencyEnabled: subtasksDependencyEnabled,
+    });
     renderTaskDetailSubtasksEditList();
     setTaskDetailEditImageItems(referenceImages);
     copyAssigneesToTaskDetailModal(rowAssigneePicker);
@@ -6743,6 +7012,7 @@ window.addEventListener("DOMContentLoaded", () => {
     taskDetailModal.hidden = true;
     taskDetailContext = null;
     taskDetailEditSubtaskItems = [];
+    setTaskDetailEditSubtasksDependencyEnabled(false);
     setTaskDetailEditMode(false);
     if (taskDetailSaveButton instanceof HTMLButtonElement) {
       taskDetailSaveButton.disabled = false;
@@ -6828,8 +7098,26 @@ window.addEventListener("DOMContentLoaded", () => {
       writeJsonUrlListField(context.referenceImagesField, referenceImages, parseReferenceImageItems);
     }
     if (context.subtasksField instanceof HTMLInputElement) {
-      const normalizedSubtasks = parseTaskSubtaskList(taskDetailEditSubtaskItems);
-      writeTaskSubtasksField(context.subtasksField, normalizedSubtasks);
+      if (!(context.subtasksDependencyField instanceof HTMLInputElement)) {
+        context.subtasksDependencyField = ensureTaskHiddenField(context.form, {
+          name: "subtasks_dependency_enabled",
+          withName: true,
+          dataSelector: "[data-task-subtasks-dependency]",
+          dataAttrName: "data-task-subtasks-dependency",
+        });
+      }
+      if (context.subtasksDependencyField instanceof HTMLInputElement) {
+        writeTaskSubtasksDependencyField(
+          context.subtasksDependencyField,
+          taskDetailEditSubtasksDependencyEnabled
+        );
+      }
+      const normalizedSubtasks = parseTaskSubtaskList(taskDetailEditSubtaskItems, 40, {
+        enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+      });
+      writeTaskSubtasksField(context.subtasksField, normalizedSubtasks, {
+        enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+      });
       renderTaskRowSubtasksProgress(context.taskItem, normalizedSubtasks);
     }
 
@@ -7780,6 +8068,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (createGroupForm) {
       createGroupForm.reset();
     }
+    syncGroupPermissionsModal(createGroupModal);
     createGroupModal.hidden = false;
     syncBodyModalLock();
     window.setTimeout(() => {
@@ -9237,9 +9526,15 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
         createTaskSubtasksField.value = JSON.stringify(
-          parseTaskSubtaskList(createTaskSubtaskItems || [])
+          parseTaskSubtaskList(createTaskSubtaskItems || [], 40, {
+            enforceDependency: createTaskSubtasksDependencyEnabled,
+          })
         );
       }
+      writeTaskSubtasksDependencyField(
+        createTaskSubtasksDependencyInput,
+        createTaskSubtasksDependencyEnabled
+      );
 
       syncBodyModalLock();
     });

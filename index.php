@@ -111,8 +111,15 @@ function workspaceRolesByUserId(array $workspaceMembers): array
     return $rolesByUserId;
 }
 
-function submittedGroupPermissionsByUserId(array $workspaceRolesByUserId): array
+function submittedGroupPermissionsByUserId(array $workspaceRolesByUserId, array $options = []): array
 {
+    $includeAdmins = !empty($options['include_admins']);
+    $forceEnabledUserIds = $options['force_enabled_user_ids'] ?? [];
+    if (!is_array($forceEnabledUserIds)) {
+        $forceEnabledUserIds = [$forceEnabledUserIds];
+    }
+    $forceEnabledUserIds = array_values(array_filter(array_map('intval', $forceEnabledUserIds), static fn (int $id): bool => $id > 0));
+
     $memberIdsRaw = $_POST['member_ids'] ?? [];
     if (!is_array($memberIdsRaw)) {
         $memberIdsRaw = [$memberIdsRaw];
@@ -131,7 +138,7 @@ function submittedGroupPermissionsByUserId(array $workspaceRolesByUserId): array
         }
 
         $memberRole = normalizeWorkspaceRole((string) $workspaceRolesByUserId[$memberId]);
-        if ($memberRole === 'admin') {
+        if ($memberRole === 'admin' && !$includeAdmins) {
             $permissionsByUserId[$memberId] = ['can_view' => 1, 'can_access' => 1];
             continue;
         }
@@ -160,6 +167,13 @@ function submittedGroupPermissionsByUserId(array $workspaceRolesByUserId): array
             'can_view' => $canView,
             'can_access' => $canAccess,
         ];
+    }
+
+    foreach ($forceEnabledUserIds as $forceEnabledUserId) {
+        if (!isset($workspaceRolesByUserId[$forceEnabledUserId])) {
+            continue;
+        }
+        $permissionsByUserId[$forceEnabledUserId] = ['can_view' => 1, 'can_access' => 1];
     }
 
     return $permissionsByUserId;
@@ -1347,7 +1361,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Este grupo já existe.');
                 }
 
-                upsertTaskGroup($pdo, $groupName, (int) $authUser['id'], $workspaceId);
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem criar grupos.');
+                }
+
+                $rolesByUserId = workspaceRolesByUserId(workspaceMembersList($workspaceId));
+                $permissionsByUserId = submittedGroupPermissionsByUserId($rolesByUserId, [
+                    'include_admins' => true,
+                    'force_enabled_user_ids' => [(int) $authUser['id']],
+                ]);
+
+                $pdo->beginTransaction();
+                try {
+                    upsertTaskGroup($pdo, $groupName, (int) $authUser['id'], $workspaceId);
+                    saveTaskGroupPermissions(
+                        $pdo,
+                        $workspaceId,
+                        $groupName,
+                        $permissionsByUserId,
+                        $rolesByUserId
+                    );
+                    $pdo->commit();
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $e;
+                }
                 flash('success', 'Grupo criado.');
                 redirectTo('index.php#tasks');
 
@@ -1590,7 +1630,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $rolesByUserId = workspaceRolesByUserId(workspaceMembersList($workspaceId));
-                $permissionsByUserId = submittedGroupPermissionsByUserId($rolesByUserId);
+                $permissionsByUserId = submittedGroupPermissionsByUserId($rolesByUserId, [
+                    'include_admins' => true,
+                    'force_enabled_user_ids' => [(int) $authUser['id']],
+                ]);
                 $pdo->beginTransaction();
                 try {
                     saveTaskGroupPermissions($pdo, $workspaceId, $existingGroupName, $permissionsByUserId, $rolesByUserId);
@@ -1623,6 +1666,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $referenceLinksPosted = array_key_exists('reference_links_json', $_POST);
                 $referenceImagesPosted = array_key_exists('reference_images_json', $_POST);
                 $subtasksPosted = array_key_exists('subtasks_json', $_POST);
+                $subtasksDependencyPosted = array_key_exists('subtasks_dependency_enabled', $_POST);
+                $subtasksDependencyEnabled = $subtasksDependencyPosted
+                    ? normalizePermissionFlag($_POST['subtasks_dependency_enabled'] ?? 0)
+                    : null;
                 $referenceLinks = $referenceLinksPosted
                     ? decodeReferenceUrlList((string) ($_POST['reference_links_json'] ?? '[]'))
                     : null;
@@ -1630,7 +1677,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? decodeReferenceImageList((string) ($_POST['reference_images_json'] ?? '[]'))
                     : null;
                 $subtasks = $subtasksPosted
-                    ? decodeTaskSubtasks((string) ($_POST['subtasks_json'] ?? '[]'))
+                    ? decodeTaskSubtasks(
+                        (string) ($_POST['subtasks_json'] ?? '[]'),
+                        ($subtasksDependencyEnabled ?? 0) === 1
+                    )
                     : null;
                 $submittedHasActiveRevision = ((int) ($_POST['has_active_revision'] ?? 0)) === 1;
                 $overdueFlagPosted = array_key_exists('overdue_flag', $_POST);
@@ -1691,11 +1741,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $overdueSinceDate = $normalized['overdue_since_date'];
                     $referenceLinks ??= [];
                     $referenceImages ??= [];
+                    $subtasksDependencyEnabled ??= 0;
                     $subtasks ??= [];
                     $status = applyTaskSubtasksCompletionStatus($status, $subtasks);
                     $stmt = $pdo->prepare(
-                        'INSERT INTO tasks (workspace_id, title, title_tag, description, status, priority, due_date, overdue_flag, overdue_since_date, created_by, assigned_to, assignee_ids_json, reference_links_json, reference_images_json, subtasks_json, group_name, created_at, updated_at)
-                         VALUES (:workspace_id, :t, :tt, :d, :s, :p, :dd, :of, :osd, :cb, :at, :aj, :rl, :ri, :sj, :g, :c, :u)'
+                        'INSERT INTO tasks (workspace_id, title, title_tag, description, status, priority, due_date, overdue_flag, overdue_since_date, created_by, assigned_to, assignee_ids_json, reference_links_json, reference_images_json, subtasks_json, subtasks_dependency_enabled, group_name, created_at, updated_at)
+                         VALUES (:workspace_id, :t, :tt, :d, :s, :p, :dd, :of, :osd, :cb, :at, :aj, :rl, :ri, :sj, :sde, :g, :c, :u)'
                     );
                     $now = nowIso();
                     $stmt->execute([
@@ -1713,7 +1764,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':aj' => $assigneeIdsJson,
                         ':rl' => encodeReferenceUrlList($referenceLinks),
                         ':ri' => encodeReferenceImageList($referenceImages),
-                        ':sj' => encodeTaskSubtasks($subtasks),
+                        ':sj' => encodeTaskSubtasks($subtasks, $subtasksDependencyEnabled === 1),
+                        ':sde' => $subtasksDependencyEnabled,
                         ':g' => $groupName,
                         ':c' => $now,
                         ':u' => $now,
@@ -1769,7 +1821,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Tarefa invalida.');
                 }
                 $existingTaskStmt = $pdo->prepare(
-                    'SELECT title, title_tag, description, status, priority, due_date, overdue_flag, overdue_since_date, assignee_ids_json, group_name, reference_links_json, reference_images_json, subtasks_json
+                    'SELECT title, title_tag, description, status, priority, due_date, overdue_flag, overdue_since_date, assignee_ids_json, group_name, reference_links_json, reference_images_json, subtasks_json, subtasks_dependency_enabled
                      FROM tasks
                      WHERE id = :id
                        AND workspace_id = :workspace_id
@@ -1799,8 +1851,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($referenceImages === null) {
                     $referenceImages = decodeReferenceImageList($existingTaskRow['reference_images_json'] ?? null);
                 }
+                if ($subtasksDependencyEnabled === null) {
+                    $subtasksDependencyEnabled = normalizePermissionFlag(
+                        $existingTaskRow['subtasks_dependency_enabled'] ?? 0
+                    );
+                }
                 if ($subtasks === null) {
-                    $subtasks = decodeTaskSubtasks($existingTaskRow['subtasks_json'] ?? null);
+                    $subtasks = decodeTaskSubtasks(
+                        $existingTaskRow['subtasks_json'] ?? null,
+                        $subtasksDependencyEnabled === 1
+                    );
+                } else {
+                    $subtasks = decodeTaskSubtasks($subtasks, $subtasksDependencyEnabled === 1);
                 }
                 if ($overdueFlag === null) {
                     $overdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
@@ -1839,6 +1901,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          reference_links_json = :rl,
                          reference_images_json = :ri,
                          subtasks_json = :sj,
+                         subtasks_dependency_enabled = :sde,
                          group_name = :g,
                          updated_at = :u
                      WHERE id = :id
@@ -1858,7 +1921,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':aj' => $assigneeIdsJson,
                     ':rl' => encodeReferenceUrlList($referenceLinks ?? []),
                     ':ri' => encodeReferenceImageList($referenceImages ?? []),
-                    ':sj' => encodeTaskSubtasks($subtasks ?? []),
+                    ':sj' => encodeTaskSubtasks($subtasks ?? [], $subtasksDependencyEnabled === 1),
+                    ':sde' => $subtasksDependencyEnabled,
                     ':g' => $groupName,
                     ':u' => $updatedAt,
                     ':id' => $taskId,
@@ -1875,7 +1939,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingOverdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
                 $existingOverdueSinceDate = dueDateForStorage((string) ($existingTaskRow['overdue_since_date'] ?? ''));
                 $existingAssigneeIds = decodeAssigneeIds($existingTaskRow['assignee_ids_json'] ?? null);
-                $existingSubtasks = decodeTaskSubtasks($existingTaskRow['subtasks_json'] ?? null);
+                $existingSubtasksDependencyEnabled = normalizePermissionFlag(
+                    $existingTaskRow['subtasks_dependency_enabled'] ?? 0
+                );
+                $existingSubtasks = decodeTaskSubtasks(
+                    $existingTaskRow['subtasks_json'] ?? null,
+                    $existingSubtasksDependencyEnabled === 1
+                );
                 $statusOptions = taskStatuses();
                 $priorityOptions = taskPriorities();
                 if ($titleTag !== '') {
@@ -1969,8 +2039,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     );
                 }
                 if ($existingSubtasks !== $subtasks) {
-                    $existingProgress = taskSubtasksProgress($existingSubtasks);
-                    $nextProgress = taskSubtasksProgress($subtasks ?? []);
+                    $existingProgress = taskSubtasksProgress(
+                        $existingSubtasks,
+                        $existingSubtasksDependencyEnabled === 1
+                    );
+                    $nextProgress = taskSubtasksProgress(
+                        $subtasks ?? [],
+                        $subtasksDependencyEnabled === 1
+                    );
                     logTaskHistory(
                         $pdo,
                         $taskId,
@@ -2036,7 +2112,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'overdue_flag' => $overdueFlag,
                         'overdue_since_date' => $overdueSinceDate,
                         'overdue_days' => $overdueDays,
-                        'subtasks_json' => encodeTaskSubtasks($subtasks ?? []),
+                        'subtasks_json' => encodeTaskSubtasks(
+                            $subtasks ?? [],
+                            $subtasksDependencyEnabled === 1
+                        ),
+                        'subtasks_dependency_enabled' => $subtasksDependencyEnabled,
                         'reference_links_json' => encodeReferenceUrlList($referenceLinks ?? []),
                         'has_active_revision' => $hasActiveRevision ? 1 : 0,
                         'updated_at' => $updatedAt,
@@ -2422,7 +2502,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $taskStmt = $pdo->prepare(
-                    'SELECT id, group_name, description, reference_links_json, reference_images_json, subtasks_json
+                    'SELECT id, group_name, description, reference_links_json, reference_images_json, subtasks_json, subtasks_dependency_enabled
                      FROM tasks
                      WHERE id = :id
                        AND workspace_id = :workspace_id
@@ -2447,6 +2527,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hasActiveRevision = taskHasActiveRevisionRequest($taskDescription, $taskHistory);
 
                 if (requestExpectsJson()) {
+                    $subtasksDependencyEnabled = normalizePermissionFlag(
+                        $taskRow['subtasks_dependency_enabled'] ?? 0
+                    );
                     respondJson([
                         'ok' => true,
                         'task' => [
@@ -2458,8 +2541,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 decodeReferenceImageList($taskRow['reference_images_json'] ?? null)
                             ),
                             'subtasks_json' => encodeTaskSubtasks(
-                                decodeTaskSubtasks($taskRow['subtasks_json'] ?? null)
+                                decodeTaskSubtasks(
+                                    $taskRow['subtasks_json'] ?? null,
+                                    $subtasksDependencyEnabled === 1
+                                ),
+                                $subtasksDependencyEnabled === 1
                             ),
+                            'subtasks_dependency_enabled' => $subtasksDependencyEnabled,
                             'history' => $taskHistory,
                             'has_active_revision' => $hasActiveRevision ? 1 : 0,
                         ],

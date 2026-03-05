@@ -192,6 +192,8 @@ function migrateSqlite(PDO $pdo): void
             assignee_ids_json TEXT NOT NULL DEFAULT \'[]\',
             reference_links_json TEXT NOT NULL DEFAULT \'[]\',
             reference_images_json TEXT NOT NULL DEFAULT \'[]\',
+            subtasks_json TEXT NOT NULL DEFAULT \'[]\',
+            subtasks_dependency_enabled INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
@@ -264,6 +266,8 @@ function migratePostgres(PDO $pdo): void
             assignee_ids_json TEXT NOT NULL DEFAULT \'[]\',
             reference_links_json TEXT NOT NULL DEFAULT \'[]\',
             reference_images_json TEXT NOT NULL DEFAULT \'[]\',
+            subtasks_json TEXT NOT NULL DEFAULT \'[]\',
+            subtasks_dependency_enabled SMALLINT NOT NULL DEFAULT 0,
             created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
             updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
         )'
@@ -579,7 +583,7 @@ function ensureWorkspaceSchema(PDO $pdo): void
 function ensureTaskExtendedSchema(PDO $pdo): void
 {
     $needsBackfill = false;
-    $backfillMetaKey = 'task_extended_backfill_v3';
+    $backfillMetaKey = 'task_extended_backfill_v4';
 
     if (!tableHasColumn($pdo, 'tasks', 'group_name')) {
         $pdo->exec("ALTER TABLE tasks ADD COLUMN group_name TEXT NOT NULL DEFAULT 'Geral'");
@@ -614,6 +618,14 @@ function ensureTaskExtendedSchema(PDO $pdo): void
         $pdo->exec("ALTER TABLE tasks ADD COLUMN subtasks_json TEXT NOT NULL DEFAULT '[]'");
         $needsBackfill = true;
     }
+    if (!tableHasColumn($pdo, 'tasks', 'subtasks_dependency_enabled')) {
+        if (dbDriverName($pdo) === 'pgsql') {
+            $pdo->exec("ALTER TABLE tasks ADD COLUMN subtasks_dependency_enabled SMALLINT NOT NULL DEFAULT 0");
+        } else {
+            $pdo->exec("ALTER TABLE tasks ADD COLUMN subtasks_dependency_enabled INTEGER NOT NULL DEFAULT 0");
+        }
+        $needsBackfill = true;
+    }
     if (!tableHasColumn($pdo, 'tasks', 'title_tag')) {
         $pdo->exec("ALTER TABLE tasks ADD COLUMN title_tag TEXT NOT NULL DEFAULT ''");
         $needsBackfill = true;
@@ -623,7 +635,7 @@ function ensureTaskExtendedSchema(PDO $pdo): void
         return;
     }
 
-    $stmt = $pdo->query('SELECT id, assigned_to, group_name, assignee_ids_json, reference_links_json, reference_images_json, subtasks_json, title_tag FROM tasks');
+    $stmt = $pdo->query('SELECT id, assigned_to, group_name, assignee_ids_json, reference_links_json, reference_images_json, subtasks_json, subtasks_dependency_enabled, title_tag FROM tasks');
     $rows = $stmt ? $stmt->fetchAll() : [];
     if (!$rows) {
         appMetaSet($pdo, $backfillMetaKey, '1');
@@ -637,6 +649,7 @@ function ensureTaskExtendedSchema(PDO $pdo): void
              reference_links_json = :reference_links_json,
              reference_images_json = :reference_images_json,
              subtasks_json = :subtasks_json,
+             subtasks_dependency_enabled = :subtasks_dependency_enabled,
              title_tag = :title_tag
          WHERE id = :id'
     );
@@ -649,7 +662,8 @@ function ensureTaskExtendedSchema(PDO $pdo): void
         );
         $referenceLinks = decodeReferenceUrlList($row['reference_links_json'] ?? null);
         $referenceImages = decodeReferenceImageList($row['reference_images_json'] ?? null);
-        $subtasks = decodeTaskSubtasks($row['subtasks_json'] ?? null);
+        $subtasksDependencyEnabled = normalizePermissionFlag($row['subtasks_dependency_enabled'] ?? 0);
+        $subtasks = decodeTaskSubtasks($row['subtasks_json'] ?? null, $subtasksDependencyEnabled === 1);
         $titleTag = normalizeTaskTitleTag((string) ($row['title_tag'] ?? ''));
 
         $update->execute([
@@ -657,7 +671,8 @@ function ensureTaskExtendedSchema(PDO $pdo): void
             ':assignee_ids_json' => encodeAssigneeIds($assigneeIds),
             ':reference_links_json' => encodeReferenceUrlList($referenceLinks),
             ':reference_images_json' => encodeReferenceImageList($referenceImages),
-            ':subtasks_json' => encodeTaskSubtasks($subtasks),
+            ':subtasks_json' => encodeTaskSubtasks($subtasks, $subtasksDependencyEnabled === 1),
+            ':subtasks_dependency_enabled' => $subtasksDependencyEnabled,
             ':title_tag' => $titleTag,
             ':id' => (int) $row['id'],
         ]);
@@ -4930,7 +4945,7 @@ function taskSubtasksValueToList($value): array
     }
 }
 
-function normalizeTaskSubtasks($value, int $maxItems = 40): array
+function normalizeTaskSubtasks($value, int $maxItems = 40, bool $enforceDependency = false): array
 {
     $items = [];
     $source = taskSubtasksValueToList($value);
@@ -4960,36 +4975,38 @@ function normalizeTaskSubtasks($value, int $maxItems = 40): array
         ];
     }
 
-    $allowDone = true;
-    foreach ($items as &$item) {
-        if (!$allowDone) {
-            $item['done'] = false;
+    if ($enforceDependency) {
+        $allowDone = true;
+        foreach ($items as &$item) {
+            if (!$allowDone) {
+                $item['done'] = false;
+            }
+            if (empty($item['done'])) {
+                $allowDone = false;
+            }
         }
-        if (empty($item['done'])) {
-            $allowDone = false;
-        }
+        unset($item);
     }
-    unset($item);
 
     return $items;
 }
 
-function decodeTaskSubtasks($value): array
+function decodeTaskSubtasks($value, bool $enforceDependency = false): array
 {
-    return normalizeTaskSubtasks($value);
+    return normalizeTaskSubtasks($value, 40, $enforceDependency);
 }
 
-function encodeTaskSubtasks(array $subtasks): string
+function encodeTaskSubtasks(array $subtasks, bool $enforceDependency = false): string
 {
     return json_encode(
-        normalizeTaskSubtasks($subtasks),
+        normalizeTaskSubtasks($subtasks, 40, $enforceDependency),
         JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
     ) ?: '[]';
 }
 
-function taskSubtasksProgress(array $subtasks): array
+function taskSubtasksProgress(array $subtasks, bool $enforceDependency = false): array
 {
-    $normalized = normalizeTaskSubtasks($subtasks);
+    $normalized = normalizeTaskSubtasks($subtasks, 40, $enforceDependency);
     $total = count($normalized);
     $completed = 0;
     foreach ($normalized as $item) {
@@ -5012,7 +5029,7 @@ function taskSubtasksProgress(array $subtasks): array
 function applyTaskSubtasksCompletionStatus(string $status, array $subtasks): string
 {
     $normalizedStatus = normalizeTaskStatus($status);
-    $progress = taskSubtasksProgress($subtasks);
+    $progress = taskSubtasksProgress($subtasks, false);
 
     if ($progress['is_complete'] && !in_array($normalizedStatus, ['review', 'done'], true)) {
         return 'review';
@@ -6086,9 +6103,6 @@ function taskGroupPermissionForUser(int $workspaceId, string $groupName, int $us
     if ($role === null) {
         return ['can_view' => false, 'can_access' => false];
     }
-    if ($role === 'admin') {
-        return ['can_view' => true, 'can_access' => true];
-    }
 
     $groupKey = mb_strtolower(normalizeTaskGroupName($groupName));
     $overrides = taskGroupPermissionOverridesForUser($workspaceId, $userId);
@@ -6315,11 +6329,6 @@ function saveTaskGroupPermissions(
     foreach ($permissionsByUserId as $rawUserId => $permissionRow) {
         $userId = (int) $rawUserId;
         if ($userId <= 0 || !isset($workspaceRolesByUserId[$userId])) {
-            continue;
-        }
-
-        $role = normalizeWorkspaceRole((string) $workspaceRolesByUserId[$userId]);
-        if ($role === 'admin') {
             continue;
         }
 
@@ -6739,8 +6748,15 @@ function allTasks(?int $workspaceId = null): array
         $task['assignee_ids'] = $assigneeIds;
         $task['reference_links'] = decodeReferenceUrlList($task['reference_links_json'] ?? null);
         $task['reference_images'] = decodeReferenceImageList($task['reference_images_json'] ?? null);
-        $task['subtasks'] = decodeTaskSubtasks($task['subtasks_json'] ?? null);
-        $task['subtasks_progress'] = taskSubtasksProgress($task['subtasks']);
+        $task['subtasks_dependency_enabled'] = normalizePermissionFlag($task['subtasks_dependency_enabled'] ?? 0);
+        $task['subtasks'] = decodeTaskSubtasks(
+            $task['subtasks_json'] ?? null,
+            ((int) $task['subtasks_dependency_enabled']) === 1
+        );
+        $task['subtasks_progress'] = taskSubtasksProgress(
+            $task['subtasks'],
+            ((int) $task['subtasks_dependency_enabled']) === 1
+        );
         $task['assignees'] = [];
 
         foreach ($assigneeIds as $id) {

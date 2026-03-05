@@ -5596,6 +5596,23 @@ textarea:focus {
     color: rgba(255, 255, 255, 0.62);
 }
 
+.task-subtasks-dependency-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    font-size: 0.78rem;
+    color: rgba(232, 240, 255, 0.9);
+    user-select: none;
+}
+
+.task-subtasks-dependency-toggle input {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    accent-color: #6967ae;
+}
+
 .task-subtasks-edit-add {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -5635,22 +5652,30 @@ textarea:focus {
 }
 
 .task-subtasks-edit-remove {
-    width: 18px;
-    height: 18px;
-    border: 0;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.46);
+    min-height: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(240, 246, 255, 0.86);
     display: grid;
     place-items: center;
     cursor: pointer;
     line-height: 1;
-    padding: 0;
+    padding: 0 8px;
+    font-size: 0.72rem;
+    white-space: nowrap;
 }
 
 .task-subtasks-edit-remove:hover,
 .task-subtasks-edit-remove:focus-visible {
     color: rgba(255, 139, 160, 0.96);
+    border-color: rgba(255, 139, 160, 0.72);
+    background: rgba(255, 139, 160, 0.12);
     outline: none;
+}
+
+.task-subtasks-edit-row.is-locked {
+    opacity: 0.78;
 }
 
 .task-detail-edit-main-row {
@@ -7732,6 +7757,27 @@ textarea:focus,
     accent-color: #6967ae;
 }
 
+.create-task-modal .task-subtasks-dependency-toggle,
+.task-detail-modal .task-subtasks-dependency-toggle {
+    color: #4d6a90;
+}
+
+.create-task-modal .task-subtasks-edit-remove,
+.task-detail-modal .task-subtasks-edit-remove {
+    border-color: rgba(var(--wf-accent-purple-rgb), 0.34);
+    background: #eef3fb;
+    color: #3d5474;
+}
+
+.create-task-modal .task-subtasks-edit-remove:hover,
+.create-task-modal .task-subtasks-edit-remove:focus-visible,
+.task-detail-modal .task-subtasks-edit-remove:hover,
+.task-detail-modal .task-subtasks-edit-remove:focus-visible {
+    color: #bb3a56;
+    border-color: rgba(187, 58, 86, 0.46);
+    background: #ffe7ee;
+}
+
 .status-select.status-todo,
 .status-inline-picker.status-todo > summary {
     color: #355d87;
@@ -8077,6 +8123,19 @@ select option:checked,
 .create-task-modal .assignee-option:has(input:checked) span,
 .task-detail-modal .assignee-option:has(input:checked) span {
     color: #ffffff;
+}
+
+/* Assignee dropdown: keep readable text in all states */
+.create-task-modal .assignee-picker-menu .assignee-option > span,
+.task-detail-modal .assignee-picker-menu .assignee-option > span {
+    color: #f7f5ff !important;
+    opacity: 1;
+}
+
+.create-task-modal .assignee-picker-menu .assignee-option:has(input:checked) > span,
+.task-detail-modal .assignee-picker-menu .assignee-option:has(input:checked) > span {
+    color: #ffffff !important;
+    font-weight: 700;
 }
 
 .create-task-modal .row-inline-picker-option.priority-low,
