@@ -5451,7 +5451,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const readTaskRowSubtasksDependencyEnabled = (scope) => {
+  function readTaskRowSubtasksDependencyEnabled(scope) {
     if (scope instanceof HTMLFormElement) {
       return readTaskSubtasksDependencyField(
         scope.querySelector("[data-task-subtasks-dependency]"),
@@ -5472,7 +5472,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     return false;
-  };
+  }
 
   function renderTaskRowSubtasksProgress(taskItem, subtasks) {
     if (!(taskItem instanceof HTMLElement)) return;
