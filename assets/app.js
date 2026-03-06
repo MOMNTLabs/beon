@@ -23,7 +23,7 @@ window.addEventListener("DOMContentLoaded", () => {
   );
   const authPanels = Array.from(document.querySelectorAll("[data-auth-panel]"));
 
-  if (authTabs.length && authPanels.length) {
+  if (authPanels.length) {
     const setAuthTab = (target) => {
       const exists = authPanels.some((panel) => panel.dataset.authPanel === target);
       const next = exists ? target : "login";

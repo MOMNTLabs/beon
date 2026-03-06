@@ -10,36 +10,9 @@
             <h1 id="auth-title">Acesso ao workspace</h1>
         </div>
 
-        <div class="auth-tabs" role="tablist" aria-label="Entrar ou cadastrar">
-            <button
-                type="button"
-                class="auth-tab is-active"
-                role="tab"
-                aria-selected="true"
-                aria-controls="auth-panel-login"
-                id="auth-tab-login"
-                data-auth-target="login"
-            >
-                Entrar
-            </button>
-            <button
-                type="button"
-                class="auth-tab"
-                role="tab"
-                aria-selected="false"
-                aria-controls="auth-panel-register"
-                id="auth-tab-register"
-                data-auth-target="register"
-            >
-                Cadastrar
-            </button>
-        </div>
-
         <section
             class="auth-pane is-active"
-            role="tabpanel"
             id="auth-panel-login"
-            aria-labelledby="auth-tab-login"
             data-auth-panel="login"
         >
             <form method="post" class="form-stack auth-form">
@@ -67,9 +40,7 @@
 
         <section
             class="auth-pane"
-            role="tabpanel"
             id="auth-panel-register"
-            aria-labelledby="auth-tab-register"
             data-auth-panel="register"
             hidden
         >
