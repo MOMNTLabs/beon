@@ -1842,10 +1842,6 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                     </form>
 
                     <dl class="accounting-balance-values">
-                        <div>
-                            <dt>Saldo atual</dt>
-                            <dd><?= e((string) ($accountingSummary['opening_balance_display'] ?? 'R$ 0,00')) ?></dd>
-                        </div>
                         <div class="is-final">
                             <dt>Saldo final</dt>
                             <dd><?= e((string) ($accountingSummary['final_balance_display'] ?? 'R$ 0,00')) ?></dd>

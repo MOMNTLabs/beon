@@ -8892,11 +8892,6 @@ select option:checked,
     gap: 8px;
     align-items: center;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(142, 183, 224, 0.42);
-}
-
-.accounting-entry-row:last-child {
-    border-bottom: 0;
 }
 
 .accounting-entry-form {
@@ -9048,14 +9043,18 @@ select option:checked,
     background: #f3f8ff;
     padding: 10px;
     display: grid;
-    grid-template-columns: minmax(220px, 290px) minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     align-items: start;
 }
 
 .accounting-balance-form {
+    border-radius: 8px;
+    border: 1px solid rgba(135, 177, 221, 0.6);
+    background: #fbfdff;
+    padding: 8px 10px;
     display: grid;
-    gap: 8px;
+    gap: 6px;
 }
 
 .accounting-balance-form label {
@@ -9070,7 +9069,7 @@ select option:checked,
 .accounting-balance-values {
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 8px;
 }
 
