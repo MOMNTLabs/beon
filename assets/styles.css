@@ -8816,46 +8816,6 @@ select option:checked,
     padding-right: 2px;
 }
 
-.accounting-overview {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
-}
-
-.accounting-overview-card {
-    border-radius: 10px;
-    border: 1px solid rgba(133, 178, 225, 0.62);
-    background: #f7faff;
-    padding: 10px 12px;
-    display: grid;
-    gap: 4px;
-}
-
-.accounting-overview-card.is-outgoing,
-.accounting-overview-card.is-final {
-    border-color: rgba(105, 103, 174, 0.42);
-    background: rgba(105, 103, 174, 0.1);
-}
-
-.accounting-overview-card.is-incoming {
-    border-color: rgba(80, 166, 133, 0.44);
-    background: rgba(120, 208, 175, 0.12);
-}
-
-.accounting-overview-card span {
-    color: #5f7692;
-    font-size: 0.76rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
-.accounting-overview-card strong {
-    color: #28486a;
-    font-size: 1.05rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-}
-
 .accounting-columns {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -8988,8 +8948,33 @@ select option:checked,
     padding: 8px;
 }
 
-.accounting-create-form.is-create {
+.accounting-create-toggle {
     margin-top: 2px;
+}
+
+.accounting-create-trigger {
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(125, 175, 225, 0.8);
+    background: #edf4ff;
+    color: #2f4c6d;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+
+.accounting-create-trigger::-webkit-details-marker {
+    display: none;
+}
+
+.accounting-create-toggle[open] .accounting-create-trigger {
+    margin-bottom: 8px;
 }
 
 .accounting-input {
@@ -9170,10 +9155,6 @@ select option:checked,
 }
 
 @media (max-width: 1024px) {
-    .accounting-overview {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .accounting-columns {
         grid-template-columns: 1fr;
     }
@@ -9197,12 +9178,6 @@ select option:checked,
     }
 
     .accounting-balance-values {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 720px) {
-    .accounting-overview {
         grid-template-columns: 1fr;
     }
 }

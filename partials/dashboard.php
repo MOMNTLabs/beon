@@ -1609,25 +1609,6 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
             </div>
 
             <div class="accounting-sheet">
-                <section class="accounting-overview" aria-label="Resumo do mes">
-                    <article class="accounting-overview-card is-outgoing">
-                        <span>Contas pendentes</span>
-                        <strong><?= e((string) ($accountingSummary['expense_remaining_display'] ?? 'R$ 0,00')) ?></strong>
-                    </article>
-                    <article class="accounting-overview-card is-incoming">
-                        <span>Entradas a receber</span>
-                        <strong><?= e((string) ($accountingSummary['income_remaining_display'] ?? 'R$ 0,00')) ?></strong>
-                    </article>
-                    <article class="accounting-overview-card">
-                        <span>Saldo atual</span>
-                        <strong><?= e((string) ($accountingSummary['opening_balance_display'] ?? 'R$ 0,00')) ?></strong>
-                    </article>
-                    <article class="accounting-overview-card is-final">
-                        <span>Saldo final</span>
-                        <strong><?= e((string) ($accountingSummary['final_balance_display'] ?? 'R$ 0,00')) ?></strong>
-                    </article>
-                </section>
-
                 <div class="accounting-columns">
                     <section class="accounting-card">
                         <header class="accounting-card-head">
@@ -1698,32 +1679,35 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                             <?php endif; ?>
                         </div>
 
-                        <form method="post" class="accounting-create-form is-create">
-                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                            <input type="hidden" name="action" value="create_accounting_entry">
-                            <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
-                            <input type="hidden" name="entry_type" value="expense">
-                            <input
-                                type="text"
-                                name="label"
-                                maxlength="120"
-                                class="accounting-input accounting-input-label"
-                                placeholder="Nova conta"
-                                required
-                            >
-                            <input
-                                type="text"
-                                name="amount_value"
-                                class="accounting-input accounting-input-amount"
-                                placeholder="0,00"
-                                required
-                            >
-                            <label class="accounting-check">
-                                <input type="checkbox" name="is_settled" value="1">
-                                <span>Pago</span>
-                            </label>
-                            <button type="submit" class="btn btn-mini">Adicionar conta</button>
-                        </form>
+                        <details class="accounting-create-toggle">
+                            <summary class="accounting-create-trigger">+ Adicionar</summary>
+                            <form method="post" class="accounting-create-form">
+                                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                <input type="hidden" name="action" value="create_accounting_entry">
+                                <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
+                                <input type="hidden" name="entry_type" value="expense">
+                                <input
+                                    type="text"
+                                    name="label"
+                                    maxlength="120"
+                                    class="accounting-input accounting-input-label"
+                                    placeholder="Nova conta"
+                                    required
+                                >
+                                <input
+                                    type="text"
+                                    name="amount_value"
+                                    class="accounting-input accounting-input-amount"
+                                    placeholder="0,00"
+                                    required
+                                >
+                                <label class="accounting-check">
+                                    <input type="checkbox" name="is_settled" value="1">
+                                    <span>Pago</span>
+                                </label>
+                                <button type="submit" class="btn btn-mini">Salvar</button>
+                            </form>
+                        </details>
 
                         <dl class="accounting-totals">
                             <div>
@@ -1806,32 +1790,35 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                             <?php endif; ?>
                         </div>
 
-                        <form method="post" class="accounting-create-form is-create">
-                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                            <input type="hidden" name="action" value="create_accounting_entry">
-                            <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
-                            <input type="hidden" name="entry_type" value="income">
-                            <input
-                                type="text"
-                                name="label"
-                                maxlength="120"
-                                class="accounting-input accounting-input-label"
-                                placeholder="Nova entrada"
-                                required
-                            >
-                            <input
-                                type="text"
-                                name="amount_value"
-                                class="accounting-input accounting-input-amount"
-                                placeholder="0,00"
-                                required
-                            >
-                            <label class="accounting-check">
-                                <input type="checkbox" name="is_settled" value="1">
-                                <span>Recebido</span>
-                            </label>
-                            <button type="submit" class="btn btn-mini">Adicionar entrada</button>
-                        </form>
+                        <details class="accounting-create-toggle">
+                            <summary class="accounting-create-trigger">+ Adicionar</summary>
+                            <form method="post" class="accounting-create-form">
+                                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                <input type="hidden" name="action" value="create_accounting_entry">
+                                <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
+                                <input type="hidden" name="entry_type" value="income">
+                                <input
+                                    type="text"
+                                    name="label"
+                                    maxlength="120"
+                                    class="accounting-input accounting-input-label"
+                                    placeholder="Nova entrada"
+                                    required
+                                >
+                                <input
+                                    type="text"
+                                    name="amount_value"
+                                    class="accounting-input accounting-input-amount"
+                                    placeholder="0,00"
+                                    required
+                                >
+                                <label class="accounting-check">
+                                    <input type="checkbox" name="is_settled" value="1">
+                                    <span>Recebido</span>
+                                </label>
+                                <button type="submit" class="btn btn-mini">Salvar</button>
+                            </form>
+                        </details>
 
                         <dl class="accounting-totals">
                             <div>
