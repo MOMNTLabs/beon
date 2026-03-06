@@ -1640,8 +1640,8 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     $accountingEntryIsInstallment = ((int) ($accountingEntry['is_installment'] ?? 0)) === 1;
                                     $accountingEntryInstallmentProgress = (string) ($accountingEntry['installment_progress'] ?? '');
                                     $accountingEntryInstallmentBadge = $accountingEntryInstallmentProgress !== ''
-                                        ? ('Parcelado ' . $accountingEntryInstallmentProgress)
-                                        : 'Parcelado';
+                                        ? ('Parcela ' . $accountingEntryInstallmentProgress)
+                                        : 'Parcela';
                                     $accountingEntryIsCarried = ((int) ($accountingEntry['is_carried'] ?? 0)) === 1;
                                     ?>
                                     <div class="accounting-entry-row">
@@ -1839,8 +1839,8 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     $accountingEntryIsInstallment = ((int) ($accountingEntry['is_installment'] ?? 0)) === 1;
                                     $accountingEntryInstallmentProgress = (string) ($accountingEntry['installment_progress'] ?? '');
                                     $accountingEntryInstallmentBadge = $accountingEntryInstallmentProgress !== ''
-                                        ? ('Parcelado ' . $accountingEntryInstallmentProgress)
-                                        : 'Parcelado';
+                                        ? ('Parcela ' . $accountingEntryInstallmentProgress)
+                                        : 'Parcela';
                                     ?>
                                     <div class="accounting-entry-row">
                                         <form method="post" class="accounting-entry-form" data-accounting-form>
@@ -1955,9 +1955,13 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                 <div class="is-faturamento">
                                     <dt>Faturamento</dt>
                                     <dd>
-                                        <?= e((string) ($accountingSummary['income_received_display'] ?? 'R$ 0,00')) ?>
-                                        /
-                                        <?= e((string) ($accountingSummary['income_total_display'] ?? 'R$ 0,00')) ?>
+                                        <span class="accounting-faturamento-recebido">
+                                            <?= e((string) ($accountingSummary['income_received_display'] ?? 'R$ 0,00')) ?>
+                                        </span>
+                                        <span class="accounting-faturamento-separator">/</span>
+                                        <strong class="accounting-faturamento-total">
+                                            <?= e((string) ($accountingSummary['income_total_display'] ?? 'R$ 0,00')) ?>
+                                        </strong>
                                     </dd>
                                 </div>
                                 <div class="is-strong is-positive">
