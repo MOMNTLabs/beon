@@ -10141,6 +10141,35 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    const editButton = target.closest("[data-accounting-entry-edit]");
+    if (!(editButton instanceof HTMLButtonElement)) return;
+
+    event.preventDefault();
+
+    const entryRow = editButton.closest(".accounting-entry-row");
+    if (!(entryRow instanceof HTMLElement)) return;
+
+    const accountingEntryForm = entryRow.querySelector(".accounting-entry-form");
+    if (!(accountingEntryForm instanceof HTMLFormElement)) return;
+
+    const labelField = accountingEntryForm.querySelector('input[name="label"]');
+    if (labelField instanceof HTMLInputElement) {
+      labelField.focus();
+      labelField.select();
+      return;
+    }
+
+    const amountField = accountingEntryForm.querySelector('input[name="amount_value"]');
+    if (amountField instanceof HTMLInputElement && !amountField.readOnly) {
+      amountField.focus();
+      amountField.select();
+    }
+  });
+
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;

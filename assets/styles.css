@@ -8875,8 +8875,15 @@ select option:checked,
     border: 1px solid rgba(133, 178, 225, 0.72);
     background: #f7faff;
     padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.accounting-card-footer {
     display: grid;
     gap: 8px;
+    margin-top: auto;
 }
 
 .accounting-card-head {
@@ -8930,6 +8937,8 @@ select option:checked,
     max-height: 340px;
     overflow: auto;
     padding-right: 2px;
+    align-content: start;
+    grid-auto-rows: min-content;
 }
 
 .accounting-empty {
@@ -8949,7 +8958,7 @@ select option:checked,
 
 .accounting-entry-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 116px auto auto;
+    grid-template-columns: minmax(0, 1fr) auto 116px auto;
     gap: 8px;
     align-items: center;
 }
@@ -9115,17 +9124,53 @@ select option:checked,
     accent-color: #6967ae;
 }
 
+.accounting-entry-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: start;
+    flex-wrap: wrap;
+}
+
+.accounting-entry-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.accounting-entry-edit-button {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    background: transparent;
+    color: #5d7a9f;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 auto;
+    appearance: none;
+}
+
+.accounting-entry-edit-button svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.accounting-entry-edit-button:hover,
+.accounting-entry-edit-button:focus-visible {
+    color: #1a5d9f;
+}
+
 .accounting-entry-delete-form {
     display: flex;
     align-items: center;
-}
-
-.accounting-entry-badges {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    justify-self: start;
+    margin: 0;
 }
 
 .accounting-entry-badge {
@@ -9148,6 +9193,20 @@ select option:checked,
     border-color: rgba(105, 103, 174, 0.52);
     background: rgba(105, 103, 174, 0.12);
     color: #4a4a8c;
+}
+
+.accounting-entry-badge-inline {
+    grid-column: 2;
+    justify-self: start;
+    white-space: nowrap;
+}
+
+.accounting-entry-form .accounting-input-amount {
+    grid-column: 3;
+}
+
+.accounting-entry-form .accounting-entry-status {
+    grid-column: 4;
 }
 
 .accounting-totals {
@@ -9276,6 +9335,12 @@ select option:checked,
     .accounting-entry-form,
     .accounting-create-form {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .accounting-entry-form .accounting-entry-badge-inline,
+    .accounting-entry-form .accounting-input-amount,
+    .accounting-entry-form .accounting-entry-status {
+        grid-column: auto;
     }
 
     .accounting-create-actions {
