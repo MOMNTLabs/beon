@@ -10119,6 +10119,28 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    const cancelButton = target.closest("[data-accounting-create-cancel]");
+    if (!(cancelButton instanceof HTMLButtonElement)) return;
+
+    const accountingCreateForm = cancelButton.closest(".accounting-create-form");
+    if (!(accountingCreateForm instanceof HTMLFormElement)) return;
+
+    event.preventDefault();
+    if (accountingCreateForm.dataset.submitting === "1") return;
+
+    accountingCreateForm.reset();
+    syncAccountingInstallmentForm(accountingCreateForm);
+
+    const accountingCreateToggle = accountingCreateForm.closest(".accounting-create-toggle");
+    if (accountingCreateToggle instanceof HTMLDetailsElement) {
+      accountingCreateToggle.open = false;
+    }
+  });
+
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;

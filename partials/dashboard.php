@@ -1639,6 +1639,9 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     $accountingEntryIsSettled = ((int) ($accountingEntry['is_settled'] ?? 0)) === 1;
                                     $accountingEntryIsInstallment = ((int) ($accountingEntry['is_installment'] ?? 0)) === 1;
                                     $accountingEntryInstallmentProgress = (string) ($accountingEntry['installment_progress'] ?? '');
+                                    $accountingEntryInstallmentBadge = $accountingEntryInstallmentProgress !== ''
+                                        ? ('Parcelado ' . $accountingEntryInstallmentProgress)
+                                        : 'Parcelado';
                                     $accountingEntryIsCarried = ((int) ($accountingEntry['is_carried'] ?? 0)) === 1;
                                     ?>
                                     <div class="accounting-entry-row">
@@ -1670,8 +1673,15 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                                 <input type="checkbox" name="is_settled" value="1" <?= $accountingEntryIsSettled ? 'checked' : '' ?>>
                                                 <span>Pago</span>
                                             </label>
-                                            <?php if ($accountingEntryIsCarried && !$accountingEntryIsSettled): ?>
-                                                <span class="accounting-entry-badge is-pending">Pendente</span>
+                                            <?php if (($accountingEntryIsCarried && !$accountingEntryIsSettled) || $accountingEntryIsInstallment): ?>
+                                                <div class="accounting-entry-badges">
+                                                    <?php if ($accountingEntryIsCarried && !$accountingEntryIsSettled): ?>
+                                                        <span class="accounting-entry-badge is-pending">Pendente</span>
+                                                    <?php endif; ?>
+                                                    <?php if ($accountingEntryIsInstallment): ?>
+                                                        <span class="accounting-entry-badge is-installment"><?= e($accountingEntryInstallmentBadge) ?></span>
+                                                    <?php endif; ?>
+                                                </div>
                                             <?php endif; ?>
                                             <input
                                                 type="hidden"
@@ -1780,7 +1790,10 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                         >
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-mini">Adicionar</button>
+                                <div class="accounting-create-actions">
+                                    <button type="submit" class="btn btn-mini">Adicionar</button>
+                                    <button type="button" class="btn btn-mini btn-ghost" data-accounting-create-cancel>Cancelar</button>
+                                </div>
                             </form>
                         </details>
 
@@ -1818,6 +1831,9 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     $accountingEntryIsSettled = ((int) ($accountingEntry['is_settled'] ?? 0)) === 1;
                                     $accountingEntryIsInstallment = ((int) ($accountingEntry['is_installment'] ?? 0)) === 1;
                                     $accountingEntryInstallmentProgress = (string) ($accountingEntry['installment_progress'] ?? '');
+                                    $accountingEntryInstallmentBadge = $accountingEntryInstallmentProgress !== ''
+                                        ? ('Parcelado ' . $accountingEntryInstallmentProgress)
+                                        : 'Parcelado';
                                     ?>
                                     <div class="accounting-entry-row">
                                         <form method="post" class="accounting-entry-form" data-accounting-form>
@@ -1848,6 +1864,11 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                                 <input type="checkbox" name="is_settled" value="1" <?= $accountingEntryIsSettled ? 'checked' : '' ?>>
                                                 <span>Recebido</span>
                                             </label>
+                                            <?php if ($accountingEntryIsInstallment): ?>
+                                                <div class="accounting-entry-badges">
+                                                    <span class="accounting-entry-badge is-installment"><?= e($accountingEntryInstallmentBadge) ?></span>
+                                                </div>
+                                            <?php endif; ?>
                                             <input
                                                 type="hidden"
                                                 name="is_installment"
@@ -1908,7 +1929,10 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                 <input type="hidden" name="is_installment" value="0">
                                 <input type="hidden" name="installment_progress" value="">
                                 <input type="hidden" name="total_amount_value" value="">
-                                <button type="submit" class="btn btn-mini">Adicionar</button>
+                                <div class="accounting-create-actions">
+                                    <button type="submit" class="btn btn-mini">Adicionar</button>
+                                    <button type="button" class="btn btn-mini btn-ghost" data-accounting-create-cancel>Cancelar</button>
+                                </div>
                             </form>
                         </details>
 
