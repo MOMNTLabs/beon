@@ -5375,13 +5375,11 @@ function workspaceAccountingEnsurePeriodCarryover(
         if ($sourceEntryId <= 0) {
             continue;
         }
-        if (((int) ($sourceEntry['is_settled'] ?? 0)) === 1) {
-            continue;
-        }
         if (isset($existingBySourceId[$sourceEntryId])) {
             continue;
         }
 
+        $isSettled = ((int) ($sourceEntry['is_settled'] ?? 0)) === 1;
         $isInstallment = ((int) ($sourceEntry['is_installment'] ?? 0)) === 1;
         $installmentNumber = (int) ($sourceEntry['installment_number'] ?? 0);
         $installmentTotal = (int) ($sourceEntry['installment_total'] ?? 0);
@@ -5391,11 +5389,22 @@ function workspaceAccountingEnsurePeriodCarryover(
         if ($isInstallment && $installmentTotal >= 2) {
             if ($installmentNumber < 1) {
                 $installmentNumber = 1;
-            } elseif ($installmentNumber < $installmentTotal) {
+            } elseif ($installmentNumber > $installmentTotal) {
+                $installmentNumber = $installmentTotal;
+            }
+
+            if ($isSettled) {
+                if ($installmentNumber >= $installmentTotal) {
+                    continue;
+                }
                 $installmentNumber++;
             }
+
             $amountCents = accountingInstallmentAmountCents($totalAmountCents, $installmentNumber, $installmentTotal);
         } else {
+            if ($isSettled) {
+                continue;
+            }
             $isInstallment = false;
             $installmentNumber = 0;
             $installmentTotal = 0;
