@@ -84,32 +84,51 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                 </button>
                             </div>
                         </details>
-                        <?php if (!empty($showUsersDashboardTab)): ?>
+                        <div class="workspace-sidebar-heading-actions">
+                            <?php if (!empty($showUsersDashboardTab)): ?>
+                                <button
+                                    type="button"
+                                    class="sidebar-view-toggle workspace-users-settings-button"
+                                    data-dashboard-view-toggle
+                                    data-view="users"
+                                    aria-pressed="false"
+                                    aria-label="Configuracoes do workspace"
+                                    title="Configuracoes do workspace"
+                                >
+                                    <span class="workspace-users-settings-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M4 6h16"></path>
+                                            <path d="M4 12h16"></path>
+                                            <path d="M4 18h16"></path>
+                                            <circle cx="9" cy="6" r="2"></circle>
+                                            <circle cx="15" cy="12" r="2"></circle>
+                                            <circle cx="11" cy="18" r="2"></circle>
+                                        </svg>
+                                    </span>
+                                </button>
+                            <?php endif; ?>
                             <button
                                 type="button"
-                                class="sidebar-view-toggle workspace-users-settings-button"
-                                data-dashboard-view-toggle
-                                data-view="users"
-                                aria-pressed="false"
-                                aria-label="Configuracoes do workspace"
-                                title="Configuracoes do workspace"
+                                class="sidebar-view-toggle workspace-mobile-menu-button"
+                                data-mobile-sidebar-toggle
+                                aria-expanded="false"
+                                aria-controls="workspace-sidebar-menu"
+                                aria-label="Abrir menu do workspace"
+                                title="Menu"
                             >
-                                <span class="workspace-users-settings-icon" aria-hidden="true">
+                                <span class="workspace-mobile-menu-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" focusable="false">
-                                        <path d="M4 6h16"></path>
+                                        <path d="M4 7h16"></path>
                                         <path d="M4 12h16"></path>
-                                        <path d="M4 18h16"></path>
-                                        <circle cx="9" cy="6" r="2"></circle>
-                                        <circle cx="15" cy="12" r="2"></circle>
-                                        <circle cx="11" cy="18" r="2"></circle>
+                                        <path d="M4 17h16"></path>
                                     </svg>
                                 </span>
                             </button>
-                        <?php endif; ?>
+                        </div>
                     </div>
                     <p>Menu</p>
                 </div>
-                <nav class="sidebar-view-menu" aria-label="Menu do workspace">
+                <nav class="sidebar-view-menu" id="workspace-sidebar-menu" aria-label="Menu do workspace">
                     <button
                         type="button"
                         class="sidebar-view-toggle is-active"

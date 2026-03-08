@@ -4570,6 +4570,12 @@ window.addEventListener("DOMContentLoaded", () => {
   const dashboardViewToggleButtons = Array.from(
     document.querySelectorAll("[data-dashboard-view-toggle]")
   );
+  const usersSidebar = document.querySelector(".users-sidebar");
+  const mobileSidebarToggleButton = document.querySelector("[data-mobile-sidebar-toggle]");
+  const mobileSidebarMediaQuery =
+    typeof window.matchMedia === "function"
+      ? window.matchMedia("(max-width: 768px)")
+      : null;
 
   const setFabMenuOpen = (open) => {
     if (!fabWrap || !fabToggleButton || !fabMenu) return;
@@ -4655,6 +4661,70 @@ window.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("hashchange", () => {
       setDashboardView(dashboardViewFromHash(), { updateHash: false });
     });
+  }
+
+  const isMobileSidebarViewport = () =>
+    mobileSidebarMediaQuery ? mobileSidebarMediaQuery.matches : window.innerWidth <= 768;
+
+  let mobileSidebarWasEnabled = false;
+
+  const setMobileSidebarOpen = (open) => {
+    if (!(document.body instanceof HTMLBodyElement)) return;
+    const shouldEnable = Boolean(
+      usersSidebar instanceof HTMLElement &&
+        mobileSidebarToggleButton instanceof HTMLElement &&
+        isMobileSidebarViewport()
+    );
+    document.body.classList.toggle("dashboard-mobile-nav-collapsible", shouldEnable);
+    const shouldOpen = shouldEnable && Boolean(open);
+    document.body.classList.toggle("dashboard-sidebar-open", shouldOpen);
+    if (mobileSidebarToggleButton instanceof HTMLElement) {
+      mobileSidebarToggleButton.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+    }
+  };
+
+  const isMobileSidebarOpen = () =>
+    document.body instanceof HTMLBodyElement &&
+    document.body.classList.contains("dashboard-sidebar-open");
+
+  const syncMobileSidebarState = () => {
+    if (!(document.body instanceof HTMLBodyElement)) return;
+
+    const enabled = Boolean(
+      usersSidebar instanceof HTMLElement &&
+        mobileSidebarToggleButton instanceof HTMLElement &&
+        isMobileSidebarViewport()
+    );
+
+    document.body.classList.toggle("dashboard-mobile-nav-collapsible", enabled);
+
+    if (!enabled) {
+      document.body.classList.remove("dashboard-sidebar-open");
+      if (mobileSidebarToggleButton instanceof HTMLElement) {
+        mobileSidebarToggleButton.setAttribute("aria-expanded", "false");
+      }
+      mobileSidebarWasEnabled = false;
+      return;
+    }
+
+    if (!mobileSidebarWasEnabled) {
+      document.body.classList.remove("dashboard-sidebar-open");
+    }
+    mobileSidebarWasEnabled = true;
+
+    if (mobileSidebarToggleButton instanceof HTMLElement) {
+      mobileSidebarToggleButton.setAttribute(
+        "aria-expanded",
+        document.body.classList.contains("dashboard-sidebar-open") ? "true" : "false"
+      );
+    }
+  };
+
+  syncMobileSidebarState();
+  if (mobileSidebarMediaQuery && typeof mobileSidebarMediaQuery.addEventListener === "function") {
+    mobileSidebarMediaQuery.addEventListener("change", syncMobileSidebarState);
+  } else {
+    window.addEventListener("resize", syncMobileSidebarState);
   }
 
   const createTaskModal = document.querySelector("[data-create-modal]");
@@ -8983,10 +9053,26 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const mobileSidebarToggle = target.closest("[data-mobile-sidebar-toggle]");
+    if (mobileSidebarToggle instanceof HTMLElement) {
+      setMobileSidebarOpen(!isMobileSidebarOpen());
+      return;
+    }
+
+    if (
+      isMobileSidebarOpen() &&
+      !(target.closest(".users-sidebar") instanceof HTMLElement)
+    ) {
+      setMobileSidebarOpen(false);
+    }
+
     const dashboardViewToggle = target.closest("[data-dashboard-view-toggle]");
     if (dashboardViewToggle instanceof HTMLElement) {
       const targetView = normalizeDashboardView(dashboardViewToggle.dataset.view || "tasks");
       setDashboardView(targetView, { updateHash: true });
+      if (isMobileSidebarOpen()) {
+        setMobileSidebarOpen(false);
+      }
       return;
     }
 
@@ -9483,6 +9569,11 @@ window.addEventListener("DOMContentLoaded", () => {
       event.preventDefault();
       closeCreateTaskTitleTagMenu();
       createTaskTitleTagTrigger?.focus();
+      return;
+    }
+
+    if (event.key === "Escape" && isMobileSidebarOpen()) {
+      setMobileSidebarOpen(false);
       return;
     }
 
