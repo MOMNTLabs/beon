@@ -4572,7 +4572,14 @@ window.addEventListener("DOMContentLoaded", () => {
   );
   const usersSidebar = document.querySelector(".users-sidebar");
   const workspaceSidebarHeader = document.querySelector(".workspace-sidebar-header");
+  const workspaceSidebarHeadingActions = document.querySelector(".workspace-sidebar-heading-actions");
   const mobileSidebarToggleButton = document.querySelector("[data-mobile-sidebar-toggle]");
+  const dashboardContentNav = document.querySelector(".dashboard-content-nav");
+  const dashboardTopNavActions = document.querySelector(".dashboard-content-nav .top-nav-actions");
+  const dashboardTopNavActionsHomeParent =
+    dashboardTopNavActions instanceof HTMLElement ? dashboardTopNavActions.parentElement : null;
+  const dashboardTopNavActionsHomeNextSibling =
+    dashboardTopNavActions instanceof HTMLElement ? dashboardTopNavActions.nextSibling : null;
   const mobileSidebarMediaQuery =
     typeof window.matchMedia === "function"
       ? window.matchMedia("(max-width: 768px)")
@@ -4678,6 +4685,44 @@ window.addEventListener("DOMContentLoaded", () => {
     );
   };
 
+  const syncMobileHeaderActionsLayout = () => {
+    if (!(dashboardContentNav instanceof HTMLElement)) return;
+
+    const shouldInlineHeaderActions = Boolean(
+      isMobileSidebarViewport() &&
+        workspaceSidebarHeadingActions instanceof HTMLElement &&
+        dashboardTopNavActions instanceof HTMLElement
+    );
+
+    if (shouldInlineHeaderActions) {
+      dashboardContentNav.classList.add("is-mobile-inline-hidden");
+      if (dashboardTopNavActions.parentElement !== workspaceSidebarHeadingActions) {
+        workspaceSidebarHeadingActions.appendChild(dashboardTopNavActions);
+      }
+      return;
+    }
+
+    dashboardContentNav.classList.remove("is-mobile-inline-hidden");
+
+    if (
+      dashboardTopNavActions instanceof HTMLElement &&
+      dashboardTopNavActionsHomeParent instanceof HTMLElement &&
+      dashboardTopNavActions.parentElement !== dashboardTopNavActionsHomeParent
+    ) {
+      if (
+        dashboardTopNavActionsHomeNextSibling &&
+        dashboardTopNavActionsHomeNextSibling.parentNode === dashboardTopNavActionsHomeParent
+      ) {
+        dashboardTopNavActionsHomeParent.insertBefore(
+          dashboardTopNavActions,
+          dashboardTopNavActionsHomeNextSibling
+        );
+      } else {
+        dashboardTopNavActionsHomeParent.appendChild(dashboardTopNavActions);
+      }
+    }
+  };
+
   const setMobileSidebarOpen = (open) => {
     if (!(document.body instanceof HTMLBodyElement)) return;
     syncMobileSidebarHeaderHeight();
@@ -4716,6 +4761,7 @@ window.addEventListener("DOMContentLoaded", () => {
         mobileSidebarToggleButton.setAttribute("aria-expanded", "false");
       }
       mobileSidebarWasEnabled = false;
+      syncMobileHeaderActionsLayout();
       return;
     }
 
@@ -4730,6 +4776,7 @@ window.addEventListener("DOMContentLoaded", () => {
         document.body.classList.contains("dashboard-sidebar-open") ? "true" : "false"
       );
     }
+    syncMobileHeaderActionsLayout();
   };
 
   syncMobileSidebarState();

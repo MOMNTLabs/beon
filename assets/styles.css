@@ -9510,6 +9510,33 @@ select option:checked,
     .workspace-sidebar-heading-actions {
         grid-column: 3;
         justify-self: end;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .workspace-sidebar-heading-actions .top-nav-actions {
+        width: auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+
+    .workspace-sidebar-heading-actions .top-nav-actions form {
+        margin: 0;
+    }
+
+    .workspace-sidebar-heading-actions .top-nav-actions .header-notification-button,
+    .workspace-sidebar-heading-actions .top-nav-actions .icon-gear-button {
+        width: 34px;
+        height: 34px;
+    }
+
+    .workspace-sidebar-heading-actions .top-nav-actions .btn-logout {
+        min-height: 34px;
+        padding-inline: 10px;
+        font-size: 0.9rem;
     }
 
     .workspace-sidebar-picker > summary {
@@ -9589,6 +9616,10 @@ select option:checked,
         border-bottom: 1px solid rgba(141, 188, 233, 0.52);
         background: transparent;
         box-shadow: none;
+    }
+
+    .dashboard-content-nav.is-mobile-inline-hidden {
+        display: none;
     }
 
     .dashboard-content-nav .dashboard-nav-stats {
