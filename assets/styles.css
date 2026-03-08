@@ -9457,18 +9457,16 @@ select option:checked,
     }
 
     .is-dashboard .users-sidebar {
-        position: sticky;
-        top: 0;
-        z-index: 34;
+        position: static;
         border-right: 0;
         border-bottom: 1px solid rgba(141, 188, 233, 0.62);
         background: rgba(248, 252, 255, 0.98);
-        backdrop-filter: blur(8px);
+        backdrop-filter: none;
     }
 
     .is-dashboard .users-sidebar-body {
         position: relative;
-        gap: 6px;
+        gap: 4px;
     }
 
     .sidebar-brand {
@@ -9490,7 +9488,7 @@ select option:checked,
     .workspace-sidebar-header {
         position: relative;
         z-index: 2;
-        margin-bottom: 0;
+        margin-bottom: 2px;
         gap: 4px;
     }
 
@@ -9586,7 +9584,7 @@ select option:checked,
     .dashboard-content-nav {
         grid-template-columns: 1fr;
         gap: 0;
-        padding: 4px 10px 6px;
+        padding: 6px 10px;
         border: 0;
         border-bottom: 1px solid rgba(141, 188, 233, 0.52);
         background: transparent;
@@ -9607,10 +9605,7 @@ select option:checked,
     }
 
     .dashboard-nav .user-chip {
-        display: inline-flex;
-        max-width: min(44vw, 172px);
-        padding: 2px 6px 2px 2px;
-        gap: 4px;
+        display: none;
     }
 
     .dashboard-nav .user-chip > div:last-child {
@@ -9640,7 +9635,7 @@ select option:checked,
         flex-wrap: nowrap;
         justify-content: flex-end;
         gap: 5px;
-        width: auto;
+        width: 100%;
     }
 
     .top-nav-actions .header-notification-button,
@@ -9658,8 +9653,12 @@ select option:checked,
     .accounting-header {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 8px;
+        gap: 6px;
         align-items: start;
+    }
+
+    .accounting-period-label {
+        display: none;
     }
 
     .accounting-board-summary {
@@ -9668,19 +9667,24 @@ select option:checked,
     }
 
     .accounting-period-form {
-        width: min(100%, 336px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: min(100%, 360px);
         margin: 0 auto;
-        grid-template-columns: 36px minmax(0, 1fr) 36px;
-        gap: 10px;
+        gap: 12px;
     }
 
     .accounting-period-nav {
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
     }
 
     .accounting-period-input {
-        min-height: 36px;
+        flex: 1 1 auto;
+        max-width: 270px;
+        min-height: 38px;
         padding-inline: 14px;
         text-align: center;
     }
