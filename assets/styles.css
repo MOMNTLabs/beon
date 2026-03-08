@@ -9472,7 +9472,19 @@ select option:checked,
     }
 
     .sidebar-brand {
-        display: none;
+        display: flex;
+        min-height: 58px;
+        padding: 8px 10px 6px;
+        margin-bottom: 4px;
+    }
+
+    .sidebar-brand::after {
+        left: 10px;
+        right: 10px;
+    }
+
+    .sidebar-brand-lockup {
+        width: 106px;
     }
 
     .workspace-sidebar-header {
@@ -9487,7 +9499,19 @@ select option:checked,
     }
 
     .workspace-sidebar-heading-row {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
         align-items: center;
+        gap: 8px;
+    }
+
+    .workspace-sidebar-heading-row .workspace-sidebar-picker {
+        grid-column: 2;
+    }
+
+    .workspace-sidebar-heading-actions {
+        grid-column: 3;
+        justify-self: end;
     }
 
     .workspace-sidebar-picker > summary {
@@ -9505,6 +9529,8 @@ select option:checked,
 
     .workspace-mobile-menu-button {
         display: inline-flex;
+        grid-column: 1;
+        justify-self: start;
     }
 
     body.is-dashboard.dashboard-mobile-nav-collapsible .sidebar-view-menu {
@@ -9575,16 +9601,21 @@ select option:checked,
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: 4px;
+        gap: 6px;
+        width: 100%;
         min-height: 0;
     }
 
     .dashboard-nav .user-chip {
-        display: none;
+        display: inline-flex;
+        max-width: min(44vw, 172px);
+        padding: 2px 6px 2px 2px;
+        gap: 4px;
     }
 
     .dashboard-nav .user-chip > div:last-child {
-        display: none;
+        display: block;
+        min-width: 0;
     }
 
     .dashboard-nav .avatar {
@@ -9602,13 +9633,14 @@ select option:checked,
         overflow: hidden;
         text-overflow: ellipsis;
         display: block;
+        font-size: 0.76rem;
     }
 
     .top-nav-actions {
         flex-wrap: nowrap;
         justify-content: flex-end;
         gap: 5px;
-        width: 100%;
+        width: auto;
     }
 
     .top-nav-actions .header-notification-button,
@@ -9621,6 +9653,36 @@ select option:checked,
         min-height: 30px;
         padding-inline: 9px;
         font-size: 0.86rem;
+    }
+
+    .accounting-header {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        align-items: start;
+    }
+
+    .accounting-board-summary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .accounting-period-form {
+        width: min(100%, 336px);
+        margin: 0 auto;
+        grid-template-columns: 36px minmax(0, 1fr) 36px;
+        gap: 10px;
+    }
+
+    .accounting-period-nav {
+        width: 36px;
+        height: 36px;
+    }
+
+    .accounting-period-input {
+        min-height: 36px;
+        padding-inline: 14px;
+        text-align: center;
     }
 
     .is-dashboard .tasklist-layout > .tasklist-wrap,

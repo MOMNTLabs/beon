@@ -49,6 +49,23 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
             <div class="users-sidebar-body">
                 <div class="panel-header workspace-sidebar-header">
                     <div class="workspace-sidebar-heading-row">
+                        <button
+                            type="button"
+                            class="sidebar-view-toggle workspace-mobile-menu-button"
+                            data-mobile-sidebar-toggle
+                            aria-expanded="false"
+                            aria-controls="workspace-sidebar-menu"
+                            aria-label="Abrir menu do workspace"
+                            title="Menu"
+                        >
+                            <span class="workspace-mobile-menu-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M4 7h16"></path>
+                                    <path d="M4 12h16"></path>
+                                    <path d="M4 17h16"></path>
+                                </svg>
+                            </span>
+                        </button>
                         <details class="workspace-sidebar-picker">
                             <summary aria-label="Trocar workspace">
                                 <span class="workspace-sidebar-picker-title"><?= e((string) ($currentWorkspace['name'] ?? 'Workspace')) ?></span>
@@ -107,23 +124,6 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     </span>
                                 </button>
                             <?php endif; ?>
-                            <button
-                                type="button"
-                                class="sidebar-view-toggle workspace-mobile-menu-button"
-                                data-mobile-sidebar-toggle
-                                aria-expanded="false"
-                                aria-controls="workspace-sidebar-menu"
-                                aria-label="Abrir menu do workspace"
-                                title="Menu"
-                            >
-                                <span class="workspace-mobile-menu-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" focusable="false">
-                                        <path d="M4 7h16"></path>
-                                        <path d="M4 12h16"></path>
-                                        <path d="M4 17h16"></path>
-                                    </svg>
-                                </span>
-                            </button>
                         </div>
                     </div>
                     <p>Menu</p>
