@@ -4575,11 +4575,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const workspaceSidebarHeadingActions = document.querySelector(".workspace-sidebar-heading-actions");
   const mobileSidebarToggleButton = document.querySelector("[data-mobile-sidebar-toggle]");
   const dashboardContentNav = document.querySelector(".dashboard-content-nav");
-  const dashboardTopNavActions = document.querySelector(".dashboard-content-nav .top-nav-actions");
-  const dashboardTopNavActionsHomeParent =
-    dashboardTopNavActions instanceof HTMLElement ? dashboardTopNavActions.parentElement : null;
-  const dashboardTopNavActionsHomeNextSibling =
-    dashboardTopNavActions instanceof HTMLElement ? dashboardTopNavActions.nextSibling : null;
+  const dashboardNavMain = document.querySelector(".dashboard-content-nav .dashboard-nav-main");
   const mobileSidebarMediaQuery =
     typeof window.matchMedia === "function"
       ? window.matchMedia("(max-width: 768px)")
@@ -4686,40 +4682,36 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const syncMobileHeaderActionsLayout = () => {
-    if (!(dashboardContentNav instanceof HTMLElement)) return;
+    if (
+      !(document.body instanceof HTMLBodyElement) ||
+      !(dashboardContentNav instanceof HTMLElement) ||
+      !(dashboardNavMain instanceof HTMLElement)
+    ) {
+      return;
+    }
+
+    const dashboardTopNavActions = document.querySelector(".top-nav-actions");
+    const topActions =
+      dashboardTopNavActions instanceof HTMLElement ? dashboardTopNavActions : null;
 
     const shouldInlineHeaderActions = Boolean(
       isMobileSidebarViewport() &&
         workspaceSidebarHeadingActions instanceof HTMLElement &&
-        dashboardTopNavActions instanceof HTMLElement
+        topActions instanceof HTMLElement
     );
 
     if (shouldInlineHeaderActions) {
-      dashboardContentNav.classList.add("is-mobile-inline-hidden");
-      if (dashboardTopNavActions.parentElement !== workspaceSidebarHeadingActions) {
-        workspaceSidebarHeadingActions.appendChild(dashboardTopNavActions);
+      document.body.classList.add("dashboard-header-actions-inline");
+      if (topActions.parentElement !== workspaceSidebarHeadingActions) {
+        workspaceSidebarHeadingActions.appendChild(topActions);
       }
       return;
     }
 
-    dashboardContentNav.classList.remove("is-mobile-inline-hidden");
+    document.body.classList.remove("dashboard-header-actions-inline");
 
-    if (
-      dashboardTopNavActions instanceof HTMLElement &&
-      dashboardTopNavActionsHomeParent instanceof HTMLElement &&
-      dashboardTopNavActions.parentElement !== dashboardTopNavActionsHomeParent
-    ) {
-      if (
-        dashboardTopNavActionsHomeNextSibling &&
-        dashboardTopNavActionsHomeNextSibling.parentNode === dashboardTopNavActionsHomeParent
-      ) {
-        dashboardTopNavActionsHomeParent.insertBefore(
-          dashboardTopNavActions,
-          dashboardTopNavActionsHomeNextSibling
-        );
-      } else {
-        dashboardTopNavActionsHomeParent.appendChild(dashboardTopNavActions);
-      }
+    if (topActions instanceof HTMLElement && topActions.parentElement !== dashboardNavMain) {
+      dashboardNavMain.appendChild(topActions);
     }
   };
 
@@ -4786,6 +4778,7 @@ window.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("resize", syncMobileSidebarState);
   }
   window.addEventListener("resize", syncMobileSidebarHeaderHeight);
+  window.addEventListener("pageshow", syncMobileSidebarState);
 
   const createTaskModal = document.querySelector("[data-create-modal]");
   const createTaskGroupInput = document.querySelector("[data-create-task-group-input]");

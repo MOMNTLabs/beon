@@ -9618,7 +9618,7 @@ select option:checked,
         box-shadow: none;
     }
 
-    .dashboard-content-nav.is-mobile-inline-hidden {
+    body.is-dashboard.dashboard-header-actions-inline .dashboard-content-nav {
         display: none;
     }
 
