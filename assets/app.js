@@ -4571,6 +4571,7 @@ window.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("[data-dashboard-view-toggle]")
   );
   const usersSidebar = document.querySelector(".users-sidebar");
+  const workspaceSidebarHeader = document.querySelector(".workspace-sidebar-header");
   const mobileSidebarToggleButton = document.querySelector("[data-mobile-sidebar-toggle]");
   const mobileSidebarMediaQuery =
     typeof window.matchMedia === "function"
@@ -4668,8 +4669,18 @@ window.addEventListener("DOMContentLoaded", () => {
 
   let mobileSidebarWasEnabled = false;
 
+  const syncMobileSidebarHeaderHeight = () => {
+    if (!(usersSidebar instanceof HTMLElement)) return;
+    if (!(workspaceSidebarHeader instanceof HTMLElement)) return;
+    usersSidebar.style.setProperty(
+      "--mobile-sidebar-header-height",
+      `${Math.ceil(workspaceSidebarHeader.getBoundingClientRect().height)}px`
+    );
+  };
+
   const setMobileSidebarOpen = (open) => {
     if (!(document.body instanceof HTMLBodyElement)) return;
+    syncMobileSidebarHeaderHeight();
     const shouldEnable = Boolean(
       usersSidebar instanceof HTMLElement &&
         mobileSidebarToggleButton instanceof HTMLElement &&
@@ -4689,6 +4700,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const syncMobileSidebarState = () => {
     if (!(document.body instanceof HTMLBodyElement)) return;
+    syncMobileSidebarHeaderHeight();
 
     const enabled = Boolean(
       usersSidebar instanceof HTMLElement &&
@@ -4726,6 +4738,7 @@ window.addEventListener("DOMContentLoaded", () => {
   } else {
     window.addEventListener("resize", syncMobileSidebarState);
   }
+  window.addEventListener("resize", syncMobileSidebarHeaderHeight);
 
   const createTaskModal = document.querySelector("[data-create-modal]");
   const createTaskGroupInput = document.querySelector("[data-create-task-group-input]");

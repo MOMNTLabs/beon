@@ -9453,7 +9453,7 @@ select option:checked,
     .is-dashboard .users-sidebar-body {
         height: auto;
         min-height: 0;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .is-dashboard .users-sidebar {
@@ -9467,6 +9467,7 @@ select option:checked,
     }
 
     .is-dashboard .users-sidebar-body {
+        position: relative;
         gap: 6px;
     }
 
@@ -9475,6 +9476,8 @@ select option:checked,
     }
 
     .workspace-sidebar-header {
+        position: relative;
+        z-index: 2;
         margin-bottom: 0;
         gap: 4px;
     }
@@ -9505,19 +9508,28 @@ select option:checked,
     }
 
     body.is-dashboard.dashboard-mobile-nav-collapsible .sidebar-view-menu {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(var(--mobile-sidebar-header-height, 44px) + 4px);
         display: none;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        margin: 0;
+        padding: 6px;
+        border-radius: 12px;
+        border: 1px solid rgba(141, 188, 233, 0.62);
+        background: rgba(248, 252, 255, 0.99);
+        box-shadow: 0 10px 24px rgba(35, 97, 156, 0.16);
+        z-index: 35;
     }
 
     body.is-dashboard.dashboard-mobile-nav-collapsible.dashboard-sidebar-open .sidebar-view-menu {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
-        padding-top: 4px;
     }
 
     .sidebar-view-menu {
-        width: 100%;
-        gap: 6px;
+        width: auto;
         padding-bottom: 0;
     }
 
@@ -9560,11 +9572,23 @@ select option:checked,
         align-items: center;
         justify-content: space-between;
         gap: 6px;
+        min-height: 0;
     }
 
     .dashboard-nav .user-chip {
-        max-width: min(62vw, 230px);
-        padding: 4px 8px 4px 4px;
+        max-width: fit-content;
+        padding: 2px 4px 2px 2px;
+        gap: 4px;
+    }
+
+    .dashboard-nav .user-chip > div:last-child {
+        display: none;
+    }
+
+    .dashboard-nav .avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.76rem;
     }
 
     .dashboard-nav .user-chip span {
@@ -9584,9 +9608,16 @@ select option:checked,
         gap: 6px;
     }
 
+    .top-nav-actions .header-notification-button,
+    .top-nav-actions .icon-gear-button {
+        width: 32px;
+        height: 32px;
+    }
+
     .top-nav.dashboard-nav .btn-logout {
-        min-height: 34px;
-        padding-inline: 12px;
+        min-height: 32px;
+        padding-inline: 10px;
+        font-size: 0.9rem;
     }
 
     .is-dashboard .tasklist-layout > .tasklist-wrap,
