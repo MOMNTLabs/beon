@@ -3026,11 +3026,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .overview-panels-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
-    grid-template-areas:
-        "tasks due"
-        "tasks stock";
-    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
     align-items: start;
 }
 
@@ -3067,6 +3064,37 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+}
+
+.overview-card-inline-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.overview-card-inline-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(121, 165, 209, 0.46);
+    background: rgba(237, 245, 255, 0.9);
+    color: #547190;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0 8px;
+}
+
+.overview-card-inline-chip.is-critical {
+    border-color: rgba(214, 113, 131, 0.54);
+    background: #ffe5ea;
+    color: #a24353;
+}
+
+.overview-card-inline-chip.is-attention {
+    border-color: rgba(223, 164, 101, 0.54);
+    background: #fff0df;
+    color: #9c632f;
 }
 
 .overview-card-subtitle {
@@ -3204,15 +3232,10 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     gap: 8px;
 }
 
-.overview-card-tasks .overview-list {
-    max-height: 460px;
-    overflow: auto;
-    padding-right: 2px;
-}
-
+.overview-card-tasks .overview-list,
 .overview-card-due .overview-list,
 .overview-card-stock .overview-list {
-    max-height: 220px;
+    max-height: 248px;
     overflow: auto;
     padding-right: 2px;
 }
@@ -3363,8 +3386,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .overview-workspaces-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 8px;
 }
 
 .overview-workspace-item {
@@ -3377,7 +3400,12 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
         0 8px 18px rgba(37, 90, 147, 0.07);
     padding: 12px;
     display: grid;
-    gap: 10px;
+    gap: 8px 12px;
+    grid-template-columns: minmax(0, 1.3fr) minmax(180px, 0.9fr) minmax(320px, 1.45fr);
+    grid-template-areas:
+        "meta meter kpis"
+        "note meter kpis";
+    align-items: center;
 }
 
 .overview-workspace-item.is-active-workspace {
@@ -3403,6 +3431,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .overview-workspace-meta {
+    grid-area: meta;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -3446,6 +3475,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .overview-workspace-note {
+    grid-area: note;
     margin: -2px 0 0;
     color: #607c9d;
     font-size: 0.78rem;
@@ -3453,8 +3483,10 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .overview-workspace-meter {
+    grid-area: meter;
     display: grid;
     gap: 7px;
+    align-self: center;
 }
 
 .overview-workspace-meter-meta {
@@ -3494,6 +3526,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .overview-workspace-kpis {
+    grid-area: kpis;
     margin: 0;
     display: grid;
     gap: 6px;
@@ -11578,11 +11611,19 @@ body.theme-dark .task-status-subgroup-divider {
     }
 
     .overview-panels-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .overview-card-stock {
+        grid-column: 1 / -1;
+    }
+
+    .overview-workspace-item {
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 0.82fr);
         grid-template-areas:
-            "tasks"
-            "due"
-            "stock";
+            "meta meter"
+            "note meter"
+            "kpis kpis";
     }
 
     .overview-workspace-kpis {
@@ -11664,8 +11705,13 @@ body.theme-dark .task-status-subgroup-divider {
     }
 
     .overview-panels-grid {
+        grid-template-columns: 1fr;
         overflow: visible;
         padding-right: 0;
+    }
+
+    .overview-card-stock {
+        grid-column: auto;
     }
 
     .overview-card {
@@ -11699,6 +11745,15 @@ body.theme-dark .task-status-subgroup-divider {
 
     .overview-workspaces-list {
         grid-template-columns: 1fr;
+    }
+
+    .overview-workspace-item {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "meta"
+            "note"
+            "meter"
+            "kpis";
     }
 
     .overview-workspace-meta {
@@ -11798,6 +11853,12 @@ body.theme-dark .overview-workspace-chip {
     color: #dcecff;
 }
 
+body.theme-dark .overview-card-inline-chip {
+    border-color: rgba(126, 164, 216, 0.56);
+    background: rgba(33, 55, 92, 0.9);
+    color: #dcecff;
+}
+
 body.theme-dark .overview-executive-heading h3,
 body.theme-dark .overview-focus-card dd,
 body.theme-dark .overview-radar-top h3,
@@ -11852,6 +11913,18 @@ body.theme-dark .overview-radar-meter {
 
 body.theme-dark .overview-list-tag.is-muted {
     color: rgba(199, 217, 242, 0.84);
+}
+
+body.theme-dark .overview-card-inline-chip.is-critical {
+    border-color: rgba(208, 118, 136, 0.58);
+    background: rgba(96, 36, 53, 0.76);
+    color: #ffd8e1;
+}
+
+body.theme-dark .overview-card-inline-chip.is-attention {
+    border-color: rgba(212, 161, 98, 0.58);
+    background: rgba(91, 61, 28, 0.72);
+    color: #ffdba8;
 }
 
 body.theme-dark .overview-stat-card {

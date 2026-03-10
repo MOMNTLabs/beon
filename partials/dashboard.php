@@ -525,6 +525,10 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                             Abrir tarefas
                         </button>
                     </div>
+                    <div class="overview-card-inline-metrics" aria-label="Resumo rapido de tarefas">
+                        <span class="overview-card-inline-chip is-critical">Urgentes <?= e((string) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0)) ?></span>
+                        <span class="overview-card-inline-chip">Alta prioridade <?= e((string) ($globalDashboardOverview['priority_tasks_today_total'] ?? 0)) ?></span>
+                    </div>
                     <?php if (empty($globalDashboardOverview['tasks_today'])): ?>
                         <p class="overview-empty">Nenhuma tarefa sua para hoje.</p>
                     <?php else: ?>
@@ -557,6 +561,10 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                         <button type="button" class="overview-card-action" data-dashboard-view-toggle data-view="dues">
                             Abrir vencimentos
                         </button>
+                    </div>
+                    <div class="overview-card-inline-metrics" aria-label="Resumo rapido de vencimentos">
+                        <span class="overview-card-inline-chip is-critical">Hoje <?= e((string) ($globalDashboardOverview['due_today_total'] ?? 0)) ?></span>
+                        <span class="overview-card-inline-chip is-attention">Amanha <?= e((string) ($globalDashboardOverview['due_tomorrow_total'] ?? 0)) ?></span>
                     </div>
                     <?php if (empty($globalDashboardOverview['due_soon'])): ?>
                         <p class="overview-empty">Sem vencimentos para os proximos dias.</p>
@@ -604,6 +612,10 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                         <button type="button" class="overview-card-action" data-dashboard-view-toggle data-view="inventory">
                             Abrir estoque
                         </button>
+                    </div>
+                    <div class="overview-card-inline-metrics" aria-label="Resumo rapido de estoque">
+                        <span class="overview-card-inline-chip is-attention">Itens abaixo do minimo <?= e((string) ($globalDashboardOverview['low_stock_total'] ?? 0)) ?></span>
+                        <span class="overview-card-inline-chip">Workspaces em foco <?= e((string) (((int) ($globalDashboardOverview['critical_workspace_total'] ?? 0)) + ((int) ($globalDashboardOverview['attention_workspace_total'] ?? 0)))) ?></span>
                     </div>
                     <?php if (empty($globalDashboardOverview['low_stock'])): ?>
                         <p class="overview-empty">Nenhum item abaixo do minimo.</p>
