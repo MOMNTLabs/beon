@@ -361,6 +361,19 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
             $overviewExecutiveHeadline = $overviewExecutiveFocusTotal > 0
                 ? $overviewExecutiveFocusTotal . ' ponto(s) pedem atencao hoje'
                 : 'Operacao sob controle hoje';
+            $overviewWorkspaceSummaries = array_values((array) ($globalDashboardOverview['workspace_summaries'] ?? []));
+            $overviewTopWorkspaceSummaries = array_slice($overviewWorkspaceSummaries, 0, 4);
+            $overviewMaxAttentionScore = 0;
+            $overviewNegativeWorkspaceTotal = 0;
+            foreach ($overviewWorkspaceSummaries as $overviewWorkspaceSummaryItem) {
+                $overviewMaxAttentionScore = max(
+                    $overviewMaxAttentionScore,
+                    (int) ($overviewWorkspaceSummaryItem['attention_score'] ?? 0)
+                );
+                if ((int) ($overviewWorkspaceSummaryItem['balance_total_cents'] ?? 0) < 0) {
+                    $overviewNegativeWorkspaceTotal++;
+                }
+            }
             ?>
             <div class="panel-header board-header overview-board-header">
                 <div>
@@ -373,41 +386,110 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                 </div>
             </div>
 
-            <section class="overview-executive-strip is-<?= e($overviewExecutiveTone) ?>" aria-label="Prioridades do dia">
-                <div class="overview-executive-main">
-                    <span class="overview-executive-kicker">Prioridade do dia</span>
-                    <div class="overview-executive-heading">
-                        <h3><?= e($overviewExecutiveHeadline) ?></h3>
-                        <span class="overview-executive-badge is-<?= e($overviewExecutiveTone) ?>">
-                            <?= e((string) ($globalDashboardOverview['executive_status_label'] ?? 'Operacao estavel')) ?>
-                        </span>
+            <div class="overview-executive-grid">
+                <section class="overview-executive-strip is-<?= e($overviewExecutiveTone) ?>" aria-label="Prioridades do dia">
+                    <div class="overview-executive-main">
+                        <span class="overview-executive-kicker">Prioridade do dia</span>
+                        <div class="overview-executive-heading">
+                            <h3><?= e($overviewExecutiveHeadline) ?></h3>
+                            <span class="overview-executive-badge is-<?= e($overviewExecutiveTone) ?>">
+                                <?= e((string) ($globalDashboardOverview['executive_status_label'] ?? 'Operacao estavel')) ?>
+                            </span>
+                        </div>
+                        <p><?= e((string) ($globalDashboardOverview['executive_status_note'] ?? '')) ?></p>
+                        <div class="overview-executive-chips" aria-label="Indicadores rapidos">
+                            <span class="overview-executive-chip">Urgentes: <?= e((string) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0)) ?></span>
+                            <span class="overview-executive-chip">Vence hoje: <?= e((string) ($globalDashboardOverview['due_today_total'] ?? 0)) ?></span>
+                            <span class="overview-executive-chip">Baixo estoque: <?= e((string) ($globalDashboardOverview['low_stock_total'] ?? 0)) ?></span>
+                            <span class="overview-executive-chip">Monitorar: <?= e((string) (((int) ($globalDashboardOverview['critical_workspace_total'] ?? 0)) + ((int) ($globalDashboardOverview['attention_workspace_total'] ?? 0)))) ?> workspace(s)</span>
+                        </div>
                     </div>
-                    <p><?= e((string) ($globalDashboardOverview['executive_status_note'] ?? '')) ?></p>
-                    <div class="overview-executive-chips" aria-label="Indicadores rapidos">
-                        <span class="overview-executive-chip">Urgentes: <?= e((string) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0)) ?></span>
-                        <span class="overview-executive-chip">Vence hoje: <?= e((string) ($globalDashboardOverview['due_today_total'] ?? 0)) ?></span>
-                        <span class="overview-executive-chip">Baixo estoque: <?= e((string) ($globalDashboardOverview['low_stock_total'] ?? 0)) ?></span>
-                        <span class="overview-executive-chip">Monitorar: <?= e((string) (((int) ($globalDashboardOverview['critical_workspace_total'] ?? 0)) + ((int) ($globalDashboardOverview['attention_workspace_total'] ?? 0)))) ?> workspace(s)</span>
+                    <dl class="overview-executive-focus">
+                        <div class="overview-focus-card is-critical">
+                            <dt>Urgentes hoje</dt>
+                            <dd><?= e((string) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0)) ?></dd>
+                            <small>Tarefas com prioridade maxima</small>
+                        </div>
+                        <div class="overview-focus-card is-due">
+                            <dt>Vence hoje</dt>
+                            <dd><?= e((string) ($globalDashboardOverview['due_today_total'] ?? 0)) ?></dd>
+                            <small>Contas com decisao imediata</small>
+                        </div>
+                        <div class="overview-focus-card is-balance">
+                            <dt>Fluxo do mes</dt>
+                            <dd><?= e((string) ($globalDashboardOverview['balance_month_movement_display'] ?? 'R$ 0,00')) ?></dd>
+                            <small>Movimento consolidado atual</small>
+                        </div>
+                    </dl>
+                </section>
+
+                <aside class="overview-radar-card" aria-label="Radar de workspaces">
+                    <div class="overview-radar-top">
+                        <div>
+                            <span class="overview-radar-kicker">Radar</span>
+                            <h3>Workspaces sob maior pressao</h3>
+                            <p>Comparativo rapido para decidir onde entrar primeiro.</p>
+                        </div>
+                        <div class="overview-radar-summary">
+                            <span class="overview-summary-pill">Criticos <?= e((string) ($globalDashboardOverview['critical_workspace_total'] ?? 0)) ?></span>
+                            <span class="overview-summary-pill">Saldo negativo <?= e((string) $overviewNegativeWorkspaceTotal) ?></span>
+                        </div>
                     </div>
-                </div>
-                <dl class="overview-executive-focus">
-                    <div class="overview-focus-card is-critical">
-                        <dt>Urgentes hoje</dt>
-                        <dd><?= e((string) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0)) ?></dd>
-                        <small>Tarefas com prioridade maxima</small>
-                    </div>
-                    <div class="overview-focus-card is-due">
-                        <dt>Vence hoje</dt>
-                        <dd><?= e((string) ($globalDashboardOverview['due_today_total'] ?? 0)) ?></dd>
-                        <small>Contas com decisao imediata</small>
-                    </div>
-                    <div class="overview-focus-card is-balance">
-                        <dt>Fluxo do mes</dt>
-                        <dd><?= e((string) ($globalDashboardOverview['balance_month_movement_display'] ?? 'R$ 0,00')) ?></dd>
-                        <small>Movimento consolidado atual</small>
-                    </div>
-                </dl>
-            </section>
+                    <?php if (empty($overviewTopWorkspaceSummaries)): ?>
+                        <p class="overview-empty">Nenhum workspace encontrado para comparacao.</p>
+                    <?php else: ?>
+                        <ol class="overview-radar-list">
+                            <?php foreach ($overviewTopWorkspaceSummaries as $radarIndex => $workspaceSummary): ?>
+                                <?php
+                                $workspaceSummaryId = (int) ($workspaceSummary['workspace_id'] ?? 0);
+                                $workspaceAttentionTone = (string) ($workspaceSummary['attention_tone'] ?? 'stable');
+                                $workspaceAttentionScore = (int) ($workspaceSummary['attention_score'] ?? 0);
+                                $workspaceAttentionShare = $overviewMaxAttentionScore > 0
+                                    ? (int) max(
+                                        $workspaceAttentionScore > 0 ? 14 : 0,
+                                        round(($workspaceAttentionScore / $overviewMaxAttentionScore) * 100)
+                                    )
+                                    : 0;
+                                ?>
+                                <li class="overview-radar-item is-<?= e($workspaceAttentionTone) ?>">
+                                    <div class="overview-radar-item-top">
+                                        <span class="overview-radar-rank"><?= e(str_pad((string) ($radarIndex + 1), 2, '0', STR_PAD_LEFT)) ?></span>
+                                        <div class="overview-radar-item-main">
+                                            <div class="overview-radar-item-heading">
+                                                <strong><?= e((string) ($workspaceSummary['workspace_name'] ?? 'Workspace')) ?></strong>
+                                                <?php if ($workspaceSummaryId === (int) ($currentWorkspaceId ?? 0)): ?>
+                                                    <span class="overview-workspace-current">Ativo</span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <p><?= e((string) ($workspaceSummary['attention_note'] ?? 'Sem pendencias imediatas.')) ?></p>
+                                        </div>
+                                        <span class="overview-workspace-health is-<?= e($workspaceAttentionTone) ?>">
+                                            <?= e((string) ($workspaceSummary['attention_label'] ?? 'Estavel')) ?>
+                                        </span>
+                                    </div>
+                                    <div class="overview-radar-meter" style="--attention-share: <?= e((string) $workspaceAttentionShare) ?>%;">
+                                        <span class="overview-radar-meter-fill is-<?= e($workspaceAttentionTone) ?>"></span>
+                                    </div>
+                                    <dl class="overview-radar-kpis">
+                                        <div>
+                                            <dt>Score</dt>
+                                            <dd><?= e((string) $workspaceAttentionScore) ?></dd>
+                                        </div>
+                                        <div>
+                                            <dt>Hoje</dt>
+                                            <dd><?= e((string) ($workspaceSummary['tasks_today_count'] ?? 0)) ?></dd>
+                                        </div>
+                                        <div>
+                                            <dt>Saldo</dt>
+                                            <dd><?= e((string) ($workspaceSummary['balance_total_display'] ?? 'R$ 0,00')) ?></dd>
+                                        </div>
+                                    </dl>
+                                </li>
+                            <?php endforeach; ?>
+                        </ol>
+                    <?php endif; ?>
+                </aside>
+            </div>
 
             <section class="stats-strip overview-stats" aria-label="Resumo geral do usuario">
                 <article class="stat-cell overview-stat-card is-tasks">
@@ -550,19 +632,26 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                 <div class="overview-card-top">
                     <header class="overview-card-head">
                         <h3>Resumo por workspace</h3>
-                        <span class="overview-card-count"><?= e((string) count((array) ($globalDashboardOverview['workspace_summaries'] ?? []))) ?></span>
+                        <span class="overview-card-count"><?= e((string) count($overviewWorkspaceSummaries)) ?></span>
                     </header>
                     <p class="overview-card-subtitle">Saldo referente a <?= e((string) ($globalDashboardOverview['accounting_period_label'] ?? '')) ?></p>
                 </div>
-                <?php if (empty($globalDashboardOverview['workspace_summaries'])): ?>
+                <?php if (empty($overviewWorkspaceSummaries)): ?>
                     <p class="overview-empty">Nenhum workspace encontrado para sua conta.</p>
                 <?php else: ?>
                     <div class="overview-workspaces-list">
-                        <?php foreach ((array) $globalDashboardOverview['workspace_summaries'] as $workspaceSummary): ?>
+                        <?php foreach ($overviewWorkspaceSummaries as $workspaceSummary): ?>
                             <?php
                             $workspaceSummaryId = (int) ($workspaceSummary['workspace_id'] ?? 0);
                             $isActiveWorkspaceSummary = $workspaceSummaryId === (int) ($currentWorkspaceId ?? 0);
                             $workspaceAttentionTone = (string) ($workspaceSummary['attention_tone'] ?? 'stable');
+                            $workspaceAttentionScore = (int) ($workspaceSummary['attention_score'] ?? 0);
+                            $workspaceAttentionShare = $overviewMaxAttentionScore > 0
+                                ? (int) max(
+                                    $workspaceAttentionScore > 0 ? 14 : 0,
+                                    round(($workspaceAttentionScore / $overviewMaxAttentionScore) * 100)
+                                )
+                                : 0;
                             ?>
                             <article class="overview-workspace-item is-<?= e($workspaceAttentionTone) ?><?= $isActiveWorkspaceSummary ? ' is-active-workspace' : '' ?>">
                                 <div class="overview-workspace-meta">
@@ -596,6 +685,15 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     </div>
                                 </div>
                                 <p class="overview-workspace-note"><?= e((string) ($workspaceSummary['attention_note'] ?? 'Sem pendencias imediatas.')) ?></p>
+                                <div class="overview-workspace-meter">
+                                    <div class="overview-workspace-meter-meta">
+                                        <span>Pressao operacional</span>
+                                        <strong>Score <?= e((string) $workspaceAttentionScore) ?></strong>
+                                    </div>
+                                    <div class="overview-radar-meter" style="--attention-share: <?= e((string) $workspaceAttentionShare) ?>%;">
+                                        <span class="overview-radar-meter-fill is-<?= e($workspaceAttentionTone) ?>"></span>
+                                    </div>
+                                </div>
                                 <dl class="overview-workspace-kpis">
                                     <div class="overview-workspace-kpi is-today">
                                         <dt>Hoje</dt>
