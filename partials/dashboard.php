@@ -361,46 +361,57 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                     <p>Resumo pessoal de todos os workspaces.</p>
                 </div>
                 <div class="board-summary overview-board-summary">
-                    <span><?= e((string) ($globalDashboardOverview['workspace_count'] ?? 0)) ?> workspace(s)</span>
-                    <span>Vencimentos em <?= e((string) ($globalDashboardOverview['due_window_days'] ?? 7)) ?> dias</span>
+                    <span class="overview-summary-pill"><?= e((string) ($globalDashboardOverview['workspace_count'] ?? 0)) ?> workspace(s)</span>
+                    <span class="overview-summary-pill">Vencimentos em <?= e((string) ($globalDashboardOverview['due_window_days'] ?? 7)) ?> dias</span>
                 </div>
             </div>
 
             <section class="stats-strip overview-stats" aria-label="Resumo geral do usuario">
-                <div class="stat-cell">
+                <article class="stat-cell overview-stat-card is-tasks">
                     <span>Tarefas de hoje</span>
                     <strong><?= e((string) ($globalDashboardOverview['tasks_today_total'] ?? 0)) ?></strong>
-                </div>
-                <div class="stat-cell">
+                    <small class="overview-stat-note">Itens focados no seu dia</small>
+                </article>
+                <article class="stat-cell overview-stat-card is-due">
                     <span>Vencimentos proximos</span>
                     <strong><?= e((string) ($globalDashboardOverview['due_soon_total'] ?? 0)) ?></strong>
-                </div>
-                <div class="stat-cell">
+                    <small class="overview-stat-note">Janela de curto prazo</small>
+                </article>
+                <article class="stat-cell overview-stat-card is-balance">
                     <span>Saldo atual</span>
                     <strong><?= e((string) ($globalDashboardOverview['balance_total_display'] ?? 'R$ 0,00')) ?></strong>
-                </div>
-                <div class="stat-cell">
+                    <small class="overview-stat-note">Consolidado por workspace</small>
+                </article>
+                <article class="stat-cell overview-stat-card is-stock">
                     <span>Baixo estoque</span>
                     <strong><?= e((string) ($globalDashboardOverview['low_stock_total'] ?? 0)) ?></strong>
-                </div>
+                    <small class="overview-stat-note">Itens abaixo do minimo</small>
+                </article>
             </section>
 
             <div class="overview-panels-grid">
-                <section class="overview-card">
-                    <header class="overview-card-head">
-                        <h3>Tarefas do dia</h3>
-                    </header>
+                <section class="overview-card overview-card-tasks">
+                    <div class="overview-card-top">
+                        <header class="overview-card-head">
+                            <h3>Tarefas do dia</h3>
+                            <span class="overview-card-count"><?= e((string) ($globalDashboardOverview['tasks_today_total'] ?? 0)) ?></span>
+                        </header>
+                        <button type="button" class="overview-card-action" data-dashboard-view-toggle data-view="tasks">
+                            Abrir tarefas
+                        </button>
+                    </div>
                     <?php if (empty($globalDashboardOverview['tasks_today'])): ?>
                         <p class="overview-empty">Nenhuma tarefa sua para hoje.</p>
                     <?php else: ?>
                         <ul class="overview-list">
                             <?php foreach ((array) $globalDashboardOverview['tasks_today'] as $taskToday): ?>
-                                <li class="overview-list-item">
-                                    <div>
+                                <?php $taskPriorityClass = normalizeTaskPriority((string) ($taskToday['priority'] ?? 'medium')); ?>
+                                <li class="overview-list-item overview-list-item-task priority-<?= e($taskPriorityClass) ?>">
+                                    <div class="overview-list-main">
                                         <strong><?= e((string) ($taskToday['title'] ?? 'Tarefa')) ?></strong>
-                                        <span><?= e((string) ($taskToday['workspace_name'] ?? 'Workspace')) ?> - <?= e((string) ($taskToday['group_name'] ?? 'Geral')) ?></span>
+                                        <span class="overview-list-meta"><?= e((string) ($taskToday['workspace_name'] ?? 'Workspace')) ?> - <?= e((string) ($taskToday['group_name'] ?? 'Geral')) ?></span>
                                     </div>
-                                    <span class="overview-priority priority-<?= e((string) ($taskToday['priority'] ?? 'medium')) ?>">
+                                    <span class="overview-priority priority-<?= e($taskPriorityClass) ?>">
                                         <?= e((string) ($taskToday['priority_label'] ?? 'Media')) ?>
                                     </span>
                                 </li>
@@ -409,40 +420,61 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                     <?php endif; ?>
                 </section>
 
-                <section class="overview-card">
-                    <header class="overview-card-head">
-                        <h3>Contas para vencer</h3>
-                    </header>
+                <section class="overview-card overview-card-due">
+                    <div class="overview-card-top">
+                        <header class="overview-card-head">
+                            <h3>Contas para vencer</h3>
+                            <span class="overview-card-count"><?= e((string) ($globalDashboardOverview['due_soon_total'] ?? 0)) ?></span>
+                        </header>
+                        <button type="button" class="overview-card-action" data-dashboard-view-toggle data-view="dues">
+                            Abrir vencimentos
+                        </button>
+                    </div>
                     <?php if (empty($globalDashboardOverview['due_soon'])): ?>
                         <p class="overview-empty">Sem vencimentos para os proximos dias.</p>
                     <?php else: ?>
                         <ul class="overview-list">
                             <?php foreach ((array) $globalDashboardOverview['due_soon'] as $dueSoonItem): ?>
-                                <li class="overview-list-item">
-                                    <div>
+                                <?php
+                                $dueDaysLabel = trim((string) ($dueSoonItem['days_until_label'] ?? ''));
+                                $dueDateLabel = trim((string) ($dueSoonItem['next_due_display'] ?? ''));
+                                $dueWhenLabel = $dueDaysLabel !== '' && $dueDateLabel !== ''
+                                    ? $dueDaysLabel . ' (' . $dueDateLabel . ')'
+                                    : ($dueDaysLabel !== '' ? $dueDaysLabel : $dueDateLabel);
+                                ?>
+                                <li class="overview-list-item overview-list-item-due">
+                                    <div class="overview-list-main">
                                         <strong><?= e((string) ($dueSoonItem['label'] ?? 'Vencimento')) ?></strong>
-                                        <span><?= e((string) ($dueSoonItem['workspace_name'] ?? 'Workspace')) ?> - <?= e((string) ($dueSoonItem['days_until_label'] ?? '')) ?></span>
+                                        <span class="overview-list-meta"><?= e((string) ($dueSoonItem['workspace_name'] ?? 'Workspace')) ?> - <?= e($dueWhenLabel) ?></span>
                                     </div>
-                                    <span class="overview-amount"><?= e((string) ($dueSoonItem['amount_display'] ?? 'R$ 0,00')) ?></span>
+                                    <div class="overview-list-aside">
+                                        <span class="overview-amount"><?= e((string) ($dueSoonItem['amount_display'] ?? 'R$ 0,00')) ?></span>
+                                    </div>
                                 </li>
                             <?php endforeach; ?>
                         </ul>
                     <?php endif; ?>
                 </section>
 
-                <section class="overview-card">
-                    <header class="overview-card-head">
-                        <h3>Itens com baixo estoque</h3>
-                    </header>
+                <section class="overview-card overview-card-stock">
+                    <div class="overview-card-top">
+                        <header class="overview-card-head">
+                            <h3>Itens com baixo estoque</h3>
+                            <span class="overview-card-count"><?= e((string) ($globalDashboardOverview['low_stock_total'] ?? 0)) ?></span>
+                        </header>
+                        <button type="button" class="overview-card-action" data-dashboard-view-toggle data-view="inventory">
+                            Abrir estoque
+                        </button>
+                    </div>
                     <?php if (empty($globalDashboardOverview['low_stock'])): ?>
                         <p class="overview-empty">Nenhum item abaixo do minimo.</p>
                     <?php else: ?>
                         <ul class="overview-list">
                             <?php foreach ((array) $globalDashboardOverview['low_stock'] as $lowStockItem): ?>
-                                <li class="overview-list-item">
-                                    <div>
+                                <li class="overview-list-item overview-list-item-stock">
+                                    <div class="overview-list-main">
                                         <strong><?= e((string) ($lowStockItem['label'] ?? 'Item')) ?></strong>
-                                        <span><?= e((string) ($lowStockItem['workspace_name'] ?? 'Workspace')) ?> - <?= e((string) ($lowStockItem['group_name'] ?? 'Geral')) ?></span>
+                                        <span class="overview-list-meta"><?= e((string) ($lowStockItem['workspace_name'] ?? 'Workspace')) ?> - <?= e((string) ($lowStockItem['group_name'] ?? 'Geral')) ?></span>
                                     </div>
                                     <span class="overview-stock-meta"><?= e((string) ($lowStockItem['quantity_display'] ?? '0')) ?>/<?= e((string) ($lowStockItem['min_quantity_display'] ?? '0')) ?> <?= e((string) ($lowStockItem['unit_label'] ?? 'un')) ?></span>
                                 </li>
@@ -453,34 +485,59 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
             </div>
 
             <section class="overview-card overview-workspaces-card">
-                <header class="overview-card-head">
-                    <h3>Resumo por workspace</h3>
-                    <p>Saldo referente a <?= e((string) ($globalDashboardOverview['accounting_period_label'] ?? '')) ?></p>
-                </header>
+                <div class="overview-card-top">
+                    <header class="overview-card-head">
+                        <h3>Resumo por workspace</h3>
+                        <span class="overview-card-count"><?= e((string) count((array) ($globalDashboardOverview['workspace_summaries'] ?? []))) ?></span>
+                    </header>
+                    <p class="overview-card-subtitle">Saldo referente a <?= e((string) ($globalDashboardOverview['accounting_period_label'] ?? '')) ?></p>
+                </div>
                 <?php if (empty($globalDashboardOverview['workspace_summaries'])): ?>
                     <p class="overview-empty">Nenhum workspace encontrado para sua conta.</p>
                 <?php else: ?>
                     <div class="overview-workspaces-list">
                         <?php foreach ((array) $globalDashboardOverview['workspace_summaries'] as $workspaceSummary): ?>
-                            <article class="overview-workspace-item">
+                            <?php
+                            $workspaceSummaryId = (int) ($workspaceSummary['workspace_id'] ?? 0);
+                            $isActiveWorkspaceSummary = $workspaceSummaryId === (int) ($currentWorkspaceId ?? 0);
+                            ?>
+                            <article class="overview-workspace-item<?= $isActiveWorkspaceSummary ? ' is-active-workspace' : '' ?>">
                                 <div class="overview-workspace-meta">
-                                    <strong><?= e((string) ($workspaceSummary['workspace_name'] ?? 'Workspace')) ?></strong>
-                                    <span><?= e((string) ($workspaceSummary['workspace_role_label'] ?? 'Usuario')) ?></span>
+                                    <div class="overview-workspace-title">
+                                        <strong><?= e((string) ($workspaceSummary['workspace_name'] ?? 'Workspace')) ?></strong>
+                                        <span class="overview-workspace-role"><?= e((string) ($workspaceSummary['workspace_role_label'] ?? 'Usuario')) ?></span>
+                                    </div>
+                                    <div class="overview-workspace-actions">
+                                        <?php if ($isActiveWorkspaceSummary): ?>
+                                            <span class="overview-workspace-current">Ativo</span>
+                                        <?php elseif ($workspaceSummaryId > 0): ?>
+                                            <form method="post" class="overview-workspace-open-form">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                <input type="hidden" name="action" value="switch_workspace">
+                                                <input type="hidden" name="workspace_id" value="<?= e((string) $workspaceSummaryId) ?>">
+                                                <button type="submit" class="overview-workspace-open">Abrir</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                                 <dl class="overview-workspace-kpis">
-                                    <div>
+                                    <div class="overview-workspace-kpi is-today">
                                         <dt>Hoje</dt>
                                         <dd><?= e((string) ($workspaceSummary['tasks_today_count'] ?? 0)) ?></dd>
                                     </div>
-                                    <div>
+                                    <div class="overview-workspace-kpi is-due">
                                         <dt>Vencer</dt>
                                         <dd><?= e((string) ($workspaceSummary['due_soon_count'] ?? 0)) ?></dd>
                                     </div>
-                                    <div>
+                                    <div class="overview-workspace-kpi is-stock">
                                         <dt>Baixo</dt>
                                         <dd><?= e((string) ($workspaceSummary['low_stock_count'] ?? 0)) ?></dd>
                                     </div>
-                                    <div>
+                                    <div class="overview-workspace-kpi is-movement">
+                                        <dt>Movimento</dt>
+                                        <dd><?= e((string) ($workspaceSummary['month_movement_display'] ?? 'R$ 0,00')) ?></dd>
+                                    </div>
+                                    <div class="overview-workspace-kpi is-balance">
                                         <dt>Saldo</dt>
                                         <dd><?= e((string) ($workspaceSummary['balance_total_display'] ?? 'R$ 0,00')) ?></dd>
                                     </div>
