@@ -7480,7 +7480,7 @@ function taskGroupPermissionOverridesForUser(int $workspaceId, int $userId): arr
     }
 
     $role = workspaceRoleForUser($userId, $workspaceId);
-    if ($role === null || $role === 'admin') {
+    if ($role === null) {
         return [];
     }
 
