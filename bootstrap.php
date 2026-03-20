@@ -7346,6 +7346,38 @@ function applyOverdueTaskPolicy(?int $workspaceId = null): int
     return $changed;
 }
 
+function overduePolicyLastRunMetaKey(int $workspaceId): string
+{
+    return sprintf('overdue_policy_last_run_date_workspace_%d', $workspaceId);
+}
+
+function applyOverdueTaskPolicyIfNeeded(?int $workspaceId = null): int
+{
+    $pdo = db();
+    $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
+    if ($workspaceId === null) {
+        return 0;
+    }
+
+    $today = (new DateTimeImmutable('today'))->format('Y-m-d');
+    static $checkedByWorkspaceId = [];
+    if (($checkedByWorkspaceId[$workspaceId] ?? null) === $today) {
+        return 0;
+    }
+
+    $lastRun = dueDateForStorage(appMetaGet($pdo, overduePolicyLastRunMetaKey($workspaceId)));
+    if ($lastRun === $today) {
+        $checkedByWorkspaceId[$workspaceId] = $today;
+        return 0;
+    }
+
+    $changed = applyOverdueTaskPolicy($workspaceId);
+    appMetaSet($pdo, overduePolicyLastRunMetaKey($workspaceId), $today);
+    $checkedByWorkspaceId[$workspaceId] = $today;
+
+    return $changed;
+}
+
 function normalizeTaskGroupName(string $value): string
 {
     $value = trim($value);

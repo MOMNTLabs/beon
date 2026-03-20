@@ -39,7 +39,7 @@ function respondJson(array $payload, int $status = 200): void
 function dashboardSummaryPayloadForUser(int $userId, ?int $workspaceId = null): array
 {
     if ($workspaceId !== null && $workspaceId > 0) {
-        applyOverdueTaskPolicy($workspaceId);
+        applyOverdueTaskPolicyIfNeeded($workspaceId);
     }
 
     $allTasks = allTasks($workspaceId);
@@ -259,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 throw new RuntimeException('Workspace ativo nao encontrado.');
             }
 
-            applyOverdueTaskPolicy($workspaceId);
+            applyOverdueTaskPolicyIfNeeded($workspaceId);
 
             $initialize = ((int) ($_GET['initialize'] ?? 0)) === 1;
             $sinceHistoryId = max(0, (int) ($_GET['since_id'] ?? 0));
@@ -3053,7 +3053,7 @@ $renderAuthScreen = !$currentUser || $forceAuthScreen;
 $currentWorkspaceId = $currentUser ? activeWorkspaceId($currentUser) : null;
 $currentWorkspace = ($currentUser && $currentWorkspaceId !== null) ? activeWorkspace($currentUser) : null;
 if ($currentUser && $currentWorkspaceId !== null) {
-    applyOverdueTaskPolicy($currentWorkspaceId);
+    applyOverdueTaskPolicyIfNeeded($currentWorkspaceId);
 }
 $userWorkspaces = $currentUser ? workspacesForUser((int) $currentUser['id']) : [];
 $flashes = getFlashes();
