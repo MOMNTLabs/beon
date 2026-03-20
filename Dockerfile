@@ -15,5 +15,5 @@ RUN mkdir -p /app/storage \
 
 EXPOSE 8080
 
-CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
+CMD ["sh", "-lc", "php /app/scripts/migrate.php && exec frankenphp run --config /etc/caddy/Caddyfile"]
 
