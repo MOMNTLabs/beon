@@ -538,6 +538,14 @@ function ensureWorkspaceSchema(PDO $pdo): void
         'CREATE INDEX IF NOT EXISTS idx_tasks_workspace
          ON tasks(workspace_id)'
     );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_workspace_group_due_updated
+         ON tasks(workspace_id, group_name, due_date, updated_at)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_workspace_due_status
+         ON tasks(workspace_id, due_date, status)'
+    );
 
     $users = $pdo->query('SELECT id, name, email FROM users ORDER BY id ASC')->fetchAll();
     if (!$users) {
@@ -724,6 +732,14 @@ function ensureTaskHistorySchema(PDO $pdo): void
             'CREATE INDEX IF NOT EXISTS idx_task_history_task_created
              ON task_history(task_id, created_at)'
         );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_task_history_task_event_id
+             ON task_history(task_id, event_type, id)'
+        );
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_task_history_task_created_id
+             ON task_history(task_id, created_at, id)'
+        );
         return;
     }
 
@@ -742,6 +758,14 @@ function ensureTaskHistorySchema(PDO $pdo): void
     $pdo->exec(
         'CREATE INDEX IF NOT EXISTS idx_task_history_task_created
          ON task_history(task_id, created_at)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_task_history_task_event_id
+         ON task_history(task_id, event_type, id)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_task_history_task_created_id
+         ON task_history(task_id, created_at, id)'
     );
 }
 
