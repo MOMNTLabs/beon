@@ -44,63 +44,11 @@ function db(): PDO
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     if (dbDriverName($pdo) === 'sqlite') {
-        $pdo->setAttribute(PDO::ATTR_TIMEOUT, 5);
-        $pdo->exec('PRAGMA busy_timeout = 5000;');
-        $pdo->exec('PRAGMA journal_mode = WAL;');
-        $pdo->exec('PRAGMA synchronous = NORMAL;');
         $pdo->exec('PRAGMA foreign_keys = ON;');
     }
-    ensureDatabaseSchemaReady($pdo);
+    migrate($pdo);
 
     return $pdo;
-}
-
-function envFlagValue(string $key, ?bool $default = null): ?bool
-{
-    $value = envValue($key);
-    if ($value === null) {
-        return $default;
-    }
-
-    $normalized = trim(mb_strtolower($value));
-    if ($normalized === '') {
-        return $default;
-    }
-
-    if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
-        return true;
-    }
-    if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
-        return false;
-    }
-
-    return $default;
-}
-
-function shouldAutoMigrateOnBootstrap(): bool
-{
-    $envPreference = envFlagValue('WORKFORM_AUTO_MIGRATE', null);
-    if ($envPreference !== null) {
-        return $envPreference;
-    }
-
-    // Keep local php -S development convenient without running migrate manually.
-    return PHP_SAPI === 'cli-server';
-}
-
-function ensureDatabaseSchemaReady(PDO $pdo, bool $force = false): void
-{
-    static $schemaReady = false;
-    if ($schemaReady) {
-        return;
-    }
-
-    if (!$force && !shouldAutoMigrateOnBootstrap()) {
-        return;
-    }
-
-    migrate($pdo);
-    $schemaReady = true;
 }
 
 function dbDriverName(PDO $pdo): string

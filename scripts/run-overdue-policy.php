@@ -10,7 +10,6 @@ if (PHP_SAPI !== 'cli') {
 require dirname(__DIR__) . '/bootstrap.php';
 
 $pdo = db();
-ensureDatabaseSchemaReady($pdo, true);
 $stmt = $pdo->query(
     'SELECT id
      FROM workspaces
