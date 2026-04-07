@@ -1949,7 +1949,7 @@ function createUser(PDO $pdo, string $name, string $email, string $passwordHash,
         ':c' => $createdAt,
     ];
 
-    if (columnExists($pdo, 'users', 'uuid')) {
+    if (tableHasColumn($pdo, 'users', 'uuid')) {
         $columnsSql .= ', uuid';
         $valuesSql .= ', :u';
         $params[':u'] = generateUuidV4();
