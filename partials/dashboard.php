@@ -374,16 +374,54 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                     $overviewNegativeWorkspaceTotal++;
                 }
             }
+            $overviewImportantHighlights = [];
+            $overviewDueSoonTotal = (int) ($globalDashboardOverview['due_soon_total'] ?? 0);
+            $overviewTasksTodayTotal = (int) ($globalDashboardOverview['tasks_today_total'] ?? 0);
+            $overviewUrgentTasksTodayTotal = (int) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0);
+            $overviewLowStockTotal = (int) ($globalDashboardOverview['low_stock_total'] ?? 0);
+
+            if ($overviewDueSoonTotal > 0) {
+                $overviewImportantHighlights[] = [
+                    'label' => 'Contas a vencer',
+                    'value' => $overviewDueSoonTotal,
+                ];
+            }
+
+            if ($overviewTasksTodayTotal > 0) {
+                $overviewImportantHighlights[] = [
+                    'label' => 'Tarefas do dia',
+                    'value' => $overviewTasksTodayTotal,
+                ];
+            }
+
+            if ($overviewUrgentTasksTodayTotal > 0) {
+                $overviewImportantHighlights[] = [
+                    'label' => 'Tarefas urgentes',
+                    'value' => $overviewUrgentTasksTodayTotal,
+                ];
+            }
+
+            if ($overviewLowStockTotal > 0) {
+                $overviewImportantHighlights[] = [
+                    'label' => 'Baixo estoque',
+                    'value' => $overviewLowStockTotal,
+                ];
+            }
             ?>
             <div class="panel-header board-header overview-board-header">
                 <div>
                     <h2>Dashboard geral</h2>
                     <p>Resumo pessoal de todos os workspaces.</p>
                 </div>
-                <div class="board-summary overview-board-summary">
-                    <span class="overview-summary-pill"><?= e((string) ($globalDashboardOverview['workspace_count'] ?? 0)) ?> workspace(s)</span>
-                    <span class="overview-summary-pill">Vencimentos em <?= e((string) ($globalDashboardOverview['due_window_days'] ?? 7)) ?> dias</span>
-                </div>
+                <?php if (!empty($overviewImportantHighlights)): ?>
+                    <div class="board-summary overview-board-summary" aria-label="Indicadores importantes">
+                        <?php foreach ($overviewImportantHighlights as $overviewImportantHighlight): ?>
+                            <span class="overview-summary-pill">
+                                <?= e((string) ($overviewImportantHighlight['label'] ?? '')) ?>: <?= e((string) ($overviewImportantHighlight['value'] ?? 0)) ?>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="overview-executive-grid" style="--overview-order: 0;">
