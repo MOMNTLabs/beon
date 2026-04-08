@@ -435,12 +435,15 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                             </span>
                         </div>
                         <p><?= e((string) ($globalDashboardOverview['executive_status_note'] ?? '')) ?></p>
-                        <div class="overview-executive-chips" aria-label="Indicadores rapidos">
-                            <span class="overview-executive-chip">Urgentes: <?= e((string) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0)) ?></span>
-                            <span class="overview-executive-chip">Vence hoje: <?= e((string) ($globalDashboardOverview['due_today_total'] ?? 0)) ?></span>
-                            <span class="overview-executive-chip">Baixo estoque: <?= e((string) ($globalDashboardOverview['low_stock_total'] ?? 0)) ?></span>
-                            <span class="overview-executive-chip">Monitorar: <?= e((string) (((int) ($globalDashboardOverview['critical_workspace_total'] ?? 0)) + ((int) ($globalDashboardOverview['attention_workspace_total'] ?? 0)))) ?> workspace(s)</span>
-                        </div>
+                        <?php if (!empty($overviewImportantHighlights)): ?>
+                            <div class="overview-executive-chips" aria-label="Indicadores rapidos">
+                                <?php foreach ($overviewImportantHighlights as $overviewImportantHighlight): ?>
+                                    <span class="overview-executive-chip">
+                                        <?= e((string) ($overviewImportantHighlight['label'] ?? '')) ?>: <?= e((string) ($overviewImportantHighlight['value'] ?? 0)) ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <dl class="overview-executive-focus">
                         <div class="overview-focus-card is-critical">
