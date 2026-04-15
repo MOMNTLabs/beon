@@ -1261,6 +1261,22 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const isTaskDescriptionSeparatorLine = (value) => /^-{3,}$/.test(String(value || "").trim());
+  const taskDescriptionListLinePattern = /^(?:-\s+|\u2022\s*)(.+)$/;
+
+  const getTaskDescriptionListItemText = (value) => {
+    const line = String(value || "").trim();
+    if (!line || isTaskDescriptionSeparatorLine(line)) {
+      return null;
+    }
+
+    const match = line.match(taskDescriptionListLinePattern);
+    if (!match) {
+      return null;
+    }
+
+    const itemText = String(match[1] || "").trim();
+    return itemText || null;
+  };
 
   const formatTaskDescriptionHtml = (value) => {
     const lines = String(value || "").replace(/\r/g, "").split("\n");
@@ -1284,15 +1300,15 @@ window.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const listMatch = line.match(/^-\s+(.+)$/);
-      if (listMatch) {
-        listItems.push(listMatch[1].trim());
-        return;
-      }
-
       if (isTaskDescriptionSeparatorLine(line)) {
         flushList();
         parts.push('<hr class="task-description-divider">');
+        return;
+      }
+
+      const listItemText = getTaskDescriptionListItemText(line);
+      if (listItemText) {
+        listItems.push(listItemText);
         return;
       }
 
