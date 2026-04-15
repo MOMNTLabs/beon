@@ -4,10 +4,10 @@
 
         <div class="auth-brand-block">
             <img
-                src="assets/WorkForm - Logo.svg?v=2"
-                data-theme-logo-light="assets/WorkForm - Logo.svg?v=2"
-                data-theme-logo-dark="assets/WorkForm - Logo (Negativa).svg?v=1"
-                alt="WorkForm"
+                src="assets/WorkForm - Logo.svg?v=3"
+                data-theme-logo-light="assets/WorkForm - Logo.svg?v=3"
+                data-theme-logo-dark="assets/WorkForm - Logo (Negativa).svg?v=2"
+                alt="<?= e(APP_NAME) ?>"
                 class="auth-brand-lockup"
                 width="196"
                 height="66"

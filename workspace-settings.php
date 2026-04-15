@@ -271,12 +271,12 @@ $flashes = getFlashes();
                     <span aria-hidden="true">&#8592;</span>
                     <span>Voltar</span>
                 </a>
-                <a href="index.php" class="brand" aria-label="WorkForm">
+                <a href="index.php" class="brand" aria-label="<?= e(APP_NAME) ?>">
                     <img
-                        src="assets/WorkForm - Logo.svg?v=2"
-                        data-theme-logo-light="assets/WorkForm - Logo.svg?v=2"
-                        data-theme-logo-dark="assets/WorkForm - Logo (Negativa).svg?v=1"
-                        alt="WorkForm"
+                        src="assets/WorkForm - Logo.svg?v=3"
+                        data-theme-logo-light="assets/WorkForm - Logo.svg?v=3"
+                        data-theme-logo-dark="assets/WorkForm - Logo (Negativa).svg?v=2"
+                        alt="<?= e(APP_NAME) ?>"
                         class="brand-lockup"
                         width="116"
                         height="29"

@@ -1038,6 +1038,15 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if (
+      target instanceof HTMLElement &&
+      target.matches("[data-create-task-description-editor]")
+    ) {
+      normalizeDescriptionEditorLists(createTaskDescriptionEditor);
+      syncCreateTaskDescriptionTextareaFromEditor();
+      return;
+    }
+
     if (!(target instanceof HTMLTextAreaElement)) return;
     if (target.matches("[data-task-detail-edit-description]")) {
       autoResizeTextarea(target);
@@ -1073,6 +1082,32 @@ window.addEventListener("DOMContentLoaded", () => {
       if (key === "i") {
         event.preventDefault();
         applyTaskDetailDescriptionFormat("italic");
+      }
+      return;
+    }
+
+    if (
+      target instanceof HTMLElement &&
+      target.matches("[data-create-task-description-editor]")
+    ) {
+      if (event.key === " " && convertDashLineToListInCreateTaskEditor()) {
+        event.preventDefault();
+        return;
+      }
+
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      if (key === "b") {
+        event.preventDefault();
+        applyCreateTaskDescriptionFormat("bold");
+        return;
+      }
+      if (key === "i") {
+        event.preventDefault();
+        applyCreateTaskDescriptionFormat("italic");
       }
       return;
     }
@@ -1280,6 +1315,8 @@ window.addEventListener("DOMContentLoaded", () => {
     return withBold.replace(/_([^_\n]+)_/g, "<em>$1</em>");
   };
 
+  const isTaskDescriptionSeparatorLine = (value) => /^-{3,}$/.test(String(value || "").trim());
+
   const formatTaskDescriptionHtml = (value) => {
     const lines = String(value || "").replace(/\r/g, "").split("\n");
     const parts = [];
@@ -1305,6 +1342,12 @@ window.addEventListener("DOMContentLoaded", () => {
       const listMatch = line.match(/^-\s+(.+)$/);
       if (listMatch) {
         listItems.push(listMatch[1].trim());
+        return;
+      }
+
+      if (isTaskDescriptionSeparatorLine(line)) {
+        flushList();
+        parts.push('<hr class="task-description-divider">');
         return;
       }
 
@@ -1533,32 +1576,26 @@ window.addEventListener("DOMContentLoaded", () => {
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
-  const normalizeTaskDetailDescriptionEditorLists = () => {
-    if (!(taskDetailEditDescriptionEditor instanceof HTMLElement)) return;
-    taskDetailEditDescriptionEditor.querySelectorAll("ul").forEach((list) => {
+  const normalizeDescriptionEditorLists = (editor) => {
+    if (!(editor instanceof HTMLElement)) return;
+    editor.querySelectorAll("ul").forEach((list) => {
       list.classList.add("task-detail-description-list");
     });
   };
 
-  const syncTaskDetailDescriptionEditorFromTextarea = () => {
-    if (
-      !(taskDetailEditDescription instanceof HTMLTextAreaElement) ||
-      !(taskDetailEditDescriptionEditor instanceof HTMLElement)
-    ) {
-      return;
-    }
-
-    const text = String(taskDetailEditDescription.value || "");
+  const syncDescriptionEditorFromTextarea = (textarea, editor) => {
+    if (!(textarea instanceof HTMLTextAreaElement) || !(editor instanceof HTMLElement)) return;
+    const text = String(textarea.value || "");
     if (!text.trim()) {
-      taskDetailEditDescriptionEditor.innerHTML = "";
+      editor.innerHTML = "";
       return;
     }
 
-    taskDetailEditDescriptionEditor.innerHTML = formatTaskDescriptionHtml(text);
-    normalizeTaskDetailDescriptionEditorLists();
+    editor.innerHTML = formatTaskDescriptionHtml(text);
+    normalizeDescriptionEditorLists(editor);
   };
 
-  const taskDetailDescriptionInlineNodeToText = (node) => {
+  const descriptionInlineNodeToText = (node) => {
     if (node.nodeType === Node.TEXT_NODE) {
       return node.textContent || "";
     }
@@ -1572,7 +1609,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const inner = Array.from(node.childNodes)
-      .map((child) => taskDetailDescriptionInlineNodeToText(child))
+      .map((child) => descriptionInlineNodeToText(child))
       .join("");
 
     if (!inner) {
@@ -1590,7 +1627,7 @@ window.addEventListener("DOMContentLoaded", () => {
     return inner;
   };
 
-  const taskDetailDescriptionBlockToLines = (node) => {
+  const descriptionBlockToLines = (node) => {
     if (node.nodeType === Node.TEXT_NODE) {
       return String(node.textContent || "").split("\n");
     }
@@ -1603,29 +1640,28 @@ window.addEventListener("DOMContentLoaded", () => {
       return Array.from(node.children)
         .filter((child) => child instanceof HTMLElement && child.tagName === "LI")
         .map((item) => {
-          const value = taskDetailDescriptionInlineNodeToText(item).replace(/\s+/g, " ").trim();
+          const value = descriptionInlineNodeToText(item).replace(/\s+/g, " ").trim();
           return value ? `- ${value}` : "";
         })
         .filter(Boolean);
     }
 
-    return taskDetailDescriptionInlineNodeToText(node)
+    if (node.tagName === "HR") {
+      return ["---"];
+    }
+
+    return descriptionInlineNodeToText(node)
       .split("\n")
       .map((line) => line.trimEnd());
   };
 
-  const taskDetailDescriptionTextFromEditor = () => {
-    if (!(taskDetailEditDescriptionEditor instanceof HTMLElement)) {
-      return "";
-    }
-
-    normalizeTaskDetailDescriptionEditorLists();
+  const descriptionTextFromEditor = (editor) => {
+    if (!(editor instanceof HTMLElement)) return "";
+    normalizeDescriptionEditorLists(editor);
 
     const rawLines = [];
-    Array.from(taskDetailEditDescriptionEditor.childNodes).forEach((node) => {
-      rawLines.push(
-        ...taskDetailDescriptionBlockToLines(node).map((line) => line.replace(/\u00a0/g, " "))
-      );
+    Array.from(editor.childNodes).forEach((node) => {
+      rawLines.push(...descriptionBlockToLines(node).map((line) => line.replace(/\u00a0/g, " ")));
     });
 
     const lines = [];
@@ -1652,31 +1688,18 @@ window.addEventListener("DOMContentLoaded", () => {
     return lines.join("\n");
   };
 
-  const syncTaskDetailDescriptionTextareaFromEditor = () => {
-    if (!(taskDetailEditDescription instanceof HTMLTextAreaElement)) {
-      return;
-    }
-
-    taskDetailEditDescription.value = taskDetailDescriptionTextFromEditor();
+  const syncDescriptionTextareaFromEditor = (textarea, editor) => {
+    if (!(textarea instanceof HTMLTextAreaElement)) return;
+    textarea.value = descriptionTextFromEditor(editor);
   };
 
-  const getTaskDetailDescriptionSelectionRange = () => {
-    if (!(taskDetailEditDescriptionEditor instanceof HTMLElement)) {
-      return null;
-    }
-
+  const getDescriptionSelectionRange = (editor) => {
+    if (!(editor instanceof HTMLElement)) return null;
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
-      return null;
-    }
+    if (!selection || selection.rangeCount === 0) return null;
 
     const range = selection.getRangeAt(0);
-    if (
-      !taskDetailEditDescriptionEditor.contains(range.startContainer) ||
-      !taskDetailEditDescriptionEditor.contains(range.endContainer)
-    ) {
-      return null;
-    }
+    if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) return null;
 
     return range;
   };
@@ -1698,9 +1721,8 @@ window.addEventListener("DOMContentLoaded", () => {
     return rects.some((rect) => pointInsideRect(rect, clientX, clientY));
   };
 
-  const collapseTaskDetailSelectionAtPoint = (clientX, clientY) => {
-    if (!(taskDetailEditDescriptionEditor instanceof HTMLElement)) return;
-
+  const collapseDescriptionSelectionAtPoint = (editor, clientX, clientY) => {
+    if (!(editor instanceof HTMLElement)) return;
     const selection = window.getSelection();
     if (!selection) return;
 
@@ -1719,27 +1741,19 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!nextRange) return;
-    if (!taskDetailEditDescriptionEditor.contains(nextRange.startContainer)) return;
+    if (!editor.contains(nextRange.startContainer)) return;
 
     selection.removeAllRanges();
     selection.addRange(nextRange);
   };
 
-  const positionTaskDetailDescriptionToolbar = (range) => {
-    if (
-      !(taskDetailEditDescriptionToolbar instanceof HTMLElement) ||
-      !(taskDetailEditDescriptionWrap instanceof HTMLElement)
-    ) {
-      return;
-    }
-
+  const positionDescriptionToolbar = (wrap, toolbar, range) => {
+    if (!(wrap instanceof HTMLElement) || !(toolbar instanceof HTMLElement)) return;
     const selectionRect = range.getBoundingClientRect();
-    if (selectionRect.width <= 0 && selectionRect.height <= 0) {
-      return;
-    }
+    if (selectionRect.width <= 0 && selectionRect.height <= 0) return;
 
-    const wrapRect = taskDetailEditDescriptionWrap.getBoundingClientRect();
-    const toolbarRect = taskDetailEditDescriptionToolbar.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const toolbarRect = toolbar.getBoundingClientRect();
     const margin = 8;
 
     const centerX = selectionRect.left + selectionRect.width / 2;
@@ -1754,8 +1768,8 @@ window.addEventListener("DOMContentLoaded", () => {
       top = Math.min(Math.max(rawBottomTop, margin), maxTop);
     }
 
-    taskDetailEditDescriptionToolbar.style.left = `${Math.round(left)}px`;
-    taskDetailEditDescriptionToolbar.style.top = `${Math.round(top)}px`;
+    toolbar.style.left = `${Math.round(left)}px`;
+    toolbar.style.top = `${Math.round(top)}px`;
   };
 
   const setSelectionAtElementStart = (element) => {
@@ -1766,6 +1780,144 @@ window.addEventListener("DOMContentLoaded", () => {
     range.collapse(true);
     selection.removeAllRanges();
     selection.addRange(range);
+  };
+
+  const setSelectionAtElementEnd = (element) => {
+    const selection = window.getSelection();
+    if (!selection) return;
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+
+  const applyDescriptionFormat = (editor, textarea, format) => {
+    if (!(editor instanceof HTMLElement)) return;
+    const range = getDescriptionSelectionRange(editor);
+    if (!range) return;
+
+    const command = format === "italic" ? "italic" : "bold";
+    editor.focus();
+    document.execCommand(command, false);
+    normalizeDescriptionEditorLists(editor);
+    syncDescriptionTextareaFromEditor(textarea, editor);
+  };
+
+  const convertDashLineToListInEditor = (editor, textarea) => {
+    if (!(editor instanceof HTMLElement)) return false;
+
+    const range = getDescriptionSelectionRange(editor);
+    if (!range || !range.collapsed) return false;
+
+    let block =
+      range.startContainer instanceof HTMLElement
+        ? range.startContainer
+        : range.startContainer.parentElement;
+
+    while (block && block !== editor && !["P", "DIV", "LI"].includes(block.tagName)) {
+      block = block.parentElement;
+    }
+
+    const blockText = block
+      ? (block.textContent || "").replace(/\u00a0/g, " ").trim()
+      : (editor.textContent || "").replace(/\u00a0/g, " ").trim();
+
+    if (blockText !== "-" || (block && block.tagName === "LI")) {
+      return false;
+    }
+
+    editor.focus();
+    document.execCommand("insertUnorderedList", false);
+    normalizeDescriptionEditorLists(editor);
+
+    const selection = window.getSelection();
+    const node = selection?.anchorNode || null;
+    const currentLi =
+      node instanceof HTMLElement ? node.closest("li") : node?.parentElement?.closest("li");
+
+    if (currentLi instanceof HTMLElement) {
+      const lineText = (currentLi.textContent || "").replace(/\u00a0/g, " ").trim();
+      if (lineText === "-") {
+        currentLi.innerHTML = "<br>";
+        setSelectionAtElementStart(currentLi);
+      }
+    }
+
+    syncDescriptionTextareaFromEditor(textarea, editor);
+    return true;
+  };
+
+  const insertDescriptionDivider = (editor, textarea) => {
+    if (!(editor instanceof HTMLElement)) return;
+    editor.focus();
+
+    const range = getDescriptionSelectionRange(editor);
+    let referenceBlock =
+      range?.startContainer instanceof HTMLElement
+        ? range.startContainer
+        : range?.startContainer?.parentElement || null;
+
+    while (
+      referenceBlock &&
+      referenceBlock !== editor &&
+      !["P", "DIV", "LI", "UL", "OL"].includes(referenceBlock.tagName)
+    ) {
+      referenceBlock = referenceBlock.parentElement;
+    }
+
+    if (referenceBlock instanceof HTMLElement && referenceBlock.tagName === "LI") {
+      const parentList = referenceBlock.closest("ul, ol");
+      if (parentList instanceof HTMLElement && editor.contains(parentList)) {
+        referenceBlock = parentList;
+      }
+    }
+
+    const separator = document.createElement("hr");
+    separator.className = "task-description-divider";
+    const paragraph = document.createElement("p");
+    paragraph.append(document.createElement("br"));
+
+    if (
+      referenceBlock instanceof HTMLElement &&
+      referenceBlock.parentNode instanceof Node &&
+      referenceBlock !== editor
+    ) {
+      referenceBlock.parentNode.insertBefore(paragraph, referenceBlock.nextSibling);
+      referenceBlock.parentNode.insertBefore(separator, paragraph);
+    } else {
+      editor.append(separator, paragraph);
+    }
+
+    setSelectionAtElementStart(paragraph);
+    normalizeDescriptionEditorLists(editor);
+    syncDescriptionTextareaFromEditor(textarea, editor);
+  };
+
+  const normalizeTaskDetailDescriptionEditorLists = () => {
+    normalizeDescriptionEditorLists(taskDetailEditDescriptionEditor);
+  };
+
+  const syncTaskDetailDescriptionEditorFromTextarea = () => {
+    syncDescriptionEditorFromTextarea(taskDetailEditDescription, taskDetailEditDescriptionEditor);
+  };
+
+  const taskDetailDescriptionTextFromEditor = () =>
+    descriptionTextFromEditor(taskDetailEditDescriptionEditor);
+
+  const syncTaskDetailDescriptionTextareaFromEditor = () => {
+    syncDescriptionTextareaFromEditor(taskDetailEditDescription, taskDetailEditDescriptionEditor);
+  };
+
+  const getTaskDetailDescriptionSelectionRange = () =>
+    getDescriptionSelectionRange(taskDetailEditDescriptionEditor);
+
+  const collapseTaskDetailSelectionAtPoint = (clientX, clientY) => {
+    collapseDescriptionSelectionAtPoint(taskDetailEditDescriptionEditor, clientX, clientY);
+  };
+
+  const positionTaskDetailDescriptionToolbar = (range) => {
+    positionDescriptionToolbar(taskDetailEditDescriptionWrap, taskDetailEditDescriptionToolbar, range);
   };
 
   const syncTaskDetailDescriptionToolbar = () => {
@@ -1787,72 +1939,38 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const applyTaskDetailDescriptionFormat = (format) => {
-    if (!(taskDetailEditDescriptionEditor instanceof HTMLElement)) return;
-    const range = getTaskDetailDescriptionSelectionRange();
-    if (!range) return;
-
-    const command = format === "italic" ? "italic" : "bold";
-    taskDetailEditDescriptionEditor.focus();
-    document.execCommand(command, false);
-    normalizeTaskDetailDescriptionEditorLists();
-    syncTaskDetailDescriptionTextareaFromEditor();
+    applyDescriptionFormat(taskDetailEditDescriptionEditor, taskDetailEditDescription, format);
     syncTaskDetailDescriptionToolbar();
   };
 
   const convertDashLineToListInTaskDetailEditor = () => {
-    if (!(taskDetailEditDescriptionEditor instanceof HTMLElement)) {
-      return false;
+    const converted = convertDashLineToListInEditor(
+      taskDetailEditDescriptionEditor,
+      taskDetailEditDescription
+    );
+    if (converted) {
+      syncTaskDetailDescriptionToolbar();
     }
+    return converted;
+  };
 
-    const range = getTaskDetailDescriptionSelectionRange();
-    if (!range || !range.collapsed) {
-      return false;
-    }
+  const syncCreateTaskDescriptionEditorFromTextarea = () => {
+    syncDescriptionEditorFromTextarea(createTaskDescription, createTaskDescriptionEditor);
+  };
 
-    let block =
-      range.startContainer instanceof HTMLElement
-        ? range.startContainer
-        : range.startContainer.parentElement;
+  const syncCreateTaskDescriptionTextareaFromEditor = () => {
+    syncDescriptionTextareaFromEditor(createTaskDescription, createTaskDescriptionEditor);
+  };
 
-    while (
-      block &&
-      block !== taskDetailEditDescriptionEditor &&
-      !["P", "DIV", "LI"].includes(block.tagName)
-    ) {
-      block = block.parentElement;
-    }
+  const applyCreateTaskDescriptionFormat = (format) => {
+    applyDescriptionFormat(createTaskDescriptionEditor, createTaskDescription, format);
+  };
 
-    const blockText = block
-      ? (block.textContent || "").replace(/\u00a0/g, " ").trim()
-      : (taskDetailEditDescriptionEditor.textContent || "").replace(/\u00a0/g, " ").trim();
+  const convertDashLineToListInCreateTaskEditor = () =>
+    convertDashLineToListInEditor(createTaskDescriptionEditor, createTaskDescription);
 
-    if (blockText !== "-") {
-      return false;
-    }
-
-    if (block && block.tagName === "LI") {
-      return false;
-    }
-
-    taskDetailEditDescriptionEditor.focus();
-    document.execCommand("insertUnorderedList", false);
-    normalizeTaskDetailDescriptionEditorLists();
-
-    const selection = window.getSelection();
-    const node = selection?.anchorNode || null;
-    const currentLi =
-      node instanceof HTMLElement ? node.closest("li") : node?.parentElement?.closest("li");
-
-    if (currentLi instanceof HTMLElement) {
-      const lineText = (currentLi.textContent || "").replace(/\u00a0/g, " ").trim();
-      if (lineText === "-") {
-        currentLi.innerHTML = "<br>";
-        setSelectionAtElementStart(currentLi);
-      }
-    }
-
-    syncTaskDetailDescriptionTextareaFromEditor();
-    return true;
+  const insertCreateTaskDescriptionDivider = () => {
+    insertDescriptionDivider(createTaskDescriptionEditor, createTaskDescription);
   };
 
   const maxReferenceItems = 20;
@@ -5854,6 +5972,10 @@ window.addEventListener("DOMContentLoaded", () => {
   );
   const taskTitleTagOptionsDataElement = document.querySelector("#task-title-tag-options-data");
   const createTaskForm = document.querySelector("[data-create-task-form]");
+  const createTaskDescription = document.querySelector("[data-create-task-description]");
+  const createTaskDescriptionWrap = document.querySelector("[data-create-task-description-wrap]");
+  const createTaskDescriptionEditor = document.querySelector("[data-create-task-description-editor]");
+  const createTaskDescriptionToolbar = document.querySelector("[data-create-task-description-toolbar]");
   const createTaskLinksField = document.querySelector("[data-create-task-links]");
   const createTaskImagesField = document.querySelector("[data-create-task-images]");
   const createTaskSubtasksField = document.querySelector("[data-create-task-subtasks]");
@@ -9456,7 +9578,7 @@ window.addEventListener("DOMContentLoaded", () => {
       syncTaskTitleTagBadge(taskItem, titleTagValue, titleTagColorValue);
     });
   } catch (error) {
-    console.error("[WorkForm] Falha ao inicializar estado do dashboard.", error);
+    console.error("[Beon] Falha ao inicializar estado do dashboard.", error);
   }
 
   const openCreateModal = (groupName) => {
@@ -9468,6 +9590,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (createTaskForm) {
       createTaskForm.reset();
+      syncCreateTaskDescriptionEditorFromTextarea();
       setCreateTaskImageItems([]);
       setCreateTaskSubtasks([]);
       renderCreateTaskSubtasksEditList();
@@ -10987,11 +11110,44 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  if (createTaskDescriptionToolbar instanceof HTMLElement) {
+    createTaskDescriptionToolbar.addEventListener("mousedown", (event) => {
+      const target = getEventTargetElement(event);
+      if (!(target instanceof Element)) return;
+      const toolbarButton = target.closest("button");
+      if (!(toolbarButton instanceof HTMLButtonElement)) return;
+      event.preventDefault();
+    });
+
+    createTaskDescriptionToolbar.addEventListener("click", (event) => {
+      const target = getEventTargetElement(event);
+      if (!(target instanceof Element)) return;
+
+      const formatButton = target.closest("[data-create-task-description-format]");
+      if (formatButton instanceof HTMLButtonElement) {
+        event.preventDefault();
+        applyCreateTaskDescriptionFormat(
+          formatButton.dataset.createTaskDescriptionFormat || "bold"
+        );
+        return;
+      }
+
+      const actionButton = target.closest("[data-create-task-description-action]");
+      if (!(actionButton instanceof HTMLButtonElement)) return;
+
+      event.preventDefault();
+      if (String(actionButton.dataset.createTaskDescriptionAction || "") === "divider") {
+        insertCreateTaskDescriptionDivider();
+      }
+    });
+  }
+
   if (createTaskForm) {
     createTaskForm.addEventListener("submit", () => {
       if (createTaskTitleInput instanceof HTMLInputElement) {
         applyFirstLetterUppercaseToInput(createTaskTitleInput);
       }
+      syncCreateTaskDescriptionTextareaFromEditor();
       const createTitleTag = createTaskTitleTagIsCreating
         ? commitCreateTaskTitleTagCreation()
         : normalizeTaskTitleTagValue(createTaskTitleTagInput?.value || createTaskCurrentTitleTag);

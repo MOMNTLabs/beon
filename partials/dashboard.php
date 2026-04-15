@@ -44,12 +44,12 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 <main class="dashboard dashboard-compact">
     <section class="workspace-layout tasklist-layout">
         <aside class="panel users-sidebar" id="team">
-            <a href="index.php" class="sidebar-brand" aria-label="WorkForm">
+            <a href="index.php" class="sidebar-brand" aria-label="<?= e(APP_NAME) ?>">
                 <img
-                    src="assets/WorkForm - Logo.svg?v=2"
-                    data-theme-logo-light="assets/WorkForm - Logo.svg?v=2"
-                    data-theme-logo-dark="assets/WorkForm - Logo (Negativa).svg?v=1"
-                    alt="WorkForm"
+                    src="assets/WorkForm - Logo.svg?v=3"
+                    data-theme-logo-light="assets/WorkForm - Logo.svg?v=3"
+                    data-theme-logo-dark="assets/WorkForm - Logo (Negativa).svg?v=2"
+                    alt="<?= e(APP_NAME) ?>"
                     class="sidebar-brand-lockup brand-lockup"
                     width="116"
                     height="29"
@@ -2952,7 +2952,39 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             <div class="task-detail-edit-main-row">
                 <label class="task-detail-edit-description-field">
                     <span>Descricao</span>
-                    <textarea name="description" rows="5"></textarea>
+                    <div class="task-detail-edit-description-wrap task-create-description-wrap" data-create-task-description-wrap>
+                        <div class="task-detail-edit-description-toolbar task-create-description-toolbar" data-create-task-description-toolbar>
+                            <button
+                                type="button"
+                                data-create-task-description-format="bold"
+                                title="Negrito"
+                                aria-label="Negrito"
+                            ><strong aria-hidden="true">B</strong></button>
+                            <button
+                                type="button"
+                                data-create-task-description-format="italic"
+                                title="Italico"
+                                aria-label="Italico"
+                            ><em aria-hidden="true">I</em></button>
+                            <button
+                                type="button"
+                                data-create-task-description-action="divider"
+                                title="Inserir separador"
+                                aria-label="Inserir separador"
+                            >
+                                <span class="task-description-toolbar-divider-icon" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                        <div
+                            class="task-detail-edit-description-editor task-create-description-editor"
+                            data-create-task-description-editor
+                            contenteditable="true"
+                            role="textbox"
+                            aria-multiline="true"
+                            aria-label="Descricao da tarefa"
+                        ></div>
+                    </div>
+                    <textarea name="description" rows="5" data-create-task-description hidden></textarea>
                 </label>
 
                 <div class="task-detail-edit-images-field">

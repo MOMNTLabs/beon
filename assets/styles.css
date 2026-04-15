@@ -6839,6 +6839,20 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     font-style: italic;
 }
 
+.task-description-divider {
+    border: 0;
+    height: 1px;
+    margin: 12px 0;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            rgba(127, 161, 203, 0.46) 12%,
+            rgba(127, 161, 203, 0.46) 88%,
+            transparent
+        );
+}
+
 .task-detail-view-description.is-empty {
     color: var(--muted);
 }
@@ -7488,9 +7502,9 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     align-self: stretch;
 }
 
-.create-task-modal .task-detail-edit-description-field > textarea {
-    min-height: 180px;
-    height: 100%;
+.create-task-modal .task-detail-edit-description-field {
+    grid-template-rows: auto auto;
+    align-self: start;
 }
 
 .task-detail-edit-images-field {
@@ -7642,6 +7656,14 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     cursor: pointer;
 }
 
+.task-description-toolbar-divider-icon {
+    display: block;
+    width: 14px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
 .task-detail-edit-description-toolbar button:hover,
 .task-detail-edit-description-toolbar button:focus-visible {
     border-color: rgba(120, 204, 255, 0.34);
@@ -7662,6 +7684,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     word-break: break-word;
     white-space: normal;
     outline: none;
+    overflow: visible;
 }
 
 .task-detail-edit-description-editor:focus {
@@ -7693,6 +7716,10 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     margin-bottom: 0;
 }
 
+.task-detail-edit-description-editor .task-description-divider {
+    pointer-events: none;
+}
+
 .task-detail-edit-description-editor strong {
     color: #ffffff;
     font-weight: 700;
@@ -7711,6 +7738,33 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     overflow: hidden;
     font-size: 0.84rem;
     line-height: var(--reference-line-height);
+}
+
+.create-task-modal .task-detail-edit-description-wrap {
+    display: grid;
+    gap: 8px;
+    min-height: 0;
+    height: auto;
+}
+
+.create-task-modal .task-detail-edit-description-toolbar {
+    position: static;
+    align-self: start;
+    flex-wrap: wrap;
+}
+
+.create-task-modal .task-detail-edit-description-toolbar button {
+    min-width: 34px;
+    padding-inline: 10px;
+}
+
+.create-task-modal .task-detail-edit-description-editor {
+    min-height: 180px;
+    height: auto;
+}
+
+.create-task-modal [data-create-task-description] {
+    display: none;
 }
 
 .task-image-preview-modal {
