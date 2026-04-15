@@ -2758,13 +2758,47 @@ function guessPrimaryAdminUserId(PDO $pdo): ?int
     return (int) ($rows[0]['id'] ?? 0) ?: null;
 }
 
+function ensureWorkspaceTaskStatusSchema(PDO $pdo): void
+{
+    static $checkedConnections = [];
+
+    $connectionId = spl_object_id($pdo);
+    if (!empty($checkedConnections[$connectionId])) {
+        return;
+    }
+
+    $columns = [
+        'task_statuses_json' => "ALTER TABLE workspaces ADD COLUMN task_statuses_json TEXT NOT NULL DEFAULT '[]'",
+        'task_review_status_key' => 'ALTER TABLE workspaces ADD COLUMN task_review_status_key TEXT DEFAULT NULL',
+    ];
+
+    foreach ($columns as $column => $statement) {
+        if (tableHasColumn($pdo, 'workspaces', $column)) {
+            continue;
+        }
+
+        try {
+            $pdo->exec($statement);
+        } catch (Throwable $e) {
+            if (!tableHasColumn($pdo, 'workspaces', $column)) {
+                throw $e;
+            }
+        }
+    }
+
+    $checkedConnections[$connectionId] = true;
+}
+
 function workspaceById(int $workspaceId): ?array
 {
     if ($workspaceId <= 0) {
         return null;
     }
 
-    $stmt = db()->prepare(
+    $pdo = db();
+    ensureWorkspaceTaskStatusSchema($pdo);
+
+    $stmt = $pdo->prepare(
         'SELECT id, name, slug, is_personal, created_by, task_statuses_json, task_review_status_key, created_at, updated_at
          FROM workspaces
          WHERE id = :id
@@ -2984,6 +3018,8 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $
     if ($createdBy <= 0) {
         throw new RuntimeException('Criador do workspace invalido.');
     }
+
+    ensureWorkspaceTaskStatusSchema($pdo);
 
     $name = normalizeWorkspaceName($workspaceName);
     $slug = generateWorkspaceSlug($pdo, $name);
@@ -6871,6 +6907,8 @@ function workspaceUpdateTaskStatusConfiguration(
     if ($workspaceId <= 0) {
         throw new RuntimeException('Workspace invalido.');
     }
+
+    ensureWorkspaceTaskStatusSchema($pdo);
 
     $config = normalizeWorkspaceTaskStatusDefinitions($definitions, $reviewStatusKey);
     $workingList = $config['list'];
