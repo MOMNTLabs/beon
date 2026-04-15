@@ -7783,9 +7783,13 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .create-task-modal .task-detail-edit-description-toolbar,
 .task-detail-modal .task-detail-edit-description-toolbar {
-    position: static;
+    position: sticky;
+    top: 8px;
     align-self: start;
     flex-wrap: wrap;
+    z-index: 6;
+    width: fit-content;
+    max-width: calc(100% - 2px);
 }
 
 .create-task-modal .task-detail-edit-description-toolbar button,
