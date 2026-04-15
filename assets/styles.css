@@ -7509,8 +7509,17 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .task-detail-edit-description-field {
+    display: grid;
+    gap: 7px;
     grid-template-rows: auto minmax(0, 1fr);
     align-self: stretch;
+}
+
+.task-detail-edit-description-field > span {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.62);
 }
 
 .create-task-modal .task-detail-edit-description-field {
@@ -7521,6 +7530,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 .task-detail-edit-images-field {
     display: grid;
     gap: 7px;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: start;
 }
 
 .task-detail-edit-images-field > span {
@@ -7762,25 +7773,29 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     line-height: var(--reference-line-height);
 }
 
-.create-task-modal .task-detail-edit-description-wrap {
+.create-task-modal .task-detail-edit-description-wrap,
+.task-detail-modal .task-detail-edit-description-wrap {
     display: grid;
     gap: 8px;
     min-height: 0;
     height: auto;
 }
 
-.create-task-modal .task-detail-edit-description-toolbar {
+.create-task-modal .task-detail-edit-description-toolbar,
+.task-detail-modal .task-detail-edit-description-toolbar {
     position: static;
     align-self: start;
     flex-wrap: wrap;
 }
 
-.create-task-modal .task-detail-edit-description-toolbar button {
+.create-task-modal .task-detail-edit-description-toolbar button,
+.task-detail-modal .task-detail-edit-description-toolbar button {
     min-width: 34px;
     padding-inline: 10px;
 }
 
-.create-task-modal .task-detail-edit-description-editor {
+.create-task-modal .task-detail-edit-description-editor,
+.task-detail-modal .task-detail-edit-description-editor {
     min-height: 180px;
     height: auto;
 }
@@ -9206,6 +9221,7 @@ textarea:focus,
 }
 
 .create-task-modal .form-stack label > span,
+.create-task-modal .task-detail-edit-description-field > span,
 .create-task-modal .assignee-picker-label,
 .create-task-modal .task-detail-inline-field > span,
 .create-task-modal .task-subtasks-editor > span,
@@ -9835,6 +9851,7 @@ textarea:focus,
 }
 
 .task-detail-modal .form-stack label > span,
+.task-detail-modal .task-detail-edit-description-field > span,
 .task-detail-modal .inline-form label > span,
 .task-detail-modal .assignee-picker-label,
 .task-detail-modal .task-subtasks-editor > span,

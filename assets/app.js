@@ -1142,90 +1142,35 @@ window.addEventListener("DOMContentLoaded", () => {
     wrapSelectionWithBoldMarkdown(target);
   });
 
-  document.addEventListener("selectionchange", () => {
-    syncTaskDetailDescriptionToolbar();
-  });
-
-  let taskDetailFormatButtonPressed = null;
-
-  window.addEventListener("resize", () => {
-    syncTaskDetailDescriptionToolbar();
-  });
-
-  document.addEventListener(
-    "scroll",
-    () => {
-      syncTaskDetailDescriptionToolbar();
-    },
-    true
-  );
-
-  document.addEventListener("mousedown", (event) => {
-    const target = event.target;
-    if (!(target instanceof Node)) return;
-
-    if (target instanceof HTMLElement) {
-      const formatButton = target.closest("[data-task-detail-description-format]");
-      if (formatButton) {
-        taskDetailFormatButtonPressed = formatButton;
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-    }
-
-    taskDetailFormatButtonPressed = null;
-
-    if (!(taskDetailEditDescriptionEditor instanceof HTMLElement)) return;
-
-    const clickedEditor = taskDetailEditDescriptionEditor.contains(target);
-    const clickedToolbar =
-      taskDetailEditDescriptionToolbar instanceof HTMLElement &&
-      taskDetailEditDescriptionToolbar.contains(target);
-
-    if (!clickedEditor && !clickedToolbar) {
-      if (taskDetailEditDescriptionToolbar instanceof HTMLElement) {
-        taskDetailEditDescriptionToolbar.hidden = true;
-      }
-      return;
-    }
-
-    if (!clickedEditor) return;
-
-    const range = getTaskDetailDescriptionSelectionRange();
-    if (!range || range.collapsed) return;
-
-    if (selectionRangeContainsPoint(range, event.clientX, event.clientY)) {
-      return;
-    }
-
-    collapseTaskDetailSelectionAtPoint(event.clientX, event.clientY);
-    window.setTimeout(syncTaskDetailDescriptionToolbar, 0);
-  });
-
-  document.addEventListener("mouseup", (event) => {
-    const target = event.target;
-    if (!(target instanceof Node)) return;
-    if (!(taskDetailEditDescriptionEditor instanceof HTMLElement)) return;
-    if (!taskDetailEditDescriptionEditor.contains(target)) return;
-    window.setTimeout(syncTaskDetailDescriptionToolbar, 0);
-  });
-
-  document.addEventListener("click", (event) => {
+  document.addEventListener("dblclick", (event) => {
+    if (event.button !== 0) return;
     const target = getEventTargetElement(event);
     if (!(target instanceof Element)) return;
-    const formatButton = target.closest("[data-task-detail-description-format]");
-    if (!formatButton) return;
-    event.preventDefault();
-    event.stopPropagation();
 
-    const keyboardActivation = event.detail === 0;
-    if (!keyboardActivation && taskDetailFormatButtonPressed !== formatButton) {
+    if (
+      createTaskDescriptionEditor instanceof HTMLElement &&
+      createTaskDescriptionEditor.contains(target)
+    ) {
+      window.setTimeout(() => {
+        applyDescriptionBoldOnDoubleClick(createTaskDescriptionEditor, createTaskDescription);
+      }, 0);
       return;
     }
 
-    taskDetailFormatButtonPressed = null;
-    applyTaskDetailDescriptionFormat(formatButton.dataset.taskDetailDescriptionFormat || "bold");
+    if (
+      taskDetailEditDescriptionEditor instanceof HTMLElement &&
+      taskDetailEditDescriptionEditor.contains(target)
+    ) {
+      window.setTimeout(() => {
+        const applied = applyDescriptionBoldOnDoubleClick(
+          taskDetailEditDescriptionEditor,
+          taskDetailEditDescription
+        );
+        if (applied) {
+          syncTaskDetailDescriptionToolbar();
+        }
+      }, 0);
+    }
   });
 
   const toLocalIsoDate = (date) => {
@@ -1804,6 +1749,14 @@ window.addEventListener("DOMContentLoaded", () => {
     syncDescriptionTextareaFromEditor(textarea, editor);
   };
 
+  const applyDescriptionBoldOnDoubleClick = (editor, textarea) => {
+    if (!(editor instanceof HTMLElement)) return false;
+    const range = getDescriptionSelectionRange(editor);
+    if (!range || range.collapsed) return false;
+    applyDescriptionFormat(editor, textarea, "bold");
+    return true;
+  };
+
   const convertDashLineToListInEditor = (editor, textarea) => {
     if (!(editor instanceof HTMLElement)) return false;
 
@@ -1916,26 +1869,9 @@ window.addEventListener("DOMContentLoaded", () => {
     collapseDescriptionSelectionAtPoint(taskDetailEditDescriptionEditor, clientX, clientY);
   };
 
-  const positionTaskDetailDescriptionToolbar = (range) => {
-    positionDescriptionToolbar(taskDetailEditDescriptionWrap, taskDetailEditDescriptionToolbar, range);
-  };
-
   const syncTaskDetailDescriptionToolbar = () => {
-    if (!(taskDetailEditDescriptionToolbar instanceof HTMLElement)) {
-      return;
-    }
-
-    const range = getTaskDetailDescriptionSelectionRange();
-    const show =
-      Boolean(range && !range.collapsed) &&
-      Boolean(taskDetailModal && !taskDetailModal.hidden && taskDetailModal.classList.contains("is-editing"));
-
-    taskDetailEditDescriptionToolbar.hidden = !show;
-    if (!show || !range) {
-      return;
-    }
-
-    positionTaskDetailDescriptionToolbar(range);
+    if (!(taskDetailEditDescriptionToolbar instanceof HTMLElement)) return;
+    taskDetailEditDescriptionToolbar.hidden = false;
   };
 
   const applyTaskDetailDescriptionFormat = (format) => {
@@ -1952,6 +1888,11 @@ window.addEventListener("DOMContentLoaded", () => {
       syncTaskDetailDescriptionToolbar();
     }
     return converted;
+  };
+
+  const insertTaskDetailDescriptionDivider = () => {
+    insertDescriptionDivider(taskDetailEditDescriptionEditor, taskDetailEditDescription);
+    syncTaskDetailDescriptionToolbar();
   };
 
   const syncCreateTaskDescriptionEditorFromTextarea = () => {
@@ -8101,13 +8042,9 @@ window.addEventListener("DOMContentLoaded", () => {
         syncTaskDetailDescriptionEditorFromTextarea();
         syncReferenceTextareaLayout(taskDetailEditLinks);
         renderTaskDetailImageList();
-        if (taskDetailEditDescriptionToolbar instanceof HTMLElement) {
-          taskDetailEditDescriptionToolbar.hidden = true;
-        }
+        syncTaskDetailDescriptionToolbar();
         taskDetailEditTitle?.focus();
       }, 20);
-    } else if (taskDetailEditDescriptionToolbar instanceof HTMLElement) {
-      taskDetailEditDescriptionToolbar.hidden = true;
     }
   };
 
@@ -11138,6 +11075,38 @@ window.addEventListener("DOMContentLoaded", () => {
       event.preventDefault();
       if (String(actionButton.dataset.createTaskDescriptionAction || "") === "divider") {
         insertCreateTaskDescriptionDivider();
+      }
+    });
+  }
+
+  if (taskDetailEditDescriptionToolbar instanceof HTMLElement) {
+    taskDetailEditDescriptionToolbar.addEventListener("mousedown", (event) => {
+      const target = getEventTargetElement(event);
+      if (!(target instanceof Element)) return;
+      const toolbarButton = target.closest("button");
+      if (!(toolbarButton instanceof HTMLButtonElement)) return;
+      event.preventDefault();
+    });
+
+    taskDetailEditDescriptionToolbar.addEventListener("click", (event) => {
+      const target = getEventTargetElement(event);
+      if (!(target instanceof Element)) return;
+
+      const formatButton = target.closest("[data-task-detail-description-format]");
+      if (formatButton instanceof HTMLButtonElement) {
+        event.preventDefault();
+        applyTaskDetailDescriptionFormat(
+          formatButton.dataset.taskDetailDescriptionFormat || "bold"
+        );
+        return;
+      }
+
+      const actionButton = target.closest("[data-task-detail-description-action]");
+      if (!(actionButton instanceof HTMLButtonElement)) return;
+
+      event.preventDefault();
+      if (String(actionButton.dataset.taskDetailDescriptionAction || "") === "divider") {
+        insertTaskDetailDescriptionDivider();
       }
     });
   }

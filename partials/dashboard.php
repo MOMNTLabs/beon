@@ -2950,7 +2950,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             </div>
 
             <div class="task-detail-edit-main-row">
-                <label class="task-detail-edit-description-field">
+                <div class="task-detail-edit-description-field">
                     <span>Descricao</span>
                     <div class="task-detail-edit-description-wrap task-create-description-wrap" data-create-task-description-wrap>
                         <div class="task-detail-edit-description-toolbar task-create-description-toolbar" data-create-task-description-toolbar>
@@ -2985,7 +2985,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         ></div>
                     </div>
                     <textarea name="description" rows="5" data-create-task-description hidden></textarea>
-                </label>
+                </div>
 
                 <div class="task-detail-edit-images-field">
                     <span>Imagens de referencia</span>
@@ -4223,12 +4223,30 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     </div>
 
                     <div class="task-detail-edit-main-row">
-                        <label class="task-detail-edit-description-field">
+                        <div class="task-detail-edit-description-field">
                             <span>Descricao</span>
                             <div class="task-detail-edit-description-wrap" data-task-detail-edit-description-wrap>
-                                <div class="task-detail-edit-description-toolbar" data-task-detail-edit-description-toolbar hidden>
-                                    <button type="button" data-task-detail-description-format="bold">Negrito</button>
-                                    <button type="button" data-task-detail-description-format="italic">Italico</button>
+                                <div class="task-detail-edit-description-toolbar" data-task-detail-edit-description-toolbar>
+                                    <button
+                                        type="button"
+                                        data-task-detail-description-format="bold"
+                                        title="Negrito"
+                                        aria-label="Negrito"
+                                    ><strong aria-hidden="true">B</strong></button>
+                                    <button
+                                        type="button"
+                                        data-task-detail-description-format="italic"
+                                        title="Italico"
+                                        aria-label="Italico"
+                                    ><em aria-hidden="true">I</em></button>
+                                    <button
+                                        type="button"
+                                        data-task-detail-description-action="divider"
+                                        title="Inserir separador"
+                                        aria-label="Inserir separador"
+                                    >
+                                        <span class="task-description-toolbar-divider-icon" aria-hidden="true"></span>
+                                    </button>
                                 </div>
                                 <div
                                     class="task-detail-edit-description-editor"
@@ -4240,7 +4258,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                 ></div>
                             </div>
                             <textarea rows="5" data-task-detail-edit-description hidden></textarea>
-                        </label>
+                        </div>
 
                         <div class="task-detail-edit-images-field">
                             <span>Imagens de referencia</span>
