@@ -776,6 +776,131 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  const clearWorkspaceStatusDropIndicators = () => {
+    document
+      .querySelectorAll(".workspace-status-row.is-drop-before, .workspace-status-row.is-drop-after")
+      .forEach((row) => row.classList.remove("is-drop-before", "is-drop-after"));
+  };
+
+  const getWorkspaceStatusSortableRows = (list, excludeRow = null) => {
+    if (!(list instanceof HTMLElement)) return [];
+    return Array.from(list.querySelectorAll("[data-workspace-status-row]")).filter(
+      (row) =>
+        row instanceof HTMLElement &&
+        row.dataset.workspaceStatusSortable === "true" &&
+        row !== excludeRow
+    );
+  };
+
+  const moveWorkspaceStatusRowByPointer = (list, pointerY) => {
+    if (!(list instanceof HTMLElement)) return;
+    const sortableRows = getWorkspaceStatusSortableRows(list, draggedWorkspaceStatusRow);
+    const endRow = list.querySelector('[data-workspace-status-edge="end"]');
+    const form = list.closest(".workspace-statuses-form");
+
+    let nextRow = null;
+    for (const row of sortableRows) {
+      const rect = row.getBoundingClientRect();
+      if (pointerY < rect.top + rect.height / 2) {
+        nextRow = row;
+        break;
+      }
+    }
+
+    clearWorkspaceStatusDropIndicators();
+
+    if (nextRow instanceof HTMLElement) {
+      nextRow.classList.add("is-drop-before");
+      if (draggedWorkspaceStatusRow !== nextRow.previousElementSibling) {
+        list.insertBefore(draggedWorkspaceStatusRow, nextRow);
+      }
+      if (form instanceof HTMLFormElement) {
+        syncWorkspaceStatusesSaveState(form);
+      }
+      return;
+    }
+
+    if (endRow instanceof HTMLElement) {
+      endRow.classList.add("is-drop-before");
+      if (draggedWorkspaceStatusRow !== endRow.previousElementSibling) {
+        list.insertBefore(draggedWorkspaceStatusRow, endRow);
+      }
+      if (form instanceof HTMLFormElement) {
+        syncWorkspaceStatusesSaveState(form);
+      }
+      return;
+    }
+
+    const lastSortableRow = sortableRows[sortableRows.length - 1];
+    if (lastSortableRow instanceof HTMLElement) {
+      lastSortableRow.classList.add("is-drop-after");
+    }
+    list.append(draggedWorkspaceStatusRow);
+    if (form instanceof HTMLFormElement) {
+      syncWorkspaceStatusesSaveState(form);
+    }
+  };
+
+  const serializeWorkspaceStatusesForm = (form) => {
+    if (!(form instanceof HTMLFormElement)) return "";
+
+    const rows = Array.from(form.querySelectorAll("[data-workspace-status-row]"))
+      .filter((row) => row instanceof HTMLElement)
+      .map((row) => {
+        const keyField = row.querySelector('input[name="status_keys[]"]');
+        const labelField = row.querySelector('input[name="status_labels[]"]');
+        const colorField = row.querySelector("[data-workspace-status-color-hidden]");
+        const key = keyField instanceof HTMLInputElement ? String(keyField.value || "").trim() : "";
+        const label =
+          labelField instanceof HTMLInputElement ? String(labelField.value || "").trim() : "";
+        const color =
+          colorField instanceof HTMLInputElement ? String(colorField.value || "").trim().toUpperCase() : "";
+        return `${key}::${label}::${color}`;
+      });
+
+    const reviewField = form.querySelector("[data-workspace-status-review-value]");
+    const reviewKey =
+      reviewField instanceof HTMLInputElement ? String(reviewField.value || "").trim() : "";
+
+    return JSON.stringify({
+      rows,
+      reviewKey,
+    });
+  };
+
+  const syncWorkspaceStatusesSaveState = (form) => {
+    if (!(form instanceof HTMLFormElement)) return false;
+
+    const saveButton = form.querySelector("[data-workspace-status-save-button]");
+    if (!(saveButton instanceof HTMLButtonElement)) return false;
+
+    const baseline = String(form.dataset.workspaceStatusesBaseline || "");
+    const current = serializeWorkspaceStatusesForm(form);
+    const isDirty = baseline !== "" && baseline !== current;
+
+    form.dataset.workspaceStatusesDirty = isDirty ? "true" : "false";
+    saveButton.disabled = !isDirty;
+    saveButton.setAttribute("aria-disabled", saveButton.disabled ? "true" : "false");
+    return isDirty;
+  };
+
+  const initializeWorkspaceStatusesForms = (scope = document) => {
+    const root = scope instanceof Element || scope instanceof Document ? scope : document;
+    root.querySelectorAll(".workspace-statuses-form").forEach((form) => {
+      if (!(form instanceof HTMLFormElement)) return;
+      form.dataset.workspaceStatusesBaseline = serializeWorkspaceStatusesForm(form);
+      syncWorkspaceStatusesSaveState(form);
+    });
+  };
+
+  const clearWorkspaceStatusDraftFields = (form) => {
+    if (!(form instanceof HTMLFormElement)) return;
+    const newStatusLabelField = form.querySelector('input[name="new_status_label"]');
+    if (newStatusLabelField instanceof HTMLInputElement) {
+      newStatusLabelField.value = "";
+    }
+  };
+
   const priorityFlagGlyph = "\u2691";
   const priorityLabels = {
     low: "Baixa",
@@ -792,10 +917,28 @@ window.addEventListener("DOMContentLoaded", () => {
     .querySelectorAll("[data-workspace-status-color-input]")
     .forEach(syncWorkspaceStatusRowColor);
   syncWorkspaceStatusReviewToggles();
+  initializeWorkspaceStatusesForms();
 
   document.addEventListener("click", (event) => {
     const target = getEventTargetElement(event);
     if (!(target instanceof Element)) return;
+
+    const workspaceStatusReviewToggle = target.closest("[data-workspace-status-review-toggle]");
+    if (workspaceStatusReviewToggle instanceof HTMLButtonElement) {
+      if (workspaceStatusReviewToggle.disabled) return;
+
+      const form = workspaceStatusReviewToggle.closest(".workspace-statuses-form");
+      const valueField = form?.querySelector("[data-workspace-status-review-value]");
+      if (!(form instanceof HTMLFormElement) || !(valueField instanceof HTMLInputElement)) {
+        return;
+      }
+
+      const nextKey = String(workspaceStatusReviewToggle.dataset.statusKey || "").trim();
+      valueField.value = String(valueField.value || "").trim() === nextKey ? "" : nextKey;
+      syncWorkspaceStatusReviewToggles(form);
+      syncWorkspaceStatusesSaveState(form);
+      return;
+    }
 
     const quantityStepButton = target.closest("[data-inventory-inline-quantity-step]");
     if (!(quantityStepButton instanceof HTMLButtonElement)) return;
@@ -862,24 +1005,11 @@ window.addEventListener("DOMContentLoaded", () => {
     const workspaceStatusColorInput = target.closest("[data-workspace-status-color-input]");
     if (workspaceStatusColorInput instanceof HTMLInputElement) {
       syncWorkspaceStatusRowColor(workspaceStatusColorInput);
+      const form = workspaceStatusColorInput.closest(".workspace-statuses-form");
+      syncWorkspaceStatusesSaveState(form);
       return;
     }
 
-    const workspaceStatusReviewToggle = target.closest("[data-workspace-status-review-toggle]");
-    if (workspaceStatusReviewToggle instanceof HTMLButtonElement) {
-      if (workspaceStatusReviewToggle.disabled) return;
-
-      const form = workspaceStatusReviewToggle.closest(".workspace-statuses-form");
-      const valueField = form?.querySelector("[data-workspace-status-review-value]");
-      if (!(form instanceof HTMLFormElement) || !(valueField instanceof HTMLInputElement)) {
-        return;
-      }
-
-      const nextKey = String(workspaceStatusReviewToggle.dataset.statusKey || "").trim();
-      valueField.value = String(valueField.value || "").trim() === nextKey ? "" : nextKey;
-      syncWorkspaceStatusReviewToggles(form);
-      return;
-    }
   });
 
   document.addEventListener("input", (event) => {
@@ -889,6 +1019,13 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (target instanceof HTMLInputElement && target.matches("[data-workspace-status-color-input]")) {
       syncWorkspaceStatusRowColor(target);
+      const form = target.closest(".workspace-statuses-form");
+      syncWorkspaceStatusesSaveState(form);
+      return;
+    }
+    if (target instanceof HTMLInputElement && target.matches('.workspace-statuses-form input[name="status_labels[]"]')) {
+      const form = target.closest(".workspace-statuses-form");
+      syncWorkspaceStatusesSaveState(form);
       return;
     }
     if (
@@ -4893,6 +5030,8 @@ window.addEventListener("DOMContentLoaded", () => {
   let draggedTaskItem = null;
   let activeDropzone = null;
   let activeTaskGroupDropTarget = null;
+  let draggedWorkspaceStatusRow = null;
+  let draggedWorkspaceStatusList = null;
 
   const clearDropzoneHighlight = () => {
     document
@@ -4926,6 +5065,35 @@ window.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("dragstart", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+
+    const workspaceStatusHandle = target.closest("[data-workspace-status-reorder-handle]");
+    const workspaceStatusRow = workspaceStatusHandle?.closest("[data-workspace-status-row]");
+    const workspaceStatusList = workspaceStatusRow?.closest("[data-workspace-status-list]");
+    if (workspaceStatusHandle instanceof HTMLElement) {
+      if (
+        !(workspaceStatusRow instanceof HTMLElement) ||
+        !(workspaceStatusList instanceof HTMLElement) ||
+        workspaceStatusRow.dataset.workspaceStatusSortable !== "true"
+      ) {
+        event.preventDefault();
+        return;
+      }
+
+      draggedWorkspaceStatusRow = workspaceStatusRow;
+      draggedWorkspaceStatusList = workspaceStatusList;
+      workspaceStatusRow.classList.add("is-sorting");
+      clearWorkspaceStatusDropIndicators();
+
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        try {
+          event.dataTransfer.setData("text/plain", workspaceStatusRow.dataset.statusKey || "status");
+        } catch (e) {
+          // noop
+        }
+      }
+      return;
+    }
 
     if (taskGroupReorderMode) {
       const dragSource = target.closest(".task-group-head, [data-task-group]");
@@ -4989,6 +5157,20 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   document.addEventListener("dragend", () => {
+    const workspaceStatusesForm =
+      draggedWorkspaceStatusRow instanceof HTMLElement
+        ? draggedWorkspaceStatusRow.closest(".workspace-statuses-form")
+        : draggedWorkspaceStatusList instanceof HTMLElement
+          ? draggedWorkspaceStatusList.closest(".workspace-statuses-form")
+          : null;
+    if (draggedWorkspaceStatusRow instanceof HTMLElement) {
+      draggedWorkspaceStatusRow.classList.remove("is-sorting");
+    }
+    draggedWorkspaceStatusRow = null;
+    draggedWorkspaceStatusList = null;
+    clearWorkspaceStatusDropIndicators();
+    syncWorkspaceStatusesSaveState(workspaceStatusesForm);
+
     if (draggedTaskGroup instanceof HTMLElement) {
       draggedTaskGroup.classList.remove("is-group-dragging");
       clearTaskGroupDropTarget();
@@ -5013,6 +5195,21 @@ window.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("dragover", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+
+    if (draggedWorkspaceStatusRow instanceof HTMLElement) {
+      const statusList = target.closest("[data-workspace-status-list]");
+      if (!(statusList instanceof HTMLElement) || statusList !== draggedWorkspaceStatusList) {
+        return;
+      }
+
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "move";
+      }
+
+      moveWorkspaceStatusRowByPointer(statusList, event.clientY);
+      return;
+    }
 
     if (draggedTaskGroup instanceof HTMLElement) {
       const overGroup = target.closest("[data-task-group]");
@@ -5067,6 +5264,21 @@ window.addEventListener("DOMContentLoaded", () => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
+    if (draggedWorkspaceStatusRow instanceof HTMLElement) {
+      const statusList = target.closest("[data-workspace-status-list]");
+      if (!(statusList instanceof HTMLElement) || statusList !== draggedWorkspaceStatusList) {
+        return;
+      }
+
+      const related = event.relatedTarget;
+      if (related instanceof Node && statusList.contains(related)) {
+        return;
+      }
+
+      clearWorkspaceStatusDropIndicators();
+      return;
+    }
+
     if (draggedTaskGroup instanceof HTMLElement) {
       const overGroup = target.closest("[data-task-group]");
       if (!(overGroup instanceof HTMLElement)) return;
@@ -5100,6 +5312,15 @@ window.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("drop", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+
+    if (draggedWorkspaceStatusRow instanceof HTMLElement) {
+      const statusList = target.closest("[data-workspace-status-list]");
+      if (statusList instanceof HTMLElement && statusList === draggedWorkspaceStatusList) {
+        event.preventDefault();
+      }
+      clearWorkspaceStatusDropIndicators();
+      return;
+    }
 
     if (draggedTaskGroup instanceof HTMLElement) {
       const overGroup = target.closest("[data-task-group]");
@@ -11093,6 +11314,55 @@ window.addEventListener("DOMContentLoaded", () => {
       }).catch(() => {});
     });
   }
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (!form.matches(".workspace-statuses-form")) return;
+
+    const saveButton = form.querySelector("[data-workspace-status-save-button]");
+    const addButton = form.querySelector("[data-workspace-status-add-button]");
+    const createRow = form.querySelector("[data-workspace-status-create-row]");
+    const draftLabelField = form.querySelector('input[name="new_status_label"]');
+    const activeElement = document.activeElement instanceof Element ? document.activeElement : null;
+    const hasDraftLabel =
+      draftLabelField instanceof HTMLInputElement && String(draftLabelField.value || "").trim() !== "";
+    const isCreateContext =
+      activeElement instanceof Element &&
+      createRow instanceof Element &&
+      createRow.contains(activeElement);
+    const isDirty = syncWorkspaceStatusesSaveState(form);
+    const submitter = event.submitter instanceof HTMLElement ? event.submitter : null;
+
+    if (submitter === saveButton) {
+      if (saveButton instanceof HTMLButtonElement && saveButton.disabled) {
+        event.preventDefault();
+        return;
+      }
+      clearWorkspaceStatusDraftFields(form);
+      return;
+    }
+
+    if (submitter === addButton) {
+      return;
+    }
+
+    if (submitter instanceof HTMLElement) {
+      clearWorkspaceStatusDraftFields(form);
+      return;
+    }
+
+    if (!submitter) {
+      if (isCreateContext && hasDraftLabel) {
+        return;
+      }
+      if (isDirty) {
+        clearWorkspaceStatusDraftFields(form);
+        return;
+      }
+      event.preventDefault();
+    }
+  });
 
   document.addEventListener("submit", (event) => {
     const form = event.target;

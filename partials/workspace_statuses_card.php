@@ -27,7 +27,7 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
             data-workspace-status-review-value
         >
 
-        <div class="workspace-statuses-list">
+        <div class="workspace-statuses-list" data-workspace-status-list>
             <?php foreach ($workspaceTaskStatuses as $statusDefinition): ?>
                 <?php
                 $statusKey = (string) ($statusDefinition['key'] ?? '');
@@ -39,11 +39,17 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
                 );
                 $statusCssVars = (string) ($statusDefinition['css_vars'] ?? taskStatusCssVars($statusColor));
                 $statusLocked = !empty($statusDefinition['is_locked']);
+                $statusEdge = $statusLocked
+                    ? ($statusKind === 'todo' ? 'start' : 'end')
+                    : '';
+                $canReorderStatus = $canManageTaskStatuses && !$statusLocked;
                 $canMarkAsReview = !$statusLocked;
                 ?>
                 <div
                     class="workspace-status-row status-<?= e($statusKind) ?>"
                     data-workspace-status-row
+                    data-workspace-status-sortable="<?= $canReorderStatus ? 'true' : 'false' ?>"
+                    data-workspace-status-edge="<?= e($statusEdge) ?>"
                     data-status-color="<?= e($statusColor) ?>"
                     style="<?= e($statusCssVars) ?>"
                 >
@@ -58,6 +64,23 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
                         aria-label="Nome do status"
                         <?= $canManageTaskStatuses ? '' : 'readonly' ?>
                     >
+                    <?php if ($canReorderStatus): ?>
+                        <button
+                            type="button"
+                            class="workspace-status-reorder-handle"
+                            data-workspace-status-reorder-handle
+                            draggable="true"
+                            aria-label="Reorganizar status"
+                            title="Arrastar para reorganizar"
+                        >
+                            <span class="workspace-status-reorder-dots" aria-hidden="true">
+                                <span></span><span></span><span></span>
+                                <span></span><span></span><span></span>
+                            </span>
+                        </button>
+                    <?php else: ?>
+                        <span class="workspace-status-reorder-handle workspace-status-reorder-handle-placeholder" aria-hidden="true"></span>
+                    <?php endif; ?>
                     <label class="workspace-status-color-control" title="Cor do status">
                         <input
                             type="color"
@@ -104,26 +127,42 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
 
         <?php if ($canManageTaskStatuses): ?>
             <div class="workspace-statuses-footer">
-                <input
-                    type="text"
-                    name="new_status_label"
-                    maxlength="40"
-                    placeholder="Novo status"
-                    aria-label="Novo status"
-                >
-                <label class="workspace-status-color-control workspace-status-color-control-new" title="Cor do novo status">
+                <div class="workspace-status-create-row" data-workspace-status-create-row>
                     <input
-                        type="color"
-                        name="new_status_color"
-                        value="<?= e($newWorkspaceStatusColor) ?>"
-                        aria-label="Cor do novo status"
+                        type="text"
+                        name="new_status_label"
+                        maxlength="40"
+                        placeholder="Novo status"
+                        aria-label="Novo status"
                     >
-                </label>
-                <button type="submit" class="btn btn-mini btn-ghost workspace-status-add-button" title="Adicionar status">
-                    <span aria-hidden="true">+</span>
-                    <span class="sr-only">Adicionar status</span>
-                </button>
-                <button type="submit" class="btn btn-mini">Salvar status</button>
+                    <label class="workspace-status-color-control workspace-status-color-control-new" title="Cor do novo status">
+                        <input
+                            type="color"
+                            name="new_status_color"
+                            value="<?= e($newWorkspaceStatusColor) ?>"
+                            aria-label="Cor do novo status"
+                        >
+                    </label>
+                    <button
+                        type="submit"
+                        class="btn btn-mini btn-ghost workspace-status-add-button"
+                        title="Adicionar status"
+                        data-workspace-status-add-button
+                    >
+                        <span aria-hidden="true">+</span>
+                        <span class="sr-only">Adicionar status</span>
+                    </button>
+                </div>
+                <div class="workspace-statuses-actions">
+                    <button
+                        type="submit"
+                        class="btn btn-mini workspace-status-save-button"
+                        data-workspace-status-save-button
+                        disabled
+                    >
+                        Salvar status
+                    </button>
+                </div>
             </div>
         <?php endif; ?>
     </form>
