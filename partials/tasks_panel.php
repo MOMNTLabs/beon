@@ -71,7 +71,8 @@
                                     <?php if ($creatorFilterValue === ''): ?>
                                         Criado por
                                     <?php else: ?>
-                                        <?php
+<?php
+$statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfig['meta_by_key'] : [];
                                         $creatorLabel = 'Criado por';
                                         foreach ($users as $user) {
                                             if ((string) ((int) $user['id']) === $creatorFilterValue) {
@@ -269,6 +270,10 @@
                                     $taskId = (int) $task['id'];
                                     $priorityKey = normalizeTaskPriority((string) $task['priority']);
                                     $statusKey = normalizeTaskStatus((string) $task['status']);
+                                    $statusMeta = $statusMetaByKey[$statusKey] ?? taskStatusMeta($statusKey);
+                                    $statusKind = (string) ($task['status_kind'] ?? $statusMeta['kind'] ?? 'todo');
+                                    $statusLabel = (string) ($task['status_label'] ?? $statusMeta['label'] ?? ($statusOptions[$statusKey] ?? 'A fazer'));
+                                    $statusOrder = (int) ($task['status_order'] ?? $statusMeta['order'] ?? 1);
                                     $assigneeSummary = assigneeNamesSummary($task);
                                     $dueDateValue = (string) ($task['due_date'] ?? '');
                                     $dueDateUi = taskDueDatePresentation($dueDateValue);
@@ -288,11 +293,14 @@
                                     );
                                     ?>
                                     <article
-                                        class="task-list-item task-status-<?= e($statusKey) ?><?= $isOverdueMarked ? ' has-overdue-flag' : '' ?>"
+                                        class="task-list-item task-status-<?= e($statusKind) ?><?= $isOverdueMarked ? ' has-overdue-flag' : '' ?>"
                                         id="task-<?= e((string) $taskId) ?>"
                                         data-task-item
                                         data-task-readonly="<?= $taskGroupCanAccess ? '0' : '1' ?>"
                                         data-group-name="<?= e((string) ($task['group_name'] ?? 'Geral')) ?>"
+                                        data-status-value="<?= e($statusKey) ?>"
+                                        data-status-kind="<?= e($statusKind) ?>"
+                                        data-status-order="<?= e((string) $statusOrder) ?>"
                                         draggable="<?= $taskGroupCanAccess ? 'true' : 'false' ?>"
                                     >
                                         <form method="post" class="task-list-form" id="update-task-<?= e((string) $taskId) ?>" data-task-autosave-form>
@@ -370,27 +378,44 @@
                                                     </button>
 
                                                     <div class="tag-field tag-field-status row-inline-picker-wrap" data-inline-select-wrap>
-                                                        <details class="row-inline-picker status-inline-picker status-<?= e($statusKey) ?>" data-inline-select-picker>
+                                                        <details class="row-inline-picker status-inline-picker status-<?= e($statusKind) ?>" data-inline-select-picker>
                                                             <summary aria-label="Status da tarefa">
-                                                                <span class="row-inline-picker-summary-text" data-inline-select-text><?= e((string) ($statusOptions[$statusKey] ?? 'A fazer')) ?></span>
+                                                                <span class="row-inline-picker-summary-text" data-inline-select-text><?= e($statusLabel) ?></span>
                                                             </summary>
                                                             <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Selecionar status">
                                                                 <?php foreach ($statusOptions as $optionKey => $optionLabel): ?>
+                                                                    <?php
+                                                                    $optionMeta = $statusMetaByKey[$optionKey] ?? taskStatusMeta($optionKey);
+                                                                    $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
+                                                                    $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                                                    ?>
                                                                     <button
                                                                         type="button"
-                                                                        class="row-inline-picker-option status-<?= e($optionKey) ?><?= $optionKey === $statusKey ? ' is-active' : '' ?>"
+                                                                        class="row-inline-picker-option status-<?= e($optionKind) ?><?= $optionKey === $statusKey ? ' is-active' : '' ?>"
                                                                         data-inline-select-option
                                                                         data-value="<?= e($optionKey) ?>"
                                                                         data-label="<?= e($optionLabel) ?>"
+                                                                        data-status-kind="<?= e($optionKind) ?>"
+                                                                        data-status-order="<?= e((string) $optionOrder) ?>"
                                                                         role="option"
                                                                         aria-selected="<?= $optionKey === $statusKey ? 'true' : 'false' ?>"
                                                                     ><?= e($optionLabel) ?></button>
                                                                 <?php endforeach; ?>
                                                             </div>
                                                         </details>
-                                                        <select name="status" class="tag-select status-select status-<?= e($statusKey) ?> row-inline-picker-native" data-inline-select-source hidden>
+                                                        <select name="status" class="tag-select status-select status-<?= e($statusKind) ?> row-inline-picker-native" data-inline-select-source hidden>
                                                             <?php foreach ($statusOptions as $optionKey => $optionLabel): ?>
-                                                                <option value="<?= e($optionKey) ?>"<?= $optionKey === $statusKey ? ' selected' : '' ?>>
+                                                                <?php
+                                                                $optionMeta = $statusMetaByKey[$optionKey] ?? taskStatusMeta($optionKey);
+                                                                $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
+                                                                $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                                                ?>
+                                                                <option
+                                                                    value="<?= e($optionKey) ?>"
+                                                                    data-status-kind="<?= e($optionKind) ?>"
+                                                                    data-status-order="<?= e((string) $optionOrder) ?>"
+                                                                    <?= $optionKey === $statusKey ? ' selected' : '' ?>
+                                                                >
                                                                     <?= e($optionLabel) ?>
                                                                 </option>
                                                             <?php endforeach; ?>

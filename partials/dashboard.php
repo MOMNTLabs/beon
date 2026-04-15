@@ -25,6 +25,7 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
     ];
     $taskTitleTagColorsPayload[(string) $taskTitleTagOptionValue] = $taskTitleTagColorValue;
 }
+$statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfig['meta_by_key'] : [];
 ?>
 <script
     type="application/json"
@@ -1109,6 +1110,10 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     $taskId = (int) $task['id'];
                                     $priorityKey = normalizeTaskPriority((string) $task['priority']);
                                     $statusKey = normalizeTaskStatus((string) $task['status']);
+                                    $statusMeta = $statusMetaByKey[$statusKey] ?? taskStatusMeta($statusKey);
+                                    $statusKind = (string) ($task['status_kind'] ?? $statusMeta['kind'] ?? 'todo');
+                                    $statusLabel = (string) ($task['status_label'] ?? $statusMeta['label'] ?? ($statusOptions[$statusKey] ?? 'A fazer'));
+                                    $statusOrder = (int) ($task['status_order'] ?? $statusMeta['order'] ?? 1);
                                     $assigneeSummary = assigneeNamesSummary($task);
                                     $dueDateValue = (string) ($task['due_date'] ?? '');
                                     $dueDateUi = taskDueDatePresentation($dueDateValue);
@@ -1128,11 +1133,14 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     );
                                     ?>
                                     <article
-                                        class="task-list-item task-status-<?= e($statusKey) ?><?= $isOverdueMarked ? ' has-overdue-flag' : '' ?>"
+                                        class="task-list-item task-status-<?= e($statusKind) ?><?= $isOverdueMarked ? ' has-overdue-flag' : '' ?>"
                                         id="task-<?= e((string) $taskId) ?>"
                                         data-task-item
                                         data-task-readonly="<?= $taskGroupCanAccess ? '0' : '1' ?>"
                                         data-group-name="<?= e((string) ($task['group_name'] ?? 'Geral')) ?>"
+                                        data-status-value="<?= e($statusKey) ?>"
+                                        data-status-kind="<?= e($statusKind) ?>"
+                                        data-status-order="<?= e((string) $statusOrder) ?>"
                                         draggable="<?= $taskGroupCanAccess ? 'true' : 'false' ?>"
                                     >
                                         <form method="post" class="task-list-form" id="update-task-<?= e((string) $taskId) ?>" data-task-autosave-form>
@@ -1210,27 +1218,44 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                                     </button>
 
                                                     <div class="tag-field tag-field-status row-inline-picker-wrap" data-inline-select-wrap>
-                                                        <details class="row-inline-picker status-inline-picker status-<?= e($statusKey) ?>" data-inline-select-picker>
+                                                        <details class="row-inline-picker status-inline-picker status-<?= e($statusKind) ?>" data-inline-select-picker>
                                                             <summary aria-label="Status da tarefa">
-                                                                <span class="row-inline-picker-summary-text" data-inline-select-text><?= e((string) ($statusOptions[$statusKey] ?? 'A fazer')) ?></span>
+                                                                <span class="row-inline-picker-summary-text" data-inline-select-text><?= e($statusLabel) ?></span>
                                                             </summary>
                                                             <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Selecionar status">
                                                                 <?php foreach ($statusOptions as $optionKey => $optionLabel): ?>
+                                                                    <?php
+                                                                    $optionMeta = $statusMetaByKey[$optionKey] ?? taskStatusMeta($optionKey);
+                                                                    $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
+                                                                    $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                                                    ?>
                                                                     <button
                                                                         type="button"
-                                                                        class="row-inline-picker-option status-<?= e($optionKey) ?><?= $optionKey === $statusKey ? ' is-active' : '' ?>"
+                                                                        class="row-inline-picker-option status-<?= e($optionKind) ?><?= $optionKey === $statusKey ? ' is-active' : '' ?>"
                                                                         data-inline-select-option
                                                                         data-value="<?= e($optionKey) ?>"
                                                                         data-label="<?= e($optionLabel) ?>"
+                                                                        data-status-kind="<?= e($optionKind) ?>"
+                                                                        data-status-order="<?= e((string) $optionOrder) ?>"
                                                                         role="option"
                                                                         aria-selected="<?= $optionKey === $statusKey ? 'true' : 'false' ?>"
                                                                     ><?= e($optionLabel) ?></button>
                                                                 <?php endforeach; ?>
                                                             </div>
                                                         </details>
-                                                        <select name="status" class="tag-select status-select status-<?= e($statusKey) ?> row-inline-picker-native" data-inline-select-source hidden>
+                                                        <select name="status" class="tag-select status-select status-<?= e($statusKind) ?> row-inline-picker-native" data-inline-select-source hidden>
                                                             <?php foreach ($statusOptions as $optionKey => $optionLabel): ?>
-                                                                <option value="<?= e($optionKey) ?>"<?= $optionKey === $statusKey ? ' selected' : '' ?>>
+                                                                <?php
+                                                                $optionMeta = $statusMetaByKey[$optionKey] ?? taskStatusMeta($optionKey);
+                                                                $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
+                                                                $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                                                ?>
+                                                                <option
+                                                                    value="<?= e($optionKey) ?>"
+                                                                    data-status-kind="<?= e($optionKind) ?>"
+                                                                    data-status-order="<?= e((string) $optionOrder) ?>"
+                                                                    <?= $optionKey === $statusKey ? ' selected' : '' ?>
+                                                                >
                                                                     <?= e($optionLabel) ?>
                                                                 </option>
                                                             <?php endforeach; ?>
@@ -2543,11 +2568,12 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
         </section>
 
         <?php if (!empty($showUsersDashboardTab)): ?>
+            <?php $workspaceTaskStatusConfig = $statusConfig; ?>
             <section class="users-wrap panel" id="users" data-dashboard-view-panel="users" hidden>
                 <div class="panel-header board-header users-board-header">
                     <div>
                         <h2>Usuarios</h2>
-                        <p>Gerencie membros e permissoes do workspace.</p>
+                        <p>Gerencie membros, permissoes e status do workspace.</p>
                     </div>
                 </div>
 
@@ -2634,6 +2660,8 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                             <?php endif; ?>
                         </ul>
                     </section>
+
+                    <?php include __DIR__ . '/workspace_statuses_card.php'; ?>
                 </div>
             </section>
         <?php endif; ?>
@@ -2747,9 +2775,9 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                         </button>
 
                         <div class="tag-field tag-field-status row-inline-picker-wrap" data-inline-select-wrap>
-                            <details class="row-inline-picker status-inline-picker status-todo" data-inline-select-picker>
+                            <details class="row-inline-picker status-inline-picker status-<?= e($defaultTaskStatusKind) ?>" data-inline-select-picker>
                                 <summary aria-label="Status da tarefa">
-                                    <span class="row-inline-picker-summary-text" data-inline-select-text>A fazer</span>
+                                    <span class="row-inline-picker-summary-text" data-inline-select-text><?= e($defaultTaskStatusLabel) ?></span>
                                 </summary>
                                 <div
                                     class="assignee-picker-menu row-inline-picker-menu"
@@ -2757,27 +2785,44 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                     aria-label="Selecionar status"
                                 >
                                     <?php foreach ($statusOptions as $key => $label): ?>
+                                        <?php
+                                        $optionMeta = $statusMetaByKey[$key] ?? taskStatusMeta($key);
+                                        $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
+                                        $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                        ?>
                                         <button
                                             type="button"
-                                            class="row-inline-picker-option status-<?= e($key) ?><?= $key === 'todo' ? ' is-active' : '' ?>"
+                                            class="row-inline-picker-option status-<?= e($optionKind) ?><?= $key === $defaultTaskStatusKey ? ' is-active' : '' ?>"
                                             data-inline-select-option
                                             data-value="<?= e($key) ?>"
                                             data-label="<?= e($label) ?>"
+                                            data-status-kind="<?= e($optionKind) ?>"
+                                            data-status-order="<?= e((string) $optionOrder) ?>"
                                             role="option"
-                                            aria-selected="<?= $key === 'todo' ? 'true' : 'false' ?>"
+                                            aria-selected="<?= $key === $defaultTaskStatusKey ? 'true' : 'false' ?>"
                                         ><?= e($label) ?></button>
                                     <?php endforeach; ?>
                                 </div>
                             </details>
                             <select
                                 name="status"
-                                class="tag-select status-select status-todo row-inline-picker-native"
+                                class="tag-select status-select status-<?= e($defaultTaskStatusKind) ?> row-inline-picker-native"
                                 data-inline-select-source
                                 aria-label="Status"
                                 hidden
                             >
                                 <?php foreach ($statusOptions as $key => $label): ?>
-                                    <option value="<?= e($key) ?>"<?= $key === 'todo' ? ' selected' : '' ?>><?= e($label) ?></option>
+                                    <?php
+                                    $optionMeta = $statusMetaByKey[$key] ?? taskStatusMeta($key);
+                                    $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
+                                    $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                    ?>
+                                    <option
+                                        value="<?= e($key) ?>"
+                                        data-status-kind="<?= e($optionKind) ?>"
+                                        data-status-order="<?= e((string) $optionOrder) ?>"
+                                        <?= $key === $defaultTaskStatusKey ? ' selected' : '' ?>
+                                    ><?= e($label) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -2896,14 +2941,29 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
             </label>
 
             <div class="task-subtasks-editor">
-                <span>Etapas / subtarefas</span>
-                <label class="task-subtasks-dependency-toggle">
-                    <input
-                        type="checkbox"
-                        data-create-task-subtasks-dependency-toggle
-                    >
-                    <span>Ativar dependência entre etapas</span>
-                </label>
+                <div class="task-subtasks-editor-head">
+                    <span>Etapas / subtarefas</span>
+                    <label class="task-subtasks-dependency-toggle" title="Ativar dependência entre etapas">
+                        <input
+                            type="checkbox"
+                            data-create-task-subtasks-dependency-toggle
+                        >
+                        <span class="task-subtasks-dependency-icon" aria-hidden="true">
+                            <svg viewBox="0 0 20 20" focusable="false">
+                                <path d="M6.2 6.6h2.7"></path>
+                                <path d="M11.1 6.6h2.7"></path>
+                                <path d="M8.9 13.4H6.2"></path>
+                                <path d="M13.8 13.4h-2.7"></path>
+                                <circle cx="4.4" cy="6.6" r="1.6"></circle>
+                                <circle cx="15.6" cy="6.6" r="1.6"></circle>
+                                <circle cx="4.4" cy="13.4" r="1.6"></circle>
+                                <circle cx="15.6" cy="13.4" r="1.6"></circle>
+                                <path d="M10 8.2v3.6"></path>
+                            </svg>
+                        </span>
+                        <span class="sr-only">Ativar dependência entre etapas</span>
+                    </label>
+                </div>
                 <div class="task-subtasks-edit-add">
                     <input
                         type="text"
@@ -3947,9 +4007,9 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                 </button>
 
                                 <div class="tag-field tag-field-status row-inline-picker-wrap" data-inline-select-wrap>
-                                    <details class="row-inline-picker status-inline-picker status-todo" data-inline-select-picker>
+                                    <details class="row-inline-picker status-inline-picker status-<?= e($defaultTaskStatusKind) ?>" data-inline-select-picker>
                                         <summary aria-label="Status da tarefa">
-                                            <span class="row-inline-picker-summary-text" data-inline-select-text>A fazer</span>
+                                            <span class="row-inline-picker-summary-text" data-inline-select-text><?= e($defaultTaskStatusLabel) ?></span>
                                         </summary>
                                         <div
                                             class="assignee-picker-menu row-inline-picker-menu"
@@ -3957,27 +4017,44 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                                             aria-label="Selecionar status"
                                         >
                                             <?php foreach ($statusOptions as $key => $label): ?>
+                                                <?php
+                                                $optionMeta = $statusMetaByKey[$key] ?? taskStatusMeta($key);
+                                                $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
+                                                $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                                ?>
                                                 <button
                                                     type="button"
-                                                    class="row-inline-picker-option status-<?= e($key) ?><?= $key === 'todo' ? ' is-active' : '' ?>"
+                                                    class="row-inline-picker-option status-<?= e($optionKind) ?><?= $key === $defaultTaskStatusKey ? ' is-active' : '' ?>"
                                                     data-inline-select-option
                                                     data-value="<?= e($key) ?>"
                                                     data-label="<?= e($label) ?>"
+                                                    data-status-kind="<?= e($optionKind) ?>"
+                                                    data-status-order="<?= e((string) $optionOrder) ?>"
                                                     role="option"
-                                                    aria-selected="<?= $key === 'todo' ? 'true' : 'false' ?>"
+                                                    aria-selected="<?= $key === $defaultTaskStatusKey ? 'true' : 'false' ?>"
                                                 ><?= e($label) ?></button>
                                             <?php endforeach; ?>
                                         </div>
                                     </details>
                                     <select
-                                        class="tag-select status-select status-todo row-inline-picker-native"
+                                        class="tag-select status-select status-<?= e($defaultTaskStatusKind) ?> row-inline-picker-native"
                                         data-inline-select-source
                                         data-task-detail-edit-status
                                         aria-label="Status"
                                         hidden
                                     >
                                         <?php foreach ($statusOptions as $key => $label): ?>
-                                            <option value="<?= e($key) ?>"<?= $key === 'todo' ? ' selected' : '' ?>><?= e($label) ?></option>
+                                            <?php
+                                            $optionMeta = $statusMetaByKey[$key] ?? taskStatusMeta($key);
+                                            $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
+                                            $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                            ?>
+                                            <option
+                                                value="<?= e($key) ?>"
+                                                data-status-kind="<?= e($optionKind) ?>"
+                                                data-status-order="<?= e((string) $optionOrder) ?>"
+                                                <?= $key === $defaultTaskStatusKey ? ' selected' : '' ?>
+                                            ><?= e($label) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -4090,14 +4167,29 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
                     </div>
 
                     <div class="task-subtasks-editor">
-                        <span>Etapas / subtarefas</span>
-                        <label class="task-subtasks-dependency-toggle">
-                            <input
-                                type="checkbox"
-                                data-task-detail-edit-subtasks-dependency-toggle
-                            >
-                            <span>Ativar dependência entre etapas</span>
-                        </label>
+                        <div class="task-subtasks-editor-head">
+                            <span>Etapas / subtarefas</span>
+                            <label class="task-subtasks-dependency-toggle" title="Ativar dependência entre etapas">
+                                <input
+                                    type="checkbox"
+                                    data-task-detail-edit-subtasks-dependency-toggle
+                                >
+                                <span class="task-subtasks-dependency-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 20 20" focusable="false">
+                                        <path d="M6.2 6.6h2.7"></path>
+                                        <path d="M11.1 6.6h2.7"></path>
+                                        <path d="M8.9 13.4H6.2"></path>
+                                        <path d="M13.8 13.4h-2.7"></path>
+                                        <circle cx="4.4" cy="6.6" r="1.6"></circle>
+                                        <circle cx="15.6" cy="6.6" r="1.6"></circle>
+                                        <circle cx="4.4" cy="13.4" r="1.6"></circle>
+                                        <circle cx="15.6" cy="13.4" r="1.6"></circle>
+                                        <path d="M10 8.2v3.6"></path>
+                                    </svg>
+                                </span>
+                                <span class="sr-only">Ativar dependência entre etapas</span>
+                            </label>
+                        </div>
                         <div class="task-subtasks-edit-add">
                             <input
                                 type="text"

@@ -452,6 +452,8 @@ function ensureWorkspaceSchema(PDO $pdo): void
                 name TEXT NOT NULL,
                 slug TEXT NOT NULL UNIQUE,
                 is_personal SMALLINT NOT NULL DEFAULT 0,
+                task_statuses_json TEXT NOT NULL DEFAULT \'[]\',
+                task_review_status_key TEXT DEFAULT NULL,
                 created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
                 created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
                 updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
@@ -478,6 +480,8 @@ function ensureWorkspaceSchema(PDO $pdo): void
                 name TEXT NOT NULL,
                 slug TEXT NOT NULL UNIQUE,
                 is_personal INTEGER NOT NULL DEFAULT 0,
+                task_statuses_json TEXT NOT NULL DEFAULT \'[]\',
+                task_review_status_key TEXT DEFAULT NULL,
                 created_by INTEGER DEFAULT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
@@ -508,6 +512,14 @@ function ensureWorkspaceSchema(PDO $pdo): void
         } else {
             $pdo->exec('ALTER TABLE workspaces ADD COLUMN is_personal INTEGER NOT NULL DEFAULT 0');
         }
+    }
+
+    if (!tableHasColumn($pdo, 'workspaces', 'task_statuses_json')) {
+        $pdo->exec("ALTER TABLE workspaces ADD COLUMN task_statuses_json TEXT NOT NULL DEFAULT '[]'");
+    }
+
+    if (!tableHasColumn($pdo, 'workspaces', 'task_review_status_key')) {
+        $pdo->exec('ALTER TABLE workspaces ADD COLUMN task_review_status_key TEXT DEFAULT NULL');
     }
 
     if (!tableHasColumn($pdo, 'tasks', 'workspace_id')) {
@@ -646,6 +658,39 @@ function ensureWorkspaceSchema(PDO $pdo): void
             $role = $userId === $adminUserId ? 'admin' : 'member';
             upsertWorkspaceMember($pdo, $defaultWorkspaceId, $userId, $role);
         }
+    }
+
+    $defaultStatusDefinitionsJson = encodeWorkspaceTaskStatusDefinitions(defaultTaskStatusDefinitions());
+    $defaultReviewStatusKey = defaultTaskReviewStatusKey();
+    $workspaceStatusStmt = $pdo->prepare(
+        'UPDATE workspaces
+         SET task_statuses_json = :task_statuses_json,
+             task_review_status_key = :task_review_status_key
+         WHERE id = :workspace_id'
+    );
+    $workspaceRows = $pdo->query(
+        'SELECT id, task_statuses_json, task_review_status_key
+         FROM workspaces'
+    )->fetchAll();
+    foreach ($workspaceRows as $workspaceRow) {
+        $workspaceId = (int) ($workspaceRow['id'] ?? 0);
+        if ($workspaceId <= 0) {
+            continue;
+        }
+
+        $taskStatusesJson = trim((string) ($workspaceRow['task_statuses_json'] ?? ''));
+        $taskReviewStatusKey = trim((string) ($workspaceRow['task_review_status_key'] ?? ''));
+        if ($taskStatusesJson !== '' && $taskStatusesJson !== '[]') {
+            continue;
+        }
+
+        $workspaceStatusStmt->execute([
+            ':task_statuses_json' => $defaultStatusDefinitionsJson,
+            ':task_review_status_key' => $taskReviewStatusKey !== ''
+                ? $taskReviewStatusKey
+                : $defaultReviewStatusKey,
+            ':workspace_id' => $workspaceId,
+        ]);
     }
 }
 
@@ -2720,7 +2765,7 @@ function workspaceById(int $workspaceId): ?array
     }
 
     $stmt = db()->prepare(
-        'SELECT id, name, slug, is_personal, created_by, created_at, updated_at
+        'SELECT id, name, slug, is_personal, created_by, task_statuses_json, task_review_status_key, created_at, updated_at
          FROM workspaces
          WHERE id = :id
          LIMIT 1'
@@ -2945,10 +2990,13 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $
     $now = nowIso();
     $personalFlag = $isPersonal ? 1 : 0;
 
+    $taskStatusesJson = encodeWorkspaceTaskStatusDefinitions(defaultTaskStatusDefinitions());
+    $taskReviewStatusKey = defaultTaskReviewStatusKey();
+
     if (dbDriverName($pdo) === 'pgsql') {
         $stmt = $pdo->prepare(
-            'INSERT INTO workspaces (name, slug, is_personal, created_by, created_at, updated_at)
-             VALUES (:name, :slug, :is_personal, :created_by, :created_at, :updated_at)
+            'INSERT INTO workspaces (name, slug, is_personal, created_by, task_statuses_json, task_review_status_key, created_at, updated_at)
+             VALUES (:name, :slug, :is_personal, :created_by, :task_statuses_json, :task_review_status_key, :created_at, :updated_at)
              RETURNING id'
         );
         $stmt->execute([
@@ -2956,20 +3004,24 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $
             ':slug' => $slug,
             ':is_personal' => $personalFlag,
             ':created_by' => $createdBy,
+            ':task_statuses_json' => $taskStatusesJson,
+            ':task_review_status_key' => $taskReviewStatusKey,
             ':created_at' => $now,
             ':updated_at' => $now,
         ]);
         $workspaceId = (int) $stmt->fetchColumn();
     } else {
         $stmt = $pdo->prepare(
-            'INSERT INTO workspaces (name, slug, is_personal, created_by, created_at, updated_at)
-             VALUES (:name, :slug, :is_personal, :created_by, :created_at, :updated_at)'
+            'INSERT INTO workspaces (name, slug, is_personal, created_by, task_statuses_json, task_review_status_key, created_at, updated_at)
+             VALUES (:name, :slug, :is_personal, :created_by, :task_statuses_json, :task_review_status_key, :created_at, :updated_at)'
         );
         $stmt->execute([
             ':name' => $name,
             ':slug' => $slug,
             ':is_personal' => $personalFlag,
             ':created_by' => $createdBy,
+            ':task_statuses_json' => $taskStatusesJson,
+            ':task_review_status_key' => $taskReviewStatusKey,
             ':created_at' => $now,
             ':updated_at' => $now,
         ]);
@@ -6469,14 +6521,437 @@ function accountingSummary(array $entries, int $openingBalanceCents): array
     ];
 }
 
-function taskStatuses(): array
+function defaultTaskStatusDefinitions(): array
 {
     return [
-        'todo' => 'A fazer',
-        'in_progress' => 'Em andamento',
-        'review' => 'Revisão',
-        'done' => 'Concluído',
+        ['key' => 'todo', 'label' => 'A fazer'],
+        ['key' => 'in_progress', 'label' => 'Em andamento'],
+        ['key' => 'review', 'label' => 'Revisão'],
+        ['key' => 'done', 'label' => 'Concluído'],
     ];
+}
+
+function defaultTaskReviewStatusKey(): ?string
+{
+    return 'review';
+}
+
+function normalizeWorkspaceTaskStatusLabel(string $label, string $fallback = ''): string
+{
+    $label = preg_replace('/\s+/u', ' ', trim($label)) ?? trim($label);
+    if ($label === '') {
+        $label = preg_replace('/\s+/u', ' ', trim($fallback)) ?? trim($fallback);
+    }
+    if ($label === '') {
+        $label = 'Novo status';
+    }
+    if (mb_strlen($label) > 40) {
+        $label = mb_substr($label, 0, 40);
+    }
+
+    return uppercaseFirstCharacter($label);
+}
+
+function workspaceTaskStatusKeyCandidateFromLabel(string $label): string
+{
+    $candidate = trim(mb_strtolower($label));
+    if ($candidate === '') {
+        return '';
+    }
+
+    if (function_exists('iconv')) {
+        $asciiCandidate = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $candidate);
+        if (is_string($asciiCandidate) && trim($asciiCandidate) !== '') {
+            $candidate = $asciiCandidate;
+        }
+    }
+
+    $candidate = preg_replace('/[^a-z0-9]+/i', '_', $candidate) ?? $candidate;
+    $candidate = trim((string) $candidate, '_');
+    return mb_strtolower($candidate);
+}
+
+function generateWorkspaceTaskStatusKey(array $existingKeys, string $label): string
+{
+    $existingMap = [];
+    foreach ($existingKeys as $existingKey) {
+        $normalizedExistingKey = workspaceTaskStatusKeyCandidateFromLabel((string) $existingKey);
+        if ($normalizedExistingKey !== '') {
+            $existingMap[$normalizedExistingKey] = true;
+        }
+    }
+
+    $baseKey = workspaceTaskStatusKeyCandidateFromLabel($label);
+    if ($baseKey === '' || isset($existingMap[$baseKey])) {
+        $baseKey = 'status';
+    }
+
+    $key = $baseKey;
+    $suffix = 2;
+    while (isset($existingMap[$key])) {
+        $key = $baseKey . '_' . $suffix;
+        $suffix++;
+    }
+
+    return $key;
+}
+
+function normalizeWorkspaceTaskStatusDefinitions(array $definitions, ?string $reviewStatusKey = null): array
+{
+    $defaultDefinitions = defaultTaskStatusDefinitions();
+    $rawDefinitions = [];
+
+    foreach ($definitions as $definition) {
+        if (!is_array($definition)) {
+            continue;
+        }
+
+        $rawDefinitions[] = [
+            'key' => trim((string) ($definition['key'] ?? '')),
+            'label' => trim((string) ($definition['label'] ?? $definition['name'] ?? '')),
+        ];
+    }
+
+    if (count($rawDefinitions) < 2) {
+        $rawDefinitions = $defaultDefinitions;
+    }
+
+    $firstLabel = normalizeWorkspaceTaskStatusLabel(
+        (string) ($rawDefinitions[0]['label'] ?? ''),
+        (string) ($defaultDefinitions[0]['label'] ?? 'A fazer')
+    );
+    $lastRawDefinition = $rawDefinitions[count($rawDefinitions) - 1] ?? [];
+    $lastLabel = normalizeWorkspaceTaskStatusLabel(
+        (string) ($lastRawDefinition['label'] ?? ''),
+        (string) ($defaultDefinitions[count($defaultDefinitions) - 1]['label'] ?? 'Concluído')
+    );
+
+    $normalizedList = [
+        ['key' => 'todo', 'label' => $firstLabel],
+    ];
+    $existingKeys = ['todo', 'done'];
+
+    foreach (array_slice($rawDefinitions, 1, -1) as $definition) {
+        $label = normalizeWorkspaceTaskStatusLabel(
+            (string) ($definition['label'] ?? ''),
+            (string) ($definition['key'] ?? 'Status')
+        );
+        $candidateKey = workspaceTaskStatusKeyCandidateFromLabel((string) ($definition['key'] ?? ''));
+        if ($candidateKey === '' || in_array($candidateKey, ['todo', 'done'], true) || in_array($candidateKey, $existingKeys, true)) {
+            $candidateKey = generateWorkspaceTaskStatusKey($existingKeys, $label);
+        }
+
+        $normalizedList[] = [
+            'key' => $candidateKey,
+            'label' => $label,
+        ];
+        $existingKeys[] = $candidateKey;
+    }
+
+    $normalizedList[] = ['key' => 'done', 'label' => $lastLabel];
+
+    $reviewKey = workspaceTaskStatusKeyCandidateFromLabel((string) $reviewStatusKey);
+    if (!in_array($reviewKey, array_column(array_slice($normalizedList, 1, -1), 'key'), true)) {
+        $reviewKey = null;
+    }
+
+    $options = [];
+    $metaByKey = [];
+    $orderByKey = [];
+    $lastIndex = count($normalizedList) - 1;
+
+    foreach ($normalizedList as $index => $definition) {
+        $key = (string) ($definition['key'] ?? '');
+        $label = normalizeWorkspaceTaskStatusLabel((string) ($definition['label'] ?? ''), $key);
+        $kind = 'in_progress';
+        if ($index === 0) {
+            $kind = 'todo';
+        } elseif ($index === $lastIndex) {
+            $kind = 'done';
+        } elseif ($reviewKey !== null && $key === $reviewKey) {
+            $kind = 'review';
+        }
+
+        $options[$key] = $label;
+        $orderByKey[$key] = $index + 1;
+        $metaByKey[$key] = [
+            'key' => $key,
+            'label' => $label,
+            'kind' => $kind,
+            'order' => $index + 1,
+            'is_locked' => $index === 0 || $index === $lastIndex,
+            'is_review' => $reviewKey !== null && $key === $reviewKey,
+        ];
+        $normalizedList[$index]['label'] = $label;
+        $normalizedList[$index]['kind'] = $kind;
+        $normalizedList[$index]['order'] = $index + 1;
+        $normalizedList[$index]['is_locked'] = $index === 0 || $index === $lastIndex;
+        $normalizedList[$index]['is_review'] = $reviewKey !== null && $key === $reviewKey;
+    }
+
+    return [
+        'list' => $normalizedList,
+        'options' => $options,
+        'meta_by_key' => $metaByKey,
+        'order_by_key' => $orderByKey,
+        'todo_status_key' => 'todo',
+        'done_status_key' => 'done',
+        'review_status_key' => $reviewKey,
+        'default_status_key' => 'todo',
+    ];
+}
+
+function encodeWorkspaceTaskStatusDefinitions(array $definitions): string
+{
+    $normalized = normalizeWorkspaceTaskStatusDefinitions($definitions);
+    $payload = array_map(
+        static fn (array $definition): array => [
+            'key' => (string) ($definition['key'] ?? ''),
+            'label' => (string) ($definition['label'] ?? ''),
+        ],
+        $normalized['list'] ?? []
+    );
+
+    $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    return is_string($encoded) && $encoded !== '' ? $encoded : '[]';
+}
+
+function &taskStatusConfigCacheStore(): array
+{
+    static $cache = [];
+    return $cache;
+}
+
+function clearTaskStatusConfigCache(?int $workspaceId = null): void
+{
+    $cache = &taskStatusConfigCacheStore();
+    if ($workspaceId !== null && $workspaceId > 0) {
+        unset($cache[$workspaceId]);
+        return;
+    }
+
+    $cache = [];
+}
+
+function taskStatusConfig(?int $workspaceId = null, ?array $workspace = null): array
+{
+    $workspaceId = $workspaceId && $workspaceId > 0
+        ? $workspaceId
+        : (int) ($workspace['id'] ?? activeWorkspaceId() ?? 0);
+
+    if ($workspaceId <= 0) {
+        return normalizeWorkspaceTaskStatusDefinitions(
+            defaultTaskStatusDefinitions(),
+            defaultTaskReviewStatusKey()
+        );
+    }
+
+    $cache = &taskStatusConfigCacheStore();
+    if ($workspace === null && isset($cache[$workspaceId])) {
+        return $cache[$workspaceId];
+    }
+
+    if (!$workspace || (int) ($workspace['id'] ?? 0) !== $workspaceId) {
+        $workspace = workspaceById($workspaceId);
+    }
+
+    $definitions = defaultTaskStatusDefinitions();
+    $reviewStatusKey = defaultTaskReviewStatusKey();
+
+    if ($workspace) {
+        $rawJson = trim((string) ($workspace['task_statuses_json'] ?? ''));
+        if ($rawJson !== '') {
+            try {
+                $decoded = json_decode($rawJson, true, 512, JSON_THROW_ON_ERROR);
+                if (is_array($decoded)) {
+                    $definitions = $decoded;
+                }
+            } catch (Throwable $e) {
+                $definitions = defaultTaskStatusDefinitions();
+            }
+        }
+
+        $reviewStatusKeyValue = trim((string) ($workspace['task_review_status_key'] ?? ''));
+        $reviewStatusKey = $reviewStatusKeyValue !== '' ? $reviewStatusKeyValue : null;
+    }
+
+    $config = normalizeWorkspaceTaskStatusDefinitions($definitions, $reviewStatusKey);
+    $cache[$workspaceId] = $config;
+    return $config;
+}
+
+function taskStatusMeta(string $value, ?int $workspaceId = null, ?array $workspace = null): array
+{
+    $config = taskStatusConfig($workspaceId, $workspace);
+    $normalizedValue = array_key_exists($value, $config['options'])
+        ? $value
+        : (string) ($config['todo_status_key'] ?? 'todo');
+
+    return $config['meta_by_key'][$normalizedValue]
+        ?? [
+            'key' => $normalizedValue,
+            'label' => $config['options'][$normalizedValue] ?? $normalizedValue,
+            'kind' => 'todo',
+            'order' => 1,
+            'is_locked' => true,
+            'is_review' => false,
+        ];
+}
+
+function taskStatusLabel(string $value, ?int $workspaceId = null, ?array $workspace = null): string
+{
+    return (string) (taskStatusMeta($value, $workspaceId, $workspace)['label'] ?? $value);
+}
+
+function taskStatusKind(string $value, ?int $workspaceId = null, ?array $workspace = null): string
+{
+    return (string) (taskStatusMeta($value, $workspaceId, $workspace)['kind'] ?? 'todo');
+}
+
+function taskStatusOrder(string $value, ?int $workspaceId = null, ?array $workspace = null): int
+{
+    return (int) (taskStatusMeta($value, $workspaceId, $workspace)['order'] ?? 1);
+}
+
+function taskDoneStatusKey(?int $workspaceId = null, ?array $workspace = null): string
+{
+    return (string) (taskStatusConfig($workspaceId, $workspace)['done_status_key'] ?? 'done');
+}
+
+function taskReviewStatusKey(?int $workspaceId = null, ?array $workspace = null): ?string
+{
+    $reviewStatusKey = trim((string) (taskStatusConfig($workspaceId, $workspace)['review_status_key'] ?? ''));
+    return $reviewStatusKey !== '' ? $reviewStatusKey : null;
+}
+
+function taskPriorityOrder(string $value): int
+{
+    return match (normalizeTaskPriority($value)) {
+        'urgent' => 1,
+        'high' => 2,
+        'medium' => 3,
+        'low' => 4,
+        default => 99,
+    };
+}
+
+function taskStatusKindFromTask(array $task, ?int $workspaceId = null, ?array $workspace = null): string
+{
+    $statusKind = trim((string) ($task['status_kind'] ?? ''));
+    if (in_array($statusKind, ['todo', 'in_progress', 'review', 'done'], true)) {
+        return $statusKind;
+    }
+
+    return taskStatusKind((string) ($task['status'] ?? ''), $workspaceId, $workspace);
+}
+
+function taskStatusOrderFromTask(array $task, ?int $workspaceId = null, ?array $workspace = null): int
+{
+    $statusOrder = (int) ($task['status_order'] ?? 0);
+    if ($statusOrder > 0) {
+        return $statusOrder;
+    }
+
+    return taskStatusOrder((string) ($task['status'] ?? ''), $workspaceId, $workspace);
+}
+
+function taskDoneStatusFromTask(array $task, ?int $workspaceId = null, ?array $workspace = null): bool
+{
+    return taskStatusKindFromTask($task, $workspaceId, $workspace) === 'done';
+}
+
+function workspaceUpdateTaskStatusConfiguration(
+    PDO $pdo,
+    int $workspaceId,
+    array $definitions,
+    ?string $reviewStatusKey = null,
+    ?string $removeStatusKey = null,
+    ?string $newStatusLabel = null
+): array {
+    if ($workspaceId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $config = normalizeWorkspaceTaskStatusDefinitions($definitions, $reviewStatusKey);
+    $workingList = $config['list'];
+    $workingReviewStatusKey = $config['review_status_key'];
+    $removeStatusKey = workspaceTaskStatusKeyCandidateFromLabel((string) $removeStatusKey);
+
+    if ($removeStatusKey !== '') {
+        $removeIndex = null;
+        foreach ($workingList as $index => $definition) {
+            if ((string) ($definition['key'] ?? '') === $removeStatusKey) {
+                $removeIndex = $index;
+                break;
+            }
+        }
+
+        if ($removeIndex !== null && $removeIndex > 0 && $removeIndex < count($workingList) - 1) {
+            $fallbackIndex = $removeIndex - 1;
+            if ($fallbackIndex < 0 || $fallbackIndex === $removeIndex) {
+                $fallbackIndex = min(count($workingList) - 1, $removeIndex + 1);
+            }
+
+            $fallbackKey = (string) ($workingList[$fallbackIndex]['key'] ?? 'todo');
+            $remapStmt = $pdo->prepare(
+                'UPDATE tasks
+                 SET status = :fallback_status
+                 WHERE workspace_id = :workspace_id
+                   AND status = :removed_status'
+            );
+            $remapStmt->execute([
+                ':fallback_status' => $fallbackKey,
+                ':workspace_id' => $workspaceId,
+                ':removed_status' => $removeStatusKey,
+            ]);
+
+            array_splice($workingList, $removeIndex, 1);
+            if ($workingReviewStatusKey === $removeStatusKey) {
+                $workingReviewStatusKey = null;
+            }
+        }
+    }
+
+    $newStatusLabel = trim((string) $newStatusLabel);
+    if ($newStatusLabel !== '') {
+        $normalizedLabel = normalizeWorkspaceTaskStatusLabel($newStatusLabel, 'Novo status');
+        $newKey = generateWorkspaceTaskStatusKey(
+            array_map(static fn (array $definition): string => (string) ($definition['key'] ?? ''), $workingList),
+            $normalizedLabel
+        );
+        array_splice(
+            $workingList,
+            max(1, count($workingList) - 1),
+            0,
+            [[
+                'key' => $newKey,
+                'label' => $normalizedLabel,
+            ]]
+        );
+    }
+
+    $normalizedConfig = normalizeWorkspaceTaskStatusDefinitions($workingList, $workingReviewStatusKey);
+    $updateStmt = $pdo->prepare(
+        'UPDATE workspaces
+         SET task_statuses_json = :task_statuses_json,
+             task_review_status_key = :task_review_status_key,
+             updated_at = :updated_at
+         WHERE id = :workspace_id'
+    );
+    $updateStmt->execute([
+        ':task_statuses_json' => encodeWorkspaceTaskStatusDefinitions($normalizedConfig['list']),
+        ':task_review_status_key' => $normalizedConfig['review_status_key'],
+        ':updated_at' => nowIso(),
+        ':workspace_id' => $workspaceId,
+    ]);
+
+    clearTaskStatusConfigCache($workspaceId);
+    return $normalizedConfig;
+}
+
+function taskStatuses(?int $workspaceId = null, ?array $workspace = null): array
+{
+    return taskStatusConfig($workspaceId, $workspace)['options'];
 }
 
 function taskPriorities(): array
@@ -6529,9 +7004,9 @@ function taskTitleTagDefaultColor(): string
     return '#6967AE';
 }
 
-function normalizeTaskStatus(string $value): string
+function normalizeTaskStatus(string $value, ?int $workspaceId = null, ?array $workspace = null): string
 {
-    return array_key_exists($value, taskStatuses()) ? $value : 'todo';
+    return (string) (taskStatusMeta($value, $workspaceId, $workspace)['key'] ?? 'todo');
 }
 
 function normalizeTaskPriority(string $value): string
@@ -6819,13 +7294,19 @@ function taskSubtasksProgress(array $subtasks, bool $enforceDependency = false):
     ];
 }
 
-function applyTaskSubtasksCompletionStatus(string $status, array $subtasks): string
+function applyTaskSubtasksCompletionStatus(
+    string $status,
+    array $subtasks,
+    ?int $workspaceId = null,
+    ?array $workspace = null
+): string
 {
-    $normalizedStatus = normalizeTaskStatus($status);
+    $normalizedStatus = normalizeTaskStatus($status, $workspaceId, $workspace);
     $progress = taskSubtasksProgress($subtasks, false);
+    $statusKind = taskStatusKind($normalizedStatus, $workspaceId, $workspace);
 
-    if ($progress['is_complete'] && !in_array($normalizedStatus, ['review', 'done'], true)) {
-        return 'review';
+    if ($progress['is_complete'] && !in_array($statusKind, ['review', 'done'], true)) {
+        return taskReviewStatusKey($workspaceId, $workspace) ?? taskDoneStatusKey($workspaceId, $workspace);
     }
 
     return $normalizedStatus;
@@ -6888,14 +7369,16 @@ function normalizeTaskOverdueState(
     string $priority,
     ?string $dueDate,
     int $overdueFlag = 0,
-    ?string $overdueSinceDate = null
+    ?string $overdueSinceDate = null,
+    ?int $workspaceId = null,
+    ?array $workspace = null
 ): array {
-    $status = normalizeTaskStatus($status);
+    $status = normalizeTaskStatus($status, $workspaceId, $workspace);
     $priority = normalizeTaskPriority($priority);
     $overdueFlag = $overdueFlag === 1 ? 1 : 0;
     $overdueSinceDate = dueDateForStorage($overdueSinceDate);
 
-    if ($status === 'done' || $dueDate === null) {
+    if (taskStatusKind($status, $workspaceId, $workspace) === 'done' || $dueDate === null) {
         return [
             'status' => $status,
             'priority' => $priority,
@@ -7492,16 +7975,14 @@ function applyOverdueTaskPolicy(?int $workspaceId = null): int
     $updatedAt = nowIso();
 
     $select = $pdo->prepare(
-        'SELECT id, due_date, overdue_flag, overdue_since_date
+        'SELECT id, status, due_date, overdue_flag, overdue_since_date
          FROM tasks
          WHERE workspace_id = :workspace_id
-           AND status <> :done
            AND COALESCE(NULLIF(CAST(due_date AS TEXT), \'\'), \'\') <> \'\'
            AND CAST(due_date AS TEXT) < :today'
     );
     $select->execute([
         ':workspace_id' => $workspaceId,
-        ':done' => 'done',
         ':today' => $today,
     ]);
 
@@ -7525,6 +8006,9 @@ function applyOverdueTaskPolicy(?int $workspaceId = null): int
     foreach ($rows as $row) {
         $taskId = (int) ($row['id'] ?? 0);
         if ($taskId <= 0) {
+            continue;
+        }
+        if (taskStatusKind((string) ($row['status'] ?? ''), $workspaceId) === 'done') {
             continue;
         }
         $originalDueDate = dueDateForStorage((string) ($row['due_date'] ?? ''));
@@ -8729,31 +9213,13 @@ function allTasks(?int $workspaceId = null): array
                 creator.email AS creator_email
             FROM tasks t
             INNER JOIN users creator ON creator.id = t.created_by
-            WHERE t.workspace_id = :workspace_id
-            ORDER BY
-                t.group_name ASC,
-                CASE t.status
-                    WHEN \'review\' THEN 1
-                    WHEN \'in_progress\' THEN 2
-                    WHEN \'todo\' THEN 3
-                    WHEN \'done\' THEN 4
-                    ELSE 5
-                END,
-                CASE t.priority
-                    WHEN \'urgent\' THEN 1
-                    WHEN \'high\' THEN 2
-                    WHEN \'medium\' THEN 3
-                    WHEN \'low\' THEN 4
-                    ELSE 5
-                END,
-                CASE WHEN COALESCE(NULLIF(CAST(t.due_date AS TEXT), \'\'), \'\') = \'\' THEN 1 ELSE 0 END,
-                t.due_date ASC,
-                t.updated_at DESC';
+            WHERE t.workspace_id = :workspace_id';
 
     $pdo = db();
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':workspace_id' => $workspaceId]);
     $tasks = $stmt->fetchAll();
+    $statusConfig = taskStatusConfig($workspaceId);
     $usersById = usersMapById($workspaceId);
     $historyByTaskId = taskHistoryByTaskIds(
         array_map(static fn ($task) => (int) ($task['id'] ?? 0), $tasks),
@@ -8763,7 +9229,11 @@ function allTasks(?int $workspaceId = null): array
     foreach ($tasks as &$task) {
         $task['title'] = normalizeTaskTitle((string) ($task['title'] ?? ''));
         $task['title_tag'] = normalizeTaskTitleTag((string) ($task['title_tag'] ?? ''));
-        $task['status'] = normalizeTaskStatus((string) ($task['status'] ?? 'todo'));
+        $task['status'] = normalizeTaskStatus((string) ($task['status'] ?? 'todo'), $workspaceId);
+        $taskStatusMeta = $statusConfig['meta_by_key'][$task['status']] ?? taskStatusMeta($task['status'], $workspaceId);
+        $task['status_label'] = (string) ($taskStatusMeta['label'] ?? $task['status']);
+        $task['status_kind'] = (string) ($taskStatusMeta['kind'] ?? 'todo');
+        $task['status_order'] = (int) ($taskStatusMeta['order'] ?? 1);
         $task['priority'] = normalizeTaskPriority((string) ($task['priority'] ?? 'medium'));
         $task['due_date'] = dueDateForStorage((string) ($task['due_date'] ?? ''));
         $task['group_name'] = normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral'));
@@ -8816,7 +9286,7 @@ function allTasks(?int $workspaceId = null): array
                     'event_type' => 'created',
                     'payload' => [
                         'title' => (string) ($task['title'] ?? ''),
-                        'status' => normalizeTaskStatus((string) ($task['status'] ?? 'todo')),
+                        'status' => normalizeTaskStatus((string) ($task['status'] ?? 'todo'), $workspaceId),
                         'priority' => normalizeTaskPriority((string) ($task['priority'] ?? 'medium')),
                         'due_date' => dueDateForStorage((string) ($task['due_date'] ?? '')),
                     ],
@@ -8828,18 +9298,56 @@ function allTasks(?int $workspaceId = null): array
     }
     unset($task);
 
+    usort(
+        $tasks,
+        static function (array $left, array $right): int {
+            $leftGroup = normalizeTaskGroupName((string) ($left['group_name'] ?? 'Geral'));
+            $rightGroup = normalizeTaskGroupName((string) ($right['group_name'] ?? 'Geral'));
+            $groupCompare = strnatcasecmp($leftGroup, $rightGroup);
+            if ($groupCompare !== 0) {
+                return $groupCompare;
+            }
+
+            $leftStatusOrder = (int) ($left['status_order'] ?? 99);
+            $rightStatusOrder = (int) ($right['status_order'] ?? 99);
+            if ($leftStatusOrder !== $rightStatusOrder) {
+                return $leftStatusOrder <=> $rightStatusOrder;
+            }
+
+            $leftPriorityOrder = taskPriorityOrder((string) ($left['priority'] ?? 'medium'));
+            $rightPriorityOrder = taskPriorityOrder((string) ($right['priority'] ?? 'medium'));
+            if ($leftPriorityOrder !== $rightPriorityOrder) {
+                return $leftPriorityOrder <=> $rightPriorityOrder;
+            }
+
+            $leftDueDate = dueDateForStorage((string) ($left['due_date'] ?? ''));
+            $rightDueDate = dueDateForStorage((string) ($right['due_date'] ?? ''));
+            if ($leftDueDate === null && $rightDueDate !== null) {
+                return 1;
+            }
+            if ($leftDueDate !== null && $rightDueDate === null) {
+                return -1;
+            }
+            if ($leftDueDate !== null && $rightDueDate !== null && $leftDueDate !== $rightDueDate) {
+                return strcmp($leftDueDate, $rightDueDate);
+            }
+
+            return strcmp((string) ($right['updated_at'] ?? ''), (string) ($left['updated_at'] ?? ''));
+        }
+    );
+
     return $tasks;
 }
 
-function tasksByStatus(array $tasks): array
+function tasksByStatus(array $tasks, ?int $workspaceId = null, ?array $workspace = null): array
 {
     $grouped = [];
-    foreach (array_keys(taskStatuses()) as $status) {
+    foreach (array_keys(taskStatuses($workspaceId, $workspace)) as $status) {
         $grouped[$status] = [];
     }
 
     foreach ($tasks as $task) {
-        $status = normalizeTaskStatus((string) $task['status']);
+        $status = normalizeTaskStatus((string) ($task['status'] ?? ''), $workspaceId, $workspace);
         $grouped[$status][] = $task;
     }
 
@@ -8981,7 +9489,7 @@ function dashboardStats(array $tasks): array
     $today = (new DateTimeImmutable('today'))->format('Y-m-d');
 
     foreach ($tasks as $task) {
-        if ($task['status'] === 'done') {
+        if (taskDoneStatusFromTask($task)) {
             $stats['done']++;
         }
         if (($task['due_date'] ?? null) === $today) {
@@ -9000,7 +9508,7 @@ function countMyAssignedTasks(array $tasks, int $userId): int
     $count = 0;
     foreach ($tasks as $task) {
         $taskAssigneeIds = $task['assignee_ids'] ?? [];
-        if (in_array($userId, $taskAssigneeIds, true) && $task['status'] !== 'done') {
+        if (in_array($userId, $taskAssigneeIds, true) && !taskDoneStatusFromTask($task)) {
             $count++;
         }
     }

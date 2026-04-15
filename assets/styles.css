@@ -1983,6 +1983,220 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     color: var(--muted);
 }
 
+.workspace-statuses-card {
+    grid-column: 1 / -1;
+}
+
+.workspace-statuses-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.workspace-statuses-card-head h3 {
+    margin: 0;
+}
+
+.workspace-statuses-form {
+    gap: 12px;
+}
+
+.workspace-statuses-list {
+    display: grid;
+    gap: 10px;
+}
+
+.workspace-status-row {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(132, 166, 205, 0.24);
+    background: rgba(245, 250, 255, 0.72);
+}
+
+.workspace-status-row input[type="text"] {
+    min-width: 0;
+    min-height: 38px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: #28466f;
+    font-size: 0.98rem;
+}
+
+.workspace-status-row input[type="text"]:focus {
+    outline: none;
+}
+
+.workspace-status-row:focus-within {
+    border-color: rgba(105, 103, 174, 0.34);
+    box-shadow: 0 0 0 2px rgba(105, 103, 174, 0.08);
+}
+
+.workspace-statuses-card.is-readonly .workspace-status-row input[type="text"] {
+    color: #567295;
+}
+
+.workspace-status-row.status-todo {
+    border-color: rgba(74, 137, 212, 0.24);
+    background: linear-gradient(180deg, rgba(235, 244, 255, 0.98), rgba(227, 239, 255, 0.96));
+}
+
+.workspace-status-row.status-in_progress {
+    border-color: rgba(222, 153, 92, 0.26);
+    background: linear-gradient(180deg, rgba(255, 240, 225, 0.98), rgba(255, 233, 212, 0.96));
+}
+
+.workspace-status-row.status-review {
+    border-color: rgba(141, 112, 208, 0.28);
+    background: linear-gradient(180deg, rgba(241, 233, 255, 0.98), rgba(234, 225, 255, 0.96));
+}
+
+.workspace-status-row.status-done {
+    border-color: rgba(86, 180, 138, 0.26);
+    background: linear-gradient(180deg, rgba(231, 248, 239, 0.98), rgba(222, 244, 232, 0.96));
+}
+
+.workspace-status-tone {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #70a8e5;
+    box-shadow: 0 0 0 4px rgba(112, 168, 229, 0.14);
+}
+
+.workspace-status-tone-in_progress {
+    background: #e59b54;
+    box-shadow: 0 0 0 4px rgba(229, 155, 84, 0.14);
+}
+
+.workspace-status-tone-review {
+    background: #9c7de4;
+    box-shadow: 0 0 0 4px rgba(156, 125, 228, 0.14);
+}
+
+.workspace-status-tone-done {
+    background: #54b887;
+    box-shadow: 0 0 0 4px rgba(84, 184, 135, 0.14);
+}
+
+.workspace-status-review-off,
+.workspace-status-review-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+}
+
+.workspace-status-review-off input,
+.workspace-status-review-toggle input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.workspace-status-review-icon {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(132, 166, 205, 0.3);
+    background: rgba(247, 251, 255, 0.9);
+    color: #6a82a8;
+    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.workspace-status-review-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.workspace-status-review-off:hover .workspace-status-review-icon,
+.workspace-status-review-toggle:hover .workspace-status-review-icon {
+    border-color: rgba(105, 103, 174, 0.34);
+    background: rgba(238, 240, 252, 0.94);
+    color: #6967ae;
+}
+
+.workspace-status-review-off input:focus-visible + .workspace-status-review-icon,
+.workspace-status-review-toggle input:focus-visible + .workspace-status-review-icon {
+    box-shadow: 0 0 0 2px rgba(105, 103, 174, 0.12);
+}
+
+.workspace-status-review-off input:checked + .workspace-status-review-icon,
+.workspace-status-review-toggle input:checked + .workspace-status-review-icon {
+    border-color: rgba(105, 103, 174, 0.52);
+    background: rgba(105, 103, 174, 0.12);
+    color: #6967ae;
+}
+
+.workspace-status-review-toggle.is-disabled,
+.workspace-statuses-card.is-readonly .workspace-status-review-off {
+    opacity: 0.42;
+}
+
+.workspace-status-row-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 12px;
+    border: 1px solid rgba(206, 123, 123, 0.26);
+    background: rgba(255, 247, 247, 0.9);
+    color: #bf6b6b;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.workspace-status-row-action:hover,
+.workspace-status-row-action:focus-visible {
+    border-color: rgba(201, 99, 99, 0.36);
+    background: rgba(255, 238, 238, 0.98);
+    color: #ab4b4b;
+}
+
+.workspace-status-row-action-placeholder {
+    visibility: hidden;
+}
+
+.workspace-statuses-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.workspace-statuses-footer input {
+    min-height: 40px;
+}
+
+.workspace-status-add-button {
+    min-width: 42px;
+    padding-inline: 0;
+}
+
 .account-settings-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -6962,11 +7176,23 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .task-subtasks-editor {
     display: grid;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    align-items: center;
     min-width: 0;
 }
 
-.task-subtasks-editor > span {
+.task-subtasks-editor-head {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+
+.task-subtasks-editor > span,
+.task-subtasks-editor-head > span {
     font-size: 0.78rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -6974,23 +7200,75 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .task-subtasks-dependency-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    width: fit-content;
-    font-size: 0.78rem;
+    position: relative;
+    display: block;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
     color: rgba(232, 240, 255, 0.9);
     user-select: none;
 }
 
 .task-subtasks-dependency-toggle input {
-    width: 14px;
-    height: 14px;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     margin: 0;
-    accent-color: #6967ae;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.task-subtasks-dependency-icon {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+    text-indent: 200%;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.task-subtasks-dependency-icon svg {
+    position: absolute;
+    inset: 8px;
+    width: calc(100% - 16px);
+    height: calc(100% - 16px);
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.task-subtasks-dependency-icon::before {
+    content: "";
+    display: none;
+}
+
+.task-subtasks-dependency-toggle:hover .task-subtasks-dependency-icon {
+    border-color: rgba(120, 204, 255, 0.34);
+    background: rgba(120, 204, 255, 0.08);
+}
+
+.task-subtasks-dependency-toggle input:focus-visible + .task-subtasks-dependency-icon {
+    box-shadow: 0 0 0 2px rgba(120, 204, 255, 0.18);
+    border-color: rgba(120, 204, 255, 0.44);
+}
+
+.task-subtasks-dependency-toggle input:checked + .task-subtasks-dependency-icon {
+    border-color: rgba(105, 103, 174, 0.52);
+    background: rgba(105, 103, 174, 0.14);
+    color: #cfcfff;
 }
 
 .task-subtasks-edit-add {
+    grid-column: 1 / -1;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
@@ -6998,6 +7276,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .task-subtasks-edit-list {
+    grid-column: 1 / -1;
     display: grid;
     gap: 6px;
 }
@@ -7059,13 +7338,23 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
     gap: 12px;
-    align-items: start;
+    align-items: stretch;
 }
 
 .task-detail-edit-description-field,
 .task-detail-edit-links-field,
 .task-detail-edit-images-field {
     min-width: 0;
+}
+
+.task-detail-edit-description-field {
+    grid-template-rows: auto minmax(0, 1fr);
+    align-self: stretch;
+}
+
+.create-task-modal .task-detail-edit-description-field > textarea {
+    min-height: 180px;
+    height: 100%;
 }
 
 .task-detail-edit-images-field {
@@ -7184,6 +7473,9 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .task-detail-edit-description-wrap {
     position: relative;
+    display: flex;
+    min-height: 180px;
+    height: 100%;
 }
 
 .task-detail-edit-description-toolbar {
@@ -7223,6 +7515,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .task-detail-edit-description-editor {
     min-height: 180px;
+    height: 100%;
+    flex: 1 1 auto;
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.02);
@@ -8703,6 +8997,7 @@ textarea:focus,
 .create-task-modal .assignee-picker-label,
 .create-task-modal .task-detail-inline-field > span,
 .create-task-modal .task-subtasks-editor > span,
+.create-task-modal .task-subtasks-editor-head > span,
 .create-task-modal .task-detail-edit-images-field > span {
     color: #4d6a90;
 }
@@ -9160,6 +9455,31 @@ textarea:focus,
     color: #4d6a90;
 }
 
+.create-task-modal .task-subtasks-dependency-icon,
+.task-detail-modal .task-subtasks-dependency-icon {
+    border-color: rgba(var(--wf-accent-purple-rgb), 0.28);
+    background: #f4f7fc;
+}
+
+.create-task-modal .task-subtasks-dependency-toggle:hover .task-subtasks-dependency-icon,
+.task-detail-modal .task-subtasks-dependency-toggle:hover .task-subtasks-dependency-icon {
+    border-color: rgba(var(--wf-accent-purple-rgb), 0.42);
+    background: #edf3fb;
+}
+
+.create-task-modal .task-subtasks-dependency-toggle input:focus-visible + .task-subtasks-dependency-icon,
+.task-detail-modal .task-subtasks-dependency-toggle input:focus-visible + .task-subtasks-dependency-icon {
+    box-shadow: 0 0 0 2px rgba(var(--wf-accent-purple-rgb), 0.14);
+    border-color: rgba(var(--wf-accent-purple-rgb), 0.5);
+}
+
+.create-task-modal .task-subtasks-dependency-toggle input:checked + .task-subtasks-dependency-icon,
+.task-detail-modal .task-subtasks-dependency-toggle input:checked + .task-subtasks-dependency-icon {
+    border-color: rgba(var(--wf-accent-purple-rgb), 0.58);
+    background: rgba(var(--wf-accent-purple-rgb), 0.12);
+    color: #6967ae;
+}
+
 .create-task-modal .task-subtasks-edit-remove,
 .task-detail-modal .task-subtasks-edit-remove {
     border-color: rgba(var(--wf-accent-purple-rgb), 0.34);
@@ -9306,6 +9626,7 @@ textarea:focus,
 .task-detail-modal .inline-form label > span,
 .task-detail-modal .assignee-picker-label,
 .task-detail-modal .task-subtasks-editor > span,
+.task-detail-modal .task-subtasks-editor-head > span,
 .task-detail-modal .task-detail-inline-field > span,
 .task-detail-modal .task-detail-edit-images-field > span {
     color: #4d6a90;
@@ -9318,21 +9639,29 @@ textarea:focus,
     color: rgba(77, 106, 144, 0.72);
 }
 
-/* Dropdown standardization: purple surfaces with high contrast */
+/* Dropdown standardization: slate-blue surfaces aligned with the dashboard */
 :root {
-    --wf-dropdown-control-bg: #f1eeff;
-    --wf-dropdown-control-border: rgba(105, 103, 174, 0.48);
-    --wf-dropdown-control-text: #332f57;
-    --wf-dropdown-control-focus-bg: #eae5ff;
-    --wf-dropdown-control-focus-border: rgba(105, 103, 174, 0.74);
-    --wf-dropdown-menu-bg: #5e58ab;
-    --wf-dropdown-menu-bg-2: #4f4895;
-    --wf-dropdown-menu-border: rgba(223, 218, 255, 0.58);
-    --wf-dropdown-item-bg: rgba(255, 255, 255, 0.08);
-    --wf-dropdown-item-text: #f8f6ff;
-    --wf-dropdown-item-hover-bg: rgba(232, 224, 255, 0.26);
-    --wf-dropdown-item-active-bg: rgba(185, 171, 255, 0.5);
-    --wf-dropdown-item-active-border: rgba(245, 240, 255, 0.78);
+    --wf-dropdown-control-bg: #fbfdff;
+    --wf-dropdown-control-border: rgba(82, 128, 177, 0.32);
+    --wf-dropdown-control-text: #274565;
+    --wf-dropdown-control-focus-bg: #f2f8ff;
+    --wf-dropdown-control-focus-border: rgba(50, 132, 207, 0.58);
+    --wf-dropdown-menu-bg: rgba(250, 253, 255, 0.98);
+    --wf-dropdown-menu-bg-2: rgba(232, 241, 251, 0.98);
+    --wf-dropdown-menu-border: rgba(88, 138, 191, 0.28);
+    --wf-dropdown-menu-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.82),
+        0 18px 32px rgba(42, 86, 133, 0.18);
+    --wf-dropdown-modal-menu-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+        0 20px 34px rgba(42, 86, 133, 0.22);
+    --wf-dropdown-item-bg: rgba(255, 255, 255, 0.74);
+    --wf-dropdown-item-text: #294869;
+    --wf-dropdown-item-hover-bg: rgba(221, 236, 251, 0.96);
+    --wf-dropdown-item-hover-border: rgba(84, 139, 197, 0.36);
+    --wf-dropdown-item-active-bg: rgba(194, 221, 247, 0.98);
+    --wf-dropdown-item-active-border: rgba(60, 128, 196, 0.54);
+    --wf-dropdown-item-active-text: #163f69;
 }
 
 .task-filters select,
@@ -9363,7 +9692,7 @@ textarea:focus,
 .row-inline-picker > summary::after,
 .assignee-picker > summary::after,
 .task-detail-inline-assignee-picker > summary::after {
-    color: rgba(63, 57, 111, 0.78);
+    color: rgba(88, 120, 155, 0.82);
 }
 
 .row-inline-picker > .row-inline-picker-menu,
@@ -9372,7 +9701,7 @@ textarea:focus,
 .create-task-title-tag-menu {
     border: 1px solid var(--wf-dropdown-menu-border);
     background: linear-gradient(165deg, var(--wf-dropdown-menu-bg) 0%, var(--wf-dropdown-menu-bg-2) 100%);
-    box-shadow: 0 16px 28px rgba(33, 27, 71, 0.34);
+    box-shadow: var(--wf-dropdown-menu-shadow);
 }
 
 .row-inline-picker-option,
@@ -9401,7 +9730,7 @@ textarea:focus,
 .create-task-title-tag-menu-item:hover,
 .create-task-title-tag-menu-item:focus-within {
     background: var(--wf-dropdown-item-hover-bg);
-    border-color: rgba(235, 230, 255, 0.54);
+    border-color: var(--wf-dropdown-item-hover-border);
 }
 
 .row-inline-picker-option.is-active,
@@ -9410,18 +9739,11 @@ textarea:focus,
 .create-task-title-tag-option.is-selected {
     background: var(--wf-dropdown-item-active-bg);
     border-color: var(--wf-dropdown-item-active-border);
-    color: #ffffff;
+    color: var(--wf-dropdown-item-active-text);
 }
 
-.status-inline-picker .row-inline-picker-option.status-todo,
-.status-inline-picker .row-inline-picker-option.status-in_progress,
-.status-inline-picker .row-inline-picker-option.status-review,
-.status-inline-picker .row-inline-picker-option.status-done,
-.row-inline-picker-option.priority-low,
-.row-inline-picker-option.priority-medium,
-.row-inline-picker-option.priority-high,
-.row-inline-picker-option.priority-urgent {
-    color: var(--wf-dropdown-item-text);
+.assignee-option:has(input:checked) span {
+    color: var(--wf-dropdown-item-active-text);
 }
 
 select option,
@@ -9429,16 +9751,16 @@ select optgroup,
 .priority-select option,
 .status-select option,
 .task-title-tag-editor > select option {
-    background: #5a54a3;
-    color: #f8f6ff;
+    background: #ffffff;
+    color: #284565;
 }
 
 select option:checked,
 .priority-select option:checked,
 .status-select option:checked,
 .task-title-tag-editor > select option:checked {
-    background: #3f3882;
-    color: #ffffff;
+    background: #dcecff;
+    color: #163f69;
 }
 
 /* Restore "Sair" button light style */
@@ -9471,14 +9793,14 @@ select option:checked,
     box-shadow: 0 0 0 2px rgba(182, 172, 239, 0.26);
 }
 
-/* Task modals: enforce high-contrast dropdowns */
+/* Task modals: keep dropdowns aligned with the dashboard palette */
 .create-task-modal .assignee-picker-menu,
 .task-detail-modal .assignee-picker-menu,
 .create-task-modal .row-inline-picker > .row-inline-picker-menu,
 .task-detail-modal .row-inline-picker > .row-inline-picker-menu {
-    border-color: rgba(232, 226, 255, 0.72);
-    background: linear-gradient(165deg, #5d58ab 0%, #4d4793 100%);
-    box-shadow: 0 16px 28px rgba(33, 27, 71, 0.4);
+    border-color: var(--wf-dropdown-menu-border);
+    background: linear-gradient(165deg, var(--wf-dropdown-menu-bg) 0%, var(--wf-dropdown-menu-bg-2) 100%);
+    box-shadow: var(--wf-dropdown-modal-menu-shadow);
 }
 
 .create-task-modal .assignee-option,
@@ -9486,8 +9808,8 @@ select option:checked,
 .create-task-modal .row-inline-picker-option,
 .task-detail-modal .row-inline-picker-option {
     border: 1px solid transparent;
-    background: rgba(255, 255, 255, 0.1);
-    color: #f9f7ff;
+    background: var(--wf-dropdown-item-bg);
+    color: var(--wf-dropdown-item-text);
 }
 
 .create-task-modal .assignee-option span,
@@ -9496,7 +9818,7 @@ select option:checked,
 .task-detail-modal .row-inline-picker-option .row-inline-picker-summary-text,
 .create-task-modal .row-inline-picker-option,
 .task-detail-modal .row-inline-picker-option {
-    color: #f9f7ff;
+    color: var(--wf-dropdown-item-text);
 }
 
 .create-task-modal .assignee-option:hover,
@@ -9505,61 +9827,40 @@ select option:checked,
 .task-detail-modal .row-inline-picker-option:hover,
 .create-task-modal .row-inline-picker-option:focus-visible,
 .task-detail-modal .row-inline-picker-option:focus-visible {
-    border-color: rgba(238, 233, 255, 0.6);
-    background: rgba(224, 214, 255, 0.26);
+    border-color: var(--wf-dropdown-item-hover-border);
+    background: var(--wf-dropdown-item-hover-bg);
 }
 
 .create-task-modal .assignee-option:has(input:checked),
 .task-detail-modal .assignee-option:has(input:checked),
 .create-task-modal .row-inline-picker-option.is-active,
 .task-detail-modal .row-inline-picker-option.is-active {
-    border-color: rgba(246, 242, 255, 0.84);
-    background: rgba(184, 168, 255, 0.52);
-    color: #ffffff;
+    border-color: var(--wf-dropdown-item-active-border);
+    background: var(--wf-dropdown-item-active-bg);
+    color: var(--wf-dropdown-item-active-text);
 }
 
 .create-task-modal .assignee-option:has(input:checked) span,
 .task-detail-modal .assignee-option:has(input:checked) span {
-    color: #ffffff;
+    color: var(--wf-dropdown-item-active-text);
 }
 
 /* Assignee dropdown: keep readable text in all states */
 .create-task-modal .assignee-picker-menu .assignee-option > span,
 .task-detail-modal .assignee-picker-menu .assignee-option > span {
-    color: #f7f5ff !important;
+    color: var(--wf-dropdown-item-text) !important;
     opacity: 1;
 }
 
 .create-task-modal .assignee-picker-menu .assignee-option:has(input:checked) > span,
 .task-detail-modal .assignee-picker-menu .assignee-option:has(input:checked) > span {
-    color: #ffffff !important;
+    color: var(--wf-dropdown-item-active-text) !important;
     font-weight: 700;
-}
-
-.create-task-modal .row-inline-picker-option.priority-low,
-.create-task-modal .row-inline-picker-option.priority-medium,
-.create-task-modal .row-inline-picker-option.priority-high,
-.create-task-modal .row-inline-picker-option.priority-urgent,
-.task-detail-modal .row-inline-picker-option.priority-low,
-.task-detail-modal .row-inline-picker-option.priority-medium,
-.task-detail-modal .row-inline-picker-option.priority-high,
-.task-detail-modal .row-inline-picker-option.priority-urgent,
-.create-task-modal .status-inline-picker .row-inline-picker-option.status-todo,
-.create-task-modal .status-inline-picker .row-inline-picker-option.status-in_progress,
-.create-task-modal .status-inline-picker .row-inline-picker-option.status-review,
-.create-task-modal .status-inline-picker .row-inline-picker-option.status-done,
-.task-detail-modal .status-inline-picker .row-inline-picker-option.status-todo,
-.task-detail-modal .status-inline-picker .row-inline-picker-option.status-in_progress,
-.task-detail-modal .status-inline-picker .row-inline-picker-option.status-review,
-.task-detail-modal .status-inline-picker .row-inline-picker-option.status-done {
-    color: #f9f7ff;
-    background: rgba(255, 255, 255, 0.12);
-    border-color: transparent;
 }
 
 .create-task-modal .row-inline-picker-option-flag,
 .task-detail-modal .row-inline-picker-option-flag {
-    color: #f2eeff;
+    color: currentColor;
 }
 
 /* Prevent task-row dropdown menus from being clipped by sibling rows */
@@ -11501,11 +11802,19 @@ body.theme-dark {
     --wf-dropdown-menu-bg: #223155;
     --wf-dropdown-menu-bg-2: #16223f;
     --wf-dropdown-menu-border: rgba(154, 187, 237, 0.56);
+    --wf-dropdown-menu-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 20px 34px rgba(0, 0, 0, 0.38);
+    --wf-dropdown-modal-menu-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 22px 36px rgba(0, 0, 0, 0.42);
     --wf-dropdown-item-bg: rgba(255, 255, 255, 0.08);
     --wf-dropdown-item-text: #ecf3ff;
     --wf-dropdown-item-hover-bg: rgba(154, 186, 240, 0.24);
+    --wf-dropdown-item-hover-border: rgba(182, 210, 248, 0.42);
     --wf-dropdown-item-active-bg: rgba(133, 166, 226, 0.36);
     --wf-dropdown-item-active-border: rgba(199, 219, 252, 0.82);
+    --wf-dropdown-item-active-text: #f4f8ff;
     color: var(--text);
     background:
         linear-gradient(
@@ -12412,6 +12721,19 @@ body.theme-dark .overview-workspace-item.is-attention {
         border-radius: 14px;
         padding: 14px;
         gap: 10px;
+    }
+
+    .is-dashboard .users-wrap .workspace-statuses-card {
+        grid-column: 1 / -1;
+    }
+
+    .is-dashboard .users-wrap .workspace-status-row {
+        grid-template-columns: 10px minmax(0, 1fr) auto auto;
+        padding: 10px;
+    }
+
+    .is-dashboard .users-wrap .workspace-statuses-footer {
+        grid-template-columns: minmax(0, 1fr) auto auto;
     }
 
     .is-dashboard .users-wrap .workspace-settings-form {

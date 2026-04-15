@@ -63,6 +63,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'Nome do workspace atualizado.');
                 redirectTo('workspace-settings.php');
 
+            case 'workspace_update_task_statuses':
+                $workspaceId = activeWorkspaceId($currentUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem alterar os status.');
+                }
+
+                $statusKeys = $_POST['status_keys'] ?? [];
+                $statusLabels = $_POST['status_labels'] ?? [];
+                if (!is_array($statusKeys) || !is_array($statusLabels)) {
+                    throw new RuntimeException('Configuracao de status invalida.');
+                }
+
+                $statusDefinitions = [];
+                $statusCount = max(count($statusKeys), count($statusLabels));
+                for ($index = 0; $index < $statusCount; $index++) {
+                    $statusDefinitions[] = [
+                        'key' => (string) ($statusKeys[$index] ?? ''),
+                        'label' => (string) ($statusLabels[$index] ?? ''),
+                    ];
+                }
+
+                workspaceUpdateTaskStatusConfiguration(
+                    $pdo,
+                    $workspaceId,
+                    $statusDefinitions,
+                    trim((string) ($_POST['task_review_status_key'] ?? '')) !== ''
+                        ? (string) $_POST['task_review_status_key']
+                        : null,
+                    (string) ($_POST['remove_status_key'] ?? ''),
+                    (string) ($_POST['new_status_label'] ?? '')
+                );
+                flash('success', 'Status do workspace atualizados.');
+                redirectTo('workspace-settings.php');
+
             case 'workspace_add_member':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
@@ -188,6 +225,7 @@ if ($currentWorkspaceId === null) {
 }
 
 $currentWorkspace = activeWorkspace($currentUser);
+$workspaceTaskStatusConfig = taskStatusConfig($currentWorkspaceId, $currentWorkspace);
 $canManageWorkspace = userCanManageWorkspace((int) $currentUser['id'], $currentWorkspaceId);
 $isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
 $canManageWorkspaceMembers = $canManageWorkspace && !$isPersonalWorkspace;
@@ -273,7 +311,7 @@ $flashes = getFlashes();
             <section class="panel workspace-settings-panel">
                 <div class="panel-header workspace-settings-header">
                     <h2>Configuracoes do workspace</h2>
-                    <p><?= $isPersonalWorkspace ? 'Workspace pessoal: gerenciamento individual sem membros.' : 'Gerencie nome e usuarios do espaco.' ?></p>
+                    <p><?= $isPersonalWorkspace ? 'Workspace pessoal: personalize nome e status do seu fluxo.' : 'Gerencie nome, status e usuarios do espaco.' ?></p>
                 </div>
 
                 <div class="workspace-settings-grid">
@@ -363,6 +401,8 @@ $flashes = getFlashes();
                             <?php endif; ?>
                         </ul>
                     </section>
+
+                    <?php include __DIR__ . '/partials/workspace_statuses_card.php'; ?>
                 </div>
             </section>
         </main>

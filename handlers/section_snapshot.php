@@ -208,6 +208,7 @@ function respondUsersPanelSnapshot(): void
     $currentWorkspaceId = $workspaceId;
     $userWorkspaces = workspacesForUser((int) ($currentUser['id'] ?? 0));
     $workspaceMembers = workspaceMembersList($workspaceId);
+    $workspaceTaskStatusConfig = taskStatusConfig($workspaceId, $currentWorkspace);
     $isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
     $showUsersDashboardTab = !$isPersonalWorkspace;
 

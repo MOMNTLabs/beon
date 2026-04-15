@@ -37,7 +37,14 @@ function respondTaskPanelSnapshot(): void
         applyOverdueTaskPolicyIfNeeded($currentWorkspaceId);
     }
 
-    $statusOptions = taskStatuses();
+    $currentWorkspace = workspaceById($currentWorkspaceId);
+    $statusConfig = taskStatusConfig($currentWorkspaceId, $currentWorkspace);
+    $statusOptions = $statusConfig['options'];
+    $defaultTaskStatusKey = (string) ($statusConfig['todo_status_key'] ?? 'todo');
+    $defaultTaskStatusMeta = $statusConfig['meta_by_key'][$defaultTaskStatusKey] ?? taskStatusMeta($defaultTaskStatusKey);
+    $defaultTaskStatusLabel = (string) ($defaultTaskStatusMeta['label'] ?? 'A fazer');
+    $defaultTaskStatusKind = (string) ($defaultTaskStatusMeta['kind'] ?? 'todo');
+    $reviewTaskStatusKey = $statusConfig['review_status_key'] ?? null;
     $priorityOptions = taskPriorities();
     $users = usersList($currentWorkspaceId);
     $canManageWorkspace = userCanManageWorkspace((int) $currentUser['id'], $currentWorkspaceId);

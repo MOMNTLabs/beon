@@ -238,7 +238,15 @@ if ($currentUser && $currentWorkspaceId !== null && shouldApplyOverduePolicyDuri
 }
 $userWorkspaces = $currentUser ? workspacesForUser((int) $currentUser['id']) : [];
 $flashes = getFlashes();
-$statusOptions = taskStatuses();
+$statusConfig = ($currentUser && $currentWorkspaceId !== null)
+    ? taskStatusConfig($currentWorkspaceId, $currentWorkspace)
+    : taskStatusConfig();
+$statusOptions = $statusConfig['options'];
+$defaultTaskStatusKey = (string) ($statusConfig['todo_status_key'] ?? 'todo');
+$defaultTaskStatusMeta = $statusConfig['meta_by_key'][$defaultTaskStatusKey] ?? taskStatusMeta($defaultTaskStatusKey);
+$defaultTaskStatusLabel = (string) ($defaultTaskStatusMeta['label'] ?? 'A fazer');
+$defaultTaskStatusKind = (string) ($defaultTaskStatusMeta['kind'] ?? 'todo');
+$reviewTaskStatusKey = $statusConfig['review_status_key'] ?? null;
 $priorityOptions = taskPriorities();
 $users = ($currentUser && $currentWorkspaceId !== null) ? usersList($currentWorkspaceId) : [];
 $workspaceMembers = ($currentUser && $currentWorkspaceId !== null) ? workspaceMembersList($currentWorkspaceId) : [];

@@ -2,7 +2,7 @@
             <div class="panel-header board-header users-board-header">
                 <div>
                     <h2>Usuarios</h2>
-                    <p>Gerencie membros e permissoes do workspace.</p>
+                    <p>Gerencie membros, permissoes e status do workspace.</p>
                 </div>
             </div>
 
@@ -89,6 +89,7 @@
                         <?php endif; ?>
                     </ul>
                 </section>
+
+                <?php include __DIR__ . '/workspace_statuses_card.php'; ?>
             </div>
         </section>
-

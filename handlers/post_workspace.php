@@ -58,6 +58,46 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 flash('success', $workspaceUpdatedMessage);
                 redirectTo('index.php#users');
 
+            case 'workspace_update_task_statuses':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem alterar os status.');
+                }
+
+                $statusKeys = $_POST['status_keys'] ?? [];
+                $statusLabels = $_POST['status_labels'] ?? [];
+                if (!is_array($statusKeys) || !is_array($statusLabels)) {
+                    throw new RuntimeException('Configuracao de status invalida.');
+                }
+
+                $statusDefinitions = [];
+                $statusCount = max(count($statusKeys), count($statusLabels));
+                for ($index = 0; $index < $statusCount; $index++) {
+                    $statusDefinitions[] = [
+                        'key' => (string) ($statusKeys[$index] ?? ''),
+                        'label' => (string) ($statusLabels[$index] ?? ''),
+                    ];
+                }
+
+                workspaceUpdateTaskStatusConfiguration(
+                    $pdo,
+                    $workspaceId,
+                    $statusDefinitions,
+                    trim((string) ($_POST['task_review_status_key'] ?? '')) !== ''
+                        ? (string) $_POST['task_review_status_key']
+                        : null,
+                    (string) ($_POST['remove_status_key'] ?? ''),
+                    (string) ($_POST['new_status_label'] ?? '')
+                );
+
+                $workspaceStatusesMessage = 'Status do workspace atualizados.';
+                flash('success', $workspaceStatusesMessage);
+                redirectTo('index.php#users');
+
             case 'workspace_add_member':
             case 'add_workspace_member':
                 $authUser = requireAuth();
@@ -226,6 +266,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
         'switch_workspace',
         'create_workspace',
         'workspace_update_name',
+        'workspace_update_task_statuses',
         'workspace_add_member',
         'add_workspace_member',
         'workspace_promote_member',
@@ -233,4 +274,3 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
         'workspace_remove_member',
     ], true);
 }
-

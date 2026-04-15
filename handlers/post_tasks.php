@@ -46,7 +46,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     ? (((int) ($_POST['overdue_flag'] ?? 0)) === 1 ? 1 : 0)
                     : null;
                 $overdueSinceDate = dueDateForStorage((string) ($_POST['overdue_since_date'] ?? ''));
-                $status = normalizeTaskStatus((string) ($_POST['status'] ?? 'todo'));
+                $status = normalizeTaskStatus((string) ($_POST['status'] ?? 'todo'), $workspaceId);
                 $priority = normalizeTaskPriority((string) ($_POST['priority'] ?? 'medium'));
                 $dueDate = dueDateForStorage($_POST['due_date'] ?? null);
                 if ($action === 'create_task' && $dueDate === null) {
@@ -90,7 +90,8 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                         $priority,
                         $dueDate,
                         $overdueFlag ?? 0,
-                        $overdueSinceDate
+                        $overdueSinceDate,
+                        $workspaceId
                     );
                     $status = $normalized['status'];
                     $priority = $normalized['priority'];
@@ -101,7 +102,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     $referenceImages ??= [];
                     $subtasksDependencyEnabled ??= 0;
                     $subtasks ??= [];
-                    $status = applyTaskSubtasksCompletionStatus($status, $subtasks);
+                    $status = applyTaskSubtasksCompletionStatus($status, $subtasks, $workspaceId);
                     $stmt = $pdo->prepare(
                         'INSERT INTO tasks (workspace_id, title, title_tag, description, status, priority, due_date, overdue_flag, overdue_since_date, created_by, assigned_to, assignee_ids_json, reference_links_json, reference_images_json, subtasks_json, subtasks_dependency_enabled, group_name, created_at, updated_at)
                          VALUES (:workspace_id, :t, :tt, :d, :s, :p, :dd, :of, :osd, :cb, :at, :aj, :rl, :ri, :sj, :sde, :g, :c, :u)'
@@ -234,7 +235,8 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     $priority,
                     $dueDate,
                     $overdueFlag ?? 0,
-                    $overdueSinceDate
+                    $overdueSinceDate,
+                    $workspaceId
                 );
                 $status = $normalized['status'];
                 $priority = $normalized['priority'];
@@ -242,7 +244,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $overdueFlag = $normalized['overdue_flag'];
                 $overdueSinceDate = $normalized['overdue_since_date'];
                 $overdueDays = (int) ($normalized['overdue_days'] ?? 0);
-                $status = applyTaskSubtasksCompletionStatus($status, $subtasks);
+                $status = applyTaskSubtasksCompletionStatus($status, $subtasks, $workspaceId);
 
                 $stmt = $pdo->prepare(
                     'UPDATE tasks
@@ -331,7 +333,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     $updatedAt = $latestUpdatedAt;
                 }
 
-                $existingStatus = normalizeTaskStatus((string) ($existingTaskRow['status'] ?? 'todo'));
+                $existingStatus = normalizeTaskStatus((string) ($existingTaskRow['status'] ?? 'todo'), $workspaceId);
                 $existingPriority = normalizeTaskPriority((string) ($existingTaskRow['priority'] ?? 'medium'));
                 $existingTitle = normalizeTaskTitle((string) ($existingTaskRow['title'] ?? ''));
                 $existingTitleTag = normalizeTaskTitleTag((string) ($existingTaskRow['title_tag'] ?? ''));
@@ -348,7 +350,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     $existingTaskRow['subtasks_json'] ?? null,
                     $existingSubtasksDependencyEnabled === 1
                 );
-                $statusOptions = taskStatuses();
+                $statusOptions = taskStatuses($workspaceId);
                 $priorityOptions = taskPriorities();
                 if ($titleTag !== '') {
                     $taskTitleTagColors = setTaskTitleTagColorForWorkspace(
@@ -615,8 +617,8 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Voce nao possui acesso para atualizar esta tarefa.');
                 }
 
-                $taskStatus = normalizeTaskStatus((string) ($taskRow['status'] ?? 'todo'));
-                if ($taskStatus !== 'review') {
+                $taskStatus = normalizeTaskStatus((string) ($taskRow['status'] ?? 'todo'), $workspaceId);
+                if (taskStatusKind($taskStatus, $workspaceId) !== 'review') {
                     throw new RuntimeException('A solicitacao de ajuste so pode ser feita em tarefas em revisao.');
                 }
 
@@ -706,7 +708,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Voce nao possui acesso para atualizar esta tarefa.');
                 }
 
-                $taskStatus = normalizeTaskStatus((string) ($taskRow['status'] ?? 'todo'));
+                $taskStatus = normalizeTaskStatus((string) ($taskRow['status'] ?? 'todo'), $workspaceId);
 
                 $currentDescription = trim((string) ($taskRow['description'] ?? ''));
                 if ($currentDescription === '') {
@@ -827,10 +829,11 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Voce nao possui acesso para atualizar esta tarefa.');
                 }
 
-                $existingStatus = normalizeTaskStatus((string) ($existingTaskRow['status'] ?? 'todo'));
+                $existingStatus = normalizeTaskStatus((string) ($existingTaskRow['status'] ?? 'todo'), $workspaceId);
                 $existingOverdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
                 $existingOverdueSinceDate = dueDateForStorage((string) ($existingTaskRow['overdue_since_date'] ?? ''));
-                $status = normalizeTaskStatus((string) ($_POST['status'] ?? 'todo'));
+                $status = normalizeTaskStatus((string) ($_POST['status'] ?? 'todo'), $workspaceId);
+                $doneStatusKey = taskDoneStatusKey($workspaceId);
                 $updatedAt = nowIso();
                 $stmt = $pdo->prepare(
                     'UPDATE tasks
@@ -843,13 +846,13 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 );
                 $stmt->execute([
                     ':s' => $status,
-                    ':done' => 'done',
+                    ':done' => $doneStatusKey,
                     ':u' => $updatedAt,
                     ':id' => $taskId,
                     ':workspace_id' => $workspaceId,
                 ]);
 
-                $statusOptions = taskStatuses();
+                $statusOptions = taskStatuses($workspaceId);
                 if ($existingStatus !== $status) {
                     logTaskHistory(
                         $pdo,
@@ -866,7 +869,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     );
                 }
 
-                if ($status === 'done' && $existingOverdueFlag === 1) {
+                if (taskStatusKind($status, $workspaceId) === 'done' && $existingOverdueFlag === 1) {
                     logTaskHistory(
                         $pdo,
                         $taskId,
@@ -1021,4 +1024,3 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
         'delete_task',
     ], true);
 }
-

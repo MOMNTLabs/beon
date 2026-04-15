@@ -195,53 +195,39 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const taskStatusSortRank = (status) => {
-    switch ((status || "").trim()) {
-      case "review":
-        return 1;
-      case "in_progress":
-        return 2;
+  const taskStatusSortRank = (status, order = null) => {
+    if (Number.isFinite(order) && order > 0) {
+      return order;
+    }
+    return 99;
+  };
+
+  const normalizeTaskStatusValue = (status) => String(status || "").trim();
+
+  const normalizeTaskStatusKind = (kind) => {
+    switch (String(kind || "").trim()) {
       case "todo":
-        return 3;
+      case "review":
       case "done":
-        return 4;
+      case "in_progress":
+        return String(kind).trim();
       default:
-        return 99;
+        return "in_progress";
     }
   };
 
-  const normalizeTaskStatusValue = (status) => {
-    const raw = String(status || "").trim().toLowerCase();
-    if (!raw) return "";
+  const getSelectedStatusOption = (select) => {
+    if (!(select instanceof HTMLSelectElement)) return null;
+    const option = select.options[select.selectedIndex];
+    return option instanceof HTMLOptionElement ? option : null;
+  };
 
-    const normalized = raw
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[\s-]+/g, "_");
+  const getStatusOptionKind = (option) =>
+    normalizeTaskStatusKind(option?.dataset?.statusKind || "");
 
-    switch (normalized) {
-      case "review":
-      case "revisao":
-      case "revision":
-        return "review";
-      case "in_progress":
-      case "inprogress":
-      case "em_andamento":
-      case "andamento":
-        return "in_progress";
-      case "todo":
-      case "a_fazer":
-      case "afazer":
-      case "backlog":
-        return "todo";
-      case "done":
-      case "concluido":
-      case "completed":
-      case "finalizado":
-        return "done";
-      default:
-        return normalized;
-    }
+  const getStatusOptionOrder = (option) => {
+    const order = Number.parseInt(option?.dataset?.statusOrder || "", 10);
+    return Number.isFinite(order) && order > 0 ? order : 99;
   };
 
   const taskPrioritySortRank = (priority) => {
@@ -373,24 +359,33 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const classStatus = Array.from(taskItem.classList).find((className) =>
-      className.startsWith("task-status-")
-    );
-    if (!classStatus) return "";
-    return normalizeTaskStatusValue(classStatus.replace("task-status-", ""));
+    return normalizeTaskStatusValue(taskItem.dataset.statusValue || "");
+  };
+
+  const getTaskItemStatusKind = (taskItem) => {
+    if (!(taskItem instanceof HTMLElement)) return "in_progress";
+    const select = taskItem.querySelector("select.status-select");
+    if (select instanceof HTMLSelectElement) {
+      return getStatusOptionKind(getSelectedStatusOption(select));
+    }
+
+    return normalizeTaskStatusKind(taskItem.dataset.statusKind || "");
+  };
+
+  const getTaskItemStatusOrder = (taskItem) => {
+    if (!(taskItem instanceof HTMLElement)) return 99;
+    const select = taskItem.querySelector("select.status-select");
+    if (select instanceof HTMLSelectElement) {
+      return getStatusOptionOrder(getSelectedStatusOption(select));
+    }
+
+    const order = Number.parseInt(taskItem.dataset.statusOrder || "", 10);
+    return Number.isFinite(order) && order > 0 ? order : 99;
   };
 
   const isDoneTaskItem = (taskItem) => {
     if (!(taskItem instanceof HTMLElement)) return false;
-
-    if (getTaskItemStatusValue(taskItem) === "done") {
-      return true;
-    }
-
-    return Array.from(taskItem.classList).some((className) => {
-      if (!className.startsWith("task-status-")) return false;
-      return normalizeTaskStatusValue(className.replace("task-status-", "")) === "done";
-    });
+    return getTaskItemStatusKind(taskItem) === "done";
   };
 
   const getTaskItemPriorityValue = (taskItem) => {
@@ -419,7 +414,7 @@ window.addEventListener("DOMContentLoaded", () => {
       .map((taskItem, index) => ({
         taskItem,
         index,
-        statusRank: taskStatusSortRank(getTaskItemStatusValue(taskItem)),
+        statusRank: taskStatusSortRank(getTaskItemStatusValue(taskItem), getTaskItemStatusOrder(taskItem)),
         priorityRank: taskPrioritySortRank(getTaskItemPriorityValue(taskItem)),
       }))
       .sort((a, b) => {
@@ -483,6 +478,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const taskItem = select.closest("[data-task-item]");
     if (!(taskItem instanceof HTMLElement)) return;
+    const selectedOption = getSelectedStatusOption(select);
+    const statusKind = getStatusOptionKind(selectedOption);
+    const statusOrder = getStatusOptionOrder(selectedOption);
+    const statusValue = normalizeTaskStatusValue(select.value);
 
     Array.from(taskItem.classList).forEach((className) => {
       if (className.startsWith("task-status-")) {
@@ -490,9 +489,12 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    if (select.value) {
-      taskItem.classList.add(`task-status-${select.value}`);
+    if (statusKind) {
+      taskItem.classList.add(`task-status-${statusKind}`);
     }
+    taskItem.dataset.statusValue = statusValue;
+    taskItem.dataset.statusKind = statusKind;
+    taskItem.dataset.statusOrder = String(statusOrder);
 
     const groupSection = taskItem.closest("[data-task-group]");
     if (groupSection instanceof HTMLElement) {
@@ -594,6 +596,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (details instanceof HTMLElement) {
+      const selectedStatusOption = getSelectedStatusOption(select);
+      const selectedStatusKind = getStatusOptionKind(selectedStatusOption);
       Array.from(details.classList).forEach((className) => {
         if (
           (className.startsWith("status-") && className !== "status-inline-picker") ||
@@ -603,8 +607,8 @@ window.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      if (select.classList.contains("status-select") && select.value) {
-        details.classList.add(`status-${select.value}`);
+      if (select.classList.contains("status-select") && selectedStatusKind) {
+        details.classList.add(`status-${selectedStatusKind}`);
       }
       if (select.classList.contains("priority-select") && select.value) {
         details.classList.add(`priority-${select.value}`);
@@ -616,12 +620,14 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!select) return;
 
     if (select.classList.contains("status-select")) {
+      const selectedStatusOption = getSelectedStatusOption(select);
+      const selectedStatusKind = getStatusOptionKind(selectedStatusOption);
       Array.from(select.classList).forEach((className) => {
         if (className.startsWith("status-") && className !== "status-select") {
           select.classList.remove(className);
         }
       });
-      if (select.value) select.classList.add(`status-${select.value}`);
+      if (selectedStatusKind) select.classList.add(`status-${selectedStatusKind}`);
       syncStatusStepper(select);
       syncTaskRowStatusOverlay(select);
       syncInlineSelectPicker(select);
@@ -7534,11 +7540,12 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!hasRequestButton && !hasRemoveButton) return;
 
     const statusValue = String(taskDetailContext?.statusSelect?.value || "").trim();
+    const statusKind = getStatusOptionKind(getSelectedStatusOption(taskDetailContext?.statusSelect));
     const canUseRevisionActions =
       !isEditing &&
       Boolean(taskDetailContext) &&
       !Boolean(taskDetailContext?.readOnly);
-    const canRequestRevision = canUseRevisionActions && statusValue === "review";
+    const canRequestRevision = canUseRevisionActions && statusValue && statusKind === "review";
 
     const currentDescription = String(taskDetailContext?.descriptionField?.value || "").trim();
     const history = readTaskHistoryField(taskDetailContext?.historyField);
@@ -7880,7 +7887,7 @@ window.addEventListener("DOMContentLoaded", () => {
     );
   };
 
-  const syncTaskDetailViewStatusTag = (statusValue, statusLabel) => {
+  const syncTaskDetailViewStatusTag = (statusValue, statusLabel, statusKind = "todo") => {
     if (!(taskDetailViewStatus instanceof HTMLElement)) return;
 
     Array.from(taskDetailViewStatus.classList).forEach((className) => {
@@ -7893,7 +7900,7 @@ window.addEventListener("DOMContentLoaded", () => {
       typeof statusValue === "string" && statusValue.trim()
         ? statusValue.trim()
         : "todo";
-    taskDetailViewStatus.classList.add(`status-${normalizedStatus}`);
+    taskDetailViewStatus.classList.add(`status-${normalizeTaskStatusKind(statusKind)}`);
     taskDetailViewStatus.textContent = statusLabel || normalizedStatus;
   };
 
@@ -7965,7 +7972,12 @@ window.addEventListener("DOMContentLoaded", () => {
     if (taskDetailTitle) taskDetailTitle.textContent = titleValue;
     syncTaskTitleTagBadge(context.taskItem, titleTag, titleTagColor);
     syncTaskDetailViewTitleTag(titleTag, titleTagColor);
-    syncTaskDetailViewStatusTag(statusSelect.value || "todo", statusLabel);
+    const selectedStatusOption = getSelectedStatusOption(statusSelect);
+    syncTaskDetailViewStatusTag(
+      statusSelect.value || "todo",
+      statusLabel,
+      getStatusOptionKind(selectedStatusOption)
+    );
     syncTaskDetailViewPriorityTag(prioritySelect.value || "medium");
     if (taskDetailViewGroup) taskDetailViewGroup.textContent = groupLabel;
     if (taskDetailViewDue) taskDetailViewDue.textContent = dueMeta.display;
@@ -8244,7 +8256,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const statusValue = String(taskDetailContext.statusSelect?.value || "").trim();
-    if (statusValue !== "review") {
+    const statusKind = getStatusOptionKind(getSelectedStatusOption(taskDetailContext.statusSelect));
+    if (!statusValue || statusKind !== "review") {
       showClientFlash("error", "A solicitacao de ajuste so esta disponivel para tarefas em revisao.");
       return;
     }

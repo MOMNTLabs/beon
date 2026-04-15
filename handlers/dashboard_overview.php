@@ -85,8 +85,8 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
                 continue;
             }
 
-            $statusKey = normalizeTaskStatus((string) ($workspaceTask['status'] ?? 'todo'));
-            if ($statusKey === 'done') {
+            $statusKey = normalizeTaskStatus((string) ($workspaceTask['status'] ?? 'todo'), $workspaceOptionId);
+            if (taskStatusKind($statusKey, $workspaceOptionId) === 'done') {
                 continue;
             }
 
