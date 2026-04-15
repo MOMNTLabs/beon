@@ -9271,6 +9271,20 @@ textarea:focus,
     background: #f0f7ff;
 }
 
+.task-detail-reference-input.has-multiple-rows {
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0) 0,
+            rgba(255, 255, 255, 0) calc(var(--reference-line-height) - 1px),
+            rgba(124, 161, 199, 0.16) calc(var(--reference-line-height) - 1px),
+            rgba(124, 161, 199, 0.16) var(--reference-line-height)
+        ),
+        #f0f7ff;
+    background-origin: content-box, border-box;
+    background-clip: content-box, border-box;
+}
+
 .task-detail-history-item {
     border-color: rgba(140, 173, 206, 0.54);
     background: #ffffff;
