@@ -1114,6 +1114,11 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     $statusKind = (string) ($task['status_kind'] ?? $statusMeta['kind'] ?? 'todo');
                                     $statusLabel = (string) ($task['status_label'] ?? $statusMeta['label'] ?? ($statusOptions[$statusKey] ?? 'A fazer'));
                                     $statusOrder = (int) ($task['status_order'] ?? $statusMeta['order'] ?? 1);
+                                    $statusColor = normalizeTaskStatusColor(
+                                        (string) ($task['status_color'] ?? $statusMeta['color'] ?? ''),
+                                        $statusKind
+                                    );
+                                    $statusCssVars = (string) ($statusMeta['css_vars'] ?? taskStatusCssVars($statusColor));
                                     $assigneeSummary = assigneeNamesSummary($task);
                                     $dueDateValue = (string) ($task['due_date'] ?? '');
                                     $dueDateUi = taskDueDatePresentation($dueDateValue);
@@ -1140,7 +1145,9 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         data-group-name="<?= e((string) ($task['group_name'] ?? 'Geral')) ?>"
                                         data-status-value="<?= e($statusKey) ?>"
                                         data-status-kind="<?= e($statusKind) ?>"
+                                        data-status-color="<?= e($statusColor) ?>"
                                         data-status-order="<?= e((string) $statusOrder) ?>"
+                                        style="<?= e($statusCssVars) ?>"
                                         draggable="<?= $taskGroupCanAccess ? 'true' : 'false' ?>"
                                     >
                                         <form method="post" class="task-list-form" id="update-task-<?= e((string) $taskId) ?>" data-task-autosave-form>
@@ -1228,6 +1235,11 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                                     $optionMeta = $statusMetaByKey[$optionKey] ?? taskStatusMeta($optionKey);
                                                                     $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
                                                                     $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                                                    $optionColor = normalizeTaskStatusColor(
+                                                                        (string) ($optionMeta['color'] ?? ''),
+                                                                        $optionKind
+                                                                    );
+                                                                    $optionCssVars = (string) ($optionMeta['css_vars'] ?? taskStatusCssVars($optionColor));
                                                                     ?>
                                                                     <button
                                                                         type="button"
@@ -1236,7 +1248,9 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                                         data-value="<?= e($optionKey) ?>"
                                                                         data-label="<?= e($optionLabel) ?>"
                                                                         data-status-kind="<?= e($optionKind) ?>"
+                                                                        data-status-color="<?= e($optionColor) ?>"
                                                                         data-status-order="<?= e((string) $optionOrder) ?>"
+                                                                        style="<?= e($optionCssVars) ?>"
                                                                         role="option"
                                                                         aria-selected="<?= $optionKey === $statusKey ? 'true' : 'false' ?>"
                                                                     ><?= e($optionLabel) ?></button>
@@ -1249,10 +1263,15 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                                 $optionMeta = $statusMetaByKey[$optionKey] ?? taskStatusMeta($optionKey);
                                                                 $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
                                                                 $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                                                $optionColor = normalizeTaskStatusColor(
+                                                                    (string) ($optionMeta['color'] ?? ''),
+                                                                    $optionKind
+                                                                );
                                                                 ?>
                                                                 <option
                                                                     value="<?= e($optionKey) ?>"
                                                                     data-status-kind="<?= e($optionKind) ?>"
+                                                                    data-status-color="<?= e($optionColor) ?>"
                                                                     data-status-order="<?= e((string) $optionOrder) ?>"
                                                                     <?= $optionKey === $statusKey ? ' selected' : '' ?>
                                                                 >
@@ -2775,7 +2794,12 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         </button>
 
                         <div class="tag-field tag-field-status row-inline-picker-wrap" data-inline-select-wrap>
-                            <details class="row-inline-picker status-inline-picker status-<?= e($defaultTaskStatusKind) ?>" data-inline-select-picker>
+                            <details
+                                class="row-inline-picker status-inline-picker status-<?= e($defaultTaskStatusKind) ?>"
+                                data-inline-select-picker
+                                data-status-color="<?= e($defaultTaskStatusColor) ?>"
+                                style="<?= e($defaultTaskStatusCssVars) ?>"
+                            >
                                 <summary aria-label="Status da tarefa">
                                     <span class="row-inline-picker-summary-text" data-inline-select-text><?= e($defaultTaskStatusLabel) ?></span>
                                 </summary>
@@ -2789,6 +2813,11 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         $optionMeta = $statusMetaByKey[$key] ?? taskStatusMeta($key);
                                         $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
                                         $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                        $optionColor = normalizeTaskStatusColor(
+                                            (string) ($optionMeta['color'] ?? ''),
+                                            $optionKind
+                                        );
+                                        $optionCssVars = (string) ($optionMeta['css_vars'] ?? taskStatusCssVars($optionColor));
                                         ?>
                                         <button
                                             type="button"
@@ -2797,7 +2826,9 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                             data-value="<?= e($key) ?>"
                                             data-label="<?= e($label) ?>"
                                             data-status-kind="<?= e($optionKind) ?>"
+                                            data-status-color="<?= e($optionColor) ?>"
                                             data-status-order="<?= e((string) $optionOrder) ?>"
+                                            style="<?= e($optionCssVars) ?>"
                                             role="option"
                                             aria-selected="<?= $key === $defaultTaskStatusKey ? 'true' : 'false' ?>"
                                         ><?= e($label) ?></button>
@@ -2808,6 +2839,8 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                 name="status"
                                 class="tag-select status-select status-<?= e($defaultTaskStatusKind) ?> row-inline-picker-native"
                                 data-inline-select-source
+                                data-status-color="<?= e($defaultTaskStatusColor) ?>"
+                                style="<?= e($defaultTaskStatusCssVars) ?>"
                                 aria-label="Status"
                                 hidden
                             >
@@ -2816,10 +2849,15 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     $optionMeta = $statusMetaByKey[$key] ?? taskStatusMeta($key);
                                     $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
                                     $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                    $optionColor = normalizeTaskStatusColor(
+                                        (string) ($optionMeta['color'] ?? ''),
+                                        $optionKind
+                                    );
                                     ?>
                                     <option
                                         value="<?= e($key) ?>"
                                         data-status-kind="<?= e($optionKind) ?>"
+                                        data-status-color="<?= e($optionColor) ?>"
                                         data-status-order="<?= e((string) $optionOrder) ?>"
                                         <?= $key === $defaultTaskStatusKey ? ' selected' : '' ?>
                                     ><?= e($label) ?></option>
@@ -4007,7 +4045,12 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                 </button>
 
                                 <div class="tag-field tag-field-status row-inline-picker-wrap" data-inline-select-wrap>
-                                    <details class="row-inline-picker status-inline-picker status-<?= e($defaultTaskStatusKind) ?>" data-inline-select-picker>
+                                    <details
+                                        class="row-inline-picker status-inline-picker status-<?= e($defaultTaskStatusKind) ?>"
+                                        data-inline-select-picker
+                                        data-status-color="<?= e($defaultTaskStatusColor) ?>"
+                                        style="<?= e($defaultTaskStatusCssVars) ?>"
+                                    >
                                         <summary aria-label="Status da tarefa">
                                             <span class="row-inline-picker-summary-text" data-inline-select-text><?= e($defaultTaskStatusLabel) ?></span>
                                         </summary>
@@ -4021,6 +4064,11 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                 $optionMeta = $statusMetaByKey[$key] ?? taskStatusMeta($key);
                                                 $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
                                                 $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                                $optionColor = normalizeTaskStatusColor(
+                                                    (string) ($optionMeta['color'] ?? ''),
+                                                    $optionKind
+                                                );
+                                                $optionCssVars = (string) ($optionMeta['css_vars'] ?? taskStatusCssVars($optionColor));
                                                 ?>
                                                 <button
                                                     type="button"
@@ -4029,7 +4077,9 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                     data-value="<?= e($key) ?>"
                                                     data-label="<?= e($label) ?>"
                                                     data-status-kind="<?= e($optionKind) ?>"
+                                                    data-status-color="<?= e($optionColor) ?>"
                                                     data-status-order="<?= e((string) $optionOrder) ?>"
+                                                    style="<?= e($optionCssVars) ?>"
                                                     role="option"
                                                     aria-selected="<?= $key === $defaultTaskStatusKey ? 'true' : 'false' ?>"
                                                 ><?= e($label) ?></button>
@@ -4040,6 +4090,8 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         class="tag-select status-select status-<?= e($defaultTaskStatusKind) ?> row-inline-picker-native"
                                         data-inline-select-source
                                         data-task-detail-edit-status
+                                        data-status-color="<?= e($defaultTaskStatusColor) ?>"
+                                        style="<?= e($defaultTaskStatusCssVars) ?>"
                                         aria-label="Status"
                                         hidden
                                     >
@@ -4048,10 +4100,15 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                             $optionMeta = $statusMetaByKey[$key] ?? taskStatusMeta($key);
                                             $optionKind = (string) ($optionMeta['kind'] ?? 'in_progress');
                                             $optionOrder = (int) ($optionMeta['order'] ?? 1);
+                                            $optionColor = normalizeTaskStatusColor(
+                                                (string) ($optionMeta['color'] ?? ''),
+                                                $optionKind
+                                            );
                                             ?>
                                             <option
                                                 value="<?= e($key) ?>"
                                                 data-status-kind="<?= e($optionKind) ?>"
+                                                data-status-color="<?= e($optionColor) ?>"
                                                 data-status-order="<?= e((string) $optionOrder) ?>"
                                                 <?= $key === $defaultTaskStatusKey ? ' selected' : '' ?>
                                             ><?= e($label) ?></option>

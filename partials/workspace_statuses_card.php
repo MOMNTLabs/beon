@@ -8,35 +8,24 @@ $workspaceTaskStatuses = is_array($workspaceTaskStatusConfig['list'] ?? null)
 $workspaceReviewStatusKey = $workspaceTaskStatusConfig['review_status_key'] ?? null;
 $canManageTaskStatuses = !empty($canManageWorkspace);
 $workspaceStatusesFormId = 'workspace-task-statuses-form-' . (int) ($currentWorkspaceId ?? 0);
+$newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
 ?>
 <section class="workspace-settings-card workspace-statuses-card<?= $canManageTaskStatuses ? '' : ' is-readonly' ?>">
     <div class="workspace-statuses-card-head">
         <div>
             <h3>Status</h3>
         </div>
-        <label class="workspace-status-review-off" title="Desativar revisão">
-            <input
-                type="radio"
-                name="task_review_status_key"
-                value=""
-                form="<?= e($workspaceStatusesFormId) ?>"
-                <?= $workspaceReviewStatusKey === null ? 'checked' : '' ?>
-                <?= $canManageTaskStatuses ? '' : 'disabled' ?>
-            >
-            <span class="workspace-status-review-icon" aria-hidden="true">
-                <svg viewBox="0 0 20 20" focusable="false">
-                    <path d="M3.6 10c1.7-2.6 3.9-3.9 6.4-3.9 2.5 0 4.7 1.3 6.4 3.9-1.7 2.6-3.9 3.9-6.4 3.9-2.5 0-4.7-1.3-6.4-3.9Z"></path>
-                    <circle cx="10" cy="10" r="2.1"></circle>
-                    <path d="M4.2 15.8 15.8 4.2"></path>
-                </svg>
-            </span>
-            <span class="sr-only">Desativar revisão</span>
-        </label>
     </div>
 
     <form method="post" class="workspace-settings-form workspace-statuses-form" id="<?= e($workspaceStatusesFormId) ?>">
         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
         <input type="hidden" name="action" value="workspace_update_task_statuses">
+        <input
+            type="hidden"
+            name="task_review_status_key"
+            value="<?= e((string) ($workspaceReviewStatusKey ?? '')) ?>"
+            data-workspace-status-review-value
+        >
 
         <div class="workspace-statuses-list">
             <?php foreach ($workspaceTaskStatuses as $statusDefinition): ?>
@@ -44,11 +33,22 @@ $workspaceStatusesFormId = 'workspace-task-statuses-form-' . (int) ($currentWork
                 $statusKey = (string) ($statusDefinition['key'] ?? '');
                 $statusLabel = (string) ($statusDefinition['label'] ?? '');
                 $statusKind = (string) ($statusDefinition['kind'] ?? 'in_progress');
+                $statusColor = normalizeTaskStatusColor(
+                    (string) ($statusDefinition['color'] ?? ''),
+                    $statusKind
+                );
+                $statusCssVars = (string) ($statusDefinition['css_vars'] ?? taskStatusCssVars($statusColor));
                 $statusLocked = !empty($statusDefinition['is_locked']);
                 $canMarkAsReview = !$statusLocked;
                 ?>
-                <div class="workspace-status-row status-<?= e($statusKind) ?>">
+                <div
+                    class="workspace-status-row status-<?= e($statusKind) ?>"
+                    data-workspace-status-row
+                    data-status-color="<?= e($statusColor) ?>"
+                    style="<?= e($statusCssVars) ?>"
+                >
                     <input type="hidden" name="status_keys[]" value="<?= e($statusKey) ?>">
+                    <input type="hidden" name="status_colors[]" value="<?= e($statusColor) ?>" data-workspace-status-color-hidden>
                     <span class="workspace-status-tone workspace-status-tone-<?= e($statusKind) ?>" aria-hidden="true"></span>
                     <input
                         type="text"
@@ -58,17 +58,24 @@ $workspaceStatusesFormId = 'workspace-task-statuses-form-' . (int) ($currentWork
                         aria-label="Nome do status"
                         <?= $canManageTaskStatuses ? '' : 'readonly' ?>
                     >
-                    <label
-                        class="workspace-status-review-toggle<?= $canMarkAsReview ? '' : ' is-disabled' ?>"
-                        title="Definir como status de revisão"
-                    >
+                    <label class="workspace-status-color-control" title="Cor do status">
                         <input
-                            type="radio"
-                            name="task_review_status_key"
-                            value="<?= e($statusKey) ?>"
-                            <?= $workspaceReviewStatusKey === $statusKey ? 'checked' : '' ?>
-                            <?= $canManageTaskStatuses && $canMarkAsReview ? '' : 'disabled' ?>
+                            type="color"
+                            value="<?= e($statusColor) ?>"
+                            aria-label="Cor do status"
+                            data-workspace-status-color-input
+                            <?= $canManageTaskStatuses ? '' : 'disabled' ?>
                         >
+                    </label>
+                    <button
+                        type="button"
+                        class="workspace-status-review-toggle<?= $canMarkAsReview ? '' : ' is-disabled' ?><?= $workspaceReviewStatusKey === $statusKey ? ' is-active' : '' ?>"
+                        title="Definir como status de revisão"
+                        data-workspace-status-review-toggle
+                        data-status-key="<?= e($statusKey) ?>"
+                        aria-pressed="<?= $workspaceReviewStatusKey === $statusKey ? 'true' : 'false' ?>"
+                        <?= $canManageTaskStatuses && $canMarkAsReview ? '' : 'disabled' ?>
+                    >
                         <span class="workspace-status-review-icon" aria-hidden="true">
                             <svg viewBox="0 0 20 20" focusable="false">
                                 <path d="M3.6 10c1.7-2.6 3.9-3.9 6.4-3.9 2.5 0 4.7 1.3 6.4 3.9-1.7 2.6-3.9 3.9-6.4 3.9-2.5 0-4.7-1.3-6.4-3.9Z"></path>
@@ -76,7 +83,7 @@ $workspaceStatusesFormId = 'workspace-task-statuses-form-' . (int) ($currentWork
                             </svg>
                         </span>
                         <span class="sr-only">Definir como status de revisão</span>
-                    </label>
+                    </button>
                     <?php if ($canManageTaskStatuses && !$statusLocked): ?>
                         <button
                             type="submit"
@@ -104,6 +111,14 @@ $workspaceStatusesFormId = 'workspace-task-statuses-form-' . (int) ($currentWork
                     placeholder="Novo status"
                     aria-label="Novo status"
                 >
+                <label class="workspace-status-color-control workspace-status-color-control-new" title="Cor do novo status">
+                    <input
+                        type="color"
+                        name="new_status_color"
+                        value="<?= e($newWorkspaceStatusColor) ?>"
+                        aria-label="Cor do novo status"
+                    >
+                </label>
                 <button type="submit" class="btn btn-mini btn-ghost workspace-status-add-button" title="Adicionar status">
                     <span aria-hidden="true">+</span>
                     <span class="sr-only">Adicionar status</span>

@@ -6560,8 +6560,8 @@ function accountingSummary(array $entries, int $openingBalanceCents): array
 function defaultTaskStatusDefinitions(): array
 {
     return [
-        ['key' => 'todo', 'label' => 'A fazer'],
-        ['key' => 'in_progress', 'label' => 'Em andamento'],
+        ['key' => 'todo', 'label' => 'A fazer', 'color' => '#6EA5E9'],
+        ['key' => 'in_progress', 'label' => 'Em andamento', 'color' => '#E8A15D'],
         ['key' => 'review', 'label' => 'Revisão'],
         ['key' => 'done', 'label' => 'Concluído'],
     ];
@@ -6570,6 +6570,82 @@ function defaultTaskStatusDefinitions(): array
 function defaultTaskReviewStatusKey(): ?string
 {
     return 'review';
+}
+
+function taskStatusDefaultColorForKind(string $kind): string
+{
+    return match (trim($kind)) {
+        'todo' => '#6EA5E9',
+        'review' => '#9C84E6',
+        'done' => '#61BE92',
+        default => '#E8A15D',
+    };
+}
+
+function normalizeTaskStatusColor(string $value, ?string $fallbackKind = null): string
+{
+    $fallback = taskStatusDefaultColorForKind((string) $fallbackKind);
+    $normalized = strtoupper(trim($value));
+    if ($normalized === '') {
+        return $fallback;
+    }
+
+    if (preg_match('/^#[0-9A-F]{3}$/', $normalized)) {
+        $normalized = sprintf(
+            '#%1$s%1$s%2$s%2$s%3$s%3$s',
+            $normalized[1],
+            $normalized[2],
+            $normalized[3]
+        );
+    }
+
+    return preg_match('/^#[0-9A-F]{6}$/', $normalized) ? $normalized : $fallback;
+}
+
+function hexColorToRgbComponents(string $value): array
+{
+    $color = ltrim(normalizeTaskStatusColor($value), '#');
+    return [
+        hexdec(substr($color, 0, 2)),
+        hexdec(substr($color, 2, 2)),
+        hexdec(substr($color, 4, 2)),
+    ];
+}
+
+function mixHexColors(string $source, string $target, float $targetWeight = 0.5): string
+{
+    $targetWeight = max(0.0, min(1.0, $targetWeight));
+    [$sourceRed, $sourceGreen, $sourceBlue] = hexColorToRgbComponents($source);
+    [$targetRed, $targetGreen, $targetBlue] = hexColorToRgbComponents($target);
+
+    $mixChannel = static function (int $from, int $to) use ($targetWeight): int {
+        return (int) round(($from * (1 - $targetWeight)) + ($to * $targetWeight));
+    };
+
+    return sprintf(
+        '#%02X%02X%02X',
+        $mixChannel($sourceRed, $targetRed),
+        $mixChannel($sourceGreen, $targetGreen),
+        $mixChannel($sourceBlue, $targetBlue)
+    );
+}
+
+function taskStatusCssVars(string $color): string
+{
+    $normalized = normalizeTaskStatusColor($color);
+    [$red, $green, $blue] = hexColorToRgbComponents($normalized);
+    $textColor = mixHexColors($normalized, '#24466F', 0.72);
+    $darkTextColor = mixHexColors($normalized, '#F4F9FF', 0.58);
+
+    return sprintf(
+        '--wf-status-color: %1$s; --wf-status-rgb: %2$d, %3$d, %4$d; --task-status-rgb: %2$d, %3$d, %4$d; --wf-status-text: %5$s; --wf-status-text-dark: %6$s;',
+        $normalized,
+        $red,
+        $green,
+        $blue,
+        $textColor,
+        $darkTextColor
+    );
 }
 
 function normalizeWorkspaceTaskStatusLabel(string $label, string $fallback = ''): string
@@ -6645,6 +6721,7 @@ function normalizeWorkspaceTaskStatusDefinitions(array $definitions, ?string $re
         $rawDefinitions[] = [
             'key' => trim((string) ($definition['key'] ?? '')),
             'label' => trim((string) ($definition['label'] ?? $definition['name'] ?? '')),
+            'color' => trim((string) ($definition['color'] ?? '')),
         ];
     }
 
@@ -6662,9 +6739,11 @@ function normalizeWorkspaceTaskStatusDefinitions(array $definitions, ?string $re
         (string) ($defaultDefinitions[count($defaultDefinitions) - 1]['label'] ?? 'Concluído')
     );
 
-    $normalizedList = [
-        ['key' => 'todo', 'label' => $firstLabel],
-    ];
+    $normalizedList = [[
+        'key' => 'todo',
+        'label' => $firstLabel,
+        'color' => (string) ($rawDefinitions[0]['color'] ?? ''),
+    ]];
     $existingKeys = ['todo', 'done'];
 
     foreach (array_slice($rawDefinitions, 1, -1) as $definition) {
@@ -6680,11 +6759,16 @@ function normalizeWorkspaceTaskStatusDefinitions(array $definitions, ?string $re
         $normalizedList[] = [
             'key' => $candidateKey,
             'label' => $label,
+            'color' => (string) ($definition['color'] ?? ''),
         ];
         $existingKeys[] = $candidateKey;
     }
 
-    $normalizedList[] = ['key' => 'done', 'label' => $lastLabel];
+    $normalizedList[] = [
+        'key' => 'done',
+        'label' => $lastLabel,
+        'color' => (string) ($lastRawDefinition['color'] ?? ''),
+    ];
 
     $reviewKey = workspaceTaskStatusKeyCandidateFromLabel((string) $reviewStatusKey);
     if (!in_array($reviewKey, array_column(array_slice($normalizedList, 1, -1), 'key'), true)) {
@@ -6708,17 +6792,30 @@ function normalizeWorkspaceTaskStatusDefinitions(array $definitions, ?string $re
             $kind = 'review';
         }
 
+        $colorFallbackKind = match ($key) {
+            'todo' => 'todo',
+            'done' => 'done',
+            'review' => 'review',
+            default => $kind,
+        };
+        $color = normalizeTaskStatusColor((string) ($definition['color'] ?? ''), $colorFallbackKind);
+        $cssVars = taskStatusCssVars($color);
+
         $options[$key] = $label;
         $orderByKey[$key] = $index + 1;
         $metaByKey[$key] = [
             'key' => $key,
             'label' => $label,
+            'color' => $color,
+            'css_vars' => $cssVars,
             'kind' => $kind,
             'order' => $index + 1,
             'is_locked' => $index === 0 || $index === $lastIndex,
             'is_review' => $reviewKey !== null && $key === $reviewKey,
         ];
         $normalizedList[$index]['label'] = $label;
+        $normalizedList[$index]['color'] = $color;
+        $normalizedList[$index]['css_vars'] = $cssVars;
         $normalizedList[$index]['kind'] = $kind;
         $normalizedList[$index]['order'] = $index + 1;
         $normalizedList[$index]['is_locked'] = $index === 0 || $index === $lastIndex;
@@ -6744,6 +6841,10 @@ function encodeWorkspaceTaskStatusDefinitions(array $definitions): string
         static fn (array $definition): array => [
             'key' => (string) ($definition['key'] ?? ''),
             'label' => (string) ($definition['label'] ?? ''),
+            'color' => normalizeTaskStatusColor(
+                (string) ($definition['color'] ?? ''),
+                (string) ($definition['kind'] ?? 'in_progress')
+            ),
         ],
         $normalized['list'] ?? []
     );
@@ -6827,6 +6928,8 @@ function taskStatusMeta(string $value, ?int $workspaceId = null, ?array $workspa
         ?? [
             'key' => $normalizedValue,
             'label' => $config['options'][$normalizedValue] ?? $normalizedValue,
+            'color' => taskStatusDefaultColorForKind('todo'),
+            'css_vars' => taskStatusCssVars(taskStatusDefaultColorForKind('todo')),
             'kind' => 'todo',
             'order' => 1,
             'is_locked' => true,
@@ -6902,7 +7005,8 @@ function workspaceUpdateTaskStatusConfiguration(
     array $definitions,
     ?string $reviewStatusKey = null,
     ?string $removeStatusKey = null,
-    ?string $newStatusLabel = null
+    ?string $newStatusLabel = null,
+    ?string $newStatusColor = null
 ): array {
     if ($workspaceId <= 0) {
         throw new RuntimeException('Workspace invalido.');
@@ -6964,6 +7068,7 @@ function workspaceUpdateTaskStatusConfiguration(
             [[
                 'key' => $newKey,
                 'label' => $normalizedLabel,
+                'color' => normalizeTaskStatusColor((string) $newStatusColor, 'in_progress'),
             ]]
         );
     }

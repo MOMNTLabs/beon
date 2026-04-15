@@ -246,6 +246,8 @@ $defaultTaskStatusKey = (string) ($statusConfig['todo_status_key'] ?? 'todo');
 $defaultTaskStatusMeta = $statusConfig['meta_by_key'][$defaultTaskStatusKey] ?? taskStatusMeta($defaultTaskStatusKey);
 $defaultTaskStatusLabel = (string) ($defaultTaskStatusMeta['label'] ?? 'A fazer');
 $defaultTaskStatusKind = (string) ($defaultTaskStatusMeta['kind'] ?? 'todo');
+$defaultTaskStatusColor = (string) ($defaultTaskStatusMeta['color'] ?? taskStatusDefaultColorForKind($defaultTaskStatusKind));
+$defaultTaskStatusCssVars = (string) ($defaultTaskStatusMeta['css_vars'] ?? taskStatusCssVars($defaultTaskStatusColor));
 $reviewTaskStatusKey = $statusConfig['review_status_key'] ?? null;
 $priorityOptions = taskPriorities();
 $users = ($currentUser && $currentWorkspaceId !== null) ? usersList($currentWorkspaceId) : [];

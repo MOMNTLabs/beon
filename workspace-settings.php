@@ -74,16 +74,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $statusKeys = $_POST['status_keys'] ?? [];
                 $statusLabels = $_POST['status_labels'] ?? [];
-                if (!is_array($statusKeys) || !is_array($statusLabels)) {
+                $statusColors = $_POST['status_colors'] ?? [];
+                if (!is_array($statusKeys) || !is_array($statusLabels) || !is_array($statusColors)) {
                     throw new RuntimeException('Configuracao de status invalida.');
                 }
 
                 $statusDefinitions = [];
-                $statusCount = max(count($statusKeys), count($statusLabels));
+                $statusCount = max(count($statusKeys), count($statusLabels), count($statusColors));
                 for ($index = 0; $index < $statusCount; $index++) {
                     $statusDefinitions[] = [
                         'key' => (string) ($statusKeys[$index] ?? ''),
                         'label' => (string) ($statusLabels[$index] ?? ''),
+                        'color' => (string) ($statusColors[$index] ?? ''),
                     ];
                 }
 
@@ -95,7 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ? (string) $_POST['task_review_status_key']
                         : null,
                     (string) ($_POST['remove_status_key'] ?? ''),
-                    (string) ($_POST['new_status_label'] ?? '')
+                    (string) ($_POST['new_status_label'] ?? ''),
+                    (string) ($_POST['new_status_color'] ?? '')
                 );
                 flash('success', 'Status do workspace atualizados.');
                 redirectTo('workspace-settings.php');

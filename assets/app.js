@@ -216,6 +216,73 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const defaultStatusColorByKind = (kind) => {
+    switch (normalizeTaskStatusKind(kind)) {
+      case "todo":
+        return "#6EA5E9";
+      case "review":
+        return "#9C84E6";
+      case "done":
+        return "#61BE92";
+      default:
+        return "#E8A15D";
+    }
+  };
+
+  const normalizeStatusColorValue = (value, kind = "in_progress") => {
+    const normalized = String(value || "").trim().toUpperCase();
+    if (/^#[0-9A-F]{3}$/.test(normalized)) {
+      return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`;
+    }
+    if (/^#[0-9A-F]{6}$/.test(normalized)) {
+      return normalized;
+    }
+    return defaultStatusColorByKind(kind);
+  };
+
+  const hexToRgbComponents = (value, kind = "in_progress") => {
+    const normalized = normalizeStatusColorValue(value, kind).replace(/^#/, "");
+    return [
+      Number.parseInt(normalized.slice(0, 2), 16),
+      Number.parseInt(normalized.slice(2, 4), 16),
+      Number.parseInt(normalized.slice(4, 6), 16),
+    ];
+  };
+
+  const mixHexColors = (source, target, targetWeight = 0.5, kind = "in_progress") => {
+    const safeWeight = Math.max(0, Math.min(1, Number(targetWeight) || 0));
+    const [sourceRed, sourceGreen, sourceBlue] = hexToRgbComponents(source, kind);
+    const [targetRed, targetGreen, targetBlue] = hexToRgbComponents(target, kind);
+    const mixChannel = (from, to) => Math.round(from * (1 - safeWeight) + to * safeWeight);
+    const toHex = (channel) => channel.toString(16).padStart(2, "0").toUpperCase();
+
+    return `#${toHex(mixChannel(sourceRed, targetRed))}${toHex(
+      mixChannel(sourceGreen, targetGreen)
+    )}${toHex(mixChannel(sourceBlue, targetBlue))}`;
+  };
+
+  const getStatusStyleVars = (color, kind = "in_progress") => {
+    const normalizedColor = normalizeStatusColorValue(color, kind);
+    const [red, green, blue] = hexToRgbComponents(normalizedColor, kind);
+    return {
+      color: normalizedColor,
+      rgb: `${red}, ${green}, ${blue}`,
+      text: mixHexColors(normalizedColor, "#24466F", 0.72, kind),
+      textDark: mixHexColors(normalizedColor, "#F4F9FF", 0.58, kind),
+    };
+  };
+
+  const applyStatusStyleVars = (node, color, kind = "in_progress") => {
+    if (!(node instanceof HTMLElement)) return;
+    const vars = getStatusStyleVars(color, kind);
+    node.style.setProperty("--wf-status-color", vars.color);
+    node.style.setProperty("--wf-status-rgb", vars.rgb);
+    node.style.setProperty("--task-status-rgb", vars.rgb);
+    node.style.setProperty("--wf-status-text", vars.text);
+    node.style.setProperty("--wf-status-text-dark", vars.textDark);
+    node.dataset.statusColor = vars.color;
+  };
+
   const getSelectedStatusOption = (select) => {
     if (!(select instanceof HTMLSelectElement)) return null;
     const option = select.options[select.selectedIndex];
@@ -224,6 +291,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const getStatusOptionKind = (option) =>
     normalizeTaskStatusKind(option?.dataset?.statusKind || "");
+
+  const getStatusOptionColor = (option) =>
+    normalizeStatusColorValue(option?.dataset?.statusColor || "", getStatusOptionKind(option));
 
   const getStatusOptionOrder = (option) => {
     const order = Number.parseInt(option?.dataset?.statusOrder || "", 10);
@@ -480,6 +550,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(taskItem instanceof HTMLElement)) return;
     const selectedOption = getSelectedStatusOption(select);
     const statusKind = getStatusOptionKind(selectedOption);
+    const statusColor = getStatusOptionColor(selectedOption);
     const statusOrder = getStatusOptionOrder(selectedOption);
     const statusValue = normalizeTaskStatusValue(select.value);
 
@@ -492,8 +563,10 @@ window.addEventListener("DOMContentLoaded", () => {
     if (statusKind) {
       taskItem.classList.add(`task-status-${statusKind}`);
     }
+    applyStatusStyleVars(taskItem, statusColor, statusKind);
     taskItem.dataset.statusValue = statusValue;
     taskItem.dataset.statusKind = statusKind;
+    taskItem.dataset.statusColor = statusColor;
     taskItem.dataset.statusOrder = String(statusOrder);
 
     const groupSection = taskItem.closest("[data-task-group]");
@@ -598,6 +671,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (details instanceof HTMLElement) {
       const selectedStatusOption = getSelectedStatusOption(select);
       const selectedStatusKind = getStatusOptionKind(selectedStatusOption);
+      const selectedStatusColor = getStatusOptionColor(selectedStatusOption);
       Array.from(details.classList).forEach((className) => {
         if (
           (className.startsWith("status-") && className !== "status-inline-picker") ||
@@ -609,6 +683,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
       if (select.classList.contains("status-select") && selectedStatusKind) {
         details.classList.add(`status-${selectedStatusKind}`);
+        applyStatusStyleVars(details, selectedStatusColor, selectedStatusKind);
       }
       if (select.classList.contains("priority-select") && select.value) {
         details.classList.add(`priority-${select.value}`);
@@ -622,12 +697,14 @@ window.addEventListener("DOMContentLoaded", () => {
     if (select.classList.contains("status-select")) {
       const selectedStatusOption = getSelectedStatusOption(select);
       const selectedStatusKind = getStatusOptionKind(selectedStatusOption);
+      const selectedStatusColor = getStatusOptionColor(selectedStatusOption);
       Array.from(select.classList).forEach((className) => {
         if (className.startsWith("status-") && className !== "status-select") {
           select.classList.remove(className);
         }
       });
       if (selectedStatusKind) select.classList.add(`status-${selectedStatusKind}`);
+      applyStatusStyleVars(select, selectedStatusColor, selectedStatusKind);
       syncStatusStepper(select);
       syncTaskRowStatusOverlay(select);
       syncInlineSelectPicker(select);
@@ -653,6 +730,52 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const getWorkspaceStatusRowKind = (row) => {
+    if (!(row instanceof HTMLElement)) return "in_progress";
+    const className = Array.from(row.classList).find(
+      (entry) => entry.startsWith("status-") && entry !== "workspace-status-row"
+    );
+    return normalizeTaskStatusKind((className || "").replace(/^status-/, ""));
+  };
+
+  const syncWorkspaceStatusRowColor = (input) => {
+    if (!(input instanceof HTMLInputElement)) return;
+    const row = input.closest("[data-workspace-status-row]");
+    if (!(row instanceof HTMLElement)) return;
+
+    const statusKind = getWorkspaceStatusRowKind(row);
+    const color = normalizeStatusColorValue(input.value, statusKind);
+    input.value = color;
+    applyStatusStyleVars(row, color, statusKind);
+
+    const hiddenInput = row.querySelector("[data-workspace-status-color-hidden]");
+    if (hiddenInput instanceof HTMLInputElement) {
+      hiddenInput.value = color;
+    }
+  };
+
+  const syncWorkspaceStatusReviewToggles = (scope = document) => {
+    const root = scope instanceof Element || scope instanceof Document ? scope : document;
+    root.querySelectorAll(".workspace-statuses-form").forEach((form) => {
+      if (!(form instanceof HTMLFormElement)) return;
+      const valueField = form.querySelector("[data-workspace-status-review-value]");
+      if (!(valueField instanceof HTMLInputElement)) return;
+
+      const selectedKey = String(valueField.value || "").trim();
+      form.querySelectorAll("[data-workspace-status-review-toggle]").forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        const statusKey = String(button.dataset.statusKey || "").trim();
+        const active = selectedKey !== "" && selectedKey === statusKey;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+        button.setAttribute(
+          "title",
+          active ? "Remover status de revisão" : "Definir como status de revisão"
+        );
+      });
+    });
+  };
+
   const priorityFlagGlyph = "\u2691";
   const priorityLabels = {
     low: "Baixa",
@@ -664,6 +787,11 @@ window.addEventListener("DOMContentLoaded", () => {
   document
     .querySelectorAll(".status-select, .priority-select")
     .forEach(syncSelectColor);
+
+  document
+    .querySelectorAll("[data-workspace-status-color-input]")
+    .forEach(syncWorkspaceStatusRowColor);
+  syncWorkspaceStatusReviewToggles();
 
   document.addEventListener("click", (event) => {
     const target = getEventTargetElement(event);
@@ -730,12 +858,38 @@ window.addEventListener("DOMContentLoaded", () => {
     if (select) {
       syncSelectColor(select);
     }
+
+    const workspaceStatusColorInput = target.closest("[data-workspace-status-color-input]");
+    if (workspaceStatusColorInput instanceof HTMLInputElement) {
+      syncWorkspaceStatusRowColor(workspaceStatusColorInput);
+      return;
+    }
+
+    const workspaceStatusReviewToggle = target.closest("[data-workspace-status-review-toggle]");
+    if (workspaceStatusReviewToggle instanceof HTMLButtonElement) {
+      if (workspaceStatusReviewToggle.disabled) return;
+
+      const form = workspaceStatusReviewToggle.closest(".workspace-statuses-form");
+      const valueField = form?.querySelector("[data-workspace-status-review-value]");
+      if (!(form instanceof HTMLFormElement) || !(valueField instanceof HTMLInputElement)) {
+        return;
+      }
+
+      const nextKey = String(workspaceStatusReviewToggle.dataset.statusKey || "").trim();
+      valueField.value = String(valueField.value || "").trim() === nextKey ? "" : nextKey;
+      syncWorkspaceStatusReviewToggles(form);
+      return;
+    }
   });
 
   document.addEventListener("input", (event) => {
     const target = event.target;
     if (target instanceof HTMLInputElement && target.matches(uppercaseRequiredInputSelector)) {
       applyFirstLetterUppercaseToInput(target);
+    }
+    if (target instanceof HTMLInputElement && target.matches("[data-workspace-status-color-input]")) {
+      syncWorkspaceStatusRowColor(target);
+      return;
     }
     if (
       target instanceof HTMLElement &&
@@ -7887,7 +8041,12 @@ window.addEventListener("DOMContentLoaded", () => {
     );
   };
 
-  const syncTaskDetailViewStatusTag = (statusValue, statusLabel, statusKind = "todo") => {
+  const syncTaskDetailViewStatusTag = (
+    statusValue,
+    statusLabel,
+    statusKind = "todo",
+    statusColor = ""
+  ) => {
     if (!(taskDetailViewStatus instanceof HTMLElement)) return;
 
     Array.from(taskDetailViewStatus.classList).forEach((className) => {
@@ -7900,7 +8059,9 @@ window.addEventListener("DOMContentLoaded", () => {
       typeof statusValue === "string" && statusValue.trim()
         ? statusValue.trim()
         : "todo";
-    taskDetailViewStatus.classList.add(`status-${normalizeTaskStatusKind(statusKind)}`);
+    const normalizedStatusKind = normalizeTaskStatusKind(statusKind);
+    taskDetailViewStatus.classList.add(`status-${normalizedStatusKind}`);
+    applyStatusStyleVars(taskDetailViewStatus, statusColor, normalizedStatusKind);
     taskDetailViewStatus.textContent = statusLabel || normalizedStatus;
   };
 
@@ -7976,7 +8137,8 @@ window.addEventListener("DOMContentLoaded", () => {
     syncTaskDetailViewStatusTag(
       statusSelect.value || "todo",
       statusLabel,
-      getStatusOptionKind(selectedStatusOption)
+      getStatusOptionKind(selectedStatusOption),
+      getStatusOptionColor(selectedStatusOption)
     );
     syncTaskDetailViewPriorityTag(prioritySelect.value || "medium");
     if (taskDetailViewGroup) taskDetailViewGroup.textContent = groupLabel;
