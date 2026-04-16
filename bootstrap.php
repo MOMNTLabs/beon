@@ -2820,11 +2820,24 @@ function workspaceById(int $workspaceId): ?array
 
     $pdo = db();
     ensureWorkspaceTaskStatusSchema($pdo);
+    ensureUserProfileSchema($pdo);
 
     $stmt = $pdo->prepare(
-        'SELECT id, name, slug, is_personal, avatar_data_url, created_by, task_statuses_json, task_review_status_key, created_at, updated_at
-         FROM workspaces
-         WHERE id = :id
+        'SELECT
+             w.id,
+             w.name,
+             w.slug,
+             w.is_personal,
+             w.avatar_data_url,
+             w.created_by,
+             creator.avatar_data_url AS owner_avatar_data_url,
+             w.task_statuses_json,
+             w.task_review_status_key,
+             w.created_at,
+             w.updated_at
+         FROM workspaces w
+         LEFT JOIN users creator ON creator.id = w.created_by
+         WHERE w.id = :id
          LIMIT 1'
     );
     $stmt->execute([':id' => $workspaceId]);
@@ -2865,12 +2878,24 @@ function personalWorkspaceForUserId(int $userId): ?array
         return null;
     }
 
-    ensureWorkspaceProfileSchema(db());
+    $pdo = db();
+    ensureWorkspaceProfileSchema($pdo);
+    ensureUserProfileSchema($pdo);
 
-    $stmt = db()->prepare(
-        'SELECT w.id, w.name, w.slug, w.is_personal, w.avatar_data_url, w.created_by, w.created_at, w.updated_at
+    $stmt = $pdo->prepare(
+        'SELECT
+             w.id,
+             w.name,
+             w.slug,
+             w.is_personal,
+             w.avatar_data_url,
+             w.created_by,
+             creator.avatar_data_url AS owner_avatar_data_url,
+             w.created_at,
+             w.updated_at
          FROM workspaces w
          INNER JOIN workspace_members wm ON wm.workspace_id = w.id
+         LEFT JOIN users creator ON creator.id = w.created_by
          WHERE wm.user_id = :member_user_id
            AND w.is_personal = 1
            AND w.created_by = :owner_user_id
@@ -3112,6 +3137,13 @@ function updateWorkspaceProfile(
     }
 
     ensureWorkspaceProfileSchema($pdo);
+    ensureUserProfileSchema($pdo);
+    $workspace = workspaceById($workspaceId);
+    if (!$workspace) {
+        throw new RuntimeException('Workspace nao encontrado.');
+    }
+    $isPersonalWorkspace = !empty($workspace['is_personal']);
+    $workspaceOwnerId = (int) ($workspace['created_by'] ?? 0);
 
     $params = [
         ':updated_at' => nowIso(),
@@ -3133,11 +3165,23 @@ function updateWorkspaceProfile(
 
     $avatarDataUrl = uploadedWorkspaceAvatarDataUrl($avatarFile);
     if ($avatarDataUrl !== '') {
-        $params[':avatar_data_url'] = $avatarDataUrl;
-        $setClauses[] = 'avatar_data_url = :avatar_data_url';
+        if ($isPersonalWorkspace && $workspaceOwnerId > 0) {
+            $userAvatarStmt = $pdo->prepare(
+                'UPDATE users
+                 SET avatar_data_url = :avatar_data_url
+                 WHERE id = :user_id'
+            );
+            $userAvatarStmt->execute([
+                ':avatar_data_url' => $avatarDataUrl,
+                ':user_id' => $workspaceOwnerId,
+            ]);
+        } else {
+            $params[':avatar_data_url'] = $avatarDataUrl;
+            $setClauses[] = 'avatar_data_url = :avatar_data_url';
+        }
     }
 
-    if (count($setClauses) === 1) {
+    if (count($setClauses) === 1 && $avatarDataUrl === '') {
         throw new RuntimeException('Nenhuma alteracao enviada para o workspace.');
     }
 
@@ -3346,6 +3390,13 @@ function normalizeWorkspaceAvatarDataUrl(?string $value): string
 
 function workspaceAvatarDataUrl(array $workspace): string
 {
+    if (!empty($workspace['is_personal'])) {
+        $ownerAvatarDataUrl = normalizeUserAvatarDataUrl((string) ($workspace['owner_avatar_data_url'] ?? ''));
+        if ($ownerAvatarDataUrl !== '') {
+            return $ownerAvatarDataUrl;
+        }
+    }
+
     return normalizeWorkspaceAvatarDataUrl((string) ($workspace['avatar_data_url'] ?? ''));
 }
 
@@ -3684,6 +3735,7 @@ function workspaceMembershipsDetailedForUser(int $userId): array
 
     $pdo = db();
     ensureWorkspaceProfileSchema($pdo);
+    ensureUserProfileSchema($pdo);
 
     $stmt = $pdo->prepare(
         'SELECT
@@ -3693,6 +3745,7 @@ function workspaceMembershipsDetailedForUser(int $userId): array
              w.is_personal,
              w.avatar_data_url,
              w.created_by,
+             creator.avatar_data_url AS owner_avatar_data_url,
              w.created_at,
              w.updated_at,
              wm.role AS member_role,
@@ -3736,6 +3789,7 @@ function workspacesForUser(int $userId): array
 
     $pdo = db();
     ensureWorkspaceProfileSchema($pdo);
+    ensureUserProfileSchema($pdo);
 
     $stmt = $pdo->prepare(
         'SELECT
@@ -3745,11 +3799,13 @@ function workspacesForUser(int $userId): array
              w.is_personal,
              w.avatar_data_url,
              w.created_by,
+             creator.avatar_data_url AS owner_avatar_data_url,
              w.created_at,
              w.updated_at,
              wm.role AS member_role
          FROM workspaces w
          INNER JOIN workspace_members wm ON wm.workspace_id = w.id
+         LEFT JOIN users creator ON creator.id = w.created_by
          WHERE wm.user_id = :user_id
          ORDER BY
              CASE WHEN w.is_personal = 1 THEN 0 ELSE 1 END,

@@ -16,7 +16,7 @@
                             <div class="workspace-profile-photo-row">
                                 <?= renderWorkspaceAvatar($currentWorkspace, 'avatar workspace-profile-avatar') ?>
                                 <label class="workspace-profile-photo-field">
-                                    <span>Foto do workspace</span>
+                                    <span><?= !empty($isPersonalWorkspace) ? 'Foto do perfil' : 'Foto do workspace' ?></span>
                                     <input
                                         type="file"
                                         name="avatar"

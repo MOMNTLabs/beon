@@ -333,7 +333,7 @@ $stylesAssetVersion = (string) (@filemtime(__DIR__ . '/assets/styles.css') ?: '1
                                 <div class="workspace-profile-photo-row">
                                     <?= renderWorkspaceAvatar($currentWorkspace, 'avatar workspace-profile-avatar') ?>
                                     <label class="workspace-profile-photo-field">
-                                        <span>Foto do workspace</span>
+                                        <span><?= $isPersonalWorkspace ? 'Foto do perfil' : 'Foto do workspace' ?></span>
                                         <input
                                             type="file"
                                             name="avatar"
