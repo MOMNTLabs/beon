@@ -5938,8 +5938,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 .inventory-groups-list,
 .users-wrap .workspace-settings-members,
 .assignee-picker-menu,
-.create-task-modal,
-.task-detail-modal {
+.modal-card > .modal-form,
+.task-detail-modal-body {
     scrollbar-width: thin;
     scrollbar-color: rgba(108, 168, 255, 0.34) rgba(255, 255, 255, 0.03);
 }
@@ -5951,8 +5951,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 .inventory-groups-list::-webkit-scrollbar,
 .users-wrap .workspace-settings-members::-webkit-scrollbar,
 .assignee-picker-menu::-webkit-scrollbar,
-.create-task-modal::-webkit-scrollbar,
-.task-detail-modal::-webkit-scrollbar {
+.modal-card > .modal-form::-webkit-scrollbar,
+.task-detail-modal-body::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
@@ -5964,8 +5964,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 .inventory-groups-list::-webkit-scrollbar-track,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-track,
 .assignee-picker-menu::-webkit-scrollbar-track,
-.create-task-modal::-webkit-scrollbar-track,
-.task-detail-modal::-webkit-scrollbar-track {
+.modal-card > .modal-form::-webkit-scrollbar-track,
+.task-detail-modal-body::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.02);
     border-radius: 999px;
 }
@@ -5977,8 +5977,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 .inventory-groups-list::-webkit-scrollbar-thumb,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb,
 .assignee-picker-menu::-webkit-scrollbar-thumb,
-.create-task-modal::-webkit-scrollbar-thumb,
-.task-detail-modal::-webkit-scrollbar-thumb {
+.modal-card > .modal-form::-webkit-scrollbar-thumb,
+.task-detail-modal-body::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background:
         linear-gradient(180deg, rgba(129, 110, 255, 0.36), rgba(52, 197, 255, 0.3));
@@ -5992,8 +5992,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 .inventory-groups-list::-webkit-scrollbar-thumb:hover,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb:hover,
 .assignee-picker-menu::-webkit-scrollbar-thumb:hover,
-.create-task-modal::-webkit-scrollbar-thumb:hover,
-.task-detail-modal::-webkit-scrollbar-thumb:hover {
+.modal-card > .modal-form::-webkit-scrollbar-thumb:hover,
+.task-detail-modal-body::-webkit-scrollbar-thumb:hover {
     background:
         linear-gradient(180deg, rgba(154, 138, 255, 0.5), rgba(76, 214, 255, 0.42));
 }
@@ -6307,6 +6307,9 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     position: relative;
     z-index: 1;
     width: min(620px, 100%);
+    max-height: min(88vh, 760px);
+    display: flex;
+    flex-direction: column;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background:
@@ -6315,11 +6318,12 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
         rgba(8, 12, 24, 0.95);
     box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
     padding: 14px;
+    overflow: hidden;
 }
 
 .create-task-modal {
     max-height: min(88vh, 760px);
-    overflow: auto;
+    overflow: hidden;
 }
 
 .create-task-modal.task-create-modal-large {
@@ -6335,14 +6339,14 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 .task-detail-modal {
     width: min(1040px, 100%);
     max-height: min(94vh, 980px);
-    overflow: auto;
+    overflow: hidden;
     padding: 20px;
 }
 
 .group-permissions-modal-card {
     width: min(700px, 100%);
     max-height: min(88vh, 760px);
-    overflow: auto;
+    overflow: hidden;
 }
 
 .review-task-modal {
@@ -6567,6 +6571,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .task-detail-modal-head {
     align-items: flex-start;
+    flex: 0 0 auto;
 }
 
 .task-detail-modal-head-copy {
@@ -6585,6 +6590,10 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     display: grid;
     gap: 14px;
     padding: 2px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 4px;
 }
 
 .task-detail-view,
@@ -7928,6 +7937,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     justify-content: space-between;
     gap: 10px;
     margin-bottom: 10px;
+    flex: 0 0 auto;
 }
 
 .modal-head h2 {
@@ -7963,6 +7973,10 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .modal-form {
     gap: 10px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 2px;
 }
 
 .modal-actions {
