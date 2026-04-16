@@ -224,10 +224,15 @@ function respondUsersPanelSnapshot(): void
     include __DIR__ . '/../partials/workspace_sidebar_picker_list.php';
     $workspacePickerListHtml = (string) ob_get_clean();
 
+    ob_start();
+    include __DIR__ . '/../partials/workspace_sidebar_picker_summary.php';
+    $workspacePickerSummaryHtml = (string) ob_get_clean();
+
     respondJson([
         'ok' => true,
         'panel_html' => $panelHtml,
         'workspace_picker_list_html' => $workspacePickerListHtml,
+        'workspace_picker_summary_html' => $workspacePickerSummaryHtml,
         'workspace_picker_title' => (string) ($currentWorkspace['name'] ?? 'Workspace'),
     ]);
 }

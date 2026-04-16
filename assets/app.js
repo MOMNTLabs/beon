@@ -632,9 +632,54 @@ window.addEventListener("DOMContentLoaded", () => {
     return node.closest("[data-inline-select-wrap], .row-inline-picker-wrap");
   };
 
+  const syncInlineSelectOptionButtons = (select) => {
+    if (!(select instanceof HTMLSelectElement)) return;
+    if ((select.dataset.inlineSelectSyncOptions || "").trim() !== "group") return;
+
+    const wrap = getInlineSelectWrap(select);
+    if (!(wrap instanceof HTMLElement)) return;
+
+    const menu = wrap.querySelector(".row-inline-picker-menu");
+    if (!(menu instanceof HTMLElement)) return;
+
+    menu.innerHTML = "";
+
+    const options = Array.from(select.options);
+    if (!options.length) {
+      const emptyButton = document.createElement("button");
+      emptyButton.type = "button";
+      emptyButton.className = "row-inline-picker-option";
+      emptyButton.textContent = "Sem grupo com acesso";
+      emptyButton.disabled = true;
+      emptyButton.dataset.inlineSelectOption = "";
+      emptyButton.dataset.value = "";
+      emptyButton.dataset.label = "Sem grupo com acesso";
+      emptyButton.setAttribute("role", "option");
+      emptyButton.setAttribute("aria-selected", "true");
+      menu.append(emptyButton);
+      return;
+    }
+
+    options.forEach((option) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "row-inline-picker-option";
+      button.textContent = option.textContent?.trim() || option.value || "";
+      button.dataset.inlineSelectOption = "";
+      button.dataset.value = option.value || "";
+      button.dataset.label = option.textContent?.trim() || option.value || "";
+      button.setAttribute("role", "option");
+      button.setAttribute("aria-selected", option.selected ? "true" : "false");
+      button.disabled = option.disabled;
+      menu.append(button);
+    });
+  };
+
   const syncInlineSelectPicker = (select) => {
     if (!(select instanceof HTMLSelectElement)) return;
     if (!select.matches("[data-inline-select-source]")) return;
+
+    syncInlineSelectOptionButtons(select);
 
     const wrap = getInlineSelectWrap(select);
     if (!(wrap instanceof HTMLElement)) return;
@@ -4051,6 +4096,7 @@ window.addEventListener("DOMContentLoaded", () => {
           nextDoc.querySelector("[data-create-task-group-input]")
         );
       }
+      syncInlineSelectPicker(createTaskGroupInput);
     }
 
     const currentGroupFilterSelect = taskFilterForm?.querySelector('select[name="group"]');
@@ -4355,17 +4401,29 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const currentWorkspacePickerTitle = document.querySelector(".workspace-sidebar-picker-title");
-    if (currentWorkspacePickerTitle instanceof HTMLElement) {
-      const workspacePickerTitle = String(snapshotData?.workspace_picker_title || "").trim();
-      if (workspacePickerTitle) {
-        currentWorkspacePickerTitle.textContent = workspacePickerTitle;
+    const currentWorkspacePickerSummaryMain = document.querySelector(
+      ".workspace-sidebar-picker-summary-main"
+    );
+    if (currentWorkspacePickerSummaryMain instanceof HTMLElement) {
+      const workspacePickerSummaryHtml = String(
+        snapshotData?.workspace_picker_summary_html || ""
+      ).trim();
+      if (workspacePickerSummaryHtml) {
+        currentWorkspacePickerSummaryMain.outerHTML = workspacePickerSummaryHtml;
       } else {
-        const nextWorkspacePickerTitle = nextDoc.querySelector(".workspace-sidebar-picker-title");
-        if (nextWorkspacePickerTitle instanceof HTMLElement) {
-          const nextTitle = String(nextWorkspacePickerTitle.textContent || "").trim();
-          if (nextTitle) {
-            currentWorkspacePickerTitle.textContent = nextTitle;
+        const nextWorkspacePickerSummaryMain = nextDoc.querySelector(
+          ".workspace-sidebar-picker-summary-main"
+        );
+        if (nextWorkspacePickerSummaryMain instanceof HTMLElement) {
+          currentWorkspacePickerSummaryMain.outerHTML =
+            nextWorkspacePickerSummaryMain.outerHTML;
+        } else {
+          const currentWorkspacePickerTitle = document.querySelector(
+            ".workspace-sidebar-picker-title"
+          );
+          const workspacePickerTitle = String(snapshotData?.workspace_picker_title || "").trim();
+          if (currentWorkspacePickerTitle instanceof HTMLElement && workspacePickerTitle) {
+            currentWorkspacePickerTitle.textContent = workspacePickerTitle;
           }
         }
       }
@@ -4454,6 +4512,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const workspaceUsersActionNames = new Set([
+    "workspace_update_profile",
     "workspace_update_name",
     "workspace_add_member",
     "add_workspace_member",
@@ -8607,6 +8666,7 @@ window.addEventListener("DOMContentLoaded", () => {
         });
       }
       taskDetailEditGroup.value = groupSelect.value || "Geral";
+      syncInlineSelectPicker(taskDetailEditGroup);
     }
     if (taskDetailEditDueDate instanceof HTMLInputElement) {
       taskDetailEditDueDate.value = dueDateInput.value || "";
@@ -9588,6 +9648,8 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!createTaskGroupInput.value && createTaskGroupInput.options.length) {
         createTaskGroupInput.value = groupNames[0] || getDefaultGroupName();
       }
+
+      syncInlineSelectPicker(createTaskGroupInput);
     }
 
     if (taskGroupsDatalist) {
@@ -9689,6 +9751,9 @@ window.addEventListener("DOMContentLoaded", () => {
         createTaskGroupInput.append(option);
       }
       createTaskGroupInput.value = nextGroup;
+      if (createTaskGroupInput instanceof HTMLSelectElement) {
+        syncInlineSelectPicker(createTaskGroupInput);
+      }
     }
     createTaskModal.hidden = false;
     syncBodyModalLock();
@@ -11716,7 +11781,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     event.preventDefault();
 
-    if (action === "workspace_update_name") {
+    if (action === "workspace_update_profile" || action === "workspace_update_name") {
       const workspaceNameInput = form.querySelector('input[name="workspace_name"]');
       if (workspaceNameInput instanceof HTMLInputElement) {
         applyFirstLetterUppercaseToInput(workspaceNameInput);
@@ -11724,7 +11789,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const successMessageByAction = {
-      workspace_update_name: "Nome do workspace atualizado.",
+      workspace_update_profile: "Dados do workspace atualizados.",
+      workspace_update_name: "Dados do workspace atualizados.",
       workspace_add_member: "Usuario adicionado ao workspace.",
       add_workspace_member: "Usuario adicionado ao workspace.",
       workspace_promote_member: "Permissao de administrador concedida.",
@@ -11733,7 +11799,8 @@ window.addEventListener("DOMContentLoaded", () => {
     };
 
     const fallbackErrorByAction = {
-      workspace_update_name: "Falha ao atualizar o nome do workspace.",
+      workspace_update_profile: "Falha ao atualizar os dados do workspace.",
+      workspace_update_name: "Falha ao atualizar os dados do workspace.",
       workspace_add_member: "Falha ao adicionar usuario ao workspace.",
       add_workspace_member: "Falha ao adicionar usuario ao workspace.",
       workspace_promote_member: "Falha ao promover usuario.",

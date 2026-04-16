@@ -30,28 +30,35 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 flash('success', 'Workspace criado.');
                 redirectTo('index.php#tasks');
 
+            case 'workspace_update_profile':
             case 'workspace_update_name':
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
                     throw new RuntimeException('Workspace ativo nao encontrado.');
                 }
-                if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('O nome do workspace pessoal e definido automaticamente.');
-                }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar o workspace.');
                 }
 
-                $workspaceNameInput = (string) ($_POST['workspace_name'] ?? '');
-                updateWorkspaceName($pdo, $workspaceId, $workspaceNameInput);
+                $canRenameWorkspace = !workspaceIsPersonal($workspaceId);
+                $workspaceNameInput = $canRenameWorkspace ? (string) ($_POST['workspace_name'] ?? '') : '';
+                updateWorkspaceProfile(
+                    $pdo,
+                    $workspaceId,
+                    $workspaceNameInput,
+                    $_FILES['avatar'] ?? [],
+                    $canRenameWorkspace
+                );
 
-                $workspaceUpdatedMessage = 'Nome do workspace atualizado.';
+                $workspaceUpdatedMessage = 'Dados do workspace atualizados.';
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,
                         'message' => $workspaceUpdatedMessage,
-                        'workspace_name' => normalizeWorkspaceName($workspaceNameInput),
+                        'workspace_name' => $canRenameWorkspace
+                            ? normalizeWorkspaceName($workspaceNameInput)
+                            : (string) (workspaceById($workspaceId)['name'] ?? 'Workspace'),
                     ]);
                 }
 
@@ -268,6 +275,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
     return in_array($action, [
         'switch_workspace',
         'create_workspace',
+        'workspace_update_profile',
         'workspace_update_name',
         'workspace_update_task_statuses',
         'workspace_add_member',

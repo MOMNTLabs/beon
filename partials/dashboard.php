@@ -13,8 +13,6 @@ foreach ($tasks as $taskWithTagOption) {
     }
 }
 $taskTitleTagOptions = array_values(array_unique(array_filter($taskTitleTagOptions, static fn ($value) => trim((string) $value) !== '')));
-natcasesort($taskTitleTagOptions);
-$taskTitleTagOptions = array_values($taskTitleTagOptions);
 $taskTitleTagOptionsPayload = [];
 $taskTitleTagColorsPayload = [];
 foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
@@ -94,7 +92,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         </button>
                         <details class="workspace-sidebar-picker">
                             <summary aria-label="Trocar workspace">
-                                <span class="workspace-sidebar-picker-title"><?= e((string) ($currentWorkspace['name'] ?? 'Workspace')) ?></span>
+                                <?php include __DIR__ . '/workspace_sidebar_picker_summary.php'; ?>
                                 <span class="workspace-sidebar-picker-caret" aria-hidden="true">&#9662;</span>
                             </summary>
                             <div class="workspace-sidebar-picker-menu">
@@ -106,13 +104,19 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         $isCurrentWorkspace = $currentWorkspaceId === $workspaceOptionId;
                                         ?>
                                         <?php if ($isCurrentWorkspace): ?>
-                                            <span class="workspace-sidebar-picker-current"><?= e($workspaceOptionName) ?></span>
+                                            <span class="workspace-sidebar-picker-current">
+                                                <?= renderWorkspaceAvatar($workspaceOption, 'avatar small workspace-sidebar-picker-avatar', true, 'span') ?>
+                                                <span class="workspace-sidebar-picker-item-text"><?= e($workspaceOptionName) ?></span>
+                                            </span>
                                         <?php else: ?>
                                             <form method="post" class="workspace-sidebar-picker-form">
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                 <input type="hidden" name="action" value="switch_workspace">
                                                 <input type="hidden" name="workspace_id" value="<?= e((string) $workspaceOptionId) ?>">
-                                                <button type="submit" class="workspace-sidebar-picker-option"><?= e($workspaceOptionName) ?></button>
+                                                <button type="submit" class="workspace-sidebar-picker-option">
+                                                    <?= renderWorkspaceAvatar($workspaceOption, 'avatar small workspace-sidebar-picker-avatar', true, 'span') ?>
+                                                    <span class="workspace-sidebar-picker-item-text"><?= e($workspaceOptionName) ?></span>
+                                                </button>
                                             </form>
                                         <?php endif; ?>
                                     <?php endforeach; ?>
@@ -2601,17 +2605,28 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                 </div>
 
                 <div class="workspace-settings-grid users-settings-grid">
-                    <?php if (!empty($canManageWorkspace)): ?>
-                        <section class="workspace-settings-card">
-                            <h3>Dados do workspace</h3>
-                            <form method="post" class="workspace-settings-form">
-                                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                                <input type="hidden" name="action" value="workspace_update_name">
-                                <label>
-                                    <span>Nome do workspace</span>
+                <?php if (!empty($canManageWorkspace)): ?>
+                    <section class="workspace-settings-card">
+                        <h3>Dados do workspace</h3>
+                        <form method="post" class="workspace-settings-form workspace-profile-form" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                            <input type="hidden" name="action" value="workspace_update_profile">
+                            <div class="workspace-profile-photo-row">
+                                <?= renderWorkspaceAvatar($currentWorkspace, 'avatar workspace-profile-avatar') ?>
+                                <label class="workspace-profile-photo-field">
+                                    <span>Foto do workspace</span>
                                     <input
-                                        type="text"
-                                        name="workspace_name"
+                                        type="file"
+                                        name="avatar"
+                                        accept="image/png,image/jpeg,image/webp,image/gif"
+                                    >
+                                </label>
+                            </div>
+                            <label>
+                                <span>Nome do workspace</span>
+                                <input
+                                    type="text"
+                                    name="workspace_name"
                                         maxlength="80"
                                         value="<?= e((string) ($currentWorkspace['name'] ?? 'Workspace')) ?>"
                                         required
@@ -2938,17 +2953,64 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             <div class="form-row">
                 <label>
                     <span>Grupo</span>
-                    <select name="group_name" data-create-task-group-input <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>>
-                        <?php if (!$taskGroupsWithAccess): ?>
-                            <option value="">Sem grupo com acesso</option>
-                        <?php else: ?>
-                            <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
-                                <option value="<?= e((string) $groupNameOption) ?>">
-                                    <?= e((string) $groupNameOption) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </select>
+                    <div
+                        class="task-detail-group-inline-wrap row-inline-picker-wrap"
+                        data-inline-select-wrap
+                        data-inline-picker-kind="group"
+                    >
+                        <details class="row-inline-picker group-inline-picker" data-inline-select-picker>
+                            <summary aria-label="Grupo da tarefa">
+                                <span class="row-inline-picker-summary-text" data-inline-select-text>
+                                    <?= $taskGroupsWithAccess ? e((string) $taskGroupsWithAccess[0]) : 'Sem grupo com acesso' ?>
+                                </span>
+                            </summary>
+                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Selecionar grupo">
+                                <?php if (!$taskGroupsWithAccess): ?>
+                                    <button
+                                        type="button"
+                                        class="row-inline-picker-option"
+                                        data-inline-select-option
+                                        data-value=""
+                                        data-label="Sem grupo com acesso"
+                                        role="option"
+                                        aria-selected="true"
+                                        disabled
+                                    >Sem grupo com acesso</button>
+                                <?php else: ?>
+                                    <?php foreach ($taskGroupsWithAccess as $groupIndex => $groupNameOption): ?>
+                                        <button
+                                            type="button"
+                                            class="row-inline-picker-option<?= $groupIndex === 0 ? ' is-active' : '' ?>"
+                                            data-inline-select-option
+                                            data-value="<?= e((string) $groupNameOption) ?>"
+                                            data-label="<?= e((string) $groupNameOption) ?>"
+                                            role="option"
+                                            aria-selected="<?= $groupIndex === 0 ? 'true' : 'false' ?>"
+                                        ><?= e((string) $groupNameOption) ?></button>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </details>
+                        <select
+                            name="group_name"
+                            class="group-tag-select row-inline-picker-native task-group-inline-select"
+                            data-inline-select-source
+                            data-inline-select-sync-options="group"
+                            data-create-task-group-input
+                            <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>
+                            hidden
+                        >
+                            <?php if (!$taskGroupsWithAccess): ?>
+                                <option value="">Sem grupo com acesso</option>
+                            <?php else: ?>
+                                <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
+                                    <option value="<?= e((string) $groupNameOption) ?>">
+                                        <?= e((string) $groupNameOption) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
                 </label>
 
                 <label>
@@ -3030,13 +3092,13 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             >
                             <span class="task-subtasks-dependency-icon" aria-hidden="true">
                                 <svg viewBox="0 0 20 20" focusable="false">
-                                    <circle cx="10" cy="4.4" r="1.6"></circle>
-                                    <circle cx="10" cy="10" r="1.6"></circle>
-                                    <circle cx="10" cy="15.6" r="1.6"></circle>
-                                    <path d="M10 6.3v1.6"></path>
-                                    <path d="M10 11.9v1.6"></path>
-                                    <path d="M8.7 6.9 10 8.2l1.3-1.3"></path>
-                                    <path d="M8.7 12.5 10 13.8l1.3-1.3"></path>
+                                    <rect x="5.2" y="2.2" width="9.6" height="3.1" rx="1.1"></rect>
+                                    <rect x="5.2" y="8.5" width="9.6" height="3.1" rx="1.1"></rect>
+                                    <rect x="5.2" y="14.7" width="9.6" height="3.1" rx="1.1"></rect>
+                                    <path d="M10 5.8v1.7"></path>
+                                    <path d="M10 12.1v1.7"></path>
+                                    <path d="M8.9 6.5 10 7.7l1.1-1.2"></path>
+                                    <path d="M8.9 12.8 10 14l1.1-1.2"></path>
                                 </svg>
                             </span>
                             <span class="sr-only">Ativar sequência entre etapas</span>
@@ -4221,7 +4283,62 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     <div class="form-row">
                         <label>
                             <span>Grupo</span>
-                            <select data-task-detail-edit-group></select>
+                            <div
+                                class="task-detail-group-inline-wrap row-inline-picker-wrap"
+                                data-inline-select-wrap
+                                data-inline-picker-kind="group"
+                            >
+                                <details class="row-inline-picker group-inline-picker" data-inline-select-picker>
+                                    <summary aria-label="Grupo da tarefa">
+                                        <span class="row-inline-picker-summary-text" data-inline-select-text>
+                                            <?= $taskGroupsWithAccess ? e((string) $taskGroupsWithAccess[0]) : 'Sem grupo com acesso' ?>
+                                        </span>
+                                    </summary>
+                                    <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Selecionar grupo">
+                                        <?php if (!$taskGroupsWithAccess): ?>
+                                            <button
+                                                type="button"
+                                                class="row-inline-picker-option"
+                                                data-inline-select-option
+                                                data-value=""
+                                                data-label="Sem grupo com acesso"
+                                                role="option"
+                                                aria-selected="true"
+                                                disabled
+                                            >Sem grupo com acesso</button>
+                                        <?php else: ?>
+                                            <?php foreach ($taskGroupsWithAccess as $groupIndex => $groupNameOption): ?>
+                                                <button
+                                                    type="button"
+                                                    class="row-inline-picker-option<?= $groupIndex === 0 ? ' is-active' : '' ?>"
+                                                    data-inline-select-option
+                                                    data-value="<?= e((string) $groupNameOption) ?>"
+                                                    data-label="<?= e((string) $groupNameOption) ?>"
+                                                    role="option"
+                                                    aria-selected="<?= $groupIndex === 0 ? 'true' : 'false' ?>"
+                                                ><?= e((string) $groupNameOption) ?></button>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </div>
+                                </details>
+                                <select
+                                    class="group-tag-select row-inline-picker-native task-group-inline-select"
+                                    data-inline-select-source
+                                    data-inline-select-sync-options="group"
+                                    data-task-detail-edit-group
+                                    hidden
+                                >
+                                    <?php if (!$taskGroupsWithAccess): ?>
+                                        <option value="">Sem grupo com acesso</option>
+                                    <?php else: ?>
+                                        <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
+                                            <option value="<?= e((string) $groupNameOption) ?>">
+                                                <?= e((string) $groupNameOption) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
                         </label>
 
                         <label>
@@ -4293,13 +4410,13 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     >
                                     <span class="task-subtasks-dependency-icon" aria-hidden="true">
                                         <svg viewBox="0 0 20 20" focusable="false">
-                                            <circle cx="10" cy="4.4" r="1.6"></circle>
-                                            <circle cx="10" cy="10" r="1.6"></circle>
-                                            <circle cx="10" cy="15.6" r="1.6"></circle>
-                                            <path d="M10 6.3v1.6"></path>
-                                            <path d="M10 11.9v1.6"></path>
-                                            <path d="M8.7 6.9 10 8.2l1.3-1.3"></path>
-                                            <path d="M8.7 12.5 10 13.8l1.3-1.3"></path>
+                                            <rect x="5.2" y="2.2" width="9.6" height="3.1" rx="1.1"></rect>
+                                            <rect x="5.2" y="8.5" width="9.6" height="3.1" rx="1.1"></rect>
+                                            <rect x="5.2" y="14.7" width="9.6" height="3.1" rx="1.1"></rect>
+                                            <path d="M10 5.8v1.7"></path>
+                                            <path d="M10 12.1v1.7"></path>
+                                            <path d="M8.9 6.5 10 7.7l1.1-1.2"></path>
+                                            <path d="M8.9 12.8 10 14l1.1-1.2"></path>
                                         </svg>
                                     </span>
                                     <span class="sr-only">Ativar sequência entre etapas</span>

@@ -10,9 +10,20 @@
                 <?php if (!empty($canManageWorkspace)): ?>
                     <section class="workspace-settings-card">
                         <h3>Dados do workspace</h3>
-                        <form method="post" class="workspace-settings-form">
+                        <form method="post" class="workspace-settings-form workspace-profile-form" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                            <input type="hidden" name="action" value="workspace_update_name">
+                            <input type="hidden" name="action" value="workspace_update_profile">
+                            <div class="workspace-profile-photo-row">
+                                <?= renderWorkspaceAvatar($currentWorkspace, 'avatar workspace-profile-avatar') ?>
+                                <label class="workspace-profile-photo-field">
+                                    <span>Foto do workspace</span>
+                                    <input
+                                        type="file"
+                                        name="avatar"
+                                        accept="image/png,image/jpeg,image/webp,image/gif"
+                                    >
+                                </label>
+                            </div>
                             <label>
                                 <span>Nome do workspace</span>
                                 <input

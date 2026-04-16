@@ -398,6 +398,15 @@ function ensureUserProfileSchema(PDO $pdo): void
     $pdo->exec("ALTER TABLE users ADD COLUMN avatar_data_url TEXT NOT NULL DEFAULT ''");
 }
 
+function ensureWorkspaceProfileSchema(PDO $pdo): void
+{
+    if (tableHasColumn($pdo, 'workspaces', 'avatar_data_url')) {
+        return;
+    }
+
+    $pdo->exec("ALTER TABLE workspaces ADD COLUMN avatar_data_url TEXT NOT NULL DEFAULT ''");
+}
+
 function appMetaGet(PDO $pdo, string $metaKey): ?string
 {
     $metaKey = trim($metaKey);
@@ -462,6 +471,7 @@ function ensureWorkspaceSchema(PDO $pdo): void
                 name TEXT NOT NULL,
                 slug TEXT NOT NULL UNIQUE,
                 is_personal SMALLINT NOT NULL DEFAULT 0,
+                avatar_data_url TEXT NOT NULL DEFAULT \'\',
                 task_statuses_json TEXT NOT NULL DEFAULT \'[]\',
                 task_review_status_key TEXT DEFAULT NULL,
                 created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
@@ -490,6 +500,7 @@ function ensureWorkspaceSchema(PDO $pdo): void
                 name TEXT NOT NULL,
                 slug TEXT NOT NULL UNIQUE,
                 is_personal INTEGER NOT NULL DEFAULT 0,
+                avatar_data_url TEXT NOT NULL DEFAULT \'\',
                 task_statuses_json TEXT NOT NULL DEFAULT \'[]\',
                 task_review_status_key TEXT DEFAULT NULL,
                 created_by INTEGER DEFAULT NULL,
@@ -2777,6 +2788,8 @@ function ensureWorkspaceTaskStatusSchema(PDO $pdo): void
         return;
     }
 
+    ensureWorkspaceProfileSchema($pdo);
+
     $columns = [
         'task_statuses_json' => "ALTER TABLE workspaces ADD COLUMN task_statuses_json TEXT NOT NULL DEFAULT '[]'",
         'task_review_status_key' => 'ALTER TABLE workspaces ADD COLUMN task_review_status_key TEXT DEFAULT NULL',
@@ -2809,7 +2822,7 @@ function workspaceById(int $workspaceId): ?array
     ensureWorkspaceTaskStatusSchema($pdo);
 
     $stmt = $pdo->prepare(
-        'SELECT id, name, slug, is_personal, created_by, task_statuses_json, task_review_status_key, created_at, updated_at
+        'SELECT id, name, slug, is_personal, avatar_data_url, created_by, task_statuses_json, task_review_status_key, created_at, updated_at
          FROM workspaces
          WHERE id = :id
          LIMIT 1'
@@ -2852,8 +2865,10 @@ function personalWorkspaceForUserId(int $userId): ?array
         return null;
     }
 
+    ensureWorkspaceProfileSchema(db());
+
     $stmt = db()->prepare(
-        'SELECT w.id, w.name, w.slug, w.is_personal, w.created_by, w.created_at, w.updated_at
+        'SELECT w.id, w.name, w.slug, w.is_personal, w.avatar_data_url, w.created_by, w.created_at, w.updated_at
          FROM workspaces w
          INNER JOIN workspace_members wm ON wm.workspace_id = w.id
          WHERE wm.user_id = :member_user_id
@@ -3082,27 +3097,56 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $
 
 function updateWorkspaceName(PDO $pdo, int $workspaceId, string $workspaceName): void
 {
+    updateWorkspaceProfile($pdo, $workspaceId, $workspaceName, [], true);
+}
+
+function updateWorkspaceProfile(
+    PDO $pdo,
+    int $workspaceId,
+    string $workspaceName,
+    array $avatarFile = [],
+    bool $allowRename = true
+): void {
     if ($workspaceId <= 0) {
         throw new RuntimeException('Workspace invalido.');
     }
 
-    $trimmed = trim($workspaceName);
-    if ($trimmed === '') {
-        throw new RuntimeException('Informe um nome para o workspace.');
-    }
+    ensureWorkspaceProfileSchema($pdo);
 
-    $name = normalizeWorkspaceName($trimmed);
-    $stmt = $pdo->prepare(
-        'UPDATE workspaces
-         SET name = :name,
-             updated_at = :updated_at
-         WHERE id = :workspace_id'
-    );
-    $stmt->execute([
-        ':name' => $name,
+    $params = [
         ':updated_at' => nowIso(),
         ':workspace_id' => $workspaceId,
-    ]);
+    ];
+    $setClauses = [
+        'updated_at = :updated_at',
+    ];
+
+    if ($allowRename) {
+        $trimmed = trim($workspaceName);
+        if ($trimmed === '') {
+            throw new RuntimeException('Informe um nome para o workspace.');
+        }
+
+        $params[':name'] = normalizeWorkspaceName($trimmed);
+        $setClauses[] = 'name = :name';
+    }
+
+    $avatarDataUrl = uploadedWorkspaceAvatarDataUrl($avatarFile);
+    if ($avatarDataUrl !== '') {
+        $params[':avatar_data_url'] = $avatarDataUrl;
+        $setClauses[] = 'avatar_data_url = :avatar_data_url';
+    }
+
+    if (count($setClauses) === 1) {
+        throw new RuntimeException('Nenhuma alteracao enviada para o workspace.');
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE workspaces
+         SET ' . implode(', ', $setClauses) . '
+         WHERE id = :workspace_id'
+    );
+    $stmt->execute($params);
 }
 
 function workspaceAdminCount(int $workspaceId): int
@@ -3283,6 +3327,96 @@ function uploadedUserAvatarDataUrl(array $file): string
     $contents = file_get_contents($tmpName);
     if (!is_string($contents) || $contents === '') {
         throw new RuntimeException('Nao foi possivel ler a foto de perfil.');
+    }
+
+    $imageInfo = @getimagesizefromstring($contents);
+    $mime = strtolower((string) ($imageInfo['mime'] ?? ''));
+    $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!$imageInfo || !in_array($mime, $allowedMimeTypes, true)) {
+        throw new RuntimeException('Use uma imagem PNG, JPG, WEBP ou GIF.');
+    }
+
+    return 'data:' . $mime . ';base64,' . base64_encode($contents);
+}
+
+function normalizeWorkspaceAvatarDataUrl(?string $value): string
+{
+    return normalizeUserAvatarDataUrl($value);
+}
+
+function workspaceAvatarDataUrl(array $workspace): string
+{
+    return normalizeWorkspaceAvatarDataUrl((string) ($workspace['avatar_data_url'] ?? ''));
+}
+
+function workspaceDisplayInitial(?string $name): string
+{
+    $normalized = normalizeWorkspaceName((string) $name);
+    if ($normalized === '') {
+        return '?';
+    }
+
+    return mb_strtoupper(mb_substr($normalized, 0, 1));
+}
+
+function renderWorkspaceAvatar(
+    array $workspace,
+    string $class = 'avatar',
+    bool $ariaHidden = true,
+    string $tag = 'div'
+): string {
+    $tag = in_array($tag, ['div', 'span'], true) ? $tag : 'div';
+    $class = trim($class);
+    $avatarDataUrl = workspaceAvatarDataUrl($workspace);
+    $name = trim((string) ($workspace['name'] ?? 'Workspace'));
+    $attributes = $class !== '' ? ' class="' . e($class . ($avatarDataUrl !== '' ? ' has-image' : '')) . '"' : '';
+    $attributes .= $ariaHidden ? ' aria-hidden="true"' : ' aria-label="' . e($name !== '' ? $name : 'Workspace') . '"';
+
+    if ($avatarDataUrl !== '') {
+        return sprintf(
+            '<%1$s%2$s><img src="%3$s" alt="" loading="lazy"></%1$s>',
+            $tag,
+            $attributes,
+            e($avatarDataUrl)
+        );
+    }
+
+    return sprintf(
+        '<%1$s%2$s>%3$s</%1$s>',
+        $tag,
+        $attributes,
+        e(workspaceDisplayInitial($name))
+    );
+}
+
+function uploadedWorkspaceAvatarDataUrl(array $file): string
+{
+    $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($errorCode === UPLOAD_ERR_NO_FILE) {
+        return '';
+    }
+
+    if ($errorCode !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('Falha ao enviar a foto do workspace.');
+    }
+
+    $size = (int) ($file['size'] ?? 0);
+    if ($size <= 0) {
+        throw new RuntimeException('Arquivo de foto do workspace invalido.');
+    }
+
+    if ($size > 2 * 1024 * 1024) {
+        throw new RuntimeException('A foto do workspace deve ter no maximo 2 MB.');
+    }
+
+    $tmpName = (string) ($file['tmp_name'] ?? '');
+    if ($tmpName === '' || !is_file($tmpName)) {
+        throw new RuntimeException('Arquivo de foto do workspace invalido.');
+    }
+
+    $contents = file_get_contents($tmpName);
+    if (!is_string($contents) || $contents === '') {
+        throw new RuntimeException('Nao foi possivel ler a foto do workspace.');
     }
 
     $imageInfo = @getimagesizefromstring($contents);
@@ -3547,12 +3681,16 @@ function workspaceMembershipsDetailedForUser(int $userId): array
         return [];
     }
 
-    $stmt = db()->prepare(
+    $pdo = db();
+    ensureWorkspaceProfileSchema($pdo);
+
+    $stmt = $pdo->prepare(
         'SELECT
              w.id,
              w.name,
              w.slug,
              w.is_personal,
+             w.avatar_data_url,
              w.created_by,
              w.created_at,
              w.updated_at,
@@ -3595,12 +3733,16 @@ function workspacesForUser(int $userId): array
         return [];
     }
 
-    $stmt = db()->prepare(
+    $pdo = db();
+    ensureWorkspaceProfileSchema($pdo);
+
+    $stmt = $pdo->prepare(
         'SELECT
              w.id,
              w.name,
              w.slug,
              w.is_personal,
+             w.avatar_data_url,
              w.created_by,
              w.created_at,
              w.updated_at,
@@ -7237,9 +7379,10 @@ function taskPriorities(): array
 function taskTitleTagPresets(): array
 {
     return [
-        'Novo recurso',
-        'Nova aba',
-        'Corrigir',
+        'Reels',
+        'Story',
+        'Captação',
+        'Reunião',
     ];
 }
 

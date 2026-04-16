@@ -230,7 +230,7 @@ $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
                                 $creatorName = trim((string) ($workspaceItem['creator_name'] ?? ''));
                                 ?>
                                 <li class="workspace-settings-member-item account-workspace-item<?= $isActiveWorkspace ? ' is-active-workspace' : '' ?><?= $isPersonalWorkspace ? ' is-personal-workspace' : '' ?>">
-                                    <div class="avatar small" aria-hidden="true"><?= e(strtoupper(substr($workspaceName, 0, 1))) ?></div>
+                                    <?= renderWorkspaceAvatar($workspaceItem, 'avatar small account-workspace-avatar') ?>
                                     <div class="workspace-settings-member-meta account-workspace-meta">
                                         <div class="account-workspace-title-row">
                                             <strong><?= e($workspaceName) ?></strong>
