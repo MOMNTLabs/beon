@@ -3369,7 +3369,8 @@ function renderWorkspaceAvatar(
     $class = trim($class);
     $avatarDataUrl = workspaceAvatarDataUrl($workspace);
     $name = trim((string) ($workspace['name'] ?? 'Workspace'));
-    $attributes = $class !== '' ? ' class="' . e($class . ($avatarDataUrl !== '' ? ' has-image' : '')) . '"' : '';
+    $classNames = trim('workspace-avatar ' . $class . ($avatarDataUrl !== '' ? ' has-image' : ''));
+    $attributes = $classNames !== '' ? ' class="' . e($classNames) . '"' : '';
     $attributes .= $ariaHidden ? ' aria-hidden="true"' : ' aria-label="' . e($name !== '' ? $name : 'Workspace') . '"';
 
     if ($avatarDataUrl !== '') {
