@@ -1180,6 +1180,37 @@ window.addEventListener("DOMContentLoaded", () => {
     return `${year}-${month}-${day}`;
   };
 
+  const formatTaskHumanDate = (date, fallback = "") => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return fallback || "";
+    }
+
+    const monthNames = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
+
+    const day = date.getDate();
+    const monthLabel = monthNames[date.getMonth()] || String(date.getMonth() + 1);
+    let label = `${day} de ${monthLabel}`;
+
+    if (date.getFullYear() !== new Date().getFullYear()) {
+      label += ` de ${date.getFullYear()}`;
+    }
+
+    return label;
+  };
+
   const dueDateMeta = (value) => {
     const raw = (value || "").trim();
     if (!raw) {
@@ -1197,11 +1228,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const todayIso = toLocalIsoDate(today);
     const tomorrowIso = toLocalIsoDate(tomorrow);
 
-    let formatted = raw;
     const parsed = new Date(`${raw}T00:00:00`);
-    if (!Number.isNaN(parsed.getTime())) {
-      formatted = parsed.toLocaleDateString("pt-BR");
-    }
+    const formatted = formatTaskHumanDate(parsed, raw);
 
     if (raw === todayIso) {
       return {
@@ -2222,7 +2250,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!raw) return "Sem prazo";
     const parsed = new Date(`${raw}T00:00:00`);
     if (Number.isNaN(parsed.getTime())) return raw;
-    return parsed.toLocaleDateString("pt-BR");
+    return formatTaskHumanDate(parsed, raw);
   };
 
   const formatHistoryDateTime = (value) => {

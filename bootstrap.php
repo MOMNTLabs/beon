@@ -5710,7 +5710,7 @@ function accountingMonthLabel(string $periodKey): string
     $monthNames = [
         1 => 'Janeiro',
         2 => 'Fevereiro',
-        3 => 'Marco',
+        3 => 'Março',
         4 => 'Abril',
         5 => 'Maio',
         6 => 'Junho',
@@ -9720,7 +9720,7 @@ function taskDueDatePresentation(?string $dueDateValue): array
     }
 
     $iso = $date->format('Y-m-d');
-    $fullLabel = $date->format('d/m/Y');
+    $fullLabel = taskHumanDateLabel($date);
     $today = (new DateTimeImmutable('today'))->format('Y-m-d');
     $tomorrow = (new DateTimeImmutable('tomorrow'))->format('Y-m-d');
 
@@ -9745,6 +9745,39 @@ function taskDueDatePresentation(?string $dueDateValue): array
         'title' => $fullLabel,
         'is_relative' => false,
     ];
+}
+
+function taskHumanDateLabel(DateTimeImmutable $date, ?DateTimeImmutable $referenceDate = null): string
+{
+    $referenceDate = $referenceDate instanceof DateTimeImmutable
+        ? $referenceDate
+        : new DateTimeImmutable('today');
+
+    $monthNames = [
+        1 => 'Janeiro',
+        2 => 'Fevereiro',
+        3 => 'Março',
+        4 => 'Abril',
+        5 => 'Maio',
+        6 => 'Junho',
+        7 => 'Julho',
+        8 => 'Agosto',
+        9 => 'Setembro',
+        10 => 'Outubro',
+        11 => 'Novembro',
+        12 => 'Dezembro',
+    ];
+
+    $day = (int) $date->format('j');
+    $monthNumber = (int) $date->format('n');
+    $monthLabel = $monthNames[$monthNumber] ?? $date->format('m');
+    $label = $day . ' de ' . $monthLabel;
+
+    if ($date->format('Y') !== $referenceDate->format('Y')) {
+        $label .= ' de ' . $date->format('Y');
+    }
+
+    return $label;
 }
 
 function dashboardStats(array $tasks): array
