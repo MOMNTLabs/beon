@@ -34,7 +34,7 @@
                                     required
                                 >
                             </label>
-                            <button type="submit" class="btn btn-mini">Salvar nome</button>
+                            <button type="submit" class="btn btn-mini">Salvar perfil</button>
                         </form>
                     </section>
                 <?php endif; ?>
