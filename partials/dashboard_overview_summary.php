@@ -16,6 +16,13 @@ $overviewTasksTomorrow = array_values((array) ($globalDashboardOverview['tasks_t
 $overviewDueSoon = array_values((array) ($globalDashboardOverview['due_soon'] ?? []));
 $overviewLowStock = array_values((array) ($globalDashboardOverview['low_stock'] ?? []));
 $overviewWorkspaceSummaries = array_values((array) ($globalDashboardOverview['workspace_summaries'] ?? []));
+$overviewPrimaryTasksWorkspaceId = (int) (
+    $overviewTasksToday[0]['workspace_id']
+    ?? $overviewTasksTomorrow[0]['workspace_id']
+    ?? 0
+);
+$overviewPrimaryDueWorkspaceId = (int) ($overviewDueSoon[0]['workspace_id'] ?? 0);
+$overviewPrimaryInventoryWorkspaceId = (int) ($overviewLowStock[0]['workspace_id'] ?? 0);
 $overviewHasImmediateAttention = $overviewUrgentTasksTodayTotal > 0
     || $overviewDueTodayTotal > 0
     || $overviewLowStockTotal > 0
@@ -89,16 +96,32 @@ $overviewQuickStats = array_slice($overviewQuickStats, 0, 3);
 
 $overviewOpenActions = [];
 if ($overviewTasksTodayTotal > 0) {
-    $overviewOpenActions[] = ['view' => 'tasks', 'label' => 'Abrir tarefas'];
+    $overviewOpenActions[] = [
+        'view' => 'tasks',
+        'label' => 'Abrir tarefas',
+        'workspace_id' => $overviewPrimaryTasksWorkspaceId,
+    ];
 }
 if ($overviewTasksTomorrowTotal > 0 && $overviewTasksTodayTotal === 0) {
-    $overviewOpenActions[] = ['view' => 'tasks', 'label' => 'Ver tarefas de amanha'];
+    $overviewOpenActions[] = [
+        'view' => 'tasks',
+        'label' => 'Ver tarefas de amanhã',
+        'workspace_id' => $overviewPrimaryTasksWorkspaceId,
+    ];
 }
 if ($overviewDueSoonTotal > 0) {
-    $overviewOpenActions[] = ['view' => 'dues', 'label' => 'Abrir vencimentos'];
+    $overviewOpenActions[] = [
+        'view' => 'dues',
+        'label' => 'Abrir vencimentos',
+        'workspace_id' => $overviewPrimaryDueWorkspaceId,
+    ];
 }
 if ($overviewLowStockTotal > 0) {
-    $overviewOpenActions[] = ['view' => 'inventory', 'label' => 'Abrir estoque'];
+    $overviewOpenActions[] = [
+        'view' => 'inventory',
+        'label' => 'Abrir estoque',
+        'workspace_id' => $overviewPrimaryInventoryWorkspaceId,
+    ];
 }
 $overviewOpenActions = array_slice($overviewOpenActions, 0, 3);
 
@@ -299,14 +322,33 @@ if (empty($overviewAttentionItems)) {
         <?php if (!empty($overviewOpenActions)): ?>
             <div class="dashboard-brief-actions">
                 <?php foreach ($overviewOpenActions as $overviewOpenAction): ?>
-                    <button
-                        type="button"
-                        class="dashboard-brief-action"
-                        data-dashboard-view-toggle
-                        data-view="<?= e((string) ($overviewOpenAction['view'] ?? 'overview')) ?>"
-                    >
-                        <?= e((string) ($overviewOpenAction['label'] ?? 'Abrir')) ?>
-                    </button>
+                    <?php
+                    $overviewActionView = trim((string) ($overviewOpenAction['view'] ?? 'overview'));
+                    $overviewActionWorkspaceId = (int) ($overviewOpenAction['workspace_id'] ?? 0);
+                    $overviewActionRedirect = 'index.php#' . $overviewActionView;
+                    $overviewNeedsWorkspaceSwitch = $overviewActionWorkspaceId > 0
+                        && $overviewActionWorkspaceId !== (int) ($currentWorkspaceId ?? 0);
+                    ?>
+                    <?php if ($overviewNeedsWorkspaceSwitch): ?>
+                        <form method="post" class="dashboard-brief-action-form">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                            <input type="hidden" name="action" value="switch_workspace">
+                            <input type="hidden" name="workspace_id" value="<?= e((string) $overviewActionWorkspaceId) ?>">
+                            <input type="hidden" name="redirect_to" value="<?= e($overviewActionRedirect) ?>">
+                            <button type="submit" class="dashboard-brief-action">
+                                <?= e((string) ($overviewOpenAction['label'] ?? 'Abrir')) ?>
+                            </button>
+                        </form>
+                    <?php else: ?>
+                        <button
+                            type="button"
+                            class="dashboard-brief-action"
+                            data-dashboard-view-toggle
+                            data-view="<?= e($overviewActionView) ?>"
+                        >
+                            <?= e((string) ($overviewOpenAction['label'] ?? 'Abrir')) ?>
+                        </button>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>

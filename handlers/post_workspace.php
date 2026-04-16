@@ -3,6 +3,16 @@ declare(strict_types=1);
 
 function handleWorkspacePostAction(PDO $pdo, string $action): bool
 {
+    $allowedSwitchWorkspaceRedirects = [
+        'index.php',
+        'index.php#overview',
+        'index.php#tasks',
+        'index.php#vault',
+        'index.php#dues',
+        'index.php#inventory',
+        'index.php#users',
+    ];
+
     switch ($action) {
             case 'switch_workspace':
                 $authUser = requireAuth();
@@ -12,7 +22,11 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 }
 
                 setActiveWorkspaceId($workspaceId);
-                redirectTo('index.php#tasks');
+                $redirectPath = trim((string) ($_POST['redirect_to'] ?? ''));
+                if (!in_array($redirectPath, $allowedSwitchWorkspaceRedirects, true)) {
+                    $redirectPath = 'index.php#tasks';
+                }
+                redirectTo($redirectPath);
 
             case 'create_workspace':
                 $authUser = requireAuth();
