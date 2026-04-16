@@ -7463,6 +7463,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     inset: 5px;
     width: calc(100% - 10px);
     height: calc(100% - 10px);
+    transform: rotate(90deg);
+    transform-origin: center;
     stroke: currentColor;
     fill: none;
     stroke-width: 1.55;
@@ -13201,11 +13203,13 @@ body.is-dashboard:not(.theme-dark) .workspace-sidebar-picker > summary {
 }
 
 body.is-dashboard:not(.theme-dark) .workspace-sidebar-picker-title {
-    color: #445f85;
-    background: none;
-    -webkit-text-fill-color: currentColor;
-    text-shadow: none;
-    font-weight: 700;
+    color: #3f628c;
+    background: linear-gradient(118deg, #2f5f95 0%, #6278b9 54%, #58abd7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 12px rgba(130, 177, 225, 0.18);
+    font-weight: 800;
     letter-spacing: -0.01em;
 }
 
