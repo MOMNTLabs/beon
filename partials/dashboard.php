@@ -360,6 +360,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
         </header>
 
         <section class="overview-wrap panel" id="overview" data-dashboard-view-panel="overview">
+            <?php if (false): ?>
             <?php
             $overviewExecutiveTone = (string) ($globalDashboardOverview['executive_status_tone'] ?? 'stable');
             $overviewExecutiveFocusTotal = (int) ($globalDashboardOverview['executive_focus_total'] ?? 0);
@@ -841,6 +842,9 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     </div>
                 <?php endif; ?>
             </section>
+            <?php else: ?>
+                <?php require __DIR__ . '/dashboard_overview_summary.php'; ?>
+            <?php endif; ?>
         </section>
 
         <section class="tasklist-wrap panel" id="tasks" data-dashboard-view-panel="tasks" hidden>
