@@ -2040,16 +2040,16 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .workspace-statuses-list {
     display: grid;
-    gap: 10px;
+    gap: 8px;
 }
 
 .workspace-status-row {
     display: grid;
     grid-template-columns: 10px minmax(0, 1fr) auto auto auto auto;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
-    padding: 10px 12px;
-    border-radius: 14px;
+    padding: 8px 10px;
+    border-radius: 12px;
     border: 1px solid rgba(132, 166, 205, 0.24);
     background: rgba(245, 250, 255, 0.72);
     transition: border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
@@ -2057,13 +2057,13 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .workspace-status-row input[type="text"] {
     min-width: 0;
-    min-height: 38px;
+    min-height: 32px;
     padding: 0;
     border: 0;
     background: transparent;
     box-shadow: none;
     color: #28466f;
-    font-size: 0.98rem;
+    font-size: 0.94rem;
 }
 
 .workspace-status-row input[type="text"]:focus {
@@ -2100,26 +2100,26 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .workspace-status-tone {
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
     border-radius: 999px;
     background: #70a8e5;
-    box-shadow: 0 0 0 4px rgba(112, 168, 229, 0.14);
+    box-shadow: 0 0 0 3px rgba(112, 168, 229, 0.14);
 }
 
 .workspace-status-tone-in_progress {
     background: #e59b54;
-    box-shadow: 0 0 0 4px rgba(229, 155, 84, 0.14);
+    box-shadow: 0 0 0 3px rgba(229, 155, 84, 0.14);
 }
 
 .workspace-status-tone-review {
     background: #9c7de4;
-    box-shadow: 0 0 0 4px rgba(156, 125, 228, 0.14);
+    box-shadow: 0 0 0 3px rgba(156, 125, 228, 0.14);
 }
 
 .workspace-status-tone-done {
     background: #54b887;
-    box-shadow: 0 0 0 4px rgba(84, 184, 135, 0.14);
+    box-shadow: 0 0 0 3px rgba(84, 184, 135, 0.14);
 }
 
 .workspace-status-row[data-status-color] {
@@ -2137,16 +2137,16 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .workspace-status-row[data-status-color] .workspace-status-tone {
     background: var(--wf-status-color);
-    box-shadow: 0 0 0 4px rgba(var(--wf-status-rgb), 0.14);
+    box-shadow: 0 0 0 3px rgba(var(--wf-status-rgb), 0.14);
 }
 
 .workspace-status-reorder-handle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    min-width: 18px;
-    height: 28px;
+    width: 16px;
+    min-width: 16px;
+    height: 24px;
     padding: 0 1px;
     border: 0;
     border-radius: 0;
@@ -2212,28 +2212,28 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .workspace-status-color-control input[type="color"] {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
+    width: 29px;
+    height: 29px;
+    min-width: 29px;
     padding: 0;
     border: 1px solid rgba(132, 166, 205, 0.3);
-    border-radius: 10px;
+    border-radius: 9px;
     background: rgba(247, 251, 255, 0.9);
     cursor: pointer;
 }
 
 .workspace-status-color-control input[type="color"]::-webkit-color-swatch-wrapper {
-    padding: 3px;
+    padding: 2px;
 }
 
 .workspace-status-color-control input[type="color"]::-webkit-color-swatch {
     border: 0;
-    border-radius: 7px;
+    border-radius: 6px;
 }
 
 .workspace-status-color-control input[type="color"]::-moz-color-swatch {
     border: 0;
-    border-radius: 7px;
+    border-radius: 6px;
 }
 
 .workspace-status-color-control input[type="color"]:hover,
@@ -2248,9 +2248,9 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
     padding: 0;
     border: 0;
     background: transparent;
@@ -2262,7 +2262,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     place-items: center;
     width: 100%;
     height: 100%;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid rgba(132, 166, 205, 0.3);
     background: rgba(247, 251, 255, 0.9);
     color: #6a82a8;
@@ -2270,8 +2270,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .workspace-status-review-icon svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     stroke: currentColor;
     fill: none;
     stroke-width: 1.6;
@@ -2307,15 +2307,15 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    min-width: 18px;
-    height: 28px;
+    width: 16px;
+    min-width: 16px;
+    height: 24px;
     padding: 0 1px;
     border: 0;
     border-radius: 0;
     background: transparent;
     color: #bf6b6b;
-    font-size: 1.18rem;
+    font-size: 1.08rem;
     line-height: 1;
     cursor: pointer;
     transition: color 160ms ease, opacity 160ms ease, transform 160ms ease;
@@ -13758,6 +13758,9 @@ body.theme-dark .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-da
 .task-detail-modal [data-task-detail-edit-title-composer]:focus-within {
     z-index: 160;
     border-color: rgba(102, 126, 194, 0.58);
+    background:
+        linear-gradient(135deg, rgba(240, 245, 255, 0.99), rgba(221, 233, 249, 0.97)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0));
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.96),
         0 0 0 3px rgba(170, 185, 233, 0.26),
