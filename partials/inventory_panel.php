@@ -228,7 +228,7 @@
                     <p class="accounting-period-label"><?= e($accountingPeriodLabel) ?></p>
                 </div>
                 <div class="board-summary accounting-board-summary">
-                    <form method="get" action="index.php#accounting" class="accounting-period-form">
+                    <form method="get" action="<?= e(appPath('#accounting')) ?>" class="accounting-period-form">
                         <a
                             href="<?= e($accountingPreviousPeriodPath) ?>"
                             class="accounting-period-nav"

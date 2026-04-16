@@ -82,7 +82,7 @@ function tasksRedirectPathFromRequest(?array $get = null, ?array $post = null): 
     }
 
     $query = http_build_query($params);
-    return $query !== '' ? "index.php?{$query}#tasks" : 'index.php#tasks';
+    return $query !== '' ? appPath('?' . $query . '#tasks') : appPath('#tasks');
 }
 
 function accountingRedirectPathFromRequest(?array $get = null, ?array $post = null): string
@@ -102,7 +102,7 @@ function accountingRedirectPathFromRequest(?array $get = null, ?array $post = nu
         'accounting_period' => $periodKey,
     ]);
 
-    return "index.php?{$query}#accounting";
+    return appPath('?' . $query . '#accounting');
 }
 
 function accountingInstallmentProgressFromRequest(?array $post = null): string

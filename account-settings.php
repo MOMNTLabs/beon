@@ -108,11 +108,11 @@ $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
 
         <header class="top-nav dashboard-nav">
             <div class="top-nav-leading">
-                <a href="index.php#tasks" class="btn btn-mini btn-ghost nav-back-button" aria-label="Voltar para dashboard">
+                <a href="<?= e(appPath('#tasks')) ?>" class="btn btn-mini btn-ghost nav-back-button" aria-label="Voltar para dashboard">
                     <span aria-hidden="true">&#8592;</span>
                     <span>Voltar</span>
                 </a>
-                <a href="index.php" class="brand" aria-label="<?= e(APP_NAME) ?>">
+                <a href="<?= e(appPath()) ?>" class="brand" aria-label="<?= e(APP_NAME) ?>">
                     <img
                         src="assets/WorkForm - Logo.svg?v=3"
                         data-theme-logo-light="assets/WorkForm - Logo.svg?v=3"

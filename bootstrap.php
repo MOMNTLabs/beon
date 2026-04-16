@@ -2312,22 +2312,79 @@ function deleteRememberTokensForUser(int $userId): void
     $stmt->execute([':user_id' => $userId]);
 }
 
+function appBasePath(): string
+{
+    $configuredAppUrl = trim((string) envValue('APP_URL', ''));
+    if ($configuredAppUrl !== '') {
+        $configuredPath = (string) (parse_url($configuredAppUrl, PHP_URL_PATH) ?? '');
+        $configuredPath = preg_replace('~/index\.php/?$~i', '', $configuredPath) ?? $configuredPath;
+        $configuredPath = '/' . ltrim($configuredPath, '/');
+        $configuredPath = rtrim($configuredPath, '/');
+        return $configuredPath === '/' ? '' : $configuredPath;
+    }
+
+    $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+    $scriptDirectory = str_replace('\\', '/', dirname($scriptName));
+    $scriptDirectory = rtrim($scriptDirectory, '/');
+    if ($scriptDirectory === '' || $scriptDirectory === '.' || $scriptDirectory === '/') {
+        return '';
+    }
+
+    return $scriptDirectory;
+}
+
+function appPath(string $path = ''): string
+{
+    $trimmedPath = trim($path);
+    $basePath = appBasePath();
+    $baseRoot = $basePath !== '' ? $basePath . '/' : '/';
+
+    if ($trimmedPath === '') {
+        return $baseRoot;
+    }
+
+    if (preg_match('~^[a-z][a-z0-9+.-]*:~i', $trimmedPath) || str_starts_with($trimmedPath, '//')) {
+        return $trimmedPath;
+    }
+
+    if (preg_match('~^/?index\.php(?=$|[?#])~i', $trimmedPath)) {
+        $trimmedPath = preg_replace('~^/?index\.php~i', '', $trimmedPath) ?? $trimmedPath;
+        if ($trimmedPath === '') {
+            return $baseRoot;
+        }
+    }
+
+    if ($trimmedPath[0] === '?' || $trimmedPath[0] === '#') {
+        return $baseRoot . ltrim($trimmedPath, '/');
+    }
+
+    if ($trimmedPath[0] === '/') {
+        if (
+            $basePath === ''
+            || $trimmedPath === $basePath
+            || str_starts_with($trimmedPath, $basePath . '/')
+            || str_starts_with($trimmedPath, $basePath . '?')
+            || str_starts_with($trimmedPath, $basePath . '#')
+        ) {
+            return $trimmedPath;
+        }
+
+        return ($basePath !== '' ? $basePath : '') . $trimmedPath;
+    }
+
+    return ($basePath !== '' ? $basePath . '/' : '/') . ltrim($trimmedPath, '/');
+}
+
 function appEntryUrl(): string
 {
     $configuredAppUrl = trim((string) envValue('APP_URL', ''));
     if ($configuredAppUrl !== '') {
-        if (preg_match('~/index\.php/?$~i', $configuredAppUrl)) {
-            return rtrim($configuredAppUrl, '/');
-        }
-
-        return rtrim($configuredAppUrl, '/') . '/index.php';
+        return rtrim(preg_replace('~/index\.php/?$~i', '', $configuredAppUrl) ?? $configuredAppUrl, '/');
     }
 
     $scheme = requestIsHttps() ? 'https' : 'http';
     $host = trim((string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
-    $scriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php');
-
-    return $scheme . '://' . $host . $scriptName;
+    return $scheme . '://' . $host . appBasePath();
 }
 
 function passwordResetPath(string $selector, string $token, bool $absolute = false): string
@@ -2338,12 +2395,12 @@ function passwordResetPath(string $selector, string $token, bool $absolute = fal
         'token' => $token,
     ]);
 
-    $path = 'index.php?' . $query . '#reset-password';
+    $path = appPath('?' . $query . '#reset-password');
     if (!$absolute) {
         return $path;
     }
 
-    return appEntryUrl() . '?' . $query . '#reset-password';
+    return appEntryUrl() . '/?' . $query . '#reset-password';
 }
 
 function pruneExpiredPasswordResetTokens(): void
@@ -2640,7 +2697,7 @@ function nowIso(): string
 
 function redirectTo(string $path = 'index.php'): void
 {
-    header('Location: ' . $path);
+    header('Location: ' . appPath($path));
     exit;
 }
 

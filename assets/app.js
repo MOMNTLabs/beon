@@ -11377,7 +11377,10 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const query = params.toString();
-    const target = query ? `index.php?${query}#tasks` : "index.php#tasks";
+    const currentPath = String(window.location.pathname || "/");
+    const normalizedPath = currentPath.replace(/\/index\.php$/i, "/");
+    const dashboardPath = /\/$/.test(normalizedPath) ? normalizedPath : `${normalizedPath}/`;
+    const target = query ? `${dashboardPath}?${query}#tasks` : `${dashboardPath}#tasks`;
     window.location.assign(target);
   };
 

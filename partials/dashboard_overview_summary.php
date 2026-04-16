@@ -325,7 +325,7 @@ if (empty($overviewAttentionItems)) {
                     <?php
                     $overviewActionView = trim((string) ($overviewOpenAction['view'] ?? 'overview'));
                     $overviewActionWorkspaceId = (int) ($overviewOpenAction['workspace_id'] ?? 0);
-                    $overviewActionRedirect = 'index.php#' . $overviewActionView;
+                    $overviewActionRedirect = appPath('#' . $overviewActionView);
                     $overviewNeedsWorkspaceSwitch = $overviewActionWorkspaceId > 0
                         && $overviewActionWorkspaceId !== (int) ($currentWorkspaceId ?? 0);
                     ?>

@@ -42,7 +42,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 <main class="dashboard dashboard-compact">
     <section class="workspace-layout tasklist-layout">
         <aside class="panel users-sidebar" id="team">
-            <a href="index.php" class="sidebar-brand" aria-label="<?= e(APP_NAME) ?>">
+            <a href="<?= e(appPath()) ?>" class="sidebar-brand" aria-label="<?= e(APP_NAME) ?>">
                 <img
                     src="assets/WorkForm - Logo.svg?v=3"
                     data-theme-logo-light="assets/WorkForm - Logo.svg?v=3"
@@ -2194,7 +2194,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     <p class="accounting-period-label"><?= e($accountingPeriodLabel) ?></p>
                 </div>
                 <div class="board-summary accounting-board-summary">
-                    <form method="get" action="index.php#accounting" class="accounting-period-form">
+                    <form method="get" action="<?= e(appPath('#accounting')) ?>" class="accounting-period-form">
                         <a
                             href="<?= e($accountingPreviousPeriodPath) ?>"
                             class="accounting-period-nav"

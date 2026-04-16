@@ -4,13 +4,13 @@ declare(strict_types=1);
 function handleWorkspacePostAction(PDO $pdo, string $action): bool
 {
     $allowedSwitchWorkspaceRedirects = [
-        'index.php',
-        'index.php#overview',
-        'index.php#tasks',
-        'index.php#vault',
-        'index.php#dues',
-        'index.php#inventory',
-        'index.php#users',
+        appPath(),
+        appPath('#overview'),
+        appPath('#tasks'),
+        appPath('#vault'),
+        appPath('#dues'),
+        appPath('#inventory'),
+        appPath('#users'),
     ];
 
     switch ($action) {
@@ -22,9 +22,9 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 }
 
                 setActiveWorkspaceId($workspaceId);
-                $redirectPath = trim((string) ($_POST['redirect_to'] ?? ''));
+                $redirectPath = appPath(trim((string) ($_POST['redirect_to'] ?? '')));
                 if (!in_array($redirectPath, $allowedSwitchWorkspaceRedirects, true)) {
-                    $redirectPath = 'index.php#tasks';
+                    $redirectPath = appPath('#tasks');
                 }
                 redirectTo($redirectPath);
 
