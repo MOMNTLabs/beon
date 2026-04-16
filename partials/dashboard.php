@@ -270,7 +270,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
             <div class="dashboard-nav-main">
                 <div class="user-chip">
-                    <div class="avatar" aria-hidden="true"><?= e(strtoupper(substr((string) $currentUser['name'], 0, 1))) ?></div>
+                    <?= renderUserAvatar($currentUser) ?>
                     <div>
                         <strong><?= e((string) $currentUser['name']) ?></strong>
                         <span><?= e((string) $currentUser['email']) ?></span>
@@ -1333,9 +1333,13 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                                         type="checkbox"
                                                                         name="assigned_to[]"
                                                                         value="<?= e((string) $user['id']) ?>"
+                                                                        data-assignee-name="<?= e((string) $user['name']) ?>"
+                                                                        data-assignee-avatar="<?= e(userAvatarDataUrl($user)) ?>"
+                                                                        data-assignee-initial="<?= e(userDisplayInitial((string) $user['name'])) ?>"
                                                                         <?= in_array((int) $user['id'], $task['assignee_ids'] ?? [], true) ? 'checked' : '' ?>
                                                                     >
-                                                                    <span><?= e((string) $user['name']) ?></span>
+                                                                    <?= renderUserAvatar($user, 'avatar small assignee-option-avatar', true, 'span') ?>
+                                                                    <span class="assignee-option-text"><?= e((string) $user['name']) ?></span>
                                                                 </label>
                                                             <?php endforeach; ?>
                                                         </div>
@@ -2643,7 +2647,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     $workspaceMemberId = (int) ($workspaceMember['id'] ?? 0);
                                     ?>
                                     <li class="workspace-settings-member-item">
-                                        <div class="avatar small" aria-hidden="true"><?= e(strtoupper(substr((string) $workspaceMember['name'], 0, 1))) ?></div>
+                                        <?= renderUserAvatar($workspaceMember, 'avatar small') ?>
                                         <div class="workspace-settings-member-meta">
                                             <strong><?= e((string) $workspaceMember['name']) ?></strong>
                                             <span class="workspace-member-role workspace-role-<?= e((string) $memberRole) ?>"><?= e((string) $memberRoleLabel) ?></span>
@@ -2771,9 +2775,13 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                             type="checkbox"
                                             name="assigned_to[]"
                                             value="<?= e((string) $user['id']) ?>"
+                                            data-assignee-name="<?= e((string) $user['name']) ?>"
+                                            data-assignee-avatar="<?= e(userAvatarDataUrl($user)) ?>"
+                                            data-assignee-initial="<?= e(userDisplayInitial((string) $user['name'])) ?>"
                                             <?= (int) $user['id'] === (int) $currentUser['id'] ? 'checked' : '' ?>
                                         >
-                                        <span><?= e((string) $user['name']) ?></span>
+                                        <?= renderUserAvatar($user, 'avatar small assignee-option-avatar', true, 'span') ?>
+                                        <span class="assignee-option-text"><?= e((string) $user['name']) ?></span>
                                     </label>
                                 <?php endforeach; ?>
                             <?php endif; ?>

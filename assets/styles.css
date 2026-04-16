@@ -13314,3 +13314,175 @@ body.theme-dark .task-list-item[data-status-color] {
     border-color: rgba(var(--task-status-rgb), 0.22);
     background: rgba(7, 11, 23, 0.78);
 }
+
+/* Profile avatars and assignee summaries */
+.avatar {
+    overflow: hidden;
+    flex-shrink: 0;
+    color: #ffffff;
+    text-transform: uppercase;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.avatar.has-image {
+    padding: 0;
+    color: transparent;
+    background:
+        linear-gradient(145deg, rgba(236, 244, 255, 0.96), rgba(218, 231, 247, 0.92));
+}
+
+.account-profile-form {
+    gap: 14px;
+}
+
+.account-profile-photo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.account-profile-avatar {
+    width: 58px;
+    height: 58px;
+    font-size: 1rem;
+}
+
+.account-profile-photo-field {
+    flex: 1 1 240px;
+}
+
+.account-profile-photo-field input[type="file"] {
+    min-height: 44px;
+    padding-block: 10px;
+    cursor: pointer;
+}
+
+.assignee-picker > summary,
+.task-detail-inline-assignee-picker > summary {
+    gap: 10px;
+}
+
+.assignee-picker > summary::after,
+.task-detail-inline-assignee-picker > summary::after {
+    flex: 0 0 auto;
+}
+
+.assignee-picker > summary > *,
+.task-detail-inline-assignee-picker > summary > *,
+.task-detail-view-assignees > * {
+    min-width: 0;
+}
+
+.assignee-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.assignee-summary-avatars {
+    --assignee-avatar-size: 28px;
+    --assignee-avatar-offset: 12px;
+    position: relative;
+    width: var(--assignee-avatar-size);
+    height: var(--assignee-avatar-size);
+    flex: 0 0 auto;
+}
+
+.assignee-summary-avatars.has-multiple {
+    width: calc(var(--assignee-avatar-size) + var(--assignee-avatar-offset));
+}
+
+.assignee-summary-avatar,
+.assignee-summary-avatar-back {
+    position: absolute;
+    top: 50%;
+    width: var(--assignee-avatar-size);
+    height: var(--assignee-avatar-size);
+    border-radius: 999px;
+    transform: translateY(-50%);
+}
+
+.assignee-summary-avatar {
+    left: 0;
+    z-index: 2;
+    width: var(--assignee-avatar-size);
+    height: var(--assignee-avatar-size);
+    font-size: 0.76rem;
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    box-shadow: 0 8px 18px rgba(84, 118, 156, 0.16);
+}
+
+.assignee-summary-avatar-back {
+    left: var(--assignee-avatar-offset);
+    z-index: 1;
+    border: 2px solid rgba(255, 255, 255, 0.86);
+    background:
+        linear-gradient(145deg, rgba(222, 232, 247, 0.96), rgba(203, 218, 238, 0.88));
+    box-shadow: 0 8px 18px rgba(84, 118, 156, 0.1);
+}
+
+.assignee-summary-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.assignee-summary-text.is-empty {
+    color: inherit;
+}
+
+.row-assignee-picker > summary .assignee-summary-avatars {
+    --assignee-avatar-size: 24px;
+    --assignee-avatar-offset: 9px;
+}
+
+.row-assignee-picker > summary .assignee-summary {
+    width: 100%;
+}
+
+.row-assignee-picker > summary .assignee-summary-text {
+    font-size: 0.8rem;
+}
+
+.task-detail-view-assignees {
+    display: flex;
+    align-items: center;
+    min-height: 28px;
+}
+
+.task-detail-view-assignees .assignee-summary-text {
+    color: #4a678b;
+}
+
+.assignee-option {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 10px;
+}
+
+.assignee-option-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.76rem;
+}
+
+.assignee-option-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.row-assignee-picker > summary .assignee-summary-avatar,
+.row-assignee-picker > summary .assignee-summary-avatar-back {
+    box-shadow: 0 6px 14px rgba(84, 118, 156, 0.12);
+}

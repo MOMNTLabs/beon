@@ -2481,6 +2481,74 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const getAssigneeCheckboxData = (checkbox) => {
+    if (!(checkbox instanceof HTMLInputElement)) return null;
+
+    const label = checkbox.closest("label");
+    const fallbackName = label?.querySelector(".assignee-option-text")?.textContent?.trim() || "";
+    const name = String(checkbox.dataset.assigneeName || fallbackName).trim();
+    if (!name) return null;
+
+    const fallbackInitial = name.slice(0, 1).toUpperCase();
+
+    return {
+      name,
+      avatar: String(checkbox.dataset.assigneeAvatar || "").trim(),
+      initial: String(checkbox.dataset.assigneeInitial || fallbackInitial)
+        .trim()
+        .slice(0, 1)
+        .toUpperCase(),
+    };
+  };
+
+  const getCheckedAssigneeData = (picker) => {
+    if (!(picker instanceof HTMLElement)) return [];
+
+    return Array.from(picker.querySelectorAll('input[type="checkbox"]:checked'))
+      .map((checkbox) => getAssigneeCheckboxData(checkbox))
+      .filter(Boolean);
+  };
+
+  const renderAssigneeAvatarMarkup = (assignee, className) => {
+    if (!assignee || typeof assignee !== "object") return "";
+
+    const safeClassName = escapeHtml(className || "avatar");
+    const safeInitial = escapeHtml(
+      String(assignee.initial || assignee.name || "").trim().slice(0, 1).toUpperCase()
+    );
+    const avatar = String(assignee.avatar || "").trim();
+
+    if (avatar) {
+      return `<span class="${safeClassName} has-image" aria-hidden="true"><img src="${escapeHtml(
+        avatar
+      )}" alt=""></span>`;
+    }
+
+    return `<span class="${safeClassName}" aria-hidden="true">${safeInitial}</span>`;
+  };
+
+  const renderAssigneeSummaryMarkup = (assignees, emptyText = "Selecionar") => {
+    if (!Array.isArray(assignees) || !assignees.length) {
+      return `<span class="assignee-summary"><span class="assignee-summary-text is-empty">${escapeHtml(
+        emptyText
+      )}</span></span>`;
+    }
+
+    const primaryAssignee = assignees[0];
+    const hasMultiple = assignees.length > 1;
+    const summaryText = hasMultiple
+      ? `${primaryAssignee.name} +${assignees.length - 1}`
+      : primaryAssignee.name;
+
+    return `<span class="assignee-summary"><span class="assignee-summary-avatars${
+      hasMultiple ? " has-multiple" : ""
+    }" aria-hidden="true">${
+      hasMultiple ? '<span class="assignee-summary-avatar-back"></span>' : ""
+    }${renderAssigneeAvatarMarkup(primaryAssignee, "avatar assignee-summary-avatar")}</span><span class="assignee-summary-text">${escapeHtml(
+      summaryText
+    )}</span></span>`;
+  };
+
   const updateAssigneePickerSummary = (details) => {
     const summary = details.querySelector("summary");
     if (!summary) return;
@@ -2509,6 +2577,28 @@ window.addEventListener("DOMContentLoaded", () => {
     summary.setAttribute("aria-label", checkedNames.join(", "));
   };
 
+  const updateAssigneePickerSummaryVisual = (details) => {
+    const summary = details?.querySelector?.("summary");
+    if (!(summary instanceof HTMLElement)) return;
+
+    const checkedAssignees = getCheckedAssigneeData(details);
+    const checkedNames = checkedAssignees.map((assignee) => assignee.name).filter(Boolean);
+    const emptyText = details.classList.contains("row-assignee-picker")
+      ? "Sem responsavel"
+      : "Selecionar";
+
+    summary.innerHTML = renderAssigneeSummaryMarkup(checkedAssignees, emptyText);
+
+    if (!checkedNames.length) {
+      summary.removeAttribute("title");
+      summary.setAttribute("aria-label", emptyText);
+      return;
+    }
+
+    summary.title = checkedNames.join(", ");
+    summary.setAttribute("aria-label", checkedNames.join(", "));
+  };
+
   const bindTaskOverlayToggleListener = (details) => {
     if (!(details instanceof HTMLDetailsElement)) return;
     if (details.dataset.overlayToggleBound === "1") return;
@@ -2534,7 +2624,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     root.querySelectorAll(".assignee-picker").forEach((details) => {
-      updateAssigneePickerSummary(details);
+      updateAssigneePickerSummaryVisual(details);
     });
 
     root
@@ -2563,7 +2653,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const checkbox = target.closest('.assignee-picker input[type="checkbox"]');
     if (!checkbox) return;
     const picker = checkbox.closest(".assignee-picker");
-    if (picker) updateAssigneePickerSummary(picker);
+    if (picker) updateAssigneePickerSummaryVisual(picker);
   });
 
   const ensureFlashStack = () => {
@@ -8306,14 +8396,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailEditAssigneesMenu.append(clone);
     });
 
-    updateAssigneePickerSummary(taskDetailEditAssignees);
-  };
-
-  const getCheckedAssigneeNames = (picker) => {
-    if (!(picker instanceof HTMLElement)) return [];
-    return Array.from(picker.querySelectorAll('input[type="checkbox"]:checked'))
-      .map((checkbox) => checkbox.closest("label")?.querySelector("span")?.textContent?.trim())
-      .filter(Boolean);
+    updateAssigneePickerSummaryVisual(taskDetailEditAssignees);
   };
 
   const syncTaskDetailViewPriorityTag = (priorityValue) => {
@@ -8395,7 +8478,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const titleTagColor = titleTag
       ? resolveTaskTitleTagColor(titleTag, titleTagColorField?.value || "")
       : normalizeTaskTitleTagColorValue(titleTagColorField?.value || "", taskTitleTagDefaultColor);
-    const assigneeNames = getCheckedAssigneeNames(rowAssigneePicker);
+    const assignees = getCheckedAssigneeData(rowAssigneePicker);
     const description = (descriptionField.value || "").trim();
     const referenceLinks = readJsonUrlListField(referenceLinksField, parseReferenceUrlLines);
     const referenceImages = readJsonUrlListField(referenceImagesField, parseReferenceImageItems);
@@ -8440,9 +8523,15 @@ window.addEventListener("DOMContentLoaded", () => {
     if (taskDetailViewGroup) taskDetailViewGroup.textContent = groupLabel;
     if (taskDetailViewDue) taskDetailViewDue.textContent = dueMeta.display;
     if (taskDetailViewAssignees) {
-      taskDetailViewAssignees.textContent = assigneeNames.length
-        ? `Responsaveis: ${assigneeNames.join(", ")}`
-        : "Sem responsavel";
+      const assigneeLabel = assignees.map((assignee) => assignee.name).join(", ");
+      taskDetailViewAssignees.innerHTML = renderAssigneeSummaryMarkup(assignees, "Sem responsavel");
+      if (assigneeLabel) {
+        taskDetailViewAssignees.title = assigneeLabel;
+        taskDetailViewAssignees.setAttribute("aria-label", assigneeLabel);
+      } else {
+        taskDetailViewAssignees.removeAttribute("title");
+        taskDetailViewAssignees.setAttribute("aria-label", "Sem responsavel");
+      }
     }
     renderTaskDetailDescriptionView({ description, history });
     renderTaskSubtasksViewList({
@@ -8674,7 +8763,7 @@ window.addEventListener("DOMContentLoaded", () => {
     syncSelectColor(context.statusSelect);
     syncSelectColor(context.prioritySelect);
     syncDueDateDisplay(context.dueDateInput);
-    updateAssigneePickerSummary(context.rowAssigneePicker);
+    updateAssigneePickerSummaryVisual(context.rowAssigneePicker);
 
     return true;
   };
@@ -9552,7 +9641,7 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       createTaskForm
         .querySelectorAll(".assignee-picker")
-        .forEach(updateAssigneePickerSummary);
+        .forEach(updateAssigneePickerSummaryVisual);
       createTaskForm
         .querySelectorAll(".status-select, .priority-select")
         .forEach(syncSelectColor);

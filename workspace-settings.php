@@ -234,6 +234,7 @@ $isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
 $canManageWorkspaceMembers = $canManageWorkspace && !$isPersonalWorkspace;
 $workspaceMembers = workspaceMembersList($currentWorkspaceId);
 $flashes = getFlashes();
+$stylesAssetVersion = (string) (@filemtime(__DIR__ . '/assets/styles.css') ?: '103');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -246,7 +247,7 @@ $flashes = getFlashes();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=102">
+    <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
 </head>
 <body class="is-dashboard is-workspace-settings" data-workspace-id="<?= e((string) $currentWorkspaceId) ?>">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
@@ -285,7 +286,7 @@ $flashes = getFlashes();
             </div>
 
             <div class="user-chip">
-                <div class="avatar" aria-hidden="true"><?= e(strtoupper(substr((string) $currentUser['name'], 0, 1))) ?></div>
+                <?= renderUserAvatar($currentUser) ?>
                 <div>
                     <strong><?= e((string) $currentUser['name']) ?></strong>
                     <span><?= e((string) $currentUser['email']) ?></span>
@@ -368,7 +369,7 @@ $flashes = getFlashes();
                                     $workspaceMemberId = (int) ($workspaceMember['id'] ?? 0);
                                     ?>
                                     <li class="workspace-settings-member-item">
-                                        <div class="avatar small" aria-hidden="true"><?= e(strtoupper(substr((string) $workspaceMember['name'], 0, 1))) ?></div>
+                                        <?= renderUserAvatar($workspaceMember, 'avatar small') ?>
                                         <div class="workspace-settings-member-meta">
                                             <strong><?= e((string) $workspaceMember['name']) ?></strong>
                                             <span class="workspace-member-role workspace-role-<?= e((string) $memberRole) ?>"><?= e((string) $memberRoleLabel) ?></span>

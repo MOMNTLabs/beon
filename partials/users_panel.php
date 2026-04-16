@@ -53,7 +53,7 @@
                                 $workspaceMemberId = (int) ($workspaceMember['id'] ?? 0);
                                 ?>
                                 <li class="workspace-settings-member-item">
-                                    <div class="avatar small" aria-hidden="true"><?= e(strtoupper(substr((string) $workspaceMember['name'], 0, 1))) ?></div>
+                                    <?= renderUserAvatar($workspaceMember, 'avatar small') ?>
                                     <div class="workspace-settings-member-meta">
                                         <strong><?= e((string) $workspaceMember['name']) ?></strong>
                                         <span class="workspace-member-role workspace-role-<?= e((string) $memberRole) ?>"><?= e((string) $memberRoleLabel) ?></span>

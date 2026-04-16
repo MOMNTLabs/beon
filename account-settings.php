@@ -18,13 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'Sessao encerrada.');
                 redirectTo('index.php');
 
-            case 'account_update_name':
-                updateUserDisplayName(
+            case 'account_update_profile':
+                updateUserProfile(
                     $pdo,
                     (int) $currentUser['id'],
-                    (string) ($_POST['name'] ?? '')
+                    (string) ($_POST['name'] ?? ''),
+                    $_FILES['avatar'] ?? []
                 );
-                flash('success', 'Nome atualizado.');
+                flash('success', 'Perfil atualizado.');
                 redirectTo('account-settings.php');
 
             case 'account_update_password':
@@ -71,6 +72,9 @@ $currentUser = requireAuth();
 $currentWorkspaceId = activeWorkspaceId($currentUser);
 $workspaceMemberships = workspaceMembershipsDetailedForUser((int) $currentUser['id']);
 $flashes = getFlashes();
+$stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
+    ? (string) filemtime(__DIR__ . '/assets/styles.css')
+    : '103';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -83,7 +87,7 @@ $flashes = getFlashes();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=103">
+    <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
 </head>
 <body class="is-dashboard is-workspace-settings">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
@@ -122,7 +126,7 @@ $flashes = getFlashes();
             </div>
 
             <div class="user-chip">
-                <div class="avatar" aria-hidden="true"><?= e(strtoupper(substr((string) $currentUser['name'], 0, 1))) ?></div>
+                <?= renderUserAvatar($currentUser) ?>
                 <div>
                     <strong><?= e((string) $currentUser['name']) ?></strong>
                     <span><?= e((string) $currentUser['email']) ?></span>
@@ -157,9 +161,20 @@ $flashes = getFlashes();
                 <div class="workspace-settings-grid account-settings-grid">
                     <section class="workspace-settings-card">
                         <h3>Perfil</h3>
-                        <form method="post" class="workspace-settings-form">
+                        <form method="post" class="workspace-settings-form account-profile-form" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                            <input type="hidden" name="action" value="account_update_name">
+                            <input type="hidden" name="action" value="account_update_profile">
+                            <div class="account-profile-photo-row">
+                                <?= renderUserAvatar($currentUser, 'avatar account-profile-avatar') ?>
+                                <label class="account-profile-photo-field">
+                                    <span>Foto de perfil</span>
+                                    <input
+                                        type="file"
+                                        name="avatar"
+                                        accept="image/png,image/jpeg,image/webp,image/gif"
+                                    >
+                                </label>
+                            </div>
                             <label>
                                 <span>Nome</span>
                                 <input
@@ -170,7 +185,7 @@ $flashes = getFlashes();
                                     required
                                 >
                             </label>
-                            <button type="submit" class="btn btn-mini">Salvar nome</button>
+                            <button type="submit" class="btn btn-mini">Salvar perfil</button>
                         </form>
                     </section>
 
