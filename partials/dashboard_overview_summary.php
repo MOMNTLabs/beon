@@ -3,6 +3,7 @@ $overviewExecutiveTone = (string) ($globalDashboardOverview['executive_status_to
 $overviewWorkspaceCount = (int) ($globalDashboardOverview['workspace_count'] ?? 0);
 $overviewDueSoonTotal = (int) ($globalDashboardOverview['due_soon_total'] ?? 0);
 $overviewTasksTodayTotal = (int) ($globalDashboardOverview['tasks_today_total'] ?? 0);
+$overviewTasksTomorrowTotal = (int) ($globalDashboardOverview['tasks_tomorrow_total'] ?? 0);
 $overviewUrgentTasksTodayTotal = (int) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0);
 $overviewLowStockTotal = (int) ($globalDashboardOverview['low_stock_total'] ?? 0);
 $overviewPriorityTasksTodayTotal = (int) ($globalDashboardOverview['priority_tasks_today_total'] ?? 0);
@@ -11,6 +12,7 @@ $overviewDueTomorrowTotal = (int) ($globalDashboardOverview['due_tomorrow_total'
 $overviewAttentionWorkspaceTotal = (int) ($globalDashboardOverview['attention_workspace_total'] ?? 0);
 $overviewCriticalWorkspaceTotal = (int) ($globalDashboardOverview['critical_workspace_total'] ?? 0);
 $overviewTasksToday = array_values((array) ($globalDashboardOverview['tasks_today'] ?? []));
+$overviewTasksTomorrow = array_values((array) ($globalDashboardOverview['tasks_tomorrow'] ?? []));
 $overviewDueSoon = array_values((array) ($globalDashboardOverview['due_soon'] ?? []));
 $overviewLowStock = array_values((array) ($globalDashboardOverview['low_stock'] ?? []));
 $overviewWorkspaceSummaries = array_values((array) ($globalDashboardOverview['workspace_summaries'] ?? []));
@@ -46,6 +48,12 @@ if ($overviewUrgentTasksTodayTotal > 0) {
         : 'Voce tem ' . $overviewTasksTodayTotal . ' tarefas no radar de hoje';
     $overviewNote = 'Nada urgente por enquanto, mas estes sao os pontos mais relevantes para abrir primeiro.';
     $overviewListTitle = 'Mais relevantes';
+} elseif ($overviewTasksTomorrowTotal > 0) {
+    $overviewHeadline = $overviewTasksTomorrowTotal === 1
+        ? 'Voce tem 1 tarefa programada para amanha'
+        : 'Voce tem ' . $overviewTasksTomorrowTotal . ' tarefas programadas para amanha';
+    $overviewNote = 'Sem urgencias agora, entao o dashboard ja antecipa o que entra no seu radar no proximo dia.';
+    $overviewListTitle = 'Proximos passos';
 } elseif ($overviewDueSoonTotal > 0) {
     $overviewHeadline = $overviewDueSoonTotal === 1
         ? 'Ha 1 vencimento proximo no radar'
@@ -68,6 +76,9 @@ if ($overviewDueTodayTotal > 0) {
 if ($overviewTasksTodayTotal > 0 && $overviewUrgentTasksTodayTotal === 0) {
     $overviewQuickStats[] = $overviewTasksTodayTotal . ' tarefa(s) hoje';
 }
+if ($overviewTasksTomorrowTotal > 0 && count($overviewQuickStats) < 3) {
+    $overviewQuickStats[] = $overviewTasksTomorrowTotal . ' tarefa(s) amanha';
+}
 if ($overviewLowStockTotal > 0) {
     $overviewQuickStats[] = $overviewLowStockTotal . ' item(ns) em baixa';
 }
@@ -79,6 +90,9 @@ $overviewQuickStats = array_slice($overviewQuickStats, 0, 3);
 $overviewOpenActions = [];
 if ($overviewTasksTodayTotal > 0) {
     $overviewOpenActions[] = ['view' => 'tasks', 'label' => 'Abrir tarefas'];
+}
+if ($overviewTasksTomorrowTotal > 0 && $overviewTasksTodayTotal === 0) {
+    $overviewOpenActions[] = ['view' => 'tasks', 'label' => 'Ver tarefas de amanha'];
 }
 if ($overviewDueSoonTotal > 0) {
     $overviewOpenActions[] = ['view' => 'dues', 'label' => 'Abrir vencimentos'];
@@ -202,6 +216,15 @@ if (empty($overviewAttentionItems)) {
         );
     }
 
+    foreach (array_slice($overviewTasksTomorrow, 0, 2) as $overviewTaskTomorrow) {
+        $taskPriority = normalizeTaskPriority((string) ($overviewTaskTomorrow['priority'] ?? 'medium'));
+        $appendOverviewTask(
+            $overviewTaskTomorrow,
+            'Amanha',
+            ($taskPriority === 'high' || $taskPriority === 'urgent') ? 'attention' : 'stable'
+        );
+    }
+
     foreach (array_slice($overviewDueSoon, 0, 2) as $overviewDueSoonItem) {
         $daysUntil = (int) ($overviewDueSoonItem['days_until'] ?? -1);
         $appendOverviewDue(
@@ -234,6 +257,15 @@ if (empty($overviewAttentionItems)) {
         }
 
         $appendOverviewDue($overviewDueSoonItem, 'Vence amanha', 'attention');
+    }
+
+    foreach ($overviewTasksTomorrow as $overviewTaskTomorrow) {
+        $taskPriority = normalizeTaskPriority((string) ($overviewTaskTomorrow['priority'] ?? 'medium'));
+        if ($taskPriority !== 'high' && $taskPriority !== 'urgent') {
+            continue;
+        }
+
+        $appendOverviewTask($overviewTaskTomorrow, 'Amanha', 'attention');
     }
 
     foreach ($overviewWorkspaceSummaries as $overviewWorkspaceSummary) {
