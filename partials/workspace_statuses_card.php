@@ -64,23 +64,6 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
                         aria-label="Nome do status"
                         <?= $canManageTaskStatuses ? '' : 'readonly' ?>
                     >
-                    <?php if ($canReorderStatus): ?>
-                        <button
-                            type="button"
-                            class="workspace-status-reorder-handle"
-                            data-workspace-status-reorder-handle
-                            draggable="true"
-                            aria-label="Reorganizar status"
-                            title="Arrastar para reorganizar"
-                        >
-                            <span class="workspace-status-reorder-dots" aria-hidden="true">
-                                <span></span><span></span><span></span>
-                                <span></span><span></span><span></span>
-                            </span>
-                        </button>
-                    <?php else: ?>
-                        <span class="workspace-status-reorder-handle workspace-status-reorder-handle-placeholder" aria-hidden="true"></span>
-                    <?php endif; ?>
                     <label class="workspace-status-color-control" title="Cor do status">
                         <input
                             type="color"
@@ -120,6 +103,23 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
                         </button>
                     <?php else: ?>
                         <span class="workspace-status-row-action workspace-status-row-action-placeholder" aria-hidden="true"></span>
+                    <?php endif; ?>
+                    <?php if ($canReorderStatus): ?>
+                        <button
+                            type="button"
+                            class="workspace-status-reorder-handle"
+                            data-workspace-status-reorder-handle
+                            draggable="true"
+                            aria-label="Reorganizar status"
+                            title="Arrastar para reorganizar"
+                        >
+                            <span class="workspace-status-reorder-dots" aria-hidden="true">
+                                <span></span><span></span><span></span>
+                                <span></span><span></span><span></span>
+                            </span>
+                        </button>
+                    <?php else: ?>
+                        <span class="workspace-status-reorder-handle workspace-status-reorder-handle-placeholder" aria-hidden="true"></span>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
