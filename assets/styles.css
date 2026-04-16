@@ -7347,13 +7347,21 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     grid-column: 1 / -1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 12px;
     min-width: 0;
 }
 
+.task-subtasks-editor-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
 .task-subtasks-editor > span,
-.task-subtasks-editor-head > span {
+.task-subtasks-editor-head > span,
+.task-subtasks-editor-title > span {
     font-size: 0.78rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -7363,9 +7371,9 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 .task-subtasks-dependency-toggle {
     position: relative;
     display: block;
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
     color: rgba(232, 240, 255, 0.9);
     user-select: none;
 }
@@ -7385,7 +7393,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     display: block;
     width: 100%;
     height: 100%;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.14);
     background: rgba(255, 255, 255, 0.04);
     color: inherit;
@@ -7397,9 +7405,9 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 
 .task-subtasks-dependency-icon svg {
     position: absolute;
-    inset: 8px;
-    width: calc(100% - 16px);
-    height: calc(100% - 16px);
+    inset: 7px;
+    width: calc(100% - 14px);
+    height: calc(100% - 14px);
     stroke: currentColor;
     fill: none;
     stroke-width: 1.6;
@@ -9230,6 +9238,7 @@ textarea:focus,
 .create-task-modal .task-detail-inline-field > span,
 .create-task-modal .task-subtasks-editor > span,
 .create-task-modal .task-subtasks-editor-head > span,
+.create-task-modal .task-subtasks-editor-title > span,
 .create-task-modal .task-detail-edit-images-field > span {
     color: #4d6a90;
 }
@@ -9874,6 +9883,7 @@ textarea:focus,
 .task-detail-modal .assignee-picker-label,
 .task-detail-modal .task-subtasks-editor > span,
 .task-detail-modal .task-subtasks-editor-head > span,
+.task-detail-modal .task-subtasks-editor-title > span,
 .task-detail-modal .task-detail-inline-field > span,
 .task-detail-modal .task-detail-edit-images-field > span {
     color: #4d6a90;
@@ -13313,6 +13323,57 @@ body.theme-dark .status-inline-picker [data-inline-select-option][data-status-co
 body.theme-dark .task-list-item[data-status-color] {
     border-color: rgba(var(--task-status-rgb), 0.22);
     background: rgba(7, 11, 23, 0.78);
+}
+
+/* Status dropdown must follow workspace custom colors in every context */
+.status-inline-picker[data-status-color] > summary,
+.create-task-modal .status-inline-picker[data-status-color] > summary,
+.task-detail-modal .status-inline-picker[data-status-color] > summary,
+.status-select[data-status-color] {
+    color: var(--wf-status-text);
+    border-color: rgba(var(--wf-status-rgb), 0.42);
+    background: rgba(var(--wf-status-rgb), 0.14);
+}
+
+.status-inline-picker .row-inline-picker-option[data-status-color],
+.create-task-modal .status-inline-picker .row-inline-picker-option[data-status-color],
+.task-detail-modal .status-inline-picker .row-inline-picker-option[data-status-color] {
+    color: var(--wf-status-text);
+    border-color: rgba(var(--wf-status-rgb), 0.34);
+    background: rgba(var(--wf-status-rgb), 0.12);
+}
+
+.status-inline-picker .row-inline-picker-option[data-status-color].is-active,
+.create-task-modal .status-inline-picker .row-inline-picker-option[data-status-color].is-active,
+.task-detail-modal .status-inline-picker .row-inline-picker-option[data-status-color].is-active {
+    color: var(--wf-status-text);
+    border-color: rgba(var(--wf-status-rgb), 0.58);
+    background: rgba(var(--wf-status-rgb), 0.22);
+}
+
+body.theme-dark .status-inline-picker[data-status-color] > summary,
+body.theme-dark .create-task-modal .status-inline-picker[data-status-color] > summary,
+body.theme-dark .task-detail-modal .status-inline-picker[data-status-color] > summary,
+body.theme-dark .status-select[data-status-color] {
+    color: var(--wf-status-text-dark);
+    border-color: rgba(var(--wf-status-rgb), 0.44);
+    background: rgba(var(--wf-status-rgb), 0.18);
+}
+
+body.theme-dark .status-inline-picker .row-inline-picker-option[data-status-color],
+body.theme-dark .create-task-modal .status-inline-picker .row-inline-picker-option[data-status-color],
+body.theme-dark .task-detail-modal .status-inline-picker .row-inline-picker-option[data-status-color] {
+    color: var(--wf-status-text-dark);
+    border-color: rgba(var(--wf-status-rgb), 0.34);
+    background: rgba(var(--wf-status-rgb), 0.16);
+}
+
+body.theme-dark .status-inline-picker .row-inline-picker-option[data-status-color].is-active,
+body.theme-dark .create-task-modal .status-inline-picker .row-inline-picker-option[data-status-color].is-active,
+body.theme-dark .task-detail-modal .status-inline-picker .row-inline-picker-option[data-status-color].is-active {
+    color: var(--wf-status-text-dark);
+    border-color: rgba(var(--wf-status-rgb), 0.56);
+    background: rgba(var(--wf-status-rgb), 0.24);
 }
 
 /* Profile avatars and assignee summaries */

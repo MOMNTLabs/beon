@@ -3020,27 +3020,28 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
             <div class="task-subtasks-editor">
                 <div class="task-subtasks-editor-head">
-                    <span>Etapas / subtarefas</span>
-                    <label class="task-subtasks-dependency-toggle" title="Ativar dependência entre etapas">
-                        <input
-                            type="checkbox"
-                            data-create-task-subtasks-dependency-toggle
-                        >
-                        <span class="task-subtasks-dependency-icon" aria-hidden="true">
-                            <svg viewBox="0 0 20 20" focusable="false">
-                                <path d="M6.2 6.6h2.7"></path>
-                                <path d="M11.1 6.6h2.7"></path>
-                                <path d="M8.9 13.4H6.2"></path>
-                                <path d="M13.8 13.4h-2.7"></path>
-                                <circle cx="4.4" cy="6.6" r="1.6"></circle>
-                                <circle cx="15.6" cy="6.6" r="1.6"></circle>
-                                <circle cx="4.4" cy="13.4" r="1.6"></circle>
-                                <circle cx="15.6" cy="13.4" r="1.6"></circle>
-                                <path d="M10 8.2v3.6"></path>
-                            </svg>
-                        </span>
-                        <span class="sr-only">Ativar dependência entre etapas</span>
-                    </label>
+                    <div class="task-subtasks-editor-title">
+                        <span>Etapas</span>
+                        <label class="task-subtasks-dependency-toggle" title="Ativar sequência entre etapas">
+                            <input
+                                type="checkbox"
+                                aria-label="Ativar sequência entre etapas"
+                                data-create-task-subtasks-dependency-toggle
+                            >
+                            <span class="task-subtasks-dependency-icon" aria-hidden="true">
+                                <svg viewBox="0 0 20 20" focusable="false">
+                                    <circle cx="10" cy="4.4" r="1.6"></circle>
+                                    <circle cx="10" cy="10" r="1.6"></circle>
+                                    <circle cx="10" cy="15.6" r="1.6"></circle>
+                                    <path d="M10 6.3v1.6"></path>
+                                    <path d="M10 11.9v1.6"></path>
+                                    <path d="M8.7 6.9 10 8.2l1.3-1.3"></path>
+                                    <path d="M8.7 12.5 10 13.8l1.3-1.3"></path>
+                                </svg>
+                            </span>
+                            <span class="sr-only">Ativar sequência entre etapas</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="task-subtasks-edit-add">
                     <input
@@ -4283,27 +4284,28 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                     <div class="task-subtasks-editor">
                         <div class="task-subtasks-editor-head">
-                            <span>Etapas / subtarefas</span>
-                            <label class="task-subtasks-dependency-toggle" title="Ativar dependência entre etapas">
-                                <input
-                                    type="checkbox"
-                                    data-task-detail-edit-subtasks-dependency-toggle
-                                >
-                                <span class="task-subtasks-dependency-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 20 20" focusable="false">
-                                        <path d="M6.2 6.6h2.7"></path>
-                                        <path d="M11.1 6.6h2.7"></path>
-                                        <path d="M8.9 13.4H6.2"></path>
-                                        <path d="M13.8 13.4h-2.7"></path>
-                                        <circle cx="4.4" cy="6.6" r="1.6"></circle>
-                                        <circle cx="15.6" cy="6.6" r="1.6"></circle>
-                                        <circle cx="4.4" cy="13.4" r="1.6"></circle>
-                                        <circle cx="15.6" cy="13.4" r="1.6"></circle>
-                                        <path d="M10 8.2v3.6"></path>
-                                    </svg>
-                                </span>
-                                <span class="sr-only">Ativar dependência entre etapas</span>
-                            </label>
+                            <div class="task-subtasks-editor-title">
+                                <span>Etapas</span>
+                                <label class="task-subtasks-dependency-toggle" title="Ativar sequência entre etapas">
+                                    <input
+                                        type="checkbox"
+                                        aria-label="Ativar sequência entre etapas"
+                                        data-task-detail-edit-subtasks-dependency-toggle
+                                    >
+                                    <span class="task-subtasks-dependency-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 20 20" focusable="false">
+                                            <circle cx="10" cy="4.4" r="1.6"></circle>
+                                            <circle cx="10" cy="10" r="1.6"></circle>
+                                            <circle cx="10" cy="15.6" r="1.6"></circle>
+                                            <path d="M10 6.3v1.6"></path>
+                                            <path d="M10 11.9v1.6"></path>
+                                            <path d="M8.7 6.9 10 8.2l1.3-1.3"></path>
+                                            <path d="M8.7 12.5 10 13.8l1.3-1.3"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="sr-only">Ativar sequência entre etapas</span>
+                                </label>
+                            </div>
                         </div>
                         <div class="task-subtasks-edit-add">
                             <input
