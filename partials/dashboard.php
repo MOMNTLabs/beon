@@ -45,8 +45,6 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             <a href="<?= e(appPath()) ?>" class="sidebar-brand" aria-label="<?= e(APP_NAME) ?>">
                 <img
                     src="assets/Bexon - Logo Horizontal.png?v=1"
-                    data-theme-logo-light="assets/Bexon - Logo Horizontal.png?v=1"
-                    data-theme-logo-dark="assets/Bexon - Logo Horizontal Negativa.png?v=1"
                     alt="<?= e(APP_NAME) ?>"
                     class="sidebar-brand-lockup brand-lockup"
                     width="116"
@@ -324,32 +322,6 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             <circle cx="12" cy="12" r="3.2"></circle>
                         </svg>
                     </a>
-                    <button
-                        type="button"
-                        class="icon-gear-button theme-toggle-button"
-                        data-theme-toggle
-                        aria-label="Ativar tema escuro"
-                        title="Alternar tema"
-                    >
-                        <span class="theme-toggle-icon theme-toggle-icon-moon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <path d="M20.3 14.1A8.8 8.8 0 1 1 9.9 3.7a7 7 0 1 0 10.4 10.4Z"></path>
-                            </svg>
-                        </span>
-                        <span class="theme-toggle-icon theme-toggle-icon-sun" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false">
-                                <circle cx="12" cy="12" r="4"></circle>
-                                <path d="M12 2.5V5"></path>
-                                <path d="M12 19v2.5"></path>
-                                <path d="M2.5 12H5"></path>
-                                <path d="M19 12h2.5"></path>
-                                <path d="m5.2 5.2 1.8 1.8"></path>
-                                <path d="m17 17 1.8 1.8"></path>
-                                <path d="m5.2 18.8 1.8-1.8"></path>
-                                <path d="m17 7 1.8-1.8"></path>
-                            </svg>
-                        </span>
-                    </button>
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                         <input type="hidden" name="action" value="logout">

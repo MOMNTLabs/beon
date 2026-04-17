@@ -7152,16 +7152,14 @@ function taskStatusCssVars(string $color): string
     $normalized = normalizeTaskStatusColor($color);
     [$red, $green, $blue] = hexColorToRgbComponents($normalized);
     $textColor = mixHexColors($normalized, '#24466F', 0.72);
-    $darkTextColor = mixHexColors($normalized, '#F4F9FF', 0.58);
 
     return sprintf(
-        '--wf-status-color: %1$s; --wf-status-rgb: %2$d, %3$d, %4$d; --task-status-rgb: %2$d, %3$d, %4$d; --wf-status-text: %5$s; --wf-status-text-dark: %6$s;',
+        '--wf-status-color: %1$s; --wf-status-rgb: %2$d, %3$d, %4$d; --task-status-rgb: %2$d, %3$d, %4$d; --wf-status-text: %5$s;',
         $normalized,
         $red,
         $green,
         $blue,
-        $textColor,
-        $darkTextColor
+        $textColor
     );
 }
 

@@ -5,8 +5,6 @@
         <div class="auth-brand-block">
             <img
                 src="assets/Bexon - Logo Horizontal.png?v=1"
-                data-theme-logo-light="assets/Bexon - Logo Horizontal.png?v=1"
-                data-theme-logo-dark="assets/Bexon - Logo Horizontal Negativa.png?v=1"
                 alt="<?= e(APP_NAME) ?>"
                 class="auth-brand-lockup"
                 width="196"

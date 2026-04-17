@@ -280,8 +280,6 @@ $stylesAssetVersion = (string) (@filemtime(__DIR__ . '/assets/styles.css') ?: '1
                 <a href="<?= e(appPath()) ?>" class="brand" aria-label="<?= e(APP_NAME) ?>">
                     <img
                         src="assets/Bexon - Logo Horizontal.png?v=1"
-                        data-theme-logo-light="assets/Bexon - Logo Horizontal.png?v=1"
-                        data-theme-logo-dark="assets/Bexon - Logo Horizontal Negativa.png?v=1"
                         alt="<?= e(APP_NAME) ?>"
                         class="brand-lockup"
                         width="116"

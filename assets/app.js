@@ -15,81 +15,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 5000);
   });
 
-  const themeToggleButton = document.querySelector("[data-theme-toggle]");
-  const THEME_STORAGE_KEY = "workform-theme";
-  const THEME_LIGHT = "light";
-  const THEME_DARK = "dark";
-
-  const normalizeThemeValue = (value) => {
-    const normalized = String(value || "").trim().toLowerCase();
-    return normalized === THEME_DARK ? THEME_DARK : THEME_LIGHT;
-  };
-
-  const readStoredThemePreference = () => {
-    try {
-      return normalizeThemeValue(window.localStorage.getItem(THEME_STORAGE_KEY) || "");
-    } catch (_error) {
-      return THEME_LIGHT;
-    }
-  };
-
-  const persistThemePreference = (theme) => {
-    try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, normalizeThemeValue(theme));
-    } catch (_error) {
-      // Ignore storage failures (private mode/restrictions) and keep runtime theme only.
-    }
-  };
-
-  const syncThemeLogos = (theme) => {
-    const normalizedTheme = normalizeThemeValue(theme);
-    document.querySelectorAll("[data-theme-logo-light][data-theme-logo-dark]").forEach((node) => {
-      if (!(node instanceof HTMLImageElement)) return;
-      const lightSrc = String(node.dataset.themeLogoLight || "").trim();
-      const darkSrc = String(node.dataset.themeLogoDark || "").trim();
-      const nextSrc = normalizedTheme === THEME_DARK ? darkSrc : lightSrc;
-      if (!nextSrc) return;
-      if (node.getAttribute("src") !== nextSrc) {
-        node.setAttribute("src", nextSrc);
-      }
-    });
-  };
-
-  const syncThemeToggleButton = (theme) => {
-    if (!(themeToggleButton instanceof HTMLButtonElement)) return;
-    const nextTheme = theme === THEME_DARK ? THEME_LIGHT : THEME_DARK;
-    const nextThemeLabel = nextTheme === THEME_DARK ? "escuro" : "claro";
-    themeToggleButton.setAttribute("aria-label", `Ativar tema ${nextThemeLabel}`);
-    themeToggleButton.setAttribute("title", `Ativar tema ${nextThemeLabel}`);
-    themeToggleButton.setAttribute("aria-pressed", theme === THEME_DARK ? "true" : "false");
-  };
-
-  let currentTheme = THEME_LIGHT;
-  const applyTheme = (theme, { persist = true } = {}) => {
-    if (!(document.body instanceof HTMLBodyElement)) return currentTheme;
-
-    const normalizedTheme = normalizeThemeValue(theme);
-    document.body.classList.remove("theme-light", "theme-dark");
-    document.body.classList.add(`theme-${normalizedTheme}`);
-    document.body.dataset.theme = normalizedTheme;
-    document.documentElement.style.colorScheme = normalizedTheme;
-    currentTheme = normalizedTheme;
-    syncThemeLogos(currentTheme);
-    syncThemeToggleButton(currentTheme);
-
-    if (persist) {
-      persistThemePreference(currentTheme);
-    }
-
-    return currentTheme;
-  };
-
-  applyTheme(readStoredThemePreference(), { persist: false });
-  if (themeToggleButton instanceof HTMLButtonElement) {
-    themeToggleButton.addEventListener("click", () => {
-      applyTheme(currentTheme === THEME_DARK ? THEME_LIGHT : THEME_DARK);
-    });
-  }
+  document.documentElement.style.colorScheme = "light";
 
   const authTabs = Array.from(
     document.querySelectorAll('[role="tab"][data-auth-target]')
@@ -268,7 +194,6 @@ window.addEventListener("DOMContentLoaded", () => {
       color: normalizedColor,
       rgb: `${red}, ${green}, ${blue}`,
       text: mixHexColors(normalizedColor, "#24466F", 0.72, kind),
-      textDark: mixHexColors(normalizedColor, "#F4F9FF", 0.58, kind),
     };
   };
 
@@ -279,7 +204,6 @@ window.addEventListener("DOMContentLoaded", () => {
     node.style.setProperty("--wf-status-rgb", vars.rgb);
     node.style.setProperty("--task-status-rgb", vars.rgb);
     node.style.setProperty("--wf-status-text", vars.text);
-    node.style.setProperty("--wf-status-text-dark", vars.textDark);
     node.dataset.statusColor = vars.color;
   };
 
