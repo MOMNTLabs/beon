@@ -5,7 +5,7 @@ session_start();
 
 date_default_timezone_set('America/Sao_Paulo');
 
-const APP_NAME = 'Beon';
+const APP_NAME = 'Bexon';
 const DB_PATH = __DIR__ . '/storage/app.sqlite';
 const REMEMBER_COOKIE_NAME = 'wf_remember';
 const REMEMBER_TOKEN_DAYS = 30;
@@ -2772,7 +2772,7 @@ function sendPasswordResetEmail(string $email, string $name, string $resetUrl, s
     ]);
 
     $configuredFromAddress = trim((string) envValue('MAIL_FROM_ADDRESS', ''));
-    $fromAddress = $configuredFromAddress !== '' ? $configuredFromAddress : 'no-reply@beon.local';
+    $fromAddress = $configuredFromAddress !== '' ? $configuredFromAddress : 'no-reply@bexon.local';
     $fromName = trim((string) envValue('MAIL_FROM_NAME', APP_NAME));
     $resendResult = sendTextEmailViaResend($email, $subject, $body, $configuredFromAddress, $fromName);
     if (!empty($resendResult['sent'])) {

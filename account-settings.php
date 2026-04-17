@@ -82,8 +82,8 @@ $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e(APP_NAME) ?> - Configuracoes da Conta</title>
-    <link rel="icon" type="image/svg+xml" href="assets/logo-mark.svg?v=1">
-    <link rel="shortcut icon" href="assets/logo-mark.svg?v=1">
+    <link rel="icon" type="image/png" href="assets/Bexon---Logo-Symbol.png?v=1">
+    <link rel="shortcut icon" href="assets/Bexon---Logo-Symbol.png?v=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
@@ -114,9 +114,9 @@ $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
                 </a>
                 <a href="<?= e(appPath()) ?>" class="brand" aria-label="<?= e(APP_NAME) ?>">
                     <img
-                        src="assets/WorkForm - Logo.svg?v=3"
-                        data-theme-logo-light="assets/WorkForm - Logo.svg?v=3"
-                        data-theme-logo-dark="assets/WorkForm - Logo (Negativa).svg?v=2"
+                        src="assets/Bexon - Logo Horizontal.png?v=1"
+                        data-theme-logo-light="assets/Bexon - Logo Horizontal.png?v=1"
+                        data-theme-logo-dark="assets/Bexon - Logo Horizontal Negativa.png?v=1"
                         alt="<?= e(APP_NAME) ?>"
                         class="brand-lockup"
                         width="116"

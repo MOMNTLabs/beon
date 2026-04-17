@@ -9802,7 +9802,7 @@ window.addEventListener("DOMContentLoaded", () => {
       syncTaskTitleTagBadge(taskItem, titleTagValue, titleTagColorValue);
     });
   } catch (error) {
-    console.error("[Beon] Falha ao inicializar estado do dashboard.", error);
+    console.error("[Bexon] Falha ao inicializar estado do dashboard.", error);
   }
 
   const openCreateModal = (groupName) => {
