@@ -5168,7 +5168,7 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .is-dashboard .task-group-head {
-    padding: 10px 12px;
+    padding: 6px 12px;
 }
 
 .task-group {
@@ -13653,25 +13653,11 @@ body.theme-dark .workspace-status-row[data-status-color] input[type="text"] {
 
 .task-list-item[data-status-color] {
     border-color: rgba(var(--task-status-rgb), 0.22);
-    background:
-        linear-gradient(#fbfdff, #fbfdff) padding-box,
-        linear-gradient(
-            90deg,
-            rgba(255, 255, 255, 0.96) 0%,
-            rgba(var(--task-status-rgb), 0.1) 58%,
-            rgba(var(--task-status-rgb), 0.18) 100%
-        ) border-box;
+    background: #ffffff;
 }
 
 .task-list-item[data-status-color]::before {
-    background:
-        linear-gradient(
-            90deg,
-            rgba(var(--task-status-rgb), 0.38) 0%,
-            rgba(var(--task-status-rgb), 0.24) 34%,
-            rgba(var(--task-status-rgb), 0.1) 58%,
-            rgba(var(--task-status-rgb), 0) 82%
-        );
+    background: none;
 }
 
 body.theme-dark .status-select[data-status-color],
