@@ -13808,12 +13808,6 @@ body.theme-dark .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-da
 }
 
 .workspace-avatar img {
-    object-fit: contain;
-    padding: 11%;
-    background: rgba(255, 255, 255, 0.94);
-}
-
-.workspace-avatar.workspace-avatar-personal img {
     object-fit: cover;
     padding: 0;
     background: transparent;
@@ -14365,6 +14359,317 @@ body:not(.theme-dark) .btn-logout:focus-visible {
 
 body:not(.theme-dark) .btn-logout::before {
     background: linear-gradient(135deg, #fff6dc, #ffe7a8);
+}
+
+/* Neutral balance pass for light dashboard surfaces and controls */
+body.is-dashboard:not(.theme-dark) .overview-board-header.dashboard-brief-head {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.is-dashboard:not(.theme-dark) .overview-board-header.dashboard-brief-head h2 {
+    color: #4f3e24;
+}
+
+body.is-dashboard:not(.theme-dark) .overview-board-header.dashboard-brief-head p {
+    color: #7a6a51;
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-hero,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-list-card {
+    border-color: rgba(130, 112, 79, 0.26);
+    background: linear-gradient(180deg, #fbf8f1, #f2ecdf);
+    box-shadow: none;
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-hero::after {
+    background: linear-gradient(135deg, rgba(122, 108, 86, 0.12), transparent 58%);
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-hero.is-attention::after {
+    background: linear-gradient(135deg, rgba(218, 167, 88, 0.2), transparent 56%);
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-hero.is-critical::after {
+    background: linear-gradient(135deg, rgba(191, 116, 104, 0.22), transparent 56%);
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-kicker,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-item-kicker {
+    border-color: rgba(126, 110, 84, 0.32);
+    background: rgba(255, 255, 255, 0.74);
+    color: #76664d;
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-hero h3,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-list-head h3,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-item strong,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-empty strong {
+    color: #4f3e24;
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-hero p,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-list-head span,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-item-detail,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-item-meta,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-empty p {
+    color: #7a6a51;
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-chip {
+    border-color: rgba(126, 110, 84, 0.28);
+    background: rgba(126, 110, 84, 0.11);
+    color: #66553d;
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-action {
+    border-color: rgba(130, 112, 79, 0.42);
+    background: #f8f3e7;
+    color: #5c4a31;
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-action:hover,
+body.is-dashboard:not(.theme-dark) .dashboard-brief-action:focus-visible {
+    border-color: rgba(106, 91, 65, 0.58);
+    background: #f2e9d7;
+    box-shadow: none;
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-item {
+    border-color: rgba(126, 110, 84, 0.24);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: none;
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-item.is-attention {
+    border-color: rgba(214, 161, 86, 0.34);
+    background: linear-gradient(180deg, rgba(255, 250, 240, 0.98), rgba(251, 236, 207, 0.9));
+}
+
+body.is-dashboard:not(.theme-dark) .dashboard-brief-item.is-critical {
+    border-color: rgba(196, 119, 109, 0.34);
+    background: linear-gradient(180deg, rgba(255, 246, 244, 0.98), rgba(250, 228, 224, 0.9));
+}
+
+body.is-dashboard:not(.theme-dark) .task-group-head {
+    border-bottom-color: rgba(162, 128, 74, 0.38);
+    background:
+        radial-gradient(circle at 96% 0%, rgba(212, 177, 112, 0.2), transparent 42%),
+        linear-gradient(180deg, #f5eddb 0%, #efe4cd 100%);
+}
+
+body.is-dashboard:not(.theme-dark) .task-group-head h3,
+body.is-dashboard:not(.theme-dark) .task-group-count,
+body.is-dashboard:not(.theme-dark) .task-group-readonly .task-group-name-input {
+    color: #4f3e24;
+}
+
+body.is-dashboard:not(.theme-dark) .task-group-delete {
+    color: #8b7448;
+}
+
+body.is-dashboard:not(.theme-dark) .task-filters .row-inline-picker > summary,
+body.is-dashboard:not(.theme-dark) .task-filters select {
+    border-color: rgba(162, 128, 74, 0.5);
+    background: #f9f3e5;
+    color: #624e31;
+}
+
+body.is-dashboard:not(.theme-dark) .task-filters .row-inline-picker > summary::after {
+    color: #8b7448;
+}
+
+body.is-dashboard:not(.theme-dark) .task-filters .row-inline-picker > summary:hover,
+body.is-dashboard:not(.theme-dark) .task-filters .row-inline-picker > summary:focus-visible,
+body.is-dashboard:not(.theme-dark) .task-filters .row-inline-picker[open] > summary,
+body.is-dashboard:not(.theme-dark) .task-filters select:focus {
+    border-color: rgba(145, 111, 57, 0.68);
+    background: #f4ead4;
+    color: #533f22;
+}
+
+body.is-dashboard:not(.theme-dark) .task-filters-reorder-groups.is-active {
+    background: #f3e7cd;
+    border-color: rgba(162, 128, 74, 0.62);
+    color: #5d492d;
+}
+
+body.is-dashboard:not(.theme-dark) .group-permissions-button,
+body.is-dashboard:not(.theme-dark) .group-done-toggle-button,
+body.is-dashboard:not(.theme-dark) .group-add-button,
+body.is-dashboard:not(.theme-dark) .icon-gear-button,
+body.is-dashboard:not(.theme-dark) .header-notification-button,
+body.is-dashboard:not(.theme-dark) .status-stepper-btn,
+body.is-dashboard:not(.theme-dark) .task-expand-toggle,
+body.is-dashboard:not(.theme-dark) .create-task-title-tag-trigger,
+body.is-dashboard:not(.theme-dark) .task-detail-edit-description-toolbar button {
+    border-color: rgba(130, 112, 79, 0.48);
+    background: #f4efe3;
+    color: #624f34;
+}
+
+body.is-dashboard:not(.theme-dark) .group-permissions-button:hover,
+body.is-dashboard:not(.theme-dark) .group-permissions-button:focus-visible,
+body.is-dashboard:not(.theme-dark) .group-done-toggle-button:hover,
+body.is-dashboard:not(.theme-dark) .group-done-toggle-button:focus-visible,
+body.is-dashboard:not(.theme-dark) .group-add-button:hover,
+body.is-dashboard:not(.theme-dark) .group-add-button:focus-visible,
+body.is-dashboard:not(.theme-dark) .icon-gear-button:hover,
+body.is-dashboard:not(.theme-dark) .icon-gear-button:focus-visible,
+body.is-dashboard:not(.theme-dark) .header-notification-button:hover,
+body.is-dashboard:not(.theme-dark) .header-notification-button:focus-visible,
+body.is-dashboard:not(.theme-dark) .header-notification-button.is-open,
+body.is-dashboard:not(.theme-dark) .status-stepper-btn:hover,
+body.is-dashboard:not(.theme-dark) .status-stepper-btn:focus-visible,
+body.is-dashboard:not(.theme-dark) .task-expand-toggle:hover,
+body.is-dashboard:not(.theme-dark) .task-expand-toggle:focus-visible,
+body.is-dashboard:not(.theme-dark) .create-task-title-tag-trigger:hover,
+body.is-dashboard:not(.theme-dark) .create-task-title-tag-trigger:focus-visible,
+body.is-dashboard:not(.theme-dark) .task-detail-edit-description-toolbar button:hover,
+body.is-dashboard:not(.theme-dark) .task-detail-edit-description-toolbar button:focus-visible {
+    border-color: rgba(110, 93, 65, 0.66);
+    background: #eee4d3;
+    color: #4d3d24;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal .modal-close-button {
+    border-color: rgba(130, 112, 79, 0.44);
+    background: #f3eee2;
+    color: #66553c;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal .modal-close-button:hover,
+body.is-dashboard:not(.theme-dark) .create-task-modal .modal-close-button:focus-visible {
+    border-color: rgba(110, 93, 65, 0.64);
+    background: #ece2d0;
+    color: #4d3f2a;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal [data-create-task-title-composer] {
+    border-color: rgba(130, 112, 79, 0.52);
+    background: #eae3d4;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal [data-create-task-title-composer]:focus-within {
+    border-color: rgba(110, 93, 65, 0.72);
+    background: #e2d8c5;
+    box-shadow: 0 0 0 2px rgba(130, 112, 79, 0.16);
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal [data-create-task-title-composer] > [data-create-task-title-input] {
+    color: #4f3e24;
+    caret-color: #4f3e24;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal [data-create-task-title-composer] > [data-create-task-title-input]::placeholder {
+    color: rgba(102, 85, 60, 0.78);
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal [data-create-task-title-composer] .create-task-title-tag-trigger,
+body.is-dashboard:not(.theme-dark) .create-task-modal [data-create-task-title-composer] [data-create-task-title-tag-custom] {
+    border-color: rgba(130, 112, 79, 0.44);
+    background: #f3ecdf;
+    color: #66553c;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal [data-create-task-title-composer] .create-task-title-tag-trigger.is-empty {
+    background: #efe6d6;
+    color: #8d7a5a;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal [data-create-task-title-composer] [data-create-task-title-tag-custom]::placeholder {
+    color: rgba(102, 85, 60, 0.72);
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal .status-select.status-todo,
+body.is-dashboard:not(.theme-dark) .create-task-modal .status-inline-picker.status-todo > summary {
+    border-color: rgba(130, 112, 79, 0.52);
+    background: #f3ecdf;
+    color: #624e31;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal .task-detail-edit-description-toolbar {
+    border-color: rgba(130, 112, 79, 0.4);
+    background: linear-gradient(180deg, #f7f2e7, #efe7d8);
+    box-shadow: none;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal .task-detail-edit-description-editor,
+body.is-dashboard:not(.theme-dark) .create-task-modal .task-detail-reference-input,
+body.is-dashboard:not(.theme-dark) .create-task-modal .task-detail-edit-image-picker {
+    border-color: rgba(130, 112, 79, 0.42);
+    background: #f1ecdf;
+    color: #4f3e24;
+}
+
+body.is-dashboard:not(.theme-dark) .create-task-modal .task-detail-edit-description-editor:empty::before {
+    color: rgba(102, 85, 60, 0.62);
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-header p,
+body.is-dashboard:not(.theme-dark) .accounting-card-head p,
+body.is-dashboard:not(.theme-dark) .accounting-empty,
+body.is-dashboard:not(.theme-dark) .accounting-totals dt,
+body.is-dashboard:not(.theme-dark) .accounting-balance-values dt {
+    color: #7a6a51;
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-period-label,
+body.is-dashboard:not(.theme-dark) .accounting-card-head h3,
+body.is-dashboard:not(.theme-dark) .accounting-totals dd,
+body.is-dashboard:not(.theme-dark) .accounting-balance-values dd {
+    color: #4f3e24;
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-period-nav,
+body.is-dashboard:not(.theme-dark) .accounting-period-input,
+body.is-dashboard:not(.theme-dark) .accounting-create-trigger {
+    border-color: rgba(162, 128, 74, 0.52);
+    background: #f8f2e4;
+    color: #624e31;
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-period-nav:hover,
+body.is-dashboard:not(.theme-dark) .accounting-period-nav:focus-visible {
+    border-color: rgba(145, 111, 57, 0.66);
+    background: #f1e7d2;
+    color: #503d22;
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-card,
+body.is-dashboard:not(.theme-dark) .accounting-balance-card {
+    border-color: rgba(162, 128, 74, 0.38);
+    background: #fbf7ef;
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-card-head {
+    border-bottom-color: rgba(162, 128, 74, 0.3);
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-card-head span {
+    border-color: rgba(130, 112, 79, 0.34);
+    background: #f3ecdf;
+    color: #7a6a51;
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-create-form {
+    border-color: rgba(162, 128, 74, 0.44);
+    background: #f3ebdc;
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-totals div,
+body.is-dashboard:not(.theme-dark) .accounting-balance-values div {
+    border-color: rgba(162, 128, 74, 0.34);
+    background: #fdf9f1;
+}
+
+body.is-dashboard:not(.theme-dark) .accounting-totals div.is-strong,
+body.is-dashboard:not(.theme-dark) .accounting-balance-values div.is-final {
+    border-color: rgba(130, 112, 79, 0.5);
+    background: rgba(130, 112, 79, 0.12);
 }
 
 body.theme-dark {
