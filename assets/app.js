@@ -1988,6 +1988,29 @@ window.addEventListener("DOMContentLoaded", () => {
     return normalizeHttpReference(raw);
   };
 
+  const formatReferenceLinkLabel = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+
+    try {
+      const parsed = new URL(raw);
+      const path = parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : "";
+      const suffix = `${path}${parsed.search}${parsed.hash}`;
+      return `${parsed.host}${suffix}` || raw;
+    } catch (_error) {
+      return raw.replace(/^https?:\/\//i, "");
+    }
+  };
+
+  const buildReferenceFaviconUrl = (value) => {
+    try {
+      const parsed = new URL(String(value || "").trim());
+      return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(parsed.hostname)}&sz=64`;
+    } catch (_error) {
+      return "";
+    }
+  };
+
   const parseReferenceUrlLines = (value, maxItems = maxReferenceItems) => {
     const seen = new Set();
     const result = [];
@@ -2348,7 +2371,31 @@ window.addEventListener("DOMContentLoaded", () => {
         a.target = "_blank";
         a.rel = "noreferrer noopener";
         a.className = "task-detail-ref-link";
-        a.textContent = url;
+        a.title = url;
+
+        const faviconUrl = buildReferenceFaviconUrl(url);
+        if (faviconUrl) {
+          const icon = document.createElement("img");
+          icon.src = faviconUrl;
+          icon.alt = "";
+          icon.className = "task-detail-ref-favicon";
+          icon.loading = "lazy";
+          icon.decoding = "async";
+          icon.referrerPolicy = "no-referrer";
+          icon.setAttribute("aria-hidden", "true");
+          icon.onerror = () => {
+            icon.remove();
+            a.classList.add("task-detail-ref-link-no-favicon");
+          };
+          a.append(icon);
+        } else {
+          a.classList.add("task-detail-ref-link-no-favicon");
+        }
+
+        const label = document.createElement("span");
+        label.className = "task-detail-ref-link-text";
+        label.textContent = formatReferenceLinkLabel(url) || url;
+        a.append(label);
         taskDetailViewLinks.append(a);
       });
     }

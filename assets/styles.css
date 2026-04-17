@@ -7279,7 +7279,9 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
 }
 
 .task-detail-ref-link {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
     padding: 9px 10px;
     border-radius: 12px;
@@ -7287,7 +7289,8 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     background: rgba(255, 255, 255, 0.02);
     color: #bfe7ff;
     font-size: 0.82rem;
-    word-break: break-all;
+    text-decoration: none;
+    min-width: 0;
 }
 
 .task-detail-ref-link:hover,
@@ -7295,6 +7298,33 @@ body:not(.theme-dark):not(.theme-light) .theme-toggle-icon-moon {
     border-color: rgba(77, 194, 255, 0.24);
     background: rgba(77, 194, 255, 0.06);
     outline: none;
+}
+
+.task-detail-ref-favicon {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    flex: 0 0 16px;
+    object-fit: cover;
+}
+
+.task-detail-ref-link-text {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-detail-ref-link-no-favicon::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex: 0 0 16px;
+    background: rgba(114, 150, 187, 0.22);
+    border: 1px solid rgba(114, 150, 187, 0.36);
 }
 
 .task-detail-ref-images {
@@ -9608,6 +9638,7 @@ textarea:focus,
 .task-detail-description-version-body p,
 .task-detail-ref-title,
 .task-detail-ref-link,
+.task-detail-ref-link-text,
 .task-detail-subtask-text,
 .task-detail-edit-description-editor,
 .task-detail-edit-description-editor strong,
@@ -9625,6 +9656,11 @@ textarea:focus,
 .task-detail-inline-field > span,
 .task-detail-edit-images-field > span {
     color: #4d6a90;
+}
+
+.task-detail-ref-favicon {
+    box-shadow: inset 0 0 0 1px rgba(116, 150, 186, 0.42);
+    background: #ffffff;
 }
 
 .task-detail-view-tag {
