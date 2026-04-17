@@ -1,0 +1,186 @@
+/*
+ * Bexon canonical light theme.
+ * This file is loaded after assets/styles.css and is the single source of truth
+ * for the active visual identity used in production.
+ */
+
+:root {
+    --bexon-canvas-1: #f8f4ea;
+    --bexon-canvas-2: #f4edde;
+    --bexon-canvas-3: #efe6d3;
+    --bexon-sidebar: #fff8e8;
+    --bexon-panel: #fffaf1;
+    --bexon-panel-strong: #ffffff;
+    --bexon-border: rgba(199, 149, 47, 0.32);
+    --bexon-border-strong: rgba(184, 132, 28, 0.6);
+    --bexon-graphite: #2f3440;
+    --bexon-muted: #7a6a51;
+    --bexon-gold: #ca8d1a;
+    --bexon-gold-strong: #66480f;
+}
+
+html {
+    color-scheme: light;
+}
+
+body.is-dashboard:not(.theme-dark) {
+    --bg: var(--bexon-canvas-1);
+    --panel: rgba(255, 250, 241, 0.98);
+    --panel-strong: var(--bexon-panel-strong);
+    --border: var(--bexon-border);
+    --text: #5d4a2e;
+    --muted: rgba(122, 106, 81, 0.92);
+    --muted-2: rgba(122, 106, 81, 0.78);
+    --wf-accent-purple: #d39511;
+    --wf-accent-purple-rgb: 211, 149, 17;
+    --wf-title-graphite: #4a3510;
+    --wf-divider-rgb: 215, 170, 74;
+    --wf-dropdown-control-bg: #fffaf0;
+    --wf-dropdown-control-border: rgba(162, 128, 74, 0.44);
+    --wf-dropdown-control-text: #624e31;
+    --wf-dropdown-control-focus-bg: #f6eddc;
+    --wf-dropdown-control-focus-border: rgba(145, 111, 57, 0.68);
+    --wf-dropdown-menu-bg: #fffbf3;
+    --wf-dropdown-menu-bg-2: #f7efdf;
+    --wf-dropdown-menu-border: rgba(162, 128, 74, 0.34);
+    --wf-dropdown-item-bg: rgba(255, 255, 255, 0.82);
+    --wf-dropdown-item-text: #5d4a2e;
+    --wf-dropdown-item-hover-bg: #f2e8d4;
+    --wf-dropdown-item-hover-border: rgba(130, 112, 79, 0.46);
+    --wf-dropdown-item-active-bg: #ede1cb;
+    --wf-dropdown-item-active-border: rgba(130, 112, 79, 0.58);
+    --wf-dropdown-item-active-text: #4d3c23;
+    color: var(--text);
+    background: linear-gradient(
+        180deg,
+        var(--bexon-canvas-1) 0%,
+        var(--bexon-canvas-2) 58%,
+        var(--bexon-canvas-3) 100%
+    );
+}
+
+body.is-dashboard:not(.theme-dark) .panel {
+    border-color: var(--bexon-border);
+    background: linear-gradient(175deg, rgba(255, 253, 246, 0.98), rgba(255, 245, 220, 0.96));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+body.is-dashboard:not(.theme-dark) .users-sidebar {
+    background: var(--bexon-sidebar);
+    border-right: 1px solid rgba(203, 155, 53, 0.34);
+}
+
+body.is-dashboard:not(.theme-dark) .tasklist-wrap {
+    background: #ffffff;
+}
+
+body.is-dashboard:not(.theme-dark) .tasklist-wrap .task-group {
+    border-color: rgba(162, 128, 74, 0.32);
+    background: #ffffff;
+}
+
+body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle {
+    border-color: transparent;
+    background: transparent;
+    color: var(--bexon-graphite);
+    box-shadow: none;
+}
+
+body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-label {
+    color: var(--bexon-graphite);
+}
+
+body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-icon {
+    color: var(--bexon-gold);
+}
+
+body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle:hover,
+body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle:focus-visible {
+    border-color: transparent;
+    background: transparent;
+    color: var(--bexon-graphite);
+    transform: none;
+}
+
+body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle.is-active {
+    border-color: var(--bexon-border-strong);
+    background: #ffedc8;
+    color: var(--bexon-graphite);
+}
+
+body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle.is-active::before {
+    content: none;
+}
+
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle,
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle:hover,
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle:focus-visible,
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--bexon-gold-strong);
+}
+
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon,
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active .sidebar-view-toggle-icon {
+    color: var(--bexon-gold-strong);
+    filter: none;
+}
+
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon::before,
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active .sidebar-view-toggle-icon::before {
+    content: none;
+}
+
+body.is-dashboard:not(.theme-dark) .workspace-users-settings-button {
+    border-color: rgba(199, 149, 47, 0.42);
+    background: #fff4da;
+    color: #725116;
+}
+
+body.is-dashboard:not(.theme-dark) .workspace-users-settings-button:hover,
+body.is-dashboard:not(.theme-dark) .workspace-users-settings-button:focus-visible,
+body.is-dashboard:not(.theme-dark) .workspace-users-settings-button.is-active {
+    border-color: var(--bexon-border-strong);
+    background: #ffedc8;
+    color: var(--bexon-gold-strong);
+}
+
+body.is-dashboard:not(.theme-dark) .workspace-mobile-menu-button {
+    border-color: rgba(199, 149, 47, 0.42);
+    background: #fff4da;
+    color: #725116;
+}
+
+body.is-dashboard.dashboard-sidebar-open:not(.theme-dark) .workspace-mobile-menu-button,
+body.is-dashboard:not(.theme-dark) .workspace-mobile-menu-button:hover,
+body.is-dashboard:not(.theme-dark) .workspace-mobile-menu-button:focus-visible {
+    border-color: var(--bexon-border-strong);
+    background: #ffedc8;
+    color: var(--bexon-gold-strong);
+}
+
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-picker-title {
+    color: #7c5a15;
+    background: linear-gradient(118deg, #9e6e09 0%, #c78c14 54%, #f0b329 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 12px rgba(214, 160, 52, 0.2);
+}
+
+body.is-dashboard:not(.theme-dark) .workspace-sidebar-picker-caret {
+    color: #987540;
+}
+
+body.is-dashboard.is-workspace-settings:not(.theme-dark) {
+    background: linear-gradient(180deg, #f8f4ea 0%, #f4edde 58%, #efe6d3 100%);
+}
+
+body.is-dashboard.is-workspace-settings:not(.theme-dark) .workspace-settings-panel {
+    border-color: rgba(162, 128, 74, 0.34);
+    background: linear-gradient(180deg, #fffdf8 0%, #f8f1e2 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
