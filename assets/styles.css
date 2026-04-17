@@ -14449,7 +14449,7 @@ body.is-dashboard:not(.theme-dark) .dashboard-brief-item.is-critical {
 }
 
 body.is-dashboard:not(.theme-dark) .tasklist-wrap {
-    background: linear-gradient(180deg, #fffefb 0%, #faf5e9 100%);
+    background: #ffffff;
 }
 
 body.is-dashboard:not(.theme-dark) .tasklist-wrap .task-group {
