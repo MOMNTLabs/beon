@@ -3844,23 +3844,13 @@ window.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        const tasksViewToggle = document.querySelector(
-          '[data-dashboard-view-toggle][data-view="tasks"]'
-        );
-        if (
-          tasksViewToggle instanceof HTMLButtonElement &&
-          tasksViewToggle.getAttribute("aria-pressed") !== "true"
-        ) {
-          tasksViewToggle.click();
-        }
-
         setHeaderNotificationDropdownOpen(false);
         const taskAnchorId = `task-${taskId}`;
         const taskRow = document.getElementById(taskAnchorId);
+        setDashboardView("tasks", { updateUrl: true, taskId });
         if (taskRow instanceof HTMLElement) {
-          taskRow.scrollIntoView({ behavior: "smooth", block: "center" });
+          openTaskDetailModal(taskRow, { updateUrl: true, scrollIntoView: true });
         }
-        window.location.hash = taskAnchorId;
       });
     }
 
@@ -5926,18 +5916,67 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   const defaultDashboardView = dashboardViews.has("overview") ? "overview" : "tasks";
+  let syncTaskDetailModalFromUrl = null;
 
   const normalizeDashboardView = (value) => {
     const normalized = normalizeDashboardViewCandidate(value);
     return normalized && dashboardViews.has(normalized) ? normalized : defaultDashboardView;
   };
 
-  const dashboardViewFromHash = () => {
-    const rawHash = String(window.location.hash || "").replace(/^#/, "");
-    return normalizeDashboardView(rawHash);
+  const dashboardTaskIdFromUrl = () => {
+    const currentUrl = new URL(window.location.href);
+    const rawTaskId = Number.parseInt(currentUrl.searchParams.get("task") || "0", 10) || 0;
+    return rawTaskId > 0 ? rawTaskId : 0;
   };
 
-  const setDashboardView = (nextView, { updateHash = false } = {}) => {
+  const dashboardViewFromUrl = () => {
+    const currentUrl = new URL(window.location.href);
+    const rawView = String(currentUrl.searchParams.get("view") || "").trim();
+    if (!rawView && dashboardTaskIdFromUrl() > 0) {
+      return normalizeDashboardView("tasks");
+    }
+
+    return normalizeDashboardView(rawView);
+  };
+
+  const buildDashboardStateUrl = (nextView, { taskId = 0 } = {}) => {
+    const currentUrl = new URL(window.location.href);
+    const nextUrl = new URL(currentUrl.toString());
+    const view = normalizeDashboardView(nextView);
+    const normalizedTaskId =
+      view === "tasks" ? Math.max(0, Number.parseInt(String(taskId || "0"), 10) || 0) : 0;
+
+    if (view === defaultDashboardView) {
+      nextUrl.searchParams.delete("view");
+    } else {
+      nextUrl.searchParams.set("view", view);
+    }
+
+    if (normalizedTaskId > 0) {
+      nextUrl.searchParams.set("task", String(normalizedTaskId));
+    } else {
+      nextUrl.searchParams.delete("task");
+    }
+
+    nextUrl.hash = "";
+    return `${nextUrl.pathname}${nextUrl.search}`;
+  };
+
+  const replaceDashboardStateUrl = (nextView, options = {}) => {
+    if (!(window.history && typeof window.history.replaceState === "function")) {
+      return;
+    }
+
+    const nextUrl = buildDashboardStateUrl(nextView, options);
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (nextUrl === currentUrl) {
+      return;
+    }
+
+    window.history.replaceState(null, "", nextUrl);
+  };
+
+  const setDashboardView = (nextView, { updateUrl = false, taskId = 0 } = {}) => {
     if (!dashboardViewPanels.length) return;
 
     const view = normalizeDashboardView(nextView);
@@ -5964,18 +6003,15 @@ window.addEventListener("DOMContentLoaded", () => {
       document.body.dataset.dashboardView = view;
     }
 
-    if (updateHash) {
-      const targetHash = `#${view}`;
-      if (window.location.hash !== targetHash) {
-        window.history.replaceState(null, "", targetHash);
-      }
+    if (updateUrl) {
+      replaceDashboardStateUrl(view, { taskId });
     }
   };
 
   if (dashboardViewPanels.length) {
-    setDashboardView(dashboardViewFromHash(), { updateHash: false });
-    window.addEventListener("hashchange", () => {
-      setDashboardView(dashboardViewFromHash(), { updateHash: false });
+    setDashboardView(dashboardViewFromUrl(), {
+      updateUrl: false,
+      taskId: dashboardTaskIdFromUrl(),
     });
   }
 
@@ -8691,15 +8727,33 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  const openTaskDetailModal = (taskItem) => {
+  const currentTaskDetailTaskId = () => {
+    const taskIdField = taskDetailContext?.form?.querySelector?.('input[name="task_id"]');
+    return taskIdField instanceof HTMLInputElement
+      ? Math.max(0, Number.parseInt(taskIdField.value || "0", 10) || 0)
+      : 0;
+  };
+
+  const openTaskDetailModal = (taskItem, { updateUrl = true, scrollIntoView = false } = {}) => {
     if (!taskDetailModal) return;
     const bindings = getTaskDetailBindings(taskItem);
     if (!bindings) return;
+    const taskIdField = bindings.form.querySelector('input[name="task_id"]');
+    const taskId =
+      taskIdField instanceof HTMLInputElement
+        ? Math.max(0, Number.parseInt(taskIdField.value || "0", 10) || 0)
+        : 0;
 
     taskDetailContext = bindings;
     populateTaskDetailModalFromRow(bindings);
     setTaskDetailEditMode(false);
     taskDetailModal.hidden = false;
+    if (scrollIntoView && taskItem instanceof HTMLElement) {
+      taskItem.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    if (updateUrl) {
+      replaceDashboardStateUrl("tasks", { taskId });
+    }
     syncBodyModalLock();
     void hydrateTaskDetailPayloadFromServer(bindings).catch(() => {});
     window.setTimeout(() => {
@@ -8708,7 +8762,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 20);
   };
 
-  const closeTaskDetailModal = () => {
+  const closeTaskDetailModal = ({ updateUrl = true } = {}) => {
     if (!taskDetailModal) return;
     closeTaskReviewModal();
     closeTaskImagePreview();
@@ -8723,7 +8777,45 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailSaveButton.classList.remove("is-loading");
       taskDetailSaveButton.textContent = "Salvar";
     }
+    if (updateUrl) {
+      replaceDashboardStateUrl(dashboardViewFromUrl(), { taskId: 0 });
+    }
     syncBodyModalLock();
+  };
+
+  syncTaskDetailModalFromUrl = ({ closeIfMissing = true, scrollIntoView = false } = {}) => {
+    const activeView = dashboardViewFromUrl();
+    const taskId = activeView === "tasks" ? dashboardTaskIdFromUrl() : 0;
+    if (!(taskId > 0)) {
+      if (closeIfMissing) {
+        closeTaskDetailModal({ updateUrl: false });
+      }
+      return;
+    }
+
+    const taskItem = document.getElementById(`task-${taskId}`);
+    if (!(taskItem instanceof HTMLElement)) {
+      if (closeIfMissing) {
+        closeTaskDetailModal({ updateUrl: false });
+      }
+      return;
+    }
+
+    if (
+      taskDetailModal instanceof HTMLElement &&
+      !taskDetailModal.hidden &&
+      currentTaskDetailTaskId() === taskId
+    ) {
+      if (scrollIntoView) {
+        taskItem.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+
+    openTaskDetailModal(taskItem, {
+      updateUrl: false,
+      scrollIntoView,
+    });
   };
 
   const copyTaskDetailModalToRow = (context = taskDetailContext) => {
@@ -10471,7 +10563,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const dashboardViewToggle = target.closest("[data-dashboard-view-toggle]");
     if (dashboardViewToggle instanceof HTMLElement) {
       const targetView = normalizeDashboardView(dashboardViewToggle.dataset.view || "tasks");
-      setDashboardView(targetView, { updateHash: true });
+      setDashboardView(targetView, { updateUrl: true });
       if (isMobileSidebarOpen()) {
         setMobileSidebarOpen(false);
       }
@@ -11365,6 +11457,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const applyTaskFilterForm = (form) => {
     if (!(form instanceof HTMLFormElement)) return;
+    const currentUrl = new URL(window.location.href);
     const params = new URLSearchParams();
     const groupField = form.querySelector('select[name="group"]');
     const creatorField = form.querySelector('select[name="created_by"]');
@@ -11376,12 +11469,11 @@ window.addEventListener("DOMContentLoaded", () => {
       params.set("created_by", creatorField.value.trim());
     }
 
-    const query = params.toString();
-    const currentPath = String(window.location.pathname || "/");
-    const normalizedPath = currentPath.replace(/\/index\.php$/i, "/");
-    const dashboardPath = /\/$/.test(normalizedPath) ? normalizedPath : `${normalizedPath}/`;
-    const target = query ? `${dashboardPath}?${query}#tasks` : `${dashboardPath}#tasks`;
-    window.location.assign(target);
+    params.set("view", "tasks");
+    params.delete("task");
+    currentUrl.search = params.toString();
+    currentUrl.hash = "";
+    window.location.assign(`${currentUrl.pathname}${currentUrl.search}`);
   };
 
   if (taskFilterForm instanceof HTMLFormElement) {
@@ -12006,6 +12098,29 @@ window.addEventListener("DOMContentLoaded", () => {
           normalizeAccountingCurrencyInputField(field);
         }
       });
+  });
+
+  if (typeof syncTaskDetailModalFromUrl === "function") {
+    syncTaskDetailModalFromUrl({
+      closeIfMissing: false,
+      scrollIntoView: dashboardTaskIdFromUrl() > 0,
+    });
+  }
+
+  window.addEventListener("popstate", () => {
+    if (dashboardViewPanels.length) {
+      setDashboardView(dashboardViewFromUrl(), {
+        updateUrl: false,
+        taskId: dashboardTaskIdFromUrl(),
+      });
+    }
+
+    if (typeof syncTaskDetailModalFromUrl === "function") {
+      syncTaskDetailModalFromUrl({
+        closeIfMissing: true,
+        scrollIntoView: false,
+      });
+    }
   });
 
   startTaskNotificationsPolling();

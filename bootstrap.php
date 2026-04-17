@@ -2333,6 +2333,128 @@ function appBasePath(): string
     return $scriptDirectory;
 }
 
+function normalizeDashboardViewKey(string $view): string
+{
+    $normalized = strtolower(trim($view));
+    return in_array($normalized, ['overview', 'tasks', 'vault', 'dues', 'inventory', 'accounting', 'users'], true)
+        ? $normalized
+        : '';
+}
+
+function dashboardStateQueryParamsFromFragment(string $fragment): ?array
+{
+    $normalizedFragment = trim($fragment);
+    if ($normalizedFragment === '') {
+        return null;
+    }
+
+    if (preg_match('/^task-(\d+)$/', $normalizedFragment, $matches)) {
+        $taskId = (int) ($matches[1] ?? 0);
+        if ($taskId > 0) {
+            return [
+                'view' => 'tasks',
+                'task' => (string) $taskId,
+            ];
+        }
+    }
+
+    $view = normalizeDashboardViewKey($normalizedFragment);
+    if ($view === '') {
+        return null;
+    }
+
+    return [
+        'view' => $view === 'overview' ? null : $view,
+        'task' => null,
+    ];
+}
+
+function canonicalizeAppRelativePath(string $path): string
+{
+    $parsed = parse_url($path);
+    if ($parsed === false) {
+        return $path;
+    }
+
+    $pathPart = (string) ($parsed['path'] ?? '');
+    $fragment = trim((string) ($parsed['fragment'] ?? ''));
+    $queryParams = [];
+    if (isset($parsed['query']) && trim((string) $parsed['query']) !== '') {
+        parse_str((string) $parsed['query'], $queryParams);
+    }
+
+    $remainingFragment = '';
+    $fragmentState = dashboardStateQueryParamsFromFragment($fragment);
+    if ($fragmentState !== null) {
+        foreach ($fragmentState as $paramKey => $paramValue) {
+            if ($paramValue === null || trim((string) $paramValue) === '') {
+                unset($queryParams[$paramKey]);
+                continue;
+            }
+
+            $queryParams[$paramKey] = (string) $paramValue;
+        }
+    } elseif ($fragment !== '') {
+        $remainingFragment = '#' . $fragment;
+    }
+
+    $normalizedView = normalizeDashboardViewKey((string) ($queryParams['view'] ?? ''));
+    if ($normalizedView === '' || $normalizedView === 'overview') {
+        unset($queryParams['view']);
+    } else {
+        $queryParams['view'] = $normalizedView;
+    }
+
+    $taskId = (int) ($queryParams['task'] ?? 0);
+    if ($taskId > 0) {
+        if (($queryParams['view'] ?? 'tasks') !== 'tasks') {
+            unset($queryParams['task']);
+        } else {
+            $queryParams['view'] = 'tasks';
+            $queryParams['task'] = (string) $taskId;
+        }
+    } else {
+        unset($queryParams['task']);
+    }
+
+    $queryString = http_build_query($queryParams);
+    return $pathPart
+        . ($queryString !== '' ? '?' . $queryString : '')
+        . $remainingFragment;
+}
+
+function dashboardPath(?string $view = null, array $params = []): string
+{
+    $normalizedView = normalizeDashboardViewKey((string) ($view ?? ''));
+    if ($normalizedView === '' || $normalizedView === 'overview') {
+        unset($params['view']);
+    } else {
+        $params['view'] = $normalizedView;
+    }
+
+    $taskId = (int) ($params['task'] ?? 0);
+    if ($taskId > 0) {
+        $params['view'] = 'tasks';
+        $params['task'] = (string) $taskId;
+    } else {
+        unset($params['task']);
+    }
+
+    $queryString = http_build_query($params);
+    return appPath($queryString !== '' ? '?' . $queryString : '');
+}
+
+function taskDetailPath(int $taskId, array $params = []): string
+{
+    if ($taskId > 0) {
+        $params['task'] = (string) $taskId;
+    } else {
+        unset($params['task']);
+    }
+
+    return dashboardPath('tasks', $params);
+}
+
 function appPath(string $path = ''): string
 {
     $trimmedPath = trim($path);
@@ -2352,6 +2474,11 @@ function appPath(string $path = ''): string
         if ($trimmedPath === '') {
             return $baseRoot;
         }
+    }
+
+    $trimmedPath = canonicalizeAppRelativePath($trimmedPath);
+    if ($trimmedPath === '') {
+        return $baseRoot;
     }
 
     if ($trimmedPath[0] === '?' || $trimmedPath[0] === '#') {
