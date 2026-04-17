@@ -74,6 +74,14 @@ body.is-dashboard:not(.theme-dark) .tasklist-wrap {
     background: #ffffff;
 }
 
+body.is-dashboard:not(.theme-dark) .vault-wrap,
+body.is-dashboard:not(.theme-dark) .due-wrap,
+body.is-dashboard:not(.theme-dark) .inventory-wrap,
+body.is-dashboard:not(.theme-dark) .accounting-wrap,
+body.is-dashboard:not(.theme-dark) .users-wrap {
+    background: #ffffff;
+}
+
 body.is-dashboard:not(.theme-dark) .tasklist-wrap .task-group {
     border-color: rgba(162, 128, 74, 0.32);
     background: #ffffff;
