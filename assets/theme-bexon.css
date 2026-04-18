@@ -353,6 +353,16 @@ body .modal-scrim {
     background: rgba(95, 72, 34, 0.18);
 }
 
+/* Main dashboard view backgrounds */
+body.is-dashboard .tasklist-layout > .tasklist-wrap,
+body.is-dashboard .tasklist-layout > .vault-wrap,
+body.is-dashboard .tasklist-layout > .due-wrap,
+body.is-dashboard .tasklist-layout > .inventory-wrap,
+body.is-dashboard .tasklist-layout > .accounting-wrap,
+body.is-dashboard .tasklist-layout > .users-wrap {
+    background: #ffffff;
+}
+
 /* Inputs and buttons */
 body input,
 body select,
@@ -570,10 +580,58 @@ body.is-dashboard .task-group-head {
         linear-gradient(180deg, #f5eddb 0%, #efe4cd 100%);
 }
 
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head {
+    border-bottom-color: rgba(159, 102, 13, 0.38);
+    background: var(--bexon-border-gradient);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
 body.is-dashboard .task-group-head h3,
 body.is-dashboard .task-group-count,
 body.is-dashboard .task-group-readonly .task-group-name-input {
     color: var(--bexon-text-strong);
+}
+
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head h3,
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-count,
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-collapse,
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-delete,
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-readonly .task-group-name-input {
+    color: #fffdf7;
+}
+
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-name-input {
+    border-color: transparent;
+    background: transparent;
+    color: #fffdf7;
+    text-shadow: 0 1px 2px rgba(96, 53, 3, 0.22);
+}
+
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-name-input:hover {
+    border-color: transparent;
+    background: transparent;
+}
+
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-name-input:focus-visible {
+    border-color: rgba(255, 248, 232, 0.34);
+    background: rgba(255, 251, 243, 0.96);
+    color: var(--bexon-graphite);
+    caret-color: var(--bexon-graphite);
+    text-shadow: none;
+}
+
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-count {
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-collapse {
+    color: rgba(255, 251, 241, 0.92);
+}
+
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-delete:hover,
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-delete:focus-visible {
+    color: #fff1d1;
 }
 
 body.is-dashboard .task-filters .row-inline-picker > summary,

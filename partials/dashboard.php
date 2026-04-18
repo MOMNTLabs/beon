@@ -1205,7 +1205,12 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                     </button>
 
                                                     <div class="tag-field tag-field-status row-inline-picker-wrap" data-inline-select-wrap>
-                                                        <details class="row-inline-picker status-inline-picker status-<?= e($statusKind) ?>" data-inline-select-picker>
+                                                        <details
+                                                            class="row-inline-picker status-inline-picker status-<?= e($statusKind) ?>"
+                                                            data-inline-select-picker
+                                                            data-status-color="<?= e($statusColor) ?>"
+                                                            style="<?= e($statusCssVars) ?>"
+                                                        >
                                                             <summary aria-label="Status da tarefa">
                                                                 <span class="row-inline-picker-summary-text" data-inline-select-text><?= e($statusLabel) ?></span>
                                                             </summary>
@@ -1237,7 +1242,14 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                                 <?php endforeach; ?>
                                                             </div>
                                                         </details>
-                                                        <select name="status" class="tag-select status-select status-<?= e($statusKind) ?> row-inline-picker-native" data-inline-select-source hidden>
+                                                        <select
+                                                            name="status"
+                                                            class="tag-select status-select status-<?= e($statusKind) ?> row-inline-picker-native"
+                                                            data-inline-select-source
+                                                            data-status-color="<?= e($statusColor) ?>"
+                                                            style="<?= e($statusCssVars) ?>"
+                                                            hidden
+                                                        >
                                                             <?php foreach ($statusOptions as $optionKey => $optionLabel): ?>
                                                                 <?php
                                                                 $optionMeta = $statusMetaByKey[$optionKey] ?? taskStatusMeta($optionKey);
