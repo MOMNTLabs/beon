@@ -1,31 +1,63 @@
 /*
- * Bexon canonical light theme.
+ * Bexon canonical theme.
  * This file is loaded after assets/styles.css and is the single source of truth
  * for the active visual identity used in production.
+ *
+ * Quick edit guide:
+ * - Base colors and gradients: section "Base tokens"
+ * - Login screen: sections "Auth shell" and "Auth screen controls"
+ * - Sidebar / left menu: sections "Sidebar surfaces" and "Sidebar navigation"
+ * - Dashboard top bar: section "Top bar and overview"
+ * - Cards and panels: sections "Cards and main surfaces" and "Shared surfaces"
+ * - Inputs and buttons: section "Inputs and buttons"
+ * - Task board details: section "Task list controls"
+ * - Modals: section "Modals"
+ * - Finance, access manager and settings: section "Finance, access and settings"
  */
 
+/* Base tokens */
 :root {
     --bexon-canvas-1: #f8f4ea;
     --bexon-canvas-2: #f4edde;
     --bexon-canvas-3: #efe6d3;
-    --bexon-sidebar: #fff8e8;
-    --bexon-panel: #fffaf1;
+    --bexon-sidebar: #fffdf7;
+    --bexon-panel: #96650c;
     --bexon-panel-strong: #ffffff;
     --bexon-border: rgba(199, 149, 47, 0.32);
-    --bexon-border-strong: rgba(184, 132, 28, 0.6);
+    --bexon-border-strong: rgba(87, 81, 49, 0.6);
     --bexon-graphite: #2f3440;
     --bexon-muted: #7a6a51;
     --bexon-gold: #ca8d1a;
     --bexon-gold-strong: #66480f;
+    --bexon-border-gradient: linear-gradient(135deg, #ffe4a0 0%, #efb655 38%, #c67617 72%, #fff0c3 100%);
+    --bexon-auth-surface:
+        radial-gradient(circle at 20% 0%, rgba(255, 219, 148, 0.22), transparent 42%),
+        radial-gradient(circle at 100% 0%, rgba(255, 241, 205, 0.28), transparent 46%),
+        rgba(255, 251, 242, 0.98);
+    --bexon-topbar-surface:
+        radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.96), transparent 44%),
+        linear-gradient(135deg, #fff2c8 0%, #fff9e9 58%, #ffefbd 100%);
+    --bexon-card-surface:
+        linear-gradient(175deg, rgba(255, 253, 246, 0.98), rgba(255, 245, 220, 0.96));
+    --bexon-card-surface-strong:
+        linear-gradient(180deg, #fffdf8 0%, #f6efdf 100%);
+    --bexon-card-surface-soft:
+        linear-gradient(180deg, #fffcf5 0%, #f6eedf 100%);
+    --bexon-card-surface-muted: #f4efe3;
+    --bexon-card-surface-hover: #eee4d3;
+    --bexon-control-bg: #fffaf0;
+    --bexon-control-bg-focus: #fff4d9;
+    --bexon-control-bg-soft: #f9f3e5;
+    --bexon-control-bg-soft-focus: #f4ead4;
+    --bexon-divider: rgba(162, 128, 74, 0.38);
+    --bexon-text-strong: #4f3e24;
+    --bexon-text-soft: #624e31;
 }
 
-html {
-    color-scheme: light;
-}
-
-body.is-dashboard:not(.theme-dark) {
+/* Dashboard theme variables */
+body.is-dashboard {
     --bg: var(--bexon-canvas-1);
-    --panel: rgba(255, 250, 241, 0.98);
+    --panel: rgba(129, 89, 16, 0.98);
     --panel-strong: var(--bexon-panel-strong);
     --border: var(--bexon-border);
     --text: #5d4a2e;
@@ -59,71 +91,84 @@ body.is-dashboard:not(.theme-dark) {
     );
 }
 
-body.is-dashboard:not(.theme-dark) .panel {
+/* Cards and main surfaces */
+body.is-dashboard .panel {
     border-color: var(--bexon-border);
-    background: linear-gradient(175deg, rgba(255, 253, 246, 0.98), rgba(255, 245, 220, 0.96));
+    background: linear-gradient(175deg, rgba(246, 254, 255, 0.98), rgba(255, 245, 220, 0.96));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
-body.is-dashboard:not(.theme-dark) .users-sidebar {
+/* Sidebar surfaces */
+body.is-dashboard .users-sidebar {
     background: var(--bexon-sidebar);
     border-right: 1px solid rgba(203, 155, 53, 0.34);
 }
 
-body.is-dashboard:not(.theme-dark) .tasklist-wrap {
+body.is-dashboard .tasklist-wrap {
     background: #ffffff;
 }
 
-body.is-dashboard:not(.theme-dark) .vault-wrap,
-body.is-dashboard:not(.theme-dark) .due-wrap,
-body.is-dashboard:not(.theme-dark) .inventory-wrap,
-body.is-dashboard:not(.theme-dark) .accounting-wrap,
-body.is-dashboard:not(.theme-dark) .users-wrap {
+body.is-dashboard .vault-wrap,
+body.is-dashboard .due-wrap,
+body.is-dashboard .inventory-wrap,
+body.is-dashboard .accounting-wrap,
+body.is-dashboard .users-wrap {
     background: #ffffff;
 }
 
-body.is-dashboard:not(.theme-dark) .tasklist-wrap .task-group {
+body.is-dashboard .tasklist-wrap .task-group {
     border-color: rgba(162, 128, 74, 0.32);
     background: #ffffff;
 }
 
-body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle {
+/* Sidebar navigation */
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle {
     border-color: transparent;
     background: transparent;
     color: var(--bexon-graphite);
     box-shadow: none;
 }
 
-body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-label {
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-label {
     color: var(--bexon-graphite);
 }
 
-body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-icon {
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-icon {
     color: var(--bexon-gold);
 }
 
-body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle:hover,
-body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle:focus-visible {
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle:hover,
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle:focus-visible {
     border-color: transparent;
     background: transparent;
     color: var(--bexon-graphite);
     transform: none;
 }
 
-body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle.is-active {
-    border-color: var(--bexon-border-strong);
-    background: #ffedc8;
-    color: var(--bexon-graphite);
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active {
+    border: 2px solid transparent;
+    background:
+        linear-gradient(transparent, transparent) padding-box,
+        var(--bexon-border-gradient) border-box;
+    background-color: transparent;
+    color: #fffdf7;
+    text-shadow: 0 1px 2px rgba(96, 53, 3, 0.22);
+    box-shadow: none;
 }
 
-body.is-dashboard:not(.theme-dark) .sidebar-view-menu .sidebar-view-toggle.is-active::before {
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active .sidebar-view-toggle-label,
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active .sidebar-view-toggle-icon {
+    color: #fffdf7;
+}
+
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active::before {
     content: none;
 }
 
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle,
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle:hover,
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle:focus-visible,
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active {
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle,
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle:hover,
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle:focus-visible,
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active {
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -131,46 +176,47 @@ body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-
     color: var(--bexon-gold-strong);
 }
 
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon,
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active .sidebar-view-toggle-icon {
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon,
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active .sidebar-view-toggle-icon {
     color: var(--bexon-gold-strong);
     filter: none;
 }
 
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon::before,
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active .sidebar-view-toggle-icon::before {
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon::before,
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active .sidebar-view-toggle-icon::before {
     content: none;
 }
 
-body.is-dashboard:not(.theme-dark) .workspace-users-settings-button {
+/* Sidebar utility buttons */
+body.is-dashboard .workspace-users-settings-button {
     border-color: rgba(199, 149, 47, 0.42);
     background: #fff4da;
     color: #725116;
 }
 
-body.is-dashboard:not(.theme-dark) .workspace-users-settings-button:hover,
-body.is-dashboard:not(.theme-dark) .workspace-users-settings-button:focus-visible,
-body.is-dashboard:not(.theme-dark) .workspace-users-settings-button.is-active {
+body.is-dashboard .workspace-users-settings-button:hover,
+body.is-dashboard .workspace-users-settings-button:focus-visible,
+body.is-dashboard .workspace-users-settings-button.is-active {
     border-color: var(--bexon-border-strong);
     background: #ffedc8;
     color: var(--bexon-gold-strong);
 }
 
-body.is-dashboard:not(.theme-dark) .workspace-mobile-menu-button {
+body.is-dashboard .workspace-mobile-menu-button {
     border-color: rgba(199, 149, 47, 0.42);
     background: #fff4da;
     color: #725116;
 }
 
-body.is-dashboard.dashboard-sidebar-open:not(.theme-dark) .workspace-mobile-menu-button,
-body.is-dashboard:not(.theme-dark) .workspace-mobile-menu-button:hover,
-body.is-dashboard:not(.theme-dark) .workspace-mobile-menu-button:focus-visible {
+body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button,
+body.is-dashboard .workspace-mobile-menu-button:hover,
+body.is-dashboard .workspace-mobile-menu-button:focus-visible {
     border-color: var(--bexon-border-strong);
     background: #ffedc8;
     color: var(--bexon-gold-strong);
 }
 
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-picker-title {
+body.is-dashboard .workspace-sidebar-picker-title {
     color: #7c5a15;
     background: linear-gradient(118deg, #9e6e09 0%, #c78c14 54%, #f0b329 100%);
     -webkit-background-clip: text;
@@ -179,16 +225,615 @@ body.is-dashboard:not(.theme-dark) .workspace-sidebar-picker-title {
     text-shadow: 0 0 12px rgba(214, 160, 52, 0.2);
 }
 
-body.is-dashboard:not(.theme-dark) .workspace-sidebar-picker-caret {
+body.is-dashboard .workspace-sidebar-picker-caret {
     color: #987540;
 }
 
-body.is-dashboard.is-workspace-settings:not(.theme-dark) {
+/* Workspace settings page shell */
+body.is-dashboard.is-workspace-settings {
     background: linear-gradient(180deg, #f8f4ea 0%, #f4edde 58%, #efe6d3 100%);
 }
 
-body.is-dashboard.is-workspace-settings:not(.theme-dark) .workspace-settings-panel {
+body.is-dashboard.is-workspace-settings .workspace-settings-panel {
     border-color: rgba(162, 128, 74, 0.34);
     background: linear-gradient(180deg, #fffdf8 0%, #f8f1e2 100%);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Auth shell */
+body .auth-card,
+body .auth-panel,
+body .panel,
+body .workspace-settings-card,
+body .workspace-settings-panel,
+body .task-group,
+body .task-list-item,
+body .overview-card,
+body .overview-radar-card,
+body .overview-focus-card,
+body .overview-summary-pill,
+body .due-entry-row,
+body .inventory-entry-row,
+body .modal-card,
+body .task-detail-modal,
+body .header-notification-dropdown,
+body .workspace-sidebar-picker-menu,
+body .user-chip,
+body .flash {
+    border-color: var(--bexon-border);
+    background: var(--bexon-card-surface);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+body.is-auth {
+    color: #5d4a2e;
+    background: linear-gradient(180deg, var(--bexon-canvas-1) 0%, var(--bexon-canvas-2) 58%, var(--bexon-canvas-3) 100%);
+}
+
+body.is-auth .auth-card {
+    background: var(--bexon-auth-surface);
+    border-color: rgba(199, 149, 47, 0.28);
+}
+
+body.is-auth .auth-card-head h1,
+body.is-auth .hero h1 {
+    color: var(--bexon-text-strong);
+}
+
+body.is-auth .auth-card-head p,
+body.is-auth .hero-copy {
+    color: var(--bexon-muted);
+}
+
+/* Auth screen controls */
+body.is-auth .auth-form input {
+    border-color: rgba(199, 149, 47, 0.5);
+    background: var(--bexon-control-bg);
+    color: #5b4218;
+    box-shadow: none;
+}
+
+body.is-auth .auth-form input::placeholder {
+    color: rgba(122, 106, 81, 0.72);
+}
+
+body.is-auth .auth-form input:focus {
+    border-color: rgba(175, 122, 16, 0.72);
+    background: var(--bexon-control-bg-focus);
+    box-shadow: 0 0 0 3px rgba(175, 122, 16, 0.12);
+}
+
+body.is-auth .auth-switch-line {
+    color: var(--bexon-muted);
+}
+
+body.is-auth .auth-inline-link {
+    color: var(--bexon-gold-strong);
+}
+
+body.is-auth .auth-inline-link:hover,
+body.is-auth .auth-inline-link:focus-visible {
+    color: #9e6e09;
+}
+
+body .flash {
+    border-color: rgba(162, 128, 74, 0.26);
+    background: rgba(255, 255, 255, 0.98);
+}
+
+body .flash-success {
+    border-color: rgba(122, 155, 97, 0.34);
+}
+
+body .flash-error {
+    border-color: rgba(191, 116, 104, 0.34);
+}
+
+body .flash span {
+    color: var(--bexon-text-soft);
+}
+
+body .flash-close,
+body .modal-close-button {
+    border-color: rgba(130, 112, 79, 0.44);
+    background: #f3eee2;
+    color: #66553c;
+}
+
+body .flash-close:hover,
+body .flash-close:focus-visible,
+body .modal-close-button:hover,
+body .modal-close-button:focus-visible {
+    border-color: rgba(110, 93, 65, 0.64);
+    background: #ece2d0;
+    color: #4d3f2a;
+}
+
+body .modal-scrim {
+    background: rgba(95, 72, 34, 0.18);
+}
+
+/* Inputs and buttons */
+body input,
+body select,
+body textarea,
+body .tag-select,
+body .due-date-input,
+body .due-date-display,
+body .group-tag-select,
+body .row-inline-picker > summary,
+body .assignee-picker > summary,
+body .task-detail-inline-assignee-picker > summary {
+    border-color: rgba(199, 149, 47, 0.5);
+    background: var(--bexon-control-bg);
+    color: #5b4218;
+}
+
+body input:focus,
+body select:focus,
+body textarea:focus,
+body .task-title-input:focus,
+body .row-inline-picker[open] > summary,
+body .assignee-picker[open] > summary,
+body .task-detail-inline-assignee-picker[open] > summary {
+    border-color: rgba(175, 122, 16, 0.72);
+    background: var(--bexon-control-bg-focus);
+}
+
+body .btn:not(.btn-danger),
+body .btn-mini:not(.btn-danger) {
+    border-color: rgba(194, 143, 36, 0.56);
+    background: linear-gradient(180deg, #fff3cf 0%, #ffe7b4 100%);
+    color: #6d4b12;
+}
+
+body .btn:not(.btn-danger):hover,
+body .btn:not(.btn-danger):focus-visible,
+body .btn-mini:not(.btn-danger):hover,
+body .btn-mini:not(.btn-danger):focus-visible {
+    border-color: rgba(171, 117, 10, 0.74);
+    background: linear-gradient(180deg, #ffecbc 0%, #ffe0a2 100%);
+    color: #583b09;
+}
+
+body .btn-accent {
+    background: linear-gradient(135deg, #f3b524 0%, #df9d12 52%, #c88906 100%);
+    border-color: rgba(180, 124, 16, 0.72);
+    color: #fffdf4;
+}
+
+body .btn-accent:hover,
+body .btn-accent:focus-visible {
+    background: linear-gradient(135deg, #ebb12b 0%, #cf900c 52%, #b97b04 100%);
+    border-color: rgba(159, 107, 8, 0.82);
+}
+
+body .btn-logout {
+    background: linear-gradient(135deg, #f3b524 0%, #db980f 52%, #bc7d05 100%);
+    border-color: rgba(172, 115, 6, 0.72);
+    color: #fffcef;
+}
+
+body .btn-logout:hover,
+body .btn-logout:focus-visible {
+    background: linear-gradient(135deg, #e8aa1e 0%, #c98709 52%, #ac6e03 100%);
+    border-color: rgba(152, 98, 4, 0.82);
+}
+
+body .btn-logout::before {
+    background: linear-gradient(135deg, #fff6dc, #ffe7a8);
+}
+
+/* Top bar and overview */
+body.is-dashboard .top-nav.dashboard-nav {
+    background: var(--bexon-topbar-surface);
+    border-color: rgba(204, 153, 47, 0.48);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.26),
+        0 10px 24px rgba(120, 82, 16, 0.14);
+}
+
+body.is-dashboard .dashboard-nav-stats {
+    border-color: rgba(210, 160, 58, 0.42);
+    background: rgba(238, 246, 255, 0.98);
+}
+
+body.is-dashboard .dashboard-nav-stats .stat-cell span,
+body.is-dashboard .panel-heading p,
+body.is-dashboard .panel-header p,
+body.is-dashboard .overview-board-header p,
+body.is-dashboard .overview-card-subtitle,
+body.is-dashboard .overview-card-count,
+body.is-dashboard .user-chip span {
+    color: #8e7142;
+}
+
+body.is-dashboard .dashboard-nav-stats .stat-cell strong,
+body.is-dashboard .dashboard-nav .user-chip strong,
+body.is-dashboard .panel-heading h3,
+body.is-dashboard .panel-header h2,
+body.is-dashboard .overview-board-header h2,
+body.is-dashboard .overview-card-head h3 {
+    color: #50380c;
+}
+
+body.is-dashboard .dashboard-nav .user-chip {
+    border-color: rgba(210, 162, 61, 0.48);
+    background: rgba(255, 251, 238, 0.98);
+}
+
+body.is-dashboard .overview-board-header {
+    border-color: rgba(199, 149, 47, 0.34);
+    background:
+        radial-gradient(circle at 96% 0%, rgba(255, 205, 105, 0.26), transparent 44%),
+        linear-gradient(180deg, #fff3cf 0%, #ffe8b1 100%);
+}
+
+body.is-dashboard .overview-card,
+body.is-dashboard .overview-radar-card,
+body.is-dashboard .overview-focus-card,
+body.is-dashboard .overview-summary-pill {
+    border-color: rgba(199, 149, 47, 0.32);
+    background: var(--bexon-card-surface);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+body.is-dashboard .overview-board-header.dashboard-brief-head {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.is-dashboard .dashboard-brief-hero,
+body.is-dashboard .dashboard-brief-list-card {
+    border-color: rgba(130, 112, 79, 0.26);
+    background: linear-gradient(180deg, #fbf8f1, #f2ecdf);
+    box-shadow: none;
+}
+
+body.is-dashboard .dashboard-brief-hero::after {
+    background: linear-gradient(135deg, rgba(122, 108, 86, 0.12), transparent 58%);
+}
+
+body.is-dashboard .dashboard-brief-hero.is-attention::after {
+    background: linear-gradient(135deg, rgba(218, 167, 88, 0.2), transparent 56%);
+}
+
+body.is-dashboard .dashboard-brief-hero.is-critical::after {
+    background: linear-gradient(135deg, rgba(191, 116, 104, 0.22), transparent 56%);
+}
+
+body.is-dashboard .dashboard-brief-kicker,
+body.is-dashboard .dashboard-brief-item-kicker {
+    border-color: rgba(126, 110, 84, 0.32);
+    background: rgba(255, 255, 255, 0.74);
+    color: #76664d;
+}
+
+body.is-dashboard .dashboard-brief-hero h3,
+body.is-dashboard .dashboard-brief-list-head h3,
+body.is-dashboard .dashboard-brief-item strong,
+body.is-dashboard .dashboard-brief-empty strong {
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .dashboard-brief-hero p,
+body.is-dashboard .dashboard-brief-list-head span,
+body.is-dashboard .dashboard-brief-item-detail,
+body.is-dashboard .dashboard-brief-item-meta,
+body.is-dashboard .dashboard-brief-empty p {
+    color: var(--bexon-muted);
+}
+
+body.is-dashboard .dashboard-brief-chip {
+    border-color: rgba(126, 110, 84, 0.28);
+    background: rgba(126, 110, 84, 0.11);
+    color: #66553d;
+}
+
+body.is-dashboard .dashboard-brief-action {
+    border-color: rgba(130, 112, 79, 0.42);
+    background: #f8f3e7;
+    color: #5c4a31;
+}
+
+body.is-dashboard .dashboard-brief-action:hover,
+body.is-dashboard .dashboard-brief-action:focus-visible {
+    border-color: rgba(106, 91, 65, 0.58);
+    background: #f2e9d7;
+    box-shadow: none;
+}
+
+body.is-dashboard .dashboard-brief-item {
+    border-color: rgba(126, 110, 84, 0.24);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: none;
+}
+
+body.is-dashboard .dashboard-brief-item.is-attention {
+    border-color: rgba(214, 161, 86, 0.34);
+    background: linear-gradient(180deg, rgba(255, 250, 240, 0.98), rgba(251, 236, 207, 0.9));
+}
+
+body.is-dashboard .dashboard-brief-item.is-critical {
+    border-color: rgba(196, 119, 109, 0.34);
+    background: linear-gradient(180deg, rgba(255, 246, 244, 0.98), rgba(250, 228, 224, 0.9));
+}
+
+/* Task list controls */
+body.is-dashboard .task-group-head {
+    border-bottom-color: rgba(162, 128, 74, 0.38);
+    background:
+        radial-gradient(circle at 96% 0%, rgba(212, 177, 112, 0.2), transparent 42%),
+        linear-gradient(180deg, #f5eddb 0%, #efe4cd 100%);
+}
+
+body.is-dashboard .task-group-head h3,
+body.is-dashboard .task-group-count,
+body.is-dashboard .task-group-readonly .task-group-name-input {
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .task-filters .row-inline-picker > summary,
+body.is-dashboard .task-filters select {
+    border-color: rgba(162, 128, 74, 0.5);
+    background: var(--bexon-control-bg-soft);
+    color: var(--bexon-text-soft);
+}
+
+body.is-dashboard .task-filters .row-inline-picker > summary:hover,
+body.is-dashboard .task-filters .row-inline-picker > summary:focus-visible,
+body.is-dashboard .task-filters .row-inline-picker[open] > summary,
+body.is-dashboard .task-filters select:focus {
+    border-color: rgba(145, 111, 57, 0.68);
+    background: var(--bexon-control-bg-soft-focus);
+    color: #533f22;
+}
+
+body.is-dashboard .task-filters-reorder-groups.is-active {
+    background: #f3e7cd;
+    border-color: rgba(162, 128, 74, 0.62);
+    color: #5d492d;
+}
+
+body.is-dashboard .group-permissions-button,
+body.is-dashboard .group-done-toggle-button,
+body.is-dashboard .group-add-button,
+body.is-dashboard .icon-gear-button,
+body.is-dashboard .header-notification-button,
+body.is-dashboard .status-stepper-btn,
+body.is-dashboard .task-expand-toggle,
+body.is-dashboard .create-task-title-tag-trigger,
+body.is-dashboard .task-detail-edit-description-toolbar button {
+    border-color: rgba(130, 112, 79, 0.48);
+    background: var(--bexon-card-surface-muted);
+    color: #624f34;
+}
+
+body.is-dashboard .group-permissions-button:hover,
+body.is-dashboard .group-permissions-button:focus-visible,
+body.is-dashboard .group-done-toggle-button:hover,
+body.is-dashboard .group-done-toggle-button:focus-visible,
+body.is-dashboard .group-add-button:hover,
+body.is-dashboard .group-add-button:focus-visible,
+body.is-dashboard .icon-gear-button:hover,
+body.is-dashboard .icon-gear-button:focus-visible,
+body.is-dashboard .header-notification-button:hover,
+body.is-dashboard .header-notification-button:focus-visible,
+body.is-dashboard .header-notification-button.is-open,
+body.is-dashboard .status-stepper-btn:hover,
+body.is-dashboard .status-stepper-btn:focus-visible,
+body.is-dashboard .task-expand-toggle:hover,
+body.is-dashboard .task-expand-toggle:focus-visible,
+body.is-dashboard .create-task-title-tag-trigger:hover,
+body.is-dashboard .create-task-title-tag-trigger:focus-visible,
+body.is-dashboard .task-detail-edit-description-toolbar button:hover,
+body.is-dashboard .task-detail-edit-description-toolbar button:focus-visible {
+    border-color: rgba(110, 93, 65, 0.66);
+    background: var(--bexon-card-surface-hover);
+    color: #4d3d24;
+}
+
+/* Modals */
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger),
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger) {
+    border-color: rgba(130, 112, 79, 0.56);
+    background: linear-gradient(180deg, #faf6ee, #f0e7d6);
+    color: #5d4a2e;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 6px 14px rgba(120, 95, 58, 0.12);
+}
+
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger):hover,
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger):focus-visible,
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger):hover,
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger):focus-visible {
+    border-color: rgba(110, 93, 65, 0.72);
+    background: linear-gradient(180deg, #f7f1e4, #eadfca);
+    color: #4d3c23;
+}
+
+body.is-dashboard .create-task-modal,
+body.is-dashboard .task-detail-modal {
+    border-color: rgba(162, 128, 74, 0.34);
+    background: var(--bexon-card-surface-strong);
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .create-task-modal [data-create-task-title-composer],
+body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer] {
+    border-color: rgba(130, 112, 79, 0.52);
+    background: #eae3d4;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+body.is-dashboard .create-task-modal [data-create-task-title-composer]:focus-within,
+body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer]:focus-within {
+    border-color: rgba(110, 93, 65, 0.72);
+    background: #e2d8c5;
+    box-shadow: 0 0 0 2px rgba(130, 112, 79, 0.16);
+}
+
+body.is-dashboard .create-task-modal [data-create-task-title-composer] > [data-create-task-title-input],
+body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer] > [data-task-detail-edit-title] {
+    color: var(--bexon-text-strong);
+    caret-color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .create-task-modal .task-detail-edit-description-toolbar,
+body.is-dashboard .task-detail-modal .task-detail-edit-description-toolbar {
+    border-color: rgba(130, 112, 79, 0.4);
+    background: linear-gradient(180deg, #f7f2e7, #efe7d8);
+    box-shadow: none;
+}
+
+body.is-dashboard .create-task-modal .task-detail-edit-description-editor,
+body.is-dashboard .create-task-modal .task-detail-reference-input,
+body.is-dashboard .create-task-modal .task-detail-edit-image-picker,
+body.is-dashboard .task-detail-modal .task-detail-edit-description-editor,
+body.is-dashboard .task-detail-modal .task-detail-reference-input,
+body.is-dashboard .task-detail-modal .task-detail-edit-image-picker,
+body.is-dashboard .task-detail-history-column {
+    border-color: rgba(130, 112, 79, 0.42);
+    background: #f1ecdf;
+    color: var(--bexon-text-strong);
+}
+
+/* Finance, access and settings */
+body.is-dashboard .accounting-header p,
+body.is-dashboard .accounting-card-head p,
+body.is-dashboard .accounting-empty,
+body.is-dashboard .workspace-settings-header p,
+body.is-dashboard .users-board-header p,
+body.is-dashboard .workspace-settings-form label span {
+    color: var(--bexon-muted);
+}
+
+body.is-dashboard .accounting-period-label,
+body.is-dashboard .accounting-card-head h3,
+body.is-dashboard .accounting-totals dd,
+body.is-dashboard .accounting-balance-values dd,
+body.is-dashboard .workspace-settings-card h3,
+body.is-dashboard .users-board-header h2 {
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .accounting-period-nav,
+body.is-dashboard .accounting-period-input,
+body.is-dashboard .accounting-create-trigger {
+    border-color: rgba(162, 128, 74, 0.52);
+    background: #f8f2e4;
+    color: var(--bexon-text-soft);
+}
+
+body.is-dashboard .accounting-card,
+body.is-dashboard .accounting-balance-card {
+    border-color: rgba(162, 128, 74, 0.38);
+    background: #fbf7ef;
+}
+
+body.is-dashboard .accounting-create-form {
+    border-color: rgba(162, 128, 74, 0.44);
+    background: #f3ebdc;
+}
+
+body.is-dashboard .accounting-totals div,
+body.is-dashboard .accounting-balance-values div {
+    border-color: rgba(162, 128, 74, 0.34);
+    background: #fdf9f1;
+}
+
+body.is-dashboard .accounting-totals div.is-strong,
+body.is-dashboard .accounting-balance-values div.is-final {
+    border-color: rgba(130, 112, 79, 0.5);
+    background: rgba(130, 112, 79, 0.12);
+}
+
+body.is-dashboard .users-wrap {
+    background: linear-gradient(180deg, #fffefb 0%, #faf5e9 100%);
+}
+
+body.is-dashboard .workspace-settings-card {
+    border-color: rgba(162, 128, 74, 0.3);
+    background: var(--bexon-card-surface-soft);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+}
+
+body.is-dashboard .workspace-settings-readonly,
+body.is-dashboard .workspace-settings-member-empty {
+    border-color: rgba(162, 128, 74, 0.3);
+    background: rgba(255, 255, 255, 0.62);
+    color: var(--bexon-muted);
+}
+
+body.is-dashboard .workspace-settings-member-item {
+    border-color: rgba(162, 128, 74, 0.28);
+    background: linear-gradient(180deg, #fffbf3 0%, #f5eddd 100%);
+}
+
+body.is-dashboard .workspace-settings-member-meta strong,
+body.is-dashboard .users-wrap .workspace-status-row input[type="text"] {
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .workspace-settings-member-meta span,
+body.is-dashboard .users-wrap .workspace-statuses-card.is-readonly .workspace-status-row input[type="text"] {
+    color: var(--bexon-muted);
+}
+
+body.is-dashboard .workspace-member-role {
+    border-color: rgba(162, 128, 74, 0.42);
+    background: rgba(244, 236, 221, 0.92);
+    color: #735d36;
+}
+
+body.is-dashboard .workspace-role-admin {
+    border-color: rgba(211, 163, 104, 0.5);
+    background: rgba(255, 240, 219, 0.92);
+    color: #8f5a20;
+}
+
+body.is-dashboard .workspace-role-member {
+    border-color: rgba(162, 128, 74, 0.4);
+    background: rgba(246, 238, 222, 0.9);
+    color: #6e5a37;
+}
+
+body.is-dashboard .users-wrap .workspace-status-row {
+    border-color: rgba(162, 128, 74, 0.28);
+    background: linear-gradient(180deg, #fffcf4 0%, #f6efdf 100%);
+}
+
+body.is-dashboard .users-wrap .workspace-status-row.status-todo {
+    border-color: rgba(171, 139, 84, 0.34);
+    background: linear-gradient(180deg, #fdf8ec 0%, #f7eedc 100%);
+}
+
+body.is-dashboard .users-wrap .workspace-status-row.status-in_progress {
+    border-color: rgba(214, 161, 86, 0.34);
+    background: linear-gradient(180deg, #fff4e2 0%, #f8e8cc 100%);
+}
+
+body.is-dashboard .users-wrap .workspace-status-row.status-review {
+    border-color: rgba(173, 145, 206, 0.32);
+    background: linear-gradient(180deg, #fbf6ff 0%, #f3ebff 100%);
+}
+
+body.is-dashboard .users-wrap .workspace-status-row.status-done {
+    border-color: rgba(112, 177, 136, 0.34);
+    background: linear-gradient(180deg, #edf8f1 0%, #e4f3e9 100%);
+}
+
+body.is-dashboard .vault-entry-value {
+    border-color: rgba(162, 128, 74, 0.44);
+    background: #efe5d0;
+}
+
+body.is-dashboard .vault-entry-value-text,
+body.is-dashboard .due-entry-title,
+body.is-dashboard .inventory-entry-title {
+    color: var(--bexon-text-strong);
 }
