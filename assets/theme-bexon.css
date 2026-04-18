@@ -391,6 +391,38 @@ body .task-detail-inline-assignee-picker[open] > summary {
     background: var(--bexon-control-bg-focus);
 }
 
+body.is-dashboard .status-inline-picker[data-status-color] > summary,
+body.is-dashboard .status-select[data-status-color] {
+    color: var(--wf-status-text);
+    border-color: rgba(var(--wf-status-rgb), 0.44);
+    background: rgba(var(--wf-status-rgb), 0.18);
+}
+
+body.is-dashboard .status-inline-picker[data-status-color] > summary::after {
+    color: var(--wf-status-text);
+}
+
+body.is-dashboard .status-inline-picker[data-status-color][open] > summary,
+body.is-dashboard .status-inline-picker[data-status-color] > summary:hover,
+body.is-dashboard .status-inline-picker[data-status-color] > summary:focus-visible,
+body.is-dashboard .status-select[data-status-color]:focus {
+    color: var(--wf-status-text);
+    border-color: rgba(var(--wf-status-rgb), 0.58);
+    background: rgba(var(--wf-status-rgb), 0.26);
+}
+
+body.is-dashboard .status-inline-picker .row-inline-picker-option[data-status-color] {
+    color: var(--wf-status-text);
+    border-color: rgba(var(--wf-status-rgb), 0.36);
+    background: rgba(var(--wf-status-rgb), 0.16);
+}
+
+body.is-dashboard .status-inline-picker .row-inline-picker-option[data-status-color].is-active {
+    color: var(--wf-status-text);
+    border-color: rgba(var(--wf-status-rgb), 0.58);
+    background: rgba(var(--wf-status-rgb), 0.28);
+}
+
 body .btn:not(.btn-danger),
 body .btn-mini:not(.btn-danger) {
     border-color: rgba(194, 143, 36, 0.56);
