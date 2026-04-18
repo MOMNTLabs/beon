@@ -355,6 +355,7 @@ body .modal-scrim {
 
 /* Main dashboard view backgrounds */
 body.is-dashboard .tasklist-layout > .tasklist-wrap,
+body.is-dashboard .tasklist-layout > .overview-wrap,
 body.is-dashboard .tasklist-layout > .vault-wrap,
 body.is-dashboard .tasklist-layout > .due-wrap,
 body.is-dashboard .tasklist-layout > .inventory-wrap,
