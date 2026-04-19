@@ -44,7 +44,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
         <aside class="panel users-sidebar" id="team">
             <a href="<?= e(appPath()) ?>" class="sidebar-brand" aria-label="<?= e(APP_NAME) ?>">
                 <img
-                    src="assets/Bexon - Logo Horizontal.png?v=1"
+                    src="assets/Bexon - Logo Horizontal Negativa.png?v=1"
                     alt="<?= e(APP_NAME) ?>"
                     class="sidebar-brand-lockup brand-lockup"
                     width="116"

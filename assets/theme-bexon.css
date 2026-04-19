@@ -4,7 +4,7 @@
  * for the active visual identity used in production.
  *
  * Quick edit guide:
- * - Base colors and gradients: section "Base tokens"
+ * - Palette and standard theme tokens: section "Base tokens"
  * - Login screen: sections "Auth shell" and "Auth screen controls"
  * - Sidebar / left menu: sections "Sidebar surfaces" and "Sidebar navigation"
  * - Dashboard top bar: section "Top bar and overview"
@@ -17,78 +17,397 @@
 
 /* Base tokens */
 :root {
-    --bexon-canvas-1: #f8f4ea;
-    --bexon-canvas-2: #f4edde;
-    --bexon-canvas-3: #efe6d3;
-    --bexon-sidebar: #fffdf7;
-    --bexon-panel: #96650c;
-    --bexon-panel-strong: #ffffff;
-    --bexon-border: rgba(199, 149, 47, 0.32);
-    --bexon-border-strong: rgba(87, 81, 49, 0.6);
-    --bexon-graphite: #2f3440;
-    --bexon-muted: #7a6a51;
-    --bexon-gold: #ca8d1a;
-    --bexon-gold-strong: #66480f;
-    --bexon-border-gradient: linear-gradient(135deg, #ffe4a0 0%, #efb655 38%, #c67617 72%, #fff0c3 100%);
-    --bexon-auth-surface:
-        radial-gradient(circle at 20% 0%, rgba(255, 219, 148, 0.22), transparent 42%),
-        radial-gradient(circle at 100% 0%, rgba(255, 241, 205, 0.28), transparent 46%),
-        rgba(255, 251, 242, 0.98);
-    --bexon-topbar-surface:
-        radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.96), transparent 44%),
-        linear-gradient(135deg, #fff2c8 0%, #fff9e9 58%, #ffefbd 100%);
-    --bexon-card-surface:
-        linear-gradient(175deg, rgba(255, 253, 246, 0.98), rgba(255, 245, 220, 0.96));
-    --bexon-card-surface-strong:
-        linear-gradient(180deg, #fffdf8 0%, #f6efdf 100%);
-    --bexon-card-surface-soft:
-        linear-gradient(180deg, #fffcf5 0%, #f6eedf 100%);
-    --bexon-card-surface-muted: #f4efe3;
-    --bexon-card-surface-hover: #eee4d3;
-    --bexon-control-bg: #fffaf0;
-    --bexon-control-bg-focus: #fff4d9;
-    --bexon-control-bg-soft: #f9f3e5;
-    --bexon-control-bg-soft-focus: #f4ead4;
-    --bexon-divider: rgba(162, 128, 74, 0.38);
-    --bexon-text-strong: #4f3e24;
-    --bexon-text-soft: #624e31;
+    /* Palette
+     * Edit this section first when you want to recolor the platform.
+     * The standard element tokens below inherit from this palette.
+     */
+    --color-white: #ffffff;
+    --color-ink-900: #20242b;
+    --color-ink-800: #2c333d;
+    --color-ink-700: #4e5967;
+    --color-ink-600: #5f6978;
+    --color-ink-500: #818996;
+    --color-sidebar-900: #1f2227;
+    --color-canvas-1: #f4f6f8;
+    --color-canvas-2: #eef1f4;
+    --color-canvas-3: #e7ebef;
+    --color-cream-100: #ffffff;
+    --color-cream-150: #f7f9fb;
+    --color-cream-200: #f2f4f7;
+    --color-cream-300: #ebeff3;
+    --color-cream-400: #e2e7ed;
+    --color-metal-100: #697482;
+    --color-metal-200: #515b68;
+    --color-metal-300: #3c444f;
+    --color-metal-400: #2a313a;
+    --color-accent-200: #efd7cc;
+    --color-accent-200-rgb: 239, 215, 204;
+    --color-accent-400: #deb197;
+    --color-accent-400-rgb: 222, 177, 151;
+    --color-accent-500: #cf8d6a;
+    --color-accent-500-rgb: 207, 141, 106;
+    --color-accent-600: #bc744f;
+    --color-accent-600-rgb: 188, 116, 79;
+    --color-accent-700: #955b3f;
+    --color-accent-700-rgb: 149, 91, 63;
+    --color-accent-900: #5f3b2b;
+    --color-accent-glow: #dfb161;
+    --color-accent-glow-rgb: 223, 177, 97;
+    --color-danger-soft-100: #f8e1de;
+    --color-danger-soft-200: #e7c0b7;
+
+    /* Standard surfaces and effects */
+    --surface-shell:
+        linear-gradient(180deg, var(--color-canvas-1) 0%, var(--color-canvas-2) 58%, var(--color-canvas-3) 100%);
+    --surface-auth:
+        radial-gradient(circle at 10% 0%, rgba(var(--color-accent-500-rgb), 0.14), transparent 32%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 244, 247, 0.96));
+    --surface-card:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 251, 252, 0.98));
+    --surface-card-strong:
+        linear-gradient(180deg, var(--color-cream-100) 0%, rgba(246, 248, 250, 1) 100%);
+    --surface-card-soft:
+        linear-gradient(180deg, var(--color-cream-100) 0%, var(--color-cream-200) 100%);
+    --surface-card-muted: var(--color-cream-300);
+    --surface-card-hover: var(--color-cream-400);
+    --surface-accent:
+        linear-gradient(135deg, rgba(var(--color-accent-500-rgb), 0.26) 0%, rgba(var(--color-accent-500-rgb), 0.1) 100%);
+    --surface-topbar:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 251, 0.98));
+    --surface-group-empty:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 246, 248, 0.98) 100%);
+    --surface-button:
+        linear-gradient(135deg, var(--color-metal-300) 0%, var(--color-metal-400) 52%, var(--color-metal-200) 100%);
+    --surface-button-hover:
+        linear-gradient(135deg, var(--color-metal-300) 0%, var(--color-metal-100) 52%, var(--color-metal-200) 100%);
+    --surface-logout-hover:
+        linear-gradient(180deg, #4a5461 0%, #343b44 100%);
+    --surface-logout-glow:
+        radial-gradient(circle, rgba(var(--color-accent-500-rgb), 0.92) 0%, rgba(var(--color-accent-500-rgb), 0) 74%);
+
+    /* Standard element tokens */
+    --ui-sidebar-bg:
+        radial-gradient(circle at 14% 10%, rgba(var(--color-accent-500-rgb), 0.14) 0%, rgba(var(--color-accent-500-rgb), 0.05) 18%, rgba(var(--color-accent-500-rgb), 0) 38%),
+        radial-gradient(circle at 88% 100%, rgba(var(--color-accent-600-rgb), 0.08) 0%, rgba(var(--color-accent-600-rgb), 0) 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.018) 0%, rgba(255, 255, 255, 0) 16%),
+        linear-gradient(165deg, #22262c 0%, #1c2025 48%, #171a1f 100%);
+    --ui-sidebar-text: var(--color-white);
+    --ui-sidebar-icon: var(--color-accent-600);
+    --ui-sidebar-icon-strong: var(--color-accent-200);
+    --ui-sidebar-divider-gradient:
+        linear-gradient(90deg, rgba(var(--color-accent-200-rgb), 0) 0%, rgba(var(--color-accent-200-rgb), 0.52) 18%, rgba(var(--color-accent-500-rgb), 0.26) 50%, rgba(var(--color-accent-200-rgb), 0) 100%);
+    --ui-sidebar-divider-gradient-vertical:
+        linear-gradient(180deg, rgba(var(--color-accent-200-rgb), 0) 0%, rgba(var(--color-accent-200-rgb), 0.26) 16%, rgba(var(--color-accent-500-rgb), 0.32) 52%, rgba(var(--color-accent-200-rgb), 0) 100%);
+    --ui-brand-frame-surface:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.016) 100%),
+        rgba(18, 20, 24, 0.94);
+    --ui-brand-frame-surface-hover:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.024) 100%),
+        rgba(20, 22, 27, 0.96);
+    --ui-brand-frame-border-gradient:
+        linear-gradient(
+            135deg,
+            rgba(var(--color-accent-200-rgb), 0.98) 0%,
+            rgba(var(--color-accent-400-rgb), 0.9) 34%,
+            rgba(var(--color-accent-500-rgb), 0.96) 68%,
+            rgba(var(--color-accent-600-rgb), 0.9) 100%
+        );
+    --ui-brand-frame-inner-glow:
+        radial-gradient(circle at 16% 48%, rgba(var(--color-accent-glow-rgb), 0.08) 0%, rgba(var(--color-accent-glow-rgb), 0.03) 20%, rgba(var(--color-accent-glow-rgb), 0) 42%),
+        radial-gradient(circle at 50% 115%, rgba(var(--color-accent-glow-rgb), 0.2) 0%, rgba(var(--color-accent-500-rgb), 0.1) 34%, rgba(var(--color-accent-500-rgb), 0) 74%);
+    --ui-brand-frame-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -12px 18px rgba(var(--color-accent-500-rgb), 0.12),
+        0 0 18px rgba(var(--color-accent-500-rgb), 0.12),
+        0 14px 30px rgba(0, 0, 0, 0.18);
+    --ui-brand-frame-shadow-strong:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -14px 22px rgba(var(--color-accent-500-rgb), 0.16),
+        0 0 24px rgba(var(--color-accent-500-rgb), 0.18),
+        0 18px 34px rgba(0, 0, 0, 0.2);
+    --ui-sidebar-active-border-gradient: var(--ui-brand-frame-border-gradient);
+    --ui-sidebar-active-line-gradient:
+        linear-gradient(90deg, rgba(var(--color-accent-200-rgb), 0.88) 0%, rgba(var(--color-accent-500-rgb), 0.54) 48%, rgba(var(--color-accent-200-rgb), 0.14) 100%);
+    --ui-sidebar-active-surface: var(--ui-brand-frame-surface);
+    --ui-sidebar-active-shadow: var(--ui-brand-frame-shadow);
+    --ui-sidebar-active-glow: var(--ui-brand-frame-inner-glow);
+    --ui-sidebar-active-glow-shadow:
+        0 0 18px rgba(var(--color-accent-500-rgb), 0.16),
+        0 12px 26px rgba(0, 0, 0, 0.18);
+    --ui-panel-bg: var(--color-accent-700);
+    --ui-panel-strong: var(--color-white);
+    --ui-border: rgba(32, 36, 43, 0.1);
+    --ui-border-strong: rgba(32, 36, 43, 0.18);
+    --ui-divider: rgba(95, 105, 120, 0.18);
+    --ui-text: var(--color-ink-600);
+    --ui-text-strong: var(--color-ink-800);
+    --ui-text-soft: var(--color-ink-700);
+    --ui-text-muted: var(--color-ink-500);
+    --ui-text-on-dark: var(--color-white);
+    --ui-graphite: var(--color-ink-900);
+    --ui-control-bg: var(--color-cream-100);
+    --ui-control-bg-focus: var(--color-cream-100);
+    --ui-control-bg-soft: var(--color-cream-200);
+    --ui-control-bg-soft-focus: var(--color-cream-150);
+    --ui-card-bg: var(--surface-card);
+    --ui-card-bg-strong: var(--surface-card-strong);
+    --ui-card-bg-soft: var(--surface-card-soft);
+    --ui-card-bg-muted: var(--surface-card-muted);
+    --ui-card-bg-hover: var(--surface-card-hover);
+    --ui-button-bg: var(--surface-button);
+    --ui-button-bg-hover: var(--surface-button-hover);
+    --ui-button-border: rgba(60, 68, 79, 0.76);
+    --ui-button-text: var(--color-white);
+    --ui-button-text-hover: var(--color-white);
+    --ui-button-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -10px 18px rgba(var(--color-accent-500-rgb), 0.1),
+        inset 0 -1px 0 rgba(var(--color-accent-200-rgb), 0.14),
+        0 10px 24px rgba(15, 23, 42, 0.12);
+    --ui-button-shadow-hover:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -12px 22px rgba(var(--color-accent-500-rgb), 0.14),
+        inset 0 -1px 0 rgba(var(--color-accent-200-rgb), 0.18),
+        0 12px 28px rgba(15, 23, 42, 0.16),
+        0 0 16px rgba(var(--color-accent-500-rgb), 0.08);
+    --ui-topbar-bg: var(--surface-topbar);
+    --ui-topbar-border: rgba(32, 36, 43, 0.08);
+    --ui-topbar-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+        0 12px 28px rgba(15, 23, 42, 0.06);
+    --ui-topbar-card-bg: rgba(255, 255, 255, 0.94);
+    --ui-topbar-card-border: rgba(32, 36, 43, 0.08);
+    --ui-topbar-meta: var(--color-ink-500);
+    --ui-topbar-title: var(--color-ink-800);
+    --ui-topbar-chip-bg: var(--color-cream-100);
+    --ui-topbar-chip-border: rgba(32, 36, 43, 0.08);
+    --ui-topbar-icon-bg: var(--ui-button-bg);
+    --ui-topbar-icon-border: rgba(60, 68, 79, 0.72);
+    --ui-topbar-icon-text: var(--ui-button-text);
+    --ui-topbar-icon-bg-hover: var(--ui-button-bg-hover);
+    --ui-topbar-icon-border-hover: rgba(var(--color-accent-500-rgb), 0.72);
+    --ui-topbar-icon-text-hover: var(--ui-button-text-hover);
+    --ui-topbar-logout-bg: var(--ui-button-bg);
+    --ui-topbar-logout-border: rgba(60, 68, 79, 0.72);
+    --ui-topbar-logout-text: var(--ui-button-text);
+    --ui-topbar-logout-bg-hover: var(--surface-logout-hover);
+    --ui-topbar-logout-border-hover: rgba(var(--color-accent-500-rgb), 0.72);
+    --ui-topbar-logout-glow: var(--surface-logout-glow);
+    --ui-group-bg: var(--color-white);
+    --ui-group-border: rgba(32, 36, 43, 0.08);
+    --ui-group-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+    --ui-group-head-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 251, 0.98));
+    --ui-group-head-border: rgba(var(--color-accent-500-rgb), 0.46);
+    --ui-group-head-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        inset 0 -1px 0 rgba(var(--color-accent-500-rgb), 0.22);
+    --ui-group-head-text: var(--color-ink-800);
+    --ui-group-head-text-shadow: none;
+    --ui-group-head-count-bg: rgba(var(--color-accent-500-rgb), 0.12);
+    --ui-group-head-count-border: rgba(var(--color-accent-500-rgb), 0.26);
+    --ui-group-head-action: var(--color-ink-500);
+    --ui-group-head-action-hover: var(--color-accent-700);
+    --ui-group-focus-border: rgba(var(--color-accent-500-rgb), 0.34);
+    --ui-group-focus-bg: rgba(255, 255, 255, 0.98);
+    --ui-group-focus-text: var(--ui-graphite);
+    --ui-empty-border: rgba(32, 36, 43, 0.08);
+    --ui-empty-bg: var(--surface-group-empty);
+    --ui-empty-action-border: rgba(95, 105, 120, 0.18);
+    --ui-empty-action-bg: rgba(255, 255, 255, 0.86);
+    --ui-empty-action-text: var(--color-ink-500);
+    --ui-empty-action-border-hover: rgba(var(--color-accent-500-rgb), 0.3);
+    --ui-empty-action-bg-hover: rgba(249, 247, 240, 0.98);
+    --ui-empty-action-text-hover: var(--color-accent-700);
+    --ui-task-bg:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 252, 0.98));
+    --ui-task-border: rgba(32, 36, 43, 0.08);
+    --ui-task-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94);
+    --ui-task-border-active: rgba(var(--color-accent-500-rgb), 0.32);
+    --ui-task-shadow-active:
+        inset 0 1px 0 rgba(255, 255, 255, 0.94),
+        0 14px 24px rgba(15, 23, 42, 0.08);
+    --ui-task-title: var(--color-ink-800);
+    --ui-task-meta: var(--color-ink-500);
+    --ui-task-status-border-alpha: 0.3;
+    --ui-task-status-fill-alpha: 0.24;
+    --ui-task-status-fill-soft-alpha: 0.12;
+    --ui-task-status-fill-fade-alpha: 0.04;
+    --ui-task-status-accent-alpha: 0.42;
+    --ui-task-led-width: 3px;
+    --ui-task-led-inset-y: 8px;
+    --ui-task-led-shadow:
+        0 0 0 1px rgba(var(--task-status-rgb), 0.12),
+        0 0 10px rgba(var(--task-status-rgb), 0.26),
+        8px 0 18px rgba(var(--task-status-rgb), 0.12);
+    --ui-modal-bg:
+        radial-gradient(circle at 100% 0%, rgba(var(--color-accent-500-rgb), 0.14), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(246, 248, 250, 0.98) 100%);
+    --ui-modal-border: rgba(32, 36, 43, 0.12);
+    --ui-modal-shadow:
+        0 28px 80px rgba(15, 23, 42, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    --ui-modal-scrim: rgba(23, 28, 35, 0.42);
+    --ui-modal-section-bg:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(242, 244, 247, 0.96) 100%);
+    --ui-modal-section-border: rgba(32, 36, 43, 0.1);
+    --ui-modal-section-border-strong: rgba(32, 36, 43, 0.14);
+    --ui-modal-toolbar-bg:
+        linear-gradient(180deg, rgba(250, 251, 252, 0.98) 0%, rgba(239, 243, 247, 0.98) 100%);
+    --ui-modal-toolbar-border: rgba(32, 36, 43, 0.1);
+    --ui-modal-label: var(--color-ink-600);
+    --ui-modal-placeholder: rgba(95, 105, 120, 0.72);
+    --ui-modal-tag-bg:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(244, 246, 248, 0.98) 100%);
+    --ui-modal-tag-border: rgba(32, 36, 43, 0.12);
+    --ui-modal-tag-text: var(--color-ink-700);
+    --ui-modal-close-bg: linear-gradient(180deg, #ffffff 0%, #f6f8fa 100%);
+    --ui-modal-close-border: rgba(32, 36, 43, 0.12);
+    --ui-modal-close-text: var(--color-ink-700);
+    --ui-modal-close-bg-hover: linear-gradient(180deg, #ffffff 0%, rgba(var(--color-accent-200-rgb), 0.34) 100%);
+    --ui-modal-close-border-hover: rgba(var(--color-accent-500-rgb), 0.3);
+    --ui-modal-close-text-hover: var(--color-ink-800);
+    --ui-dropdown-menu-padding: 6px;
+    --ui-dropdown-menu-gap: 4px;
+    --ui-dropdown-menu-radius: 10px;
+    --ui-dropdown-menu-offset: 4px;
+    --ui-dropdown-menu-min-width: 136px;
+    --ui-dropdown-status-min-width: 156px;
+    --ui-dropdown-priority-min-width: 156px;
+    --ui-dropdown-option-min-height: 30px;
+    --ui-dropdown-option-padding: 5px 8px;
+    --ui-dropdown-option-radius: 10px;
+    --ui-dropdown-option-font-size: 0.9rem;
+    --ui-dropdown-trigger-min-height: 32px;
+    --ui-dropdown-trigger-padding: 5px 22px 5px 10px;
+    --ui-dropdown-trigger-caret-right: 8px;
+    --ui-dropdown-trigger-caret-size: 0.6rem;
+
+    /* Semantic state tokens */
+    --state-status-todo-rgb: 92, 102, 118;
+    --state-status-todo-text: #37414d;
+    --state-status-progress-rgb: var(--color-accent-500-rgb);
+    --state-status-progress-text: #7a4c36;
+    --state-status-review-rgb: 143, 129, 103;
+    --state-status-review-text: #5a4c36;
+    --state-status-done-rgb: 108, 137, 113;
+    --state-status-done-text: #445548;
+    --state-priority-low-rgb: 116, 125, 138;
+    --state-priority-low-text: #44505d;
+    --state-priority-medium-rgb: var(--color-accent-500-rgb);
+    --state-priority-medium-text: #7a4c36;
+    --state-priority-high-rgb: var(--color-accent-600-rgb);
+    --state-priority-high-text: #70432f;
+    --state-priority-urgent-rgb: 166, 92, 92;
+    --state-priority-urgent-text: #6d3737;
+
+    /* Compatibility aliases used by the selectors below */
+    --bexon-gradient-dark: var(--ui-button-bg);
+    --bexon-button-border: var(--ui-button-border);
+    --bexon-button-border-hover: var(--ui-button-border);
+    --bexon-gradient-dark-hover: var(--ui-button-bg-hover);
+    --bexon-text-dark: var(--ui-text-on-dark);
+    --bexon-canvas-1: var(--color-canvas-1);
+    --bexon-canvas-2: var(--color-canvas-2);
+    --bexon-canvas-3: var(--color-canvas-3);
+    --bexon-sidebar: var(--ui-sidebar-bg);
+    --bexon-panel: var(--ui-panel-bg);
+    --bexon-panel-strong: var(--ui-panel-strong);
+    --bexon-border: var(--ui-border);
+    --bexon-border-strong: var(--ui-border-strong);
+    --bexon-graphite: var(--ui-graphite);
+    --bexon-muted: var(--ui-text-muted);
+    --bexon-gold: var(--ui-sidebar-icon);
+    --bexon-gold-strong: var(--ui-sidebar-icon-strong);
+    --bexon-border-gradient: var(--surface-accent);
+    --bexon-auth-surface: var(--surface-auth);
+    --bexon-topbar-surface: var(--ui-topbar-bg);
+    --bexon-topbar-border: var(--ui-topbar-border);
+    --bexon-topbar-shadow: var(--ui-topbar-shadow);
+    --bexon-topbar-stats-bg: var(--ui-topbar-card-bg);
+    --bexon-topbar-stats-border: var(--ui-topbar-card-border);
+    --bexon-topbar-meta-text: var(--ui-topbar-meta);
+    --bexon-topbar-strong-text: var(--ui-topbar-title);
+    --bexon-topbar-chip-bg: var(--ui-topbar-chip-bg);
+    --bexon-topbar-chip-border: var(--ui-topbar-chip-border);
+    --bexon-topbar-icon-bg: var(--ui-topbar-icon-bg);
+    --bexon-topbar-icon-border: var(--ui-topbar-icon-border);
+    --bexon-topbar-icon-text: var(--ui-topbar-icon-text);
+    --bexon-topbar-icon-bg-hover: var(--ui-topbar-icon-bg-hover);
+    --bexon-topbar-icon-border-hover: var(--ui-topbar-icon-border-hover);
+    --bexon-topbar-icon-text-hover: var(--ui-topbar-icon-text-hover);
+    --bexon-topbar-logout-bg: var(--ui-topbar-logout-bg);
+    --bexon-topbar-logout-border: var(--ui-topbar-logout-border);
+    --bexon-topbar-logout-text: var(--ui-topbar-logout-text);
+    --bexon-topbar-logout-bg-hover: var(--ui-topbar-logout-bg-hover);
+    --bexon-topbar-logout-border-hover: var(--ui-topbar-logout-border-hover);
+    --bexon-topbar-logout-glow: var(--ui-topbar-logout-glow);
+    --bexon-group-surface: var(--ui-group-bg);
+    --bexon-group-border: var(--ui-group-border);
+    --bexon-group-shadow: var(--ui-group-shadow);
+    --bexon-group-head-surface: var(--ui-group-head-bg);
+    --bexon-group-head-border: var(--ui-group-head-border);
+    --bexon-group-head-shadow: var(--ui-group-head-shadow);
+    --bexon-group-head-text: var(--ui-group-head-text);
+    --bexon-group-head-text-shadow: var(--ui-group-head-text-shadow);
+    --bexon-group-head-count-bg: var(--ui-group-head-count-bg);
+    --bexon-group-head-count-border: var(--ui-group-head-count-border);
+    --bexon-group-head-action: var(--ui-group-head-action);
+    --bexon-group-head-action-hover: var(--ui-group-head-action-hover);
+    --bexon-group-name-focus-border: var(--ui-group-focus-border);
+    --bexon-group-name-focus-bg: var(--ui-group-focus-bg);
+    --bexon-group-name-focus-text: var(--ui-group-focus-text);
+    --bexon-group-empty-border: var(--ui-empty-border);
+    --bexon-group-empty-surface: var(--ui-empty-bg);
+    --bexon-group-empty-add-border: var(--ui-empty-action-border);
+    --bexon-group-empty-add-bg: var(--ui-empty-action-bg);
+    --bexon-group-empty-add-text: var(--ui-empty-action-text);
+    --bexon-group-empty-add-border-hover: var(--ui-empty-action-border-hover);
+    --bexon-group-empty-add-bg-hover: var(--ui-empty-action-bg-hover);
+    --bexon-group-empty-add-text-hover: var(--ui-empty-action-text-hover);
+    --bexon-card-surface: var(--ui-card-bg);
+    --bexon-card-surface-strong: var(--ui-card-bg-strong);
+    --bexon-card-surface-soft: var(--ui-card-bg-soft);
+    --bexon-card-surface-muted: var(--ui-card-bg-muted);
+    --bexon-card-surface-hover: var(--ui-card-bg-hover);
+    --bexon-control-bg: var(--ui-control-bg);
+    --bexon-control-bg-focus: var(--ui-control-bg-focus);
+    --bexon-control-bg-soft: var(--ui-control-bg-soft);
+    --bexon-control-bg-soft-focus: var(--ui-control-bg-soft-focus);
+    --bexon-divider: var(--ui-divider);
+    --bexon-text-strong: var(--ui-text-strong);
+    --bexon-text-soft: var(--ui-text-soft);
 }
 
 /* Dashboard theme variables */
 body.is-dashboard {
     --bg: var(--bexon-canvas-1);
-    --panel: rgba(129, 89, 16, 0.98);
-    --panel-strong: var(--bexon-panel-strong);
-    --border: var(--bexon-border);
-    --text: #5d4a2e;
-    --muted: rgba(122, 106, 81, 0.92);
-    --muted-2: rgba(122, 106, 81, 0.78);
-    --wf-accent-purple: #d39511;
-    --wf-accent-purple-rgb: 211, 149, 17;
-    --wf-title-graphite: #4a3510;
-    --wf-divider-rgb: 215, 170, 74;
-    --wf-dropdown-control-bg: #fffaf0;
-    --wf-dropdown-control-border: rgba(162, 128, 74, 0.44);
-    --wf-dropdown-control-text: #624e31;
-    --wf-dropdown-control-focus-bg: #f6eddc;
-    --wf-dropdown-control-focus-border: rgba(145, 111, 57, 0.68);
-    --wf-dropdown-menu-bg: #fffbf3;
-    --wf-dropdown-menu-bg-2: #f7efdf;
-    --wf-dropdown-menu-border: rgba(162, 128, 74, 0.34);
-    --wf-dropdown-item-bg: rgba(255, 255, 255, 0.82);
-    --wf-dropdown-item-text: #5d4a2e;
-    --wf-dropdown-item-hover-bg: #f2e8d4;
-    --wf-dropdown-item-hover-border: rgba(130, 112, 79, 0.46);
-    --wf-dropdown-item-active-bg: #ede1cb;
-    --wf-dropdown-item-active-border: rgba(130, 112, 79, 0.58);
-    --wf-dropdown-item-active-text: #4d3c23;
+    --panel: var(--ui-panel-bg);
+    --panel-strong: var(--ui-panel-strong);
+    --border: var(--ui-border);
+    --text: var(--ui-text);
+    --muted: var(--color-ink-500);
+    --muted-2: rgba(129, 137, 150, 0.74);
+    --wf-accent-purple: var(--color-accent-500);
+    --wf-accent-purple-rgb: var(--color-accent-500-rgb);
+    --wf-title-graphite: var(--ui-graphite);
+    --wf-divider-rgb: var(--color-accent-500-rgb);
+    --wf-dropdown-control-bg: var(--ui-control-bg);
+    --wf-dropdown-control-border: rgba(32, 36, 43, 0.12);
+    --wf-dropdown-control-text: var(--ui-text-soft);
+    --wf-dropdown-control-focus-bg: var(--ui-control-bg-focus);
+    --wf-dropdown-control-focus-border: rgba(var(--color-accent-500-rgb), 0.52);
+    --wf-dropdown-menu-bg: rgba(255, 255, 255, 0.98);
+    --wf-dropdown-menu-bg-2: rgba(246, 248, 250, 0.98);
+    --wf-dropdown-menu-border: rgba(32, 36, 43, 0.1);
+    --wf-dropdown-item-bg: rgba(255, 255, 255, 0.94);
+    --wf-dropdown-item-text: var(--ui-text);
+    --wf-dropdown-item-hover-bg: rgba(247, 249, 251, 0.98);
+    --wf-dropdown-item-hover-border: rgba(var(--color-accent-500-rgb), 0.18);
+    --wf-dropdown-item-active-bg: rgba(var(--color-accent-200-rgb), 0.22);
+    --wf-dropdown-item-active-border: rgba(var(--color-accent-500-rgb), 0.28);
+    --wf-dropdown-item-active-text: var(--ui-graphite);
     color: var(--text);
-    background: linear-gradient(
-        180deg,
-        var(--bexon-canvas-1) 0%,
-        var(--bexon-canvas-2) 58%,
-        var(--bexon-canvas-3) 100%
-    );
+    background: var(--surface-shell);
 }
 
 /* Cards and main surfaces */
@@ -100,8 +419,78 @@ body.is-dashboard .panel {
 
 /* Sidebar surfaces */
 body.is-dashboard .users-sidebar {
-    background: var(--bexon-sidebar);
-    border-right: 1px solid rgba(203, 155, 53, 0.34);
+    /* The active sidebar skin lives in this theme file so the token stays authoritative. */
+    position: relative;
+    background-color: var(--color-sidebar-900);
+    background-image: var(--bexon-sidebar);
+    background-repeat: no-repeat;
+    border-right: 1px solid transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+body.is-dashboard .sidebar-brand {
+    position: relative;
+    min-height: 76px;
+    margin-bottom: 8px;
+    padding: 8px 12px 10px;
+}
+
+body.is-dashboard .workspace-sidebar-header {
+    position: relative;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+body.is-dashboard .workspace-sidebar-picker > summary {
+    min-height: 40px;
+    padding: 2px 0;
+    font-size: 1.15rem;
+}
+
+@media (max-width: 1024px) {
+    body.is-dashboard .users-sidebar {
+        border-right: 0;
+        border-bottom: 1px solid transparent;
+        background-color: var(--color-sidebar-900);
+        background-image: var(--bexon-sidebar);
+        background-repeat: no-repeat;
+        backdrop-filter: none;
+    }
+}
+
+body.is-dashboard .users-sidebar::after {
+    content: "";
+    position: absolute;
+    top: 18px;
+    right: 0;
+    bottom: 18px;
+    width: 1px;
+    background: var(--ui-sidebar-divider-gradient-vertical);
+    pointer-events: none;
+}
+
+body.is-dashboard .sidebar-brand::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 0;
+    height: 1px;
+    background: var(--ui-sidebar-divider-gradient);
+    pointer-events: none;
+}
+
+@media (max-width: 1024px) {
+    body.is-dashboard .users-sidebar::after {
+        top: auto;
+        left: 18px;
+        right: 18px;
+        bottom: 0;
+        width: auto;
+        height: 1px;
+        background: var(--ui-sidebar-divider-gradient);
+    }
 }
 
 body.is-dashboard .tasklist-wrap {
@@ -116,70 +505,153 @@ body.is-dashboard .users-wrap {
     background: #ffffff;
 }
 
-body.is-dashboard .tasklist-wrap .task-group {
-    border-color: rgba(162, 128, 74, 0.32);
-    background: #ffffff;
+body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap, .accounting-wrap) .task-group {
+    border-color: var(--bexon-group-border);
+    background: var(--bexon-group-surface);
+    box-shadow: var(--bexon-group-shadow);
 }
 
 /* Sidebar navigation */
+body.is-dashboard .users-sidebar .sidebar-view-menu {
+    gap: 8px;
+}
+
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle {
-    border-color: transparent;
+    position: relative;
+    border: 1px solid transparent;
+    border-radius: 10px;
     background: transparent;
-    color: var(--bexon-graphite);
+    color: var(--bexon-text-dark);
     box-shadow: none;
+    font-size: 0.9rem;
+    overflow: hidden;
 }
 
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-label {
-    color: var(--bexon-graphite);
+    color: var(--bexon-text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-icon {
+    width: 16px;
+    height: 16px;
     color: var(--bexon-gold);
+}
+
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 1.9;
 }
 
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle:hover,
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle:focus-visible {
-    border-color: transparent;
-    background: transparent;
-    color: var(--bexon-graphite);
+    border-color: rgba(244, 230, 177, 0.12);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--bexon-text-dark);
     transform: none;
 }
 
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active {
-    border: 2px solid transparent;
-    background:
-        linear-gradient(transparent, transparent) padding-box,
-        var(--bexon-border-gradient) border-box;
-    background-color: transparent;
-    color: #fffdf7;
-    text-shadow: 0 1px 2px rgba(96, 53, 3, 0.22);
-    box-shadow: none;
+    border: 1px solid transparent;
+    background: var(--ui-sidebar-active-surface);
+    color: var(--ui-sidebar-text);
+    text-shadow: none;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.03),
+        0 12px 28px rgba(0, 0, 0, 0.22),
+        0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active .sidebar-view-toggle-label,
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active .sidebar-view-toggle-icon {
-    color: #fffdf7;
+    color: var(--ui-sidebar-text);
 }
 
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active::before {
-    content: none;
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: var(--ui-sidebar-active-glow);
+    box-shadow: var(--ui-sidebar-active-glow-shadow);
+    pointer-events: none;
 }
 
-body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle,
-body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle:hover,
-body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle:focus-visible,
-body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active {
-    border: 0;
-    border-radius: 0;
+body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active::after {
+    content: "";
+    position: absolute;
+    top: 9px;
+    right: 10px;
+    bottom: 9px;
+    width: 44px;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(var(--color-accent-500-rgb), 0) 0%,
+            rgba(var(--color-accent-500-rgb), 0.12) 42%,
+            rgba(var(--color-accent-500-rgb), 0.34) 100%
+        );
+    filter: blur(11px);
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle {
+    width: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    margin: 0 auto 2px;
+    border: 1px solid transparent;
+    border-radius: 12px;
     background: transparent;
     box-shadow: none;
     color: var(--bexon-gold-strong);
+    position: relative;
+    overflow: hidden;
 }
 
-body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon,
-body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active .sidebar-view-toggle-icon {
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle:hover,
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle:focus-visible {
+    border-color: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--ui-sidebar-text);
+    transform: none;
+}
+
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active {
+    border-color: transparent;
+    background: var(--ui-brand-frame-surface);
+    color: var(--ui-sidebar-text);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 12px 24px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon {
+    width: 26px;
+    height: 26px;
     color: var(--bexon-gold-strong);
     filter: none;
+    position: relative;
+    z-index: 1;
+}
+
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle:hover .sidebar-view-toggle-icon,
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle:focus-visible .sidebar-view-toggle-icon,
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active .sidebar-view-toggle-icon {
+    color: var(--ui-sidebar-text);
+}
+
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon svg,
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active .sidebar-view-toggle-icon svg {
+    width: 26px;
+    height: 26px;
+    stroke-width: 2.05;
 }
 
 body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle .sidebar-view-toggle-icon::before,
@@ -187,56 +659,166 @@ body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-ov
     content: none;
 }
 
-/* Sidebar utility buttons */
-body.is-dashboard .workspace-users-settings-button {
-    border-color: rgba(199, 149, 47, 0.42);
-    background: #fff4da;
-    color: #725116;
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: var(--ui-brand-frame-inner-glow);
+    box-shadow:
+        0 0 16px rgba(var(--color-accent-500-rgb), 0.12),
+        0 10px 22px rgba(0, 0, 0, 0.16);
+    pointer-events: none;
 }
 
-body.is-dashboard .workspace-users-settings-button:hover,
-body.is-dashboard .workspace-users-settings-button:focus-visible,
-body.is-dashboard .workspace-users-settings-button.is-active {
-    border-color: var(--bexon-border-strong);
-    background: #ffedc8;
-    color: var(--bexon-gold-strong);
+body.is-dashboard .users-sidebar .workspace-sidebar-header .workspace-sidebar-overview-toggle.is-active::after {
+    content: "";
+    position: absolute;
+    inset: 8px 7px 8px 18px;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(var(--color-accent-500-rgb), 0) 0%,
+            rgba(var(--color-accent-500-rgb), 0.16) 36%,
+            rgba(var(--color-accent-500-rgb), 0.38) 100%
+        );
+    filter: blur(10px);
+    opacity: 0.82;
+    pointer-events: none;
+}
+
+/* Sidebar utility buttons */
+body.is-dashboard .workspace-sidebar-heading-actions .sidebar-view-toggle.workspace-users-settings-button {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.82);
+    box-shadow: none;
+}
+
+body.is-dashboard .workspace-sidebar-heading-actions .sidebar-view-toggle.workspace-users-settings-button:hover,
+body.is-dashboard .workspace-sidebar-heading-actions .sidebar-view-toggle.workspace-users-settings-button:focus-visible,
+body.is-dashboard .workspace-sidebar-heading-actions .sidebar-view-toggle.workspace-users-settings-button.is-active {
+    border-color: rgba(var(--color-accent-500-rgb), 0.3);
+    background: rgba(var(--color-accent-500-rgb), 0.16);
+    color: #fff7dc;
+    box-shadow: none;
+    transform: none;
 }
 
 body.is-dashboard .workspace-mobile-menu-button {
-    border-color: rgba(199, 149, 47, 0.42);
-    background: #fff4da;
-    color: #725116;
+    border-color: rgba(60, 68, 79, 0.72);
+    background: var(--ui-button-bg);
+    color: var(--ui-button-text);
 }
 
 body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button,
 body.is-dashboard .workspace-mobile-menu-button:hover,
 body.is-dashboard .workspace-mobile-menu-button:focus-visible {
-    border-color: var(--bexon-border-strong);
-    background: #ffedc8;
-    color: var(--bexon-gold-strong);
+    border-color: rgba(var(--color-accent-500-rgb), 0.72);
+    background: var(--ui-button-bg-hover);
+    color: var(--ui-button-text-hover);
+}
+
+body.is-dashboard .workspace-sidebar-picker-menu {
+    padding: 10px;
+    border-color: rgba(var(--color-accent-500-rgb), 0.22);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 246, 248, 0.98));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+        0 14px 28px rgba(15, 23, 42, 0.14);
+}
+
+body.is-dashboard .workspace-sidebar-picker > summary .workspace-sidebar-picker-avatar,
+body.is-dashboard .workspace-sidebar-picker-option .workspace-sidebar-picker-avatar,
+body.is-dashboard .workspace-sidebar-picker-current .workspace-sidebar-picker-avatar {
+    box-shadow: 0 6px 14px rgba(120, 95, 58, 0.12);
+}
+
+body.is-dashboard .workspace-sidebar-picker-option,
+body.is-dashboard .workspace-sidebar-picker-current {
+    min-height: 40px;
+    border-radius: 12px;
+    padding: 0 12px;
+    color: var(--bexon-text-strong);
+    box-shadow: none;
+}
+
+body.is-dashboard .workspace-sidebar-picker-option {
+    border-color: rgba(32, 36, 43, 0.1);
+    background: rgba(255, 255, 255, 0.96);
+}
+
+body.is-dashboard .workspace-sidebar-picker-option:hover,
+body.is-dashboard .workspace-sidebar-picker-option:focus-visible {
+    border-color: rgba(var(--color-accent-500-rgb), 0.3);
+    background: linear-gradient(180deg, rgba(255, 250, 247, 0.98) 0%, rgba(248, 240, 234, 0.98) 100%);
+    color: var(--color-accent-700);
+    transform: none;
+    outline: none;
+}
+
+body.is-dashboard .workspace-sidebar-picker-current {
+    border-color: rgba(var(--color-accent-500-rgb), 0.34);
+    background: linear-gradient(180deg, rgba(255, 249, 244, 0.98) 0%, rgba(245, 235, 227, 0.98) 100%);
+    color: var(--bexon-text-strong);
+    font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+body.is-dashboard .workspace-sidebar-picker-current .workspace-sidebar-picker-item-text,
+body.is-dashboard .workspace-sidebar-picker-option .workspace-sidebar-picker-item-text {
+    color: inherit;
+}
+
+body.is-dashboard .workspace-sidebar-create-trigger {
+    min-height: 40px;
+    border-radius: 12px;
+    border-color: rgba(var(--color-accent-500-rgb), 0.34);
+    background: rgba(255, 255, 255, 0.98);
+    color: var(--color-accent-700);
+    box-shadow: none;
+}
+
+body.is-dashboard .workspace-sidebar-create-trigger:hover,
+body.is-dashboard .workspace-sidebar-create-trigger:focus-visible {
+    border-color: rgba(var(--color-accent-500-rgb), 0.5);
+    background: linear-gradient(180deg, rgba(255, 249, 244, 0.98) 0%, rgba(247, 238, 232, 0.98) 100%);
+    color: var(--color-accent-900);
+    box-shadow: none;
+    outline: none;
 }
 
 body.is-dashboard .workspace-sidebar-picker-title {
-    color: #7c5a15;
-    background: linear-gradient(118deg, #9e6e09 0%, #c78c14 54%, #f0b329 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 12px rgba(214, 160, 52, 0.2);
+    color: rgba(255, 255, 255, 0.96);
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    text-shadow: none;
 }
 
 body.is-dashboard .workspace-sidebar-picker-caret {
-    color: #987540;
+    color: rgba(255, 255, 255, 0.52);
+}
+
+@media (max-width: 768px) {
+    body.is-dashboard.dashboard-mobile-nav-collapsible .users-sidebar .sidebar-view-menu {
+        grid-template-columns: 1fr;
+    }
+
+    body.is-dashboard .users-sidebar .sidebar-view-toggle {
+        min-height: 38px;
+        font-size: 0.84rem;
+    }
 }
 
 /* Workspace settings page shell */
 body.is-dashboard.is-workspace-settings {
-    background: linear-gradient(180deg, #f8f4ea 0%, #f4edde 58%, #efe6d3 100%);
+    background: var(--surface-shell);
 }
 
 body.is-dashboard.is-workspace-settings .workspace-settings-panel {
     border-color: rgba(162, 128, 74, 0.34);
-    background: linear-gradient(180deg, #fffdf8 0%, #f8f1e2 100%);
+    background: var(--bexon-card-surface-strong);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
@@ -266,13 +848,20 @@ body .flash {
 }
 
 body.is-auth {
-    color: #5d4a2e;
-    background: linear-gradient(180deg, var(--bexon-canvas-1) 0%, var(--bexon-canvas-2) 58%, var(--bexon-canvas-3) 100%);
+    color: var(--ui-text);
+    background: var(--surface-shell);
 }
 
 body.is-auth .auth-card {
     background: var(--bexon-auth-surface);
     border-color: rgba(199, 149, 47, 0.28);
+    box-shadow:
+        0 24px 54px rgba(139, 104, 39, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+body.is-auth .auth-card-glow {
+    display: none;
 }
 
 body.is-auth .auth-card-head h1,
@@ -301,6 +890,27 @@ body.is-auth .auth-form input:focus {
     border-color: rgba(175, 122, 16, 0.72);
     background: var(--bexon-control-bg-focus);
     box-shadow: 0 0 0 3px rgba(175, 122, 16, 0.12);
+}
+
+body.is-auth .auth-form input:-webkit-autofill,
+body.is-auth .auth-form input:-webkit-autofill:hover {
+    -webkit-text-fill-color: #5b4218;
+    caret-color: #5b4218;
+    border-color: rgba(199, 149, 47, 0.5);
+    -webkit-box-shadow: 0 0 0 1000px var(--bexon-control-bg) inset;
+    box-shadow: 0 0 0 1000px var(--bexon-control-bg) inset;
+}
+
+body.is-auth .auth-form input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #5b4218;
+    caret-color: #5b4218;
+    border-color: rgba(175, 122, 16, 0.72);
+    -webkit-box-shadow:
+        0 0 0 1000px var(--bexon-control-bg-focus) inset,
+        0 0 0 3px rgba(175, 122, 16, 0.12);
+    box-shadow:
+        0 0 0 1000px var(--bexon-control-bg-focus) inset,
+        0 0 0 3px rgba(175, 122, 16, 0.12);
 }
 
 body.is-auth .auth-switch-line {
@@ -333,24 +943,48 @@ body .flash span {
     color: var(--bexon-text-soft);
 }
 
+/* Final sidebar surface override */
+body.is-dashboard .tasklist-layout > .users-sidebar.panel {
+    background: none !important;
+    background-color: var(--color-sidebar-900) !important;
+    background-image: var(--bexon-sidebar) !important;
+    background-repeat: no-repeat !important;
+    border-right: 1px solid rgba(var(--color-accent-500-rgb), 0.24) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+@media (max-width: 1024px) {
+    body.is-dashboard .tasklist-layout > .users-sidebar.panel {
+        border-right: 0 !important;
+        border-bottom: 1px solid rgba(var(--color-accent-500-rgb), 0.24) !important;
+        background: none !important;
+        background-color: var(--color-sidebar-900) !important;
+        background-image: var(--bexon-sidebar) !important;
+        background-repeat: no-repeat !important;
+        backdrop-filter: none !important;
+    }
+}
+
 body .flash-close,
 body .modal-close-button {
-    border-color: rgba(130, 112, 79, 0.44);
-    background: #f3eee2;
-    color: #66553c;
+    border-color: var(--ui-modal-close-border);
+    background: var(--ui-modal-close-bg);
+    color: var(--ui-modal-close-text);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 
 body .flash-close:hover,
 body .flash-close:focus-visible,
 body .modal-close-button:hover,
 body .modal-close-button:focus-visible {
-    border-color: rgba(110, 93, 65, 0.64);
-    background: #ece2d0;
-    color: #4d3f2a;
+    border-color: var(--ui-modal-close-border-hover);
+    background: var(--ui-modal-close-bg-hover);
+    color: var(--ui-modal-close-text-hover);
 }
 
 body .modal-scrim {
-    background: rgba(95, 72, 34, 0.18);
+    background: var(--ui-modal-scrim);
 }
 
 /* Main dashboard view backgrounds */
@@ -361,7 +995,7 @@ body.is-dashboard .tasklist-layout > .due-wrap,
 body.is-dashboard .tasklist-layout > .inventory-wrap,
 body.is-dashboard .tasklist-layout > .accounting-wrap,
 body.is-dashboard .tasklist-layout > .users-wrap {
-    background: #ffffff;
+    background: var(--ui-panel-strong);
 }
 
 /* Inputs and buttons */
@@ -375,9 +1009,9 @@ body .group-tag-select,
 body .row-inline-picker > summary,
 body .assignee-picker > summary,
 body .task-detail-inline-assignee-picker > summary {
-    border-color: rgba(199, 149, 47, 0.5);
+    border-color: rgba(32, 36, 43, 0.12);
     background: var(--bexon-control-bg);
-    color: #5b4218;
+    color: var(--bexon-text-strong);
 }
 
 body input:focus,
@@ -387,15 +1021,86 @@ body .task-title-input:focus,
 body .row-inline-picker[open] > summary,
 body .assignee-picker[open] > summary,
 body .task-detail-inline-assignee-picker[open] > summary {
-    border-color: rgba(175, 122, 16, 0.72);
+    border-color: rgba(var(--color-accent-500-rgb), 0.52);
     background: var(--bexon-control-bg-focus);
+}
+
+body .row-inline-picker > summary,
+body .assignee-picker > summary,
+body .task-detail-inline-assignee-picker > summary {
+    min-height: var(--ui-dropdown-trigger-min-height);
+    padding: var(--ui-dropdown-trigger-padding);
+}
+
+body .row-inline-picker > summary::after,
+body .assignee-picker > summary::after,
+body .task-detail-inline-assignee-picker > summary::after {
+    right: var(--ui-dropdown-trigger-caret-right);
+    font-size: var(--ui-dropdown-trigger-caret-size);
+}
+
+body .row-inline-picker-menu {
+    gap: var(--ui-dropdown-menu-gap);
+}
+
+body .row-inline-picker > .row-inline-picker-menu,
+body .assignee-picker-menu,
+body .workspace-sidebar-picker-menu,
+body .create-task-title-tag-menu {
+    top: calc(100% + var(--ui-dropdown-menu-offset));
+    border-radius: var(--ui-dropdown-menu-radius);
+    padding: var(--ui-dropdown-menu-padding);
+}
+
+body .row-inline-picker > .row-inline-picker-menu {
+    min-width: var(--ui-dropdown-menu-min-width);
+}
+
+body .status-inline-picker > .row-inline-picker-menu {
+    min-width: var(--ui-dropdown-status-min-width);
+}
+
+body .priority-inline-picker > .row-inline-picker-menu {
+    min-width: var(--ui-dropdown-priority-min-width);
+}
+
+body .priority-inline-picker > summary {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0;
+    gap: 0;
+    place-items: center;
+    text-align: center;
+}
+
+body .priority-inline-picker > summary::after {
+    display: none;
+}
+
+body .priority-inline-picker .row-inline-picker-summary-icon {
+    margin: 0;
+    transform: none;
+}
+
+body .row-inline-picker-option,
+body .assignee-option,
+body .workspace-sidebar-picker-option,
+body .create-task-title-tag-menu-item {
+    min-height: var(--ui-dropdown-option-min-height);
+    padding: var(--ui-dropdown-option-padding);
+    border-radius: var(--ui-dropdown-option-radius);
+    font-size: var(--ui-dropdown-option-font-size);
+    line-height: 1.2;
 }
 
 body.is-dashboard .status-inline-picker[data-status-color] > summary,
 body.is-dashboard .status-select[data-status-color] {
     color: var(--wf-status-text);
-    border-color: rgba(var(--wf-status-rgb), 0.44);
-    background: rgba(var(--wf-status-rgb), 0.18);
+    border-color: rgba(var(--wf-status-rgb), 0.42);
+    background: rgba(var(--wf-status-rgb), 0.22);
+    box-shadow: none;
 }
 
 body.is-dashboard .status-inline-picker[data-status-color] > summary::after {
@@ -407,109 +1112,365 @@ body.is-dashboard .status-inline-picker[data-status-color] > summary:hover,
 body.is-dashboard .status-inline-picker[data-status-color] > summary:focus-visible,
 body.is-dashboard .status-select[data-status-color]:focus {
     color: var(--wf-status-text);
-    border-color: rgba(var(--wf-status-rgb), 0.58);
-    background: rgba(var(--wf-status-rgb), 0.26);
+    border-color: rgba(var(--wf-status-rgb), 0.56);
+    background: rgba(var(--wf-status-rgb), 0.3);
 }
 
 body.is-dashboard .status-inline-picker .row-inline-picker-option[data-status-color] {
     color: var(--wf-status-text);
     border-color: rgba(var(--wf-status-rgb), 0.36);
-    background: rgba(var(--wf-status-rgb), 0.16);
+    background: rgba(var(--wf-status-rgb), 0.22);
+    box-shadow: none;
+    font-weight: 650;
+}
+
+body.is-dashboard .status-inline-picker .row-inline-picker-option[data-status-color]:hover,
+body.is-dashboard .status-inline-picker .row-inline-picker-option[data-status-color]:focus-visible {
+    color: var(--wf-status-text);
+    border-color: rgba(var(--wf-status-rgb), 0.48);
+    background: rgba(var(--wf-status-rgb), 0.28);
 }
 
 body.is-dashboard .status-inline-picker .row-inline-picker-option[data-status-color].is-active {
     color: var(--wf-status-text);
     border-color: rgba(var(--wf-status-rgb), 0.58);
-    background: rgba(var(--wf-status-rgb), 0.28);
+    background: rgba(var(--wf-status-rgb), 0.34);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option {
+    box-shadow: none;
+    font-weight: 650;
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option,
+body.is-dashboard .priority-inline-picker .row-inline-picker-option .row-inline-picker-summary-text,
+body.is-dashboard .priority-inline-picker .row-inline-picker-option .row-inline-picker-option-flag {
+    color: inherit;
+}
+
+body.is-dashboard .priority-inline-picker > summary {
+    font-weight: 650;
+    box-shadow: none;
+}
+
+body.is-dashboard .priority-inline-picker.priority-low > summary {
+    color: var(--state-priority-low-text);
+    border-color: rgba(var(--state-priority-low-rgb), 0.32);
+    background: rgba(var(--state-priority-low-rgb), 0.18);
+}
+
+body.is-dashboard .priority-inline-picker.priority-low:hover > summary,
+body.is-dashboard .priority-inline-picker.priority-low:focus-visible > summary,
+body.is-dashboard .priority-inline-picker.priority-low[open] > summary {
+    color: var(--state-priority-low-text);
+    border-color: rgba(var(--state-priority-low-rgb), 0.46);
+    background: rgba(var(--state-priority-low-rgb), 0.26);
+}
+
+body.is-dashboard .priority-inline-picker.priority-medium > summary {
+    color: var(--state-priority-medium-text);
+    border-color: rgba(var(--state-priority-medium-rgb), 0.44);
+    background: rgba(var(--state-priority-medium-rgb), 0.24);
+}
+
+body.is-dashboard .priority-inline-picker.priority-medium:hover > summary,
+body.is-dashboard .priority-inline-picker.priority-medium:focus-visible > summary,
+body.is-dashboard .priority-inline-picker.priority-medium[open] > summary {
+    color: var(--state-priority-medium-text);
+    border-color: rgba(var(--state-priority-medium-rgb), 0.58);
+    background: rgba(var(--state-priority-medium-rgb), 0.34);
+}
+
+body.is-dashboard .priority-inline-picker.priority-high > summary {
+    color: var(--state-priority-high-text);
+    border-color: rgba(var(--state-priority-high-rgb), 0.36);
+    background: rgba(var(--state-priority-high-rgb), 0.2);
+}
+
+body.is-dashboard .priority-inline-picker.priority-high:hover > summary,
+body.is-dashboard .priority-inline-picker.priority-high:focus-visible > summary,
+body.is-dashboard .priority-inline-picker.priority-high[open] > summary {
+    color: var(--state-priority-high-text);
+    border-color: rgba(var(--state-priority-high-rgb), 0.5);
+    background: rgba(var(--state-priority-high-rgb), 0.28);
+}
+
+body.is-dashboard .priority-inline-picker.priority-urgent > summary {
+    color: var(--state-priority-urgent-text);
+    border-color: rgba(var(--state-priority-urgent-rgb), 0.36);
+    background: rgba(var(--state-priority-urgent-rgb), 0.2);
+}
+
+body.is-dashboard .priority-inline-picker.priority-urgent:hover > summary,
+body.is-dashboard .priority-inline-picker.priority-urgent:focus-visible > summary,
+body.is-dashboard .priority-inline-picker.priority-urgent[open] > summary {
+    color: var(--state-priority-urgent-text);
+    border-color: rgba(var(--state-priority-urgent-rgb), 0.5);
+    background: rgba(var(--state-priority-urgent-rgb), 0.28);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-low,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-low,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-low {
+    color: var(--state-priority-low-text);
+    border-color: rgba(var(--state-priority-low-rgb), 0.36);
+    background: rgba(var(--state-priority-low-rgb), 0.22);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-low:hover,
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-low:focus-visible,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-low:hover,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-low:focus-visible,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-low:hover,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-low:focus-visible {
+    color: var(--state-priority-low-text);
+    border-color: rgba(var(--state-priority-low-rgb), 0.48);
+    background: rgba(var(--state-priority-low-rgb), 0.28);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-low.is-active,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-low.is-active,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-low.is-active {
+    color: var(--state-priority-low-text);
+    border-color: rgba(var(--state-priority-low-rgb), 0.58);
+    background: rgba(var(--state-priority-low-rgb), 0.34);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-medium,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-medium,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-medium {
+    color: var(--state-priority-medium-text);
+    border-color: rgba(var(--state-priority-medium-rgb), 0.36);
+    background: rgba(var(--state-priority-medium-rgb), 0.22);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-medium:hover,
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-medium:focus-visible,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-medium:hover,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-medium:focus-visible,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-medium:hover,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-medium:focus-visible {
+    color: var(--state-priority-medium-text);
+    border-color: rgba(var(--state-priority-medium-rgb), 0.48);
+    background: rgba(var(--state-priority-medium-rgb), 0.28);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-medium.is-active,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-medium.is-active,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-medium.is-active {
+    color: var(--state-priority-medium-text);
+    border-color: rgba(var(--state-priority-medium-rgb), 0.58);
+    background: rgba(var(--state-priority-medium-rgb), 0.34);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-high,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-high,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-high {
+    color: var(--state-priority-high-text);
+    border-color: rgba(var(--state-priority-high-rgb), 0.36);
+    background: rgba(var(--state-priority-high-rgb), 0.22);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-high:hover,
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-high:focus-visible,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-high:hover,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-high:focus-visible,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-high:hover,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-high:focus-visible {
+    color: var(--state-priority-high-text);
+    border-color: rgba(var(--state-priority-high-rgb), 0.48);
+    background: rgba(var(--state-priority-high-rgb), 0.28);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-high.is-active,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-high.is-active,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-high.is-active {
+    color: var(--state-priority-high-text);
+    border-color: rgba(var(--state-priority-high-rgb), 0.58);
+    background: rgba(var(--state-priority-high-rgb), 0.34);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-urgent,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-urgent,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-urgent {
+    color: var(--state-priority-urgent-text);
+    border-color: rgba(var(--state-priority-urgent-rgb), 0.36);
+    background: rgba(var(--state-priority-urgent-rgb), 0.22);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-urgent:hover,
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-urgent:focus-visible,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-urgent:hover,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-urgent:focus-visible,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-urgent:hover,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-urgent:focus-visible {
+    color: var(--state-priority-urgent-text);
+    border-color: rgba(var(--state-priority-urgent-rgb), 0.48);
+    background: rgba(var(--state-priority-urgent-rgb), 0.28);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-urgent.is-active,
+body.is-dashboard .create-task-modal .priority-inline-picker .row-inline-picker-option.priority-urgent.is-active,
+body.is-dashboard .task-detail-modal .priority-inline-picker .row-inline-picker-option.priority-urgent.is-active {
+    color: var(--state-priority-urgent-text);
+    border-color: rgba(var(--state-priority-urgent-rgb), 0.58);
+    background: rgba(var(--state-priority-urgent-rgb), 0.34);
 }
 
 body .btn:not(.btn-danger),
 body .btn-mini:not(.btn-danger) {
-    border-color: rgba(194, 143, 36, 0.56);
-    background: linear-gradient(180deg, #fff3cf 0%, #ffe7b4 100%);
-    color: #6d4b12;
+    border-color: rgba(32, 36, 43, 0.12);
+    background: linear-gradient(180deg, #ffffff 0%, #f6f8fa 100%);
+    color: var(--bexon-text-strong);
 }
 
 body .btn:not(.btn-danger):hover,
 body .btn:not(.btn-danger):focus-visible,
 body .btn-mini:not(.btn-danger):hover,
 body .btn-mini:not(.btn-danger):focus-visible {
-    border-color: rgba(171, 117, 10, 0.74);
-    background: linear-gradient(180deg, #ffecbc 0%, #ffe0a2 100%);
-    color: #583b09;
+    border-color: rgba(var(--color-accent-500-rgb), 0.32);
+    background: linear-gradient(180deg, #ffffff 0%, rgba(var(--color-accent-200-rgb), 0.28) 100%);
+    color: var(--bexon-text-strong);
 }
 
 body .btn-accent {
-    background: linear-gradient(135deg, #f3b524 0%, #df9d12 52%, #c88906 100%);
-    border-color: rgba(180, 124, 16, 0.72);
-    color: #fffdf4;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: var(--ui-brand-frame-surface);
+    border-color: rgba(var(--color-accent-500-rgb), 0.18);
+    color: var(--ui-button-text);
+    box-shadow: var(--ui-brand-frame-shadow);
 }
 
 body .btn-accent:hover,
 body .btn-accent:focus-visible {
-    background: linear-gradient(135deg, #ebb12b 0%, #cf900c 52%, #b97b04 100%);
-    border-color: rgba(159, 107, 8, 0.82);
+    background: var(--ui-brand-frame-surface-hover);
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    box-shadow: var(--ui-brand-frame-shadow-strong);
 }
 
 body .btn-logout {
-    background: linear-gradient(135deg, #f3b524 0%, #db980f 52%, #bc7d05 100%);
-    border-color: rgba(172, 115, 6, 0.72);
-    color: #fffcef;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: var(--ui-brand-frame-surface);
+    border-color: rgba(var(--color-accent-500-rgb), 0.18);
+    color: var(--ui-button-text);
+    box-shadow: var(--ui-brand-frame-shadow);
 }
 
 body .btn-logout:hover,
 body .btn-logout:focus-visible {
-    background: linear-gradient(135deg, #e8aa1e 0%, #c98709 52%, #ac6e03 100%);
-    border-color: rgba(152, 98, 4, 0.82);
+    background: var(--ui-brand-frame-surface-hover);
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    box-shadow: var(--ui-brand-frame-shadow-strong);
 }
 
+body .btn-accent::before,
 body .btn-logout::before {
-    background: linear-gradient(135deg, #fff6dc, #ffe7a8);
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: var(--ui-brand-frame-inner-glow);
+    pointer-events: none;
+}
+
+body .btn-accent::after,
+body .btn-logout::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: var(--ui-brand-frame-border-gradient);
+    opacity: 0.9;
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
 }
 
 /* Top bar and overview */
 body.is-dashboard .top-nav.dashboard-nav {
     background: var(--bexon-topbar-surface);
-    border-color: rgba(204, 153, 47, 0.48);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.26),
-        0 10px 24px rgba(120, 82, 16, 0.14);
+    border-color: var(--bexon-topbar-border);
+    box-shadow: var(--bexon-topbar-shadow);
 }
 
-body.is-dashboard .dashboard-nav-stats {
-    border-color: rgba(210, 160, 58, 0.42);
-    background: rgba(238, 246, 255, 0.98);
+body.is-dashboard .top-nav.dashboard-nav .dashboard-nav-stats {
+    border-color: var(--bexon-topbar-stats-border);
+    background: var(--bexon-topbar-stats-bg);
+    box-shadow: none;
 }
 
-body.is-dashboard .dashboard-nav-stats .stat-cell span,
+body.is-dashboard .top-nav.dashboard-nav .dashboard-nav-stats .stat-cell span,
+body.is-dashboard .top-nav.dashboard-nav .user-chip span {
+    color: var(--bexon-topbar-meta-text);
+}
+
 body.is-dashboard .panel-heading p,
 body.is-dashboard .panel-header p,
 body.is-dashboard .overview-board-header p,
 body.is-dashboard .overview-card-subtitle,
-body.is-dashboard .overview-card-count,
-body.is-dashboard .user-chip span {
-    color: #8e7142;
+body.is-dashboard .overview-card-count {
+    color: var(--bexon-muted);
 }
 
-body.is-dashboard .dashboard-nav-stats .stat-cell strong,
-body.is-dashboard .dashboard-nav .user-chip strong,
+body.is-dashboard .top-nav.dashboard-nav .dashboard-nav-stats .stat-cell strong,
+body.is-dashboard .top-nav.dashboard-nav .user-chip strong {
+    color: var(--bexon-topbar-strong-text);
+}
+
 body.is-dashboard .panel-heading h3,
 body.is-dashboard .panel-header h2,
 body.is-dashboard .overview-board-header h2,
-body.is-dashboard .overview-card-head h3 {
-    color: #50380c;
+body.is-dashboard .overview-card-head h3{
+    color: var(--bexon-text-strong);
 }
 
-body.is-dashboard .dashboard-nav .user-chip {
-    border-color: rgba(210, 162, 61, 0.48);
-    background: rgba(255, 251, 238, 0.98);
+body.is-dashboard .top-nav.dashboard-nav .user-chip {
+    border-color: var(--bexon-topbar-chip-border);
+    background: var(--bexon-topbar-chip-bg);
+    box-shadow: none;
+}
+
+body.is-dashboard .top-nav.dashboard-nav :is(.icon-gear-button, .header-notification-button, .workspace-mobile-menu-button) {
+    border-color: var(--bexon-topbar-icon-border);
+    background: var(--bexon-topbar-icon-bg);
+    color: var(--bexon-topbar-icon-text);
+    box-shadow: none;
+}
+
+body.is-dashboard .top-nav.dashboard-nav :is(.icon-gear-button, .header-notification-button, .workspace-mobile-menu-button):hover,
+body.is-dashboard .top-nav.dashboard-nav :is(.icon-gear-button, .header-notification-button, .workspace-mobile-menu-button):focus-visible,
+body.is-dashboard .top-nav.dashboard-nav .header-notification-button.is-open,
+body.is-dashboard.dashboard-sidebar-open .top-nav.dashboard-nav .workspace-mobile-menu-button {
+    border-color: var(--bexon-topbar-icon-border-hover);
+    background: var(--bexon-topbar-icon-bg-hover);
+    color: var(--bexon-topbar-icon-text-hover);
+}
+
+body.is-dashboard .top-nav.dashboard-nav .btn-logout {
+    background: var(--ui-brand-frame-surface);
+    border-color: rgba(var(--color-accent-500-rgb), 0.18);
+    color: var(--bexon-topbar-logout-text);
+    box-shadow: var(--ui-brand-frame-shadow);
+}
+
+body.is-dashboard .top-nav.dashboard-nav .btn-logout:hover,
+body.is-dashboard .top-nav.dashboard-nav .btn-logout:focus-visible {
+    background: var(--ui-brand-frame-surface-hover);
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    box-shadow: var(--ui-brand-frame-shadow-strong);
 }
 
 body.is-dashboard .overview-board-header {
-    border-color: rgba(199, 149, 47, 0.34);
-    background:
-        radial-gradient(circle at 96% 0%, rgba(255, 205, 105, 0.26), transparent 44%),
-        linear-gradient(180deg, #fff3cf 0%, #ffe8b1 100%);
+    border-color: rgba(32, 36, 43, 0.08);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 251, 0.98));
 }
 
 body.is-dashboard .overview-card,
@@ -550,9 +1511,9 @@ body.is-dashboard .dashboard-brief-hero.is-critical::after {
 
 body.is-dashboard .dashboard-brief-kicker,
 body.is-dashboard .dashboard-brief-item-kicker {
-    border-color: rgba(126, 110, 84, 0.32);
-    background: rgba(255, 255, 255, 0.74);
-    color: #76664d;
+    border-color: rgba(32, 36, 43, 0.12);
+    background: rgba(255, 255, 255, 0.82);
+    color: var(--bexon-muted);
 }
 
 body.is-dashboard .dashboard-brief-hero h3,
@@ -607,69 +1568,246 @@ body.is-dashboard .dashboard-brief-item.is-critical {
 
 /* Task list controls */
 body.is-dashboard .task-group-head {
-    border-bottom-color: rgba(162, 128, 74, 0.38);
-    background:
-        radial-gradient(circle at 96% 0%, rgba(212, 177, 112, 0.2), transparent 42%),
-        linear-gradient(180deg, #f5eddb 0%, #efe4cd 100%);
-}
-
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head {
-    border-bottom-color: rgba(159, 102, 13, 0.38);
-    background: var(--bexon-border-gradient);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    border-bottom-color: var(--bexon-group-head-border);
+    background: var(--bexon-group-head-surface);
+    box-shadow: var(--bexon-group-head-shadow);
 }
 
 body.is-dashboard .task-group-head h3,
 body.is-dashboard .task-group-count,
 body.is-dashboard .task-group-readonly .task-group-name-input {
-    color: var(--bexon-text-strong);
+    color: var(--bexon-group-head-text);
 }
 
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head h3,
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-count,
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-collapse,
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-delete,
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-readonly .task-group-name-input {
-    color: #fffdf7;
-}
-
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-name-input {
+body.is-dashboard .task-group-head .task-group-name-input {
     border-color: transparent;
     background: transparent;
-    color: #fffdf7;
-    text-shadow: 0 1px 2px rgba(96, 53, 3, 0.22);
+    color: var(--bexon-group-head-text);
+    text-shadow: var(--bexon-group-head-text-shadow);
+    font-weight: 700;
 }
 
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-name-input:hover {
+body.is-dashboard .task-group-head .task-group-name-input:hover {
     border-color: transparent;
     background: transparent;
 }
 
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-name-input:focus-visible {
-    border-color: rgba(255, 248, 232, 0.34);
-    background: rgba(255, 251, 243, 0.96);
-    color: var(--bexon-graphite);
-    caret-color: var(--bexon-graphite);
+body.is-dashboard .task-group-head .task-group-name-input:focus-visible {
+    border-color: var(--bexon-group-name-focus-border);
+    background: var(--bexon-group-name-focus-bg);
+    color: var(--bexon-group-name-focus-text);
+    caret-color: var(--bexon-group-name-focus-text);
     text-shadow: none;
 }
 
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-count {
-    border-color: rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.12);
+body.is-dashboard .task-group-head .task-group-count {
+    border-color: var(--bexon-group-head-count-border);
+    background: var(--bexon-group-head-count-bg);
 }
 
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-collapse {
-    color: rgba(255, 251, 241, 0.92);
+body.is-dashboard .task-group-head .task-group-collapse,
+body.is-dashboard .task-group-head .task-group-delete {
+    color: var(--bexon-group-head-action);
 }
 
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-delete:hover,
-body.is-dashboard :is(.tasklist-wrap, .vault-wrap, .due-wrap, .inventory-wrap) .task-group-head .task-group-delete:focus-visible {
-    color: #fff1d1;
+body.is-dashboard .task-group-head .task-group-delete:hover,
+body.is-dashboard .task-group-head .task-group-delete:focus-visible {
+    color: var(--bexon-group-head-action-hover);
+}
+
+body.is-dashboard .task-list-item,
+body.is-dashboard .task-list-item[data-status-color] {
+    border: 1px solid transparent;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(var(--task-status-rgb), var(--ui-task-status-fill-alpha)) 0%,
+            rgba(var(--task-status-rgb), var(--ui-task-status-fill-soft-alpha)) 38%,
+            rgba(var(--task-status-rgb), var(--ui-task-status-fill-fade-alpha)) 68%,
+            rgba(255, 255, 255, 0.98) 92%
+        ) padding-box,
+        linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.94) 0%,
+            rgba(var(--task-status-rgb), 0.14) 52%,
+            rgba(var(--task-status-rgb), 0.24) 100%
+        ) border-box;
+    box-shadow:
+        0 0 0 1px rgba(var(--task-status-rgb), 0.04),
+        0 10px 24px rgba(15, 23, 42, 0.04),
+        0 0 14px rgba(var(--task-status-rgb), 0.05),
+        var(--ui-task-shadow);
+}
+
+body.is-dashboard .task-list-item::before,
+body.is-dashboard .task-list-item[data-status-color]::before {
+    background:
+        linear-gradient(
+            90deg,
+            rgba(var(--task-status-rgb), 0.34) 0%,
+            rgba(var(--task-status-rgb), 0.18) 22%,
+            rgba(var(--task-status-rgb), 0.08) 44%,
+            rgba(var(--task-status-rgb), 0) 74%
+        );
+}
+
+body.is-dashboard .task-list-item::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: var(--ui-task-led-inset-y);
+    bottom: var(--ui-task-led-inset-y);
+    width: var(--ui-task-led-width);
+    border-radius: 999px;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(var(--task-status-rgb), 0.48) 0%,
+            rgba(var(--task-status-rgb), 0.92) 36%,
+            rgba(var(--task-status-rgb), 0.68) 72%,
+            rgba(var(--task-status-rgb), 0.3) 100%
+        );
+    box-shadow: var(--ui-task-led-shadow);
+}
+
+body.is-dashboard .task-list-item.has-open-overlay,
+body.is-dashboard .task-list-item:has(.row-inline-picker[open]),
+body.is-dashboard .task-list-item:has(.assignee-picker[open]) {
+    border-color: transparent;
+    box-shadow:
+        0 0 0 1px rgba(var(--task-status-rgb), 0.08),
+        0 12px 28px rgba(15, 23, 42, 0.06),
+        0 0 18px rgba(var(--task-status-rgb), 0.09),
+        var(--ui-task-shadow-active);
+}
+
+body.is-dashboard .task-list-item.has-open-overlay::after,
+body.is-dashboard .task-list-item:has(.row-inline-picker[open])::after,
+body.is-dashboard .task-list-item:has(.assignee-picker[open])::after {
+    box-shadow:
+        0 0 0 1px rgba(var(--task-status-rgb), 0.16),
+        0 0 14px rgba(var(--task-status-rgb), 0.34),
+        10px 0 18px rgba(var(--task-status-rgb), 0.14);
+}
+
+body.is-dashboard .task-list-item .task-title-input,
+body.is-dashboard .due-entry-title,
+body.is-dashboard .inventory-entry-title {
+    color: var(--ui-task-title);
+    font-weight: 650;
+}
+
+body.is-dashboard .task-line-meta,
+body.is-dashboard .task-subtasks-progress-text,
+body.is-dashboard .due-entry-meta,
+body.is-dashboard .inventory-entry-meta {
+    color: var(--ui-task-meta);
+}
+
+body.is-dashboard .due-date-input,
+body.is-dashboard .due-date-display,
+body.is-dashboard .assignee-picker > summary,
+body.is-dashboard .task-detail-inline-assignee-picker > summary,
+body.is-dashboard .row-assignee-picker > summary,
+body.is-dashboard .task-title-tag-badge,
+body.is-dashboard .create-task-title-tag-trigger {
+    border-color: rgba(32, 36, 43, 0.12);
+    background: linear-gradient(180deg, #ffffff 0%, #f6f8fa 100%);
+    color: var(--bexon-text-soft);
+    box-shadow: none;
+}
+
+body.is-dashboard .due-date-display:hover,
+body.is-dashboard .due-date-display:focus-visible,
+body.is-dashboard .assignee-picker > summary:hover,
+body.is-dashboard .assignee-picker > summary:focus-visible,
+body.is-dashboard .task-detail-inline-assignee-picker > summary:hover,
+body.is-dashboard .task-detail-inline-assignee-picker > summary:focus-visible,
+body.is-dashboard .row-assignee-picker > summary:hover,
+body.is-dashboard .row-assignee-picker > summary:focus-visible,
+body.is-dashboard .create-task-title-tag-trigger:hover,
+body.is-dashboard .create-task-title-tag-trigger:focus-visible {
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    background: linear-gradient(180deg, #ffffff 0%, rgba(var(--color-accent-200-rgb), 0.28) 100%);
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .task-title-tag-badge {
+    color: var(--bexon-text-strong);
+    font-weight: 600;
+}
+
+body.is-dashboard :is(
+    .task-list-item.task-status-todo,
+    .task-list-item[data-status-kind="todo"],
+    .status-inline-picker.status-todo,
+    .status-inline-picker[data-status-value="todo"],
+    .status-inline-picker [data-inline-select-option].status-todo
+) {
+    --wf-status-rgb: var(--state-status-todo-rgb) !important;
+    --task-status-rgb: var(--state-status-todo-rgb) !important;
+    --wf-status-text: var(--state-status-todo-text) !important;
+}
+
+body.is-dashboard :is(
+    .task-list-item.task-status-in_progress,
+    .task-list-item[data-status-kind="in_progress"],
+    .status-inline-picker.status-in_progress,
+    .status-inline-picker[data-status-value="in_progress"],
+    .status-inline-picker [data-inline-select-option].status-in_progress
+) {
+    --wf-status-rgb: var(--state-status-progress-rgb) !important;
+    --task-status-rgb: var(--state-status-progress-rgb) !important;
+    --wf-status-text: var(--state-status-progress-text) !important;
+}
+
+body.is-dashboard :is(
+    .task-list-item.task-status-review,
+    .task-list-item[data-status-kind="review"],
+    .status-inline-picker.status-review,
+    .status-inline-picker[data-status-value="review"],
+    .status-inline-picker [data-inline-select-option].status-review
+) {
+    --wf-status-rgb: var(--state-status-review-rgb) !important;
+    --task-status-rgb: var(--state-status-review-rgb) !important;
+    --wf-status-text: var(--state-status-review-text) !important;
+}
+
+body.is-dashboard :is(
+    .task-list-item.task-status-done,
+    .task-list-item[data-status-kind="done"],
+    .status-inline-picker.status-done,
+    .status-inline-picker[data-status-value="done"],
+    .status-inline-picker [data-inline-select-option].status-done
+) {
+    --wf-status-rgb: var(--state-status-done-rgb) !important;
+    --task-status-rgb: var(--state-status-done-rgb) !important;
+    --wf-status-text: var(--state-status-done-text) !important;
+}
+
+body.is-dashboard .task-group-empty-row {
+    border-color: var(--bexon-group-empty-border);
+    background: var(--bexon-group-empty-surface);
+}
+
+body.is-dashboard .task-group-empty-add {
+    border-color: var(--bexon-group-empty-add-border);
+    background: var(--bexon-group-empty-add-bg);
+    color: var(--bexon-group-empty-add-text);
+}
+
+body.is-dashboard .task-group-empty-add:hover,
+body.is-dashboard .task-group-empty-add:focus-visible {
+    color: var(--bexon-group-empty-add-text-hover);
+    border-color: var(--bexon-group-empty-add-border-hover);
+    background: var(--bexon-group-empty-add-bg-hover);
 }
 
 body.is-dashboard .task-filters .row-inline-picker > summary,
 body.is-dashboard .task-filters select {
-    border-color: rgba(162, 128, 74, 0.5);
+    border-color: rgba(32, 36, 43, 0.12);
     background: var(--bexon-control-bg-soft);
     color: var(--bexon-text-soft);
 }
@@ -678,15 +1816,15 @@ body.is-dashboard .task-filters .row-inline-picker > summary:hover,
 body.is-dashboard .task-filters .row-inline-picker > summary:focus-visible,
 body.is-dashboard .task-filters .row-inline-picker[open] > summary,
 body.is-dashboard .task-filters select:focus {
-    border-color: rgba(145, 111, 57, 0.68);
+    border-color: rgba(var(--color-accent-500-rgb), 0.38);
     background: var(--bexon-control-bg-soft-focus);
-    color: #533f22;
+    color: var(--bexon-text-strong);
 }
 
 body.is-dashboard .task-filters-reorder-groups.is-active {
-    background: #f3e7cd;
-    border-color: rgba(162, 128, 74, 0.62);
-    color: #5d492d;
+    background: rgba(var(--color-accent-500-rgb), 0.12);
+    border-color: rgba(var(--color-accent-500-rgb), 0.34);
+    color: var(--bexon-gold-strong);
 }
 
 body.is-dashboard .group-permissions-button,
@@ -698,9 +1836,9 @@ body.is-dashboard .status-stepper-btn,
 body.is-dashboard .task-expand-toggle,
 body.is-dashboard .create-task-title-tag-trigger,
 body.is-dashboard .task-detail-edit-description-toolbar button {
-    border-color: rgba(130, 112, 79, 0.48);
-    background: var(--bexon-card-surface-muted);
-    color: #624f34;
+    border-color: rgba(32, 36, 43, 0.12);
+    background: linear-gradient(180deg, #ffffff 0%, #f6f8fa 100%);
+    color: var(--bexon-text-soft);
 }
 
 body.is-dashboard .group-permissions-button:hover,
@@ -722,50 +1860,145 @@ body.is-dashboard .create-task-title-tag-trigger:hover,
 body.is-dashboard .create-task-title-tag-trigger:focus-visible,
 body.is-dashboard .task-detail-edit-description-toolbar button:hover,
 body.is-dashboard .task-detail-edit-description-toolbar button:focus-visible {
-    border-color: rgba(110, 93, 65, 0.66);
-    background: var(--bexon-card-surface-hover);
-    color: #4d3d24;
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    background: linear-gradient(180deg, #ffffff 0%, rgba(var(--color-accent-200-rgb), 0.28) 100%);
+    color: var(--bexon-text-strong);
 }
 
 /* Modals */
+body.is-dashboard .modal-card,
+body.is-dashboard .task-detail-modal {
+    border-color: var(--ui-modal-border);
+    background: var(--ui-modal-bg);
+    box-shadow: var(--ui-modal-shadow);
+}
+
 body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger),
 body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger) {
-    border-color: rgba(130, 112, 79, 0.56);
-    background: linear-gradient(180deg, #faf6ee, #f0e7d6);
-    color: #5d4a2e;
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.9),
-        0 6px 14px rgba(120, 95, 58, 0.12);
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border-color: rgba(var(--color-accent-500-rgb), 0.18);
+    background: var(--ui-brand-frame-surface);
+    color: var(--ui-button-text);
+    box-shadow: var(--ui-brand-frame-shadow);
 }
 
 body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger):hover,
 body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger):focus-visible,
 body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger):hover,
 body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger):focus-visible {
-    border-color: rgba(110, 93, 65, 0.72);
-    background: linear-gradient(180deg, #f7f1e4, #eadfca);
-    color: #4d3c23;
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    background: var(--ui-brand-frame-surface-hover);
+    color: var(--ui-button-text-hover);
+    box-shadow: var(--ui-brand-frame-shadow-strong);
+}
+
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger)::before,
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger)::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: var(--ui-brand-frame-inner-glow);
+    pointer-events: none;
+}
+
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger)::after,
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: var(--ui-brand-frame-border-gradient);
+    opacity: 0.9;
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+body.is-dashboard .modal-actions .btn-danger,
+body.is-dashboard .task-detail-modal-head-actions .btn-danger {
+    border-color: rgba(var(--state-priority-urgent-rgb), 0.28);
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.98) 0%,
+        rgba(var(--state-priority-urgent-rgb), 0.08) 100%
+    );
+    color: var(--state-priority-urgent-text);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+body.is-dashboard .modal-actions .btn-danger:hover,
+body.is-dashboard .modal-actions .btn-danger:focus-visible,
+body.is-dashboard .task-detail-modal-head-actions .btn-danger:hover,
+body.is-dashboard .task-detail-modal-head-actions .btn-danger:focus-visible {
+    border-color: rgba(var(--state-priority-urgent-rgb), 0.42);
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.98) 0%,
+        rgba(var(--state-priority-urgent-rgb), 0.14) 100%
+    );
+    color: #6a3535;
 }
 
 body.is-dashboard .create-task-modal,
 body.is-dashboard .task-detail-modal {
-    border-color: rgba(162, 128, 74, 0.34);
-    background: var(--bexon-card-surface-strong);
+    border-color: var(--ui-modal-border);
+    background: var(--ui-modal-bg);
     color: var(--bexon-text-strong);
+    box-shadow: var(--ui-modal-shadow);
+}
+
+body.is-dashboard .create-task-modal .form-stack label > span,
+body.is-dashboard .create-task-modal .task-detail-edit-description-field > span,
+body.is-dashboard .create-task-modal .assignee-picker-label,
+body.is-dashboard .create-task-modal .task-detail-inline-field > span,
+body.is-dashboard .create-task-modal .task-subtasks-editor > span,
+body.is-dashboard .create-task-modal .task-subtasks-editor-head > span,
+body.is-dashboard .create-task-modal .task-subtasks-editor-title > span,
+body.is-dashboard .create-task-modal .task-detail-edit-images-field > span,
+body.is-dashboard .task-detail-modal .form-stack label > span,
+body.is-dashboard .task-detail-modal .task-detail-edit-description-field > span,
+body.is-dashboard .task-detail-modal .inline-form label > span,
+body.is-dashboard .task-detail-modal .assignee-picker-label,
+body.is-dashboard .task-detail-modal .task-subtasks-editor > span,
+body.is-dashboard .task-detail-modal .task-subtasks-editor-head > span,
+body.is-dashboard .task-detail-modal .task-subtasks-editor-title > span,
+body.is-dashboard .task-detail-modal .task-detail-inline-field > span,
+body.is-dashboard .task-detail-modal .task-detail-edit-images-field > span,
+body.is-dashboard .task-detail-view-label {
+    color: var(--ui-modal-label);
+}
+
+body.is-dashboard .create-task-modal input::placeholder,
+body.is-dashboard .create-task-modal textarea::placeholder,
+body.is-dashboard .create-task-modal [data-create-task-subtask-input]::placeholder,
+body.is-dashboard .task-detail-modal input::placeholder,
+body.is-dashboard .task-detail-modal textarea::placeholder,
+body.is-dashboard .task-detail-modal [data-task-detail-edit-subtask-input]::placeholder,
+body.is-dashboard .task-detail-modal [data-task-detail-edit-title-tag-custom]::placeholder {
+    color: var(--ui-modal-placeholder);
 }
 
 body.is-dashboard .create-task-modal [data-create-task-title-composer],
 body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer] {
-    border-color: rgba(130, 112, 79, 0.52);
-    background: #eae3d4;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    border-color: var(--ui-modal-section-border-strong);
+    background:
+        linear-gradient(180deg, rgba(246, 248, 250, 0.98) 0%, rgba(239, 243, 247, 0.98) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 
 body.is-dashboard .create-task-modal [data-create-task-title-composer]:focus-within,
 body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer]:focus-within {
-    border-color: rgba(110, 93, 65, 0.72);
-    background: #e2d8c5;
-    box-shadow: 0 0 0 2px rgba(130, 112, 79, 0.16);
+    border-color: rgba(var(--color-accent-500-rgb), 0.48);
+    background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.99) 0%, rgba(243, 246, 249, 0.99) 100%);
+    box-shadow: 0 0 0 2px rgba(var(--color-accent-500-rgb), 0.12);
 }
 
 body.is-dashboard .create-task-modal [data-create-task-title-composer] > [data-create-task-title-input],
@@ -774,10 +2007,26 @@ body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer] > [d
     caret-color: var(--bexon-text-strong);
 }
 
+body.is-dashboard .create-task-modal [data-create-task-title-composer] .create-task-title-tag-trigger,
+body.is-dashboard .create-task-modal [data-create-task-title-composer] [data-create-task-title-tag-custom],
+body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer] .create-task-title-tag-trigger,
+body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer] [data-task-detail-edit-title-tag-custom],
+body.is-dashboard .task-detail-view-tags .task-title-tag-badge {
+    border-color: var(--ui-modal-tag-border);
+    background: var(--ui-modal-tag-bg);
+    color: var(--ui-modal-tag-text);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+body.is-dashboard .create-task-modal [data-create-task-title-composer] .create-task-title-tag-trigger.is-empty,
+body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer] [data-task-detail-edit-title-tag-custom]::placeholder {
+    color: var(--ui-modal-placeholder);
+}
+
 body.is-dashboard .create-task-modal .task-detail-edit-description-toolbar,
 body.is-dashboard .task-detail-modal .task-detail-edit-description-toolbar {
-    border-color: rgba(130, 112, 79, 0.4);
-    background: linear-gradient(180deg, #f7f2e7, #efe7d8);
+    border-color: var(--ui-modal-toolbar-border);
+    background: var(--ui-modal-toolbar-bg);
     box-shadow: none;
 }
 
@@ -788,9 +2037,198 @@ body.is-dashboard .task-detail-modal .task-detail-edit-description-editor,
 body.is-dashboard .task-detail-modal .task-detail-reference-input,
 body.is-dashboard .task-detail-modal .task-detail-edit-image-picker,
 body.is-dashboard .task-detail-history-column {
-    border-color: rgba(130, 112, 79, 0.42);
-    background: #f1ecdf;
+    border-color: var(--ui-modal-section-border);
+    background: var(--ui-modal-section-bg);
     color: var(--bexon-text-strong);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+body.is-dashboard .create-task-modal .task-detail-edit-image-picker,
+body.is-dashboard .task-detail-modal .task-detail-edit-image-picker {
+    border-style: dashed;
+}
+
+body.is-dashboard .create-task-modal :is(.assignee-picker-menu, .row-inline-picker > .row-inline-picker-menu, .create-task-title-tag-menu),
+body.is-dashboard .task-detail-modal :is(.assignee-picker-menu, .row-inline-picker > .row-inline-picker-menu, .create-task-title-tag-menu) {
+    border-color: var(--ui-modal-section-border);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(243, 246, 249, 0.98) 100%);
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.16);
+}
+
+body.is-dashboard .create-task-modal .priority-inline-picker > .row-inline-picker-menu,
+body.is-dashboard .task-detail-modal .priority-inline-picker > .row-inline-picker-menu {
+    left: auto;
+    right: 0;
+    transform: none;
+}
+
+body.is-dashboard .create-task-modal :is(.assignee-option, .create-task-title-tag-menu-item),
+body.is-dashboard .task-detail-modal :is(.assignee-option, .create-task-title-tag-menu-item) {
+    border-color: transparent;
+    background: rgba(255, 255, 255, 0.78);
+    color: var(--bexon-text-soft);
+}
+
+body.is-dashboard .create-task-modal :is(.assignee-option:hover, .assignee-option:focus-visible, .create-task-title-tag-menu-item:hover, .create-task-title-tag-menu-item:focus-within),
+body.is-dashboard .task-detail-modal :is(.assignee-option:hover, .assignee-option:focus-visible, .create-task-title-tag-menu-item:hover, .create-task-title-tag-menu-item:focus-within) {
+    border-color: rgba(var(--color-accent-500-rgb), 0.24);
+    background: linear-gradient(180deg, rgba(255, 250, 247, 0.98) 0%, rgba(247, 239, 234, 0.98) 100%);
+}
+
+body.is-dashboard .create-task-modal :is(.assignee-option:has(input:checked), .create-task-title-tag-option.is-selected),
+body.is-dashboard .task-detail-modal :is(.assignee-option:has(input:checked), .create-task-title-tag-option.is-selected) {
+    border-color: rgba(var(--color-accent-500-rgb), 0.32);
+    background: rgba(var(--color-accent-500-rgb), 0.14);
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .task-detail-view-block,
+body.is-dashboard .task-detail-history-column {
+    border-color: var(--ui-modal-section-border);
+    background: var(--ui-modal-section-bg);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+body.is-dashboard .task-detail-history-item {
+    border-color: var(--ui-modal-section-border-strong);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 247, 249, 0.96) 100%);
+}
+
+body.is-dashboard .task-detail-history-item strong,
+body.is-dashboard .task-detail-view-title {
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .task-detail-history-item span,
+body.is-dashboard .task-detail-history-empty,
+body.is-dashboard .task-detail-view-assignees,
+body.is-dashboard .task-detail-view-block a,
+body.is-dashboard .task-detail-view-metadata {
+    color: var(--bexon-text-soft);
+}
+
+body.is-dashboard .task-detail-view-block a:hover,
+body.is-dashboard .task-detail-view-block a:focus-visible {
+    color: var(--bexon-gold-strong);
+}
+
+body.is-dashboard .task-detail-view-tag {
+    border-color: rgba(32, 36, 43, 0.12);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(245, 247, 250, 0.96) 100%);
+    color: var(--bexon-text-soft);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+body.is-dashboard .task-detail-view-tag.status-todo {
+    color: var(--state-status-todo-text);
+    border-color: rgba(var(--state-status-todo-rgb), 0.34);
+    background:
+        linear-gradient(180deg, rgba(var(--state-status-todo-rgb), 0.18) 0%, rgba(var(--state-status-todo-rgb), 0.1) 100%);
+}
+
+body.is-dashboard .task-detail-view-tag.status-in_progress {
+    color: var(--state-status-progress-text);
+    border-color: rgba(var(--state-status-progress-rgb), 0.4);
+    background:
+        linear-gradient(180deg, rgba(var(--state-status-progress-rgb), 0.2) 0%, rgba(var(--state-status-progress-rgb), 0.1) 100%);
+}
+
+body.is-dashboard .task-detail-view-tag.status-review {
+    color: var(--state-status-review-text);
+    border-color: rgba(var(--state-status-review-rgb), 0.34);
+    background:
+        linear-gradient(180deg, rgba(var(--state-status-review-rgb), 0.18) 0%, rgba(var(--state-status-review-rgb), 0.1) 100%);
+}
+
+body.is-dashboard .task-detail-view-tag.status-done {
+    color: var(--state-status-done-text);
+    border-color: rgba(var(--state-status-done-rgb), 0.34);
+    background:
+        linear-gradient(180deg, rgba(var(--state-status-done-rgb), 0.18) 0%, rgba(var(--state-status-done-rgb), 0.1) 100%);
+}
+
+body.is-dashboard .task-detail-view-tag.priority-low,
+body.is-dashboard .task-detail-view-tag.priority-medium,
+body.is-dashboard .task-detail-view-tag.priority-high,
+body.is-dashboard .task-detail-view-tag.priority-urgent {
+    font-weight: 700;
+}
+
+body.is-dashboard .task-detail-view-tag.priority-low {
+    color: var(--state-priority-low-text);
+    border-color: rgba(var(--state-priority-low-rgb), 0.34);
+    background:
+        linear-gradient(180deg, rgba(var(--state-priority-low-rgb), 0.18) 0%, rgba(var(--state-priority-low-rgb), 0.1) 100%);
+}
+
+body.is-dashboard .task-detail-view-tag.priority-medium {
+    color: var(--state-priority-medium-text);
+    border-color: rgba(var(--state-priority-medium-rgb), 0.48);
+    background:
+        linear-gradient(180deg, rgba(var(--state-priority-medium-rgb), 0.26) 0%, rgba(var(--state-priority-medium-rgb), 0.14) 100%);
+}
+
+body.is-dashboard .task-detail-view-tag.priority-high {
+    color: var(--state-priority-high-text);
+    border-color: rgba(var(--state-priority-high-rgb), 0.4);
+    background:
+        linear-gradient(180deg, rgba(var(--state-priority-high-rgb), 0.22) 0%, rgba(var(--state-priority-high-rgb), 0.12) 100%);
+}
+
+body.is-dashboard .task-detail-view-tag.priority-urgent {
+    color: var(--state-priority-urgent-text);
+    border-color: rgba(var(--state-priority-urgent-rgb), 0.4);
+    background:
+        linear-gradient(180deg, rgba(var(--state-priority-urgent-rgb), 0.22) 0%, rgba(var(--state-priority-urgent-rgb), 0.12) 100%);
+}
+
+body.is-dashboard .modal-card > .modal-form,
+body.is-dashboard .task-detail-modal-body,
+body.is-dashboard .task-detail-history-column,
+body.is-dashboard .create-task-modal .assignee-picker-menu,
+body.is-dashboard .task-detail-modal .assignee-picker-menu {
+    scrollbar-color: rgba(95, 105, 120, 0.42) rgba(32, 36, 43, 0.06);
+}
+
+body.is-dashboard .modal-card > .modal-form::-webkit-scrollbar,
+body.is-dashboard .task-detail-modal-body::-webkit-scrollbar,
+body.is-dashboard .task-detail-history-column::-webkit-scrollbar,
+body.is-dashboard .create-task-modal .assignee-picker-menu::-webkit-scrollbar,
+body.is-dashboard .task-detail-modal .assignee-picker-menu::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+body.is-dashboard .modal-card > .modal-form::-webkit-scrollbar-track,
+body.is-dashboard .task-detail-modal-body::-webkit-scrollbar-track,
+body.is-dashboard .task-detail-history-column::-webkit-scrollbar-track,
+body.is-dashboard .create-task-modal .assignee-picker-menu::-webkit-scrollbar-track,
+body.is-dashboard .task-detail-modal .assignee-picker-menu::-webkit-scrollbar-track {
+    background: rgba(32, 36, 43, 0.04);
+    border-radius: 999px;
+}
+
+body.is-dashboard .modal-card > .modal-form::-webkit-scrollbar-thumb,
+body.is-dashboard .task-detail-modal-body::-webkit-scrollbar-thumb,
+body.is-dashboard .task-detail-history-column::-webkit-scrollbar-thumb,
+body.is-dashboard .create-task-modal .assignee-picker-menu::-webkit-scrollbar-thumb,
+body.is-dashboard .task-detail-modal .assignee-picker-menu::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background:
+        linear-gradient(180deg, rgba(95, 105, 120, 0.46), rgba(var(--color-accent-500-rgb), 0.42));
+    border: 2px solid rgba(255, 255, 255, 0.74);
+}
+
+body.is-dashboard .modal-card > .modal-form::-webkit-scrollbar-thumb:hover,
+body.is-dashboard .task-detail-modal-body::-webkit-scrollbar-thumb:hover,
+body.is-dashboard .task-detail-history-column::-webkit-scrollbar-thumb:hover,
+body.is-dashboard .create-task-modal .assignee-picker-menu::-webkit-scrollbar-thumb:hover,
+body.is-dashboard .task-detail-modal .assignee-picker-menu::-webkit-scrollbar-thumb:hover {
+    background:
+        linear-gradient(180deg, rgba(95, 105, 120, 0.58), rgba(var(--color-accent-500-rgb), 0.54));
 }
 
 /* Finance, access and settings */
