@@ -1651,8 +1651,8 @@ textarea:focus {
     justify-content: center;
     gap: 0;
     flex: 0 0 auto;
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(136, 205, 255, 0.24);
+    background: transparent;
+    border-color: transparent;
 }
 
 .workspace-users-settings-icon {
@@ -1674,8 +1674,8 @@ textarea:focus {
 }
 
 .workspace-users-settings-button.is-active {
-    border-color: rgba(120, 204, 255, 0.48);
-    background: linear-gradient(130deg, rgba(55, 119, 192, 0.36), rgba(30, 85, 146, 0.3));
+    border-color: transparent;
+    background: transparent;
     color: rgba(233, 246, 255, 0.98);
 }
 
@@ -12720,7 +12720,7 @@ select option:checked,
     background: rgba(var(--wf-status-rgb), 0.22);
 }
 
-.task-list-item[data-status-color] {
+body:not(.is-dashboard) .task-list-item[data-status-color] {
     border-color: rgba(var(--task-status-rgb), 0.22);
     background:
         linear-gradient(#fbfdff, #fbfdff) padding-box,
@@ -12732,7 +12732,7 @@ select option:checked,
         ) border-box;
 }
 
-.task-list-item[data-status-color]::before {
+body:not(.is-dashboard) .task-list-item[data-status-color]::before {
     background:
         linear-gradient(
             90deg,
