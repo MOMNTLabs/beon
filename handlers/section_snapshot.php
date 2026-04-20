@@ -31,6 +31,7 @@ function requireSnapshotWorkspaceContext(): array
     if ($workspaceId === null) {
         throw new RuntimeException('Workspace ativo nao encontrado.');
     }
+    $currentWorkspace = workspaceById($workspaceId);
 
     $userId = (int) ($currentUser['id'] ?? 0);
     if ($userId <= 0) {
@@ -40,8 +41,10 @@ function requireSnapshotWorkspaceContext(): array
     return [
         'current_user' => $currentUser,
         'workspace_id' => $workspaceId,
+        'current_workspace' => $currentWorkspace,
         'user_id' => $userId,
         'can_manage_workspace' => userCanManageWorkspace($userId, $workspaceId),
+        'is_personal_workspace' => !empty($currentWorkspace['is_personal']),
     ];
 }
 
@@ -52,6 +55,7 @@ function respondVaultPanelSnapshot(): void
     $workspaceId = (int) $ctx['workspace_id'];
     $currentUserId = (int) $ctx['user_id'];
     $canManageWorkspace = (bool) $ctx['can_manage_workspace'];
+    $isPersonalWorkspace = (bool) ($ctx['is_personal_workspace'] ?? false);
 
     $vaultGroupsAll = vaultGroupsList($workspaceId);
     $vaultGroupPermissions = [];
@@ -106,6 +110,7 @@ function respondDuePanelSnapshot(): void
     $workspaceId = (int) $ctx['workspace_id'];
     $currentUserId = (int) $ctx['user_id'];
     $canManageWorkspace = (bool) $ctx['can_manage_workspace'];
+    $isPersonalWorkspace = (bool) ($ctx['is_personal_workspace'] ?? false);
 
     $dueGroupsAll = dueGroupsList($workspaceId);
     $dueGroupPermissions = [];

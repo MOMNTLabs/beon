@@ -10071,12 +10071,18 @@ function tasksByStatus(array $tasks, ?int $workspaceId = null, ?array $workspace
     return $grouped;
 }
 
-function filterTasks(array $tasks, ?string $groupFilter, ?int $creatorFilterId): array
+function filterTasks(
+    array $tasks,
+    ?string $groupFilter,
+    ?int $creatorFilterId,
+    ?int $assigneeFilterId = null
+): array
 {
     $groupFilter = $groupFilter ? normalizeTaskGroupName($groupFilter) : null;
     $creatorFilterId = $creatorFilterId && $creatorFilterId > 0 ? $creatorFilterId : null;
+    $assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilterId : null;
 
-    if ($groupFilter === null && $creatorFilterId === null) {
+    if ($groupFilter === null && $creatorFilterId === null && $assigneeFilterId === null) {
         return $tasks;
     }
 
@@ -10091,6 +10097,23 @@ function filterTasks(array $tasks, ?string $groupFilter, ?int $creatorFilterId):
         if ($creatorFilterId !== null) {
             $taskCreatorId = isset($task['created_by']) ? (int) $task['created_by'] : null;
             if ($taskCreatorId !== $creatorFilterId) {
+                continue;
+            }
+        }
+
+        if ($assigneeFilterId !== null) {
+            $taskAssigneeIds = $task['assignee_ids'] ?? [];
+            if (!is_array($taskAssigneeIds)) {
+                $taskAssigneeIds = [];
+            }
+            $taskAssigneeIds = array_values(array_unique(array_map('intval', $taskAssigneeIds)));
+            if (!$taskAssigneeIds && isset($task['assigned_to'])) {
+                $assignedToId = (int) $task['assigned_to'];
+                if ($assignedToId > 0) {
+                    $taskAssigneeIds[] = $assignedToId;
+                }
+            }
+            if (!in_array($assigneeFilterId, $taskAssigneeIds, true)) {
                 continue;
             }
         }

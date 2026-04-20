@@ -414,9 +414,22 @@ $groupFilter = isset($_GET['group']) && trim((string) $_GET['group']) !== ''
 if ($groupFilter !== null && !in_array($groupFilter, $taskGroups, true)) {
     $groupFilter = null;
 }
-$creatorFilterRaw = $_GET['created_by'] ?? ($_GET['assignee'] ?? null);
+$creatorFilterRaw = $_GET['created_by'] ?? null;
 $creatorFilterId = isset($creatorFilterRaw) ? (int) $creatorFilterRaw : null;
 $creatorFilterId = $creatorFilterId && $creatorFilterId > 0 ? $creatorFilterId : null;
+$assigneeFilterRaw = $_GET['assignee'] ?? null;
+$assigneeFilterId = isset($assigneeFilterRaw) ? (int) $assigneeFilterRaw : null;
+$assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilterId : null;
+$workspaceUserIds = array_map(
+    static fn (array $user): int => (int) ($user['id'] ?? 0),
+    is_array($users) ? $users : []
+);
+if ($creatorFilterId !== null && !in_array($creatorFilterId, $workspaceUserIds, true)) {
+    $creatorFilterId = null;
+}
+if ($assigneeFilterId !== null && !in_array($assigneeFilterId, $workspaceUserIds, true)) {
+    $assigneeFilterId = null;
+}
 
 $taskVisibleKeys = [];
 foreach ($taskGroups as $taskGroupName) {
@@ -430,8 +443,11 @@ $allTasks = array_values(array_filter(
         return isset($taskVisibleKeys[$groupKey]);
     }
 ));
-$tasks = $currentUser ? filterTasks($allTasks, $groupFilter, $creatorFilterId) : [];
-$showEmptyGroups = $currentUser && $groupFilter === null && $creatorFilterId === null;
+$tasks = $currentUser ? filterTasks($allTasks, $groupFilter, $creatorFilterId, $assigneeFilterId) : [];
+$showEmptyGroups = $currentUser
+    && $groupFilter === null
+    && $creatorFilterId === null
+    && $assigneeFilterId === null;
 $groupingSource = null;
 if ($showEmptyGroups) {
     $groupingSource = $taskGroups;

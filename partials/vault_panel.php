@@ -76,7 +76,7 @@
                                 </div>
                                 <div class="task-group-head-actions">
                                     <span class="task-group-collapse" data-group-toggle-indicator aria-hidden="true"><span>&#9662;</span></span>
-                                    <?php if (!empty($canManageWorkspace)): ?>
+                                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace)): ?>
                                         <button
                                             type="button"
                                             class="group-permissions-button"

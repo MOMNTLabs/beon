@@ -120,6 +120,63 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     </div>
                 </label>
 
+                <label>
+                    <?php $assigneeFilterValue = $assigneeFilterId !== null ? (string) $assigneeFilterId : ''; ?>
+                    <div class="tag-field row-inline-picker-wrap" data-inline-select-wrap>
+                        <details class="row-inline-picker filter-inline-picker" data-inline-select-picker>
+                            <summary aria-label="Filtrar por responsavel">
+                                <span class="row-inline-picker-summary-text" data-inline-select-text>
+                                    <?php if ($assigneeFilterValue === ''): ?>
+                                        Responsavel
+                                    <?php else: ?>
+                                        <?php
+                                        $assigneeLabel = 'Responsavel';
+                                        foreach ($users as $user) {
+                                            if ((string) ((int) $user['id']) === $assigneeFilterValue) {
+                                                $assigneeLabel = (string) $user['name'];
+                                                break;
+                                            }
+                                        }
+                                        ?>
+                                        <?= e($assigneeLabel) ?>
+                                    <?php endif; ?>
+                                </span>
+                            </summary>
+                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Filtro de responsavel">
+                                <button
+                                    type="button"
+                                    class="row-inline-picker-option<?= $assigneeFilterValue === '' ? ' is-active' : '' ?>"
+                                    data-inline-select-option
+                                    data-value=""
+                                    data-label="Responsavel"
+                                    role="option"
+                                    aria-selected="<?= $assigneeFilterValue === '' ? 'true' : 'false' ?>"
+                                >Responsavel</button>
+                                <?php foreach ($users as $user): ?>
+                                    <?php $optionValue = (string) ((int) $user['id']); ?>
+                                    <button
+                                        type="button"
+                                        class="row-inline-picker-option<?= $assigneeFilterValue === $optionValue ? ' is-active' : '' ?>"
+                                        data-inline-select-option
+                                        data-value="<?= e($optionValue) ?>"
+                                        data-label="<?= e((string) $user['name']) ?>"
+                                        role="option"
+                                        aria-selected="<?= $assigneeFilterValue === $optionValue ? 'true' : 'false' ?>"
+                                    ><?= e((string) $user['name']) ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                        </details>
+                        <select name="assignee" class="tag-select row-inline-picker-native" data-inline-select-source hidden>
+                            <option value="">Responsavel</option>
+                            <?php foreach ($users as $user): ?>
+                                <option value="<?= e((string) $user['id']) ?>"<?= $assigneeFilterId === (int) $user['id'] ? ' selected' : '' ?>>
+                                    <?= e((string) $user['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </label>
+
                 <div class="task-filters-create">
                     <button
                         type="button"
@@ -214,7 +271,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         aria-pressed="false"
                                         aria-label="Ocultar concluidas do grupo <?= e((string) $groupName) ?>"
                                     >Ocultar concluidas</button>
-                                    <?php if (!empty($canManageWorkspace)): ?>
+                                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace)): ?>
                                         <button
                                             type="button"
                                             class="group-permissions-button"

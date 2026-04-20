@@ -5107,8 +5107,8 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 
 .task-filters {
     display: grid;
-    grid-template-columns: minmax(180px, 220px) minmax(200px, 240px) auto;
-    gap: 8px;
+    grid-template-columns: repeat(3, minmax(170px, 210px)) minmax(0, 1fr);
+    gap: 8px 10px;
     align-items: end;
     margin-bottom: 14px;
     padding: 8px;
@@ -5125,6 +5125,7 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 .task-filters label {
     display: grid;
     gap: 5px;
+    min-width: 0;
 }
 
 .task-filters label > span {
@@ -5184,6 +5185,9 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     gap: 6px;
     justify-self: end;
     align-self: end;
+    grid-column: 4;
+    grid-row: 1;
+    margin-left: 0;
 }
 
 .task-filters-create-group {
@@ -8550,16 +8554,16 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     }
 
     .task-filters {
-        grid-template-columns: 1fr 1fr auto;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .task-filters-actions {
-        grid-column: 1 / 3;
+        grid-column: 1 / -1;
     }
 
     .task-filters-create {
-        grid-column: 3;
-        grid-row: 1;
+        grid-column: 2;
+        grid-row: 2;
     }
 
     .task-line-row {
@@ -12117,7 +12121,7 @@ select option:checked,
     }
 
     .task-filters {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 5px;
         margin-bottom: 8px;
         padding: 6px;
@@ -12143,7 +12147,7 @@ select option:checked,
     }
 
     .task-filters-actions {
-        grid-column: 1 / 3;
+        grid-column: 1 / -1;
     }
 
     .task-filters-actions .btn {
@@ -12152,8 +12156,8 @@ select option:checked,
     }
 
     .task-filters-create {
-        grid-column: 3;
-        grid-row: 1;
+        grid-column: 2;
+        grid-row: 2;
         align-self: end;
     }
 
@@ -12402,17 +12406,17 @@ select option:checked,
 
 @media (max-width: 560px) {
     .task-filters {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr);
         gap: 5px;
     }
 
     .task-filters-actions {
-        grid-column: 1 / 3;
+        grid-column: 1;
     }
 
     .task-filters-create {
-        grid-column: 3;
-        grid-row: 1;
+        grid-column: 1;
+        grid-row: auto;
         justify-self: end;
     }
 

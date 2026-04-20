@@ -66,9 +66,13 @@ function tasksRedirectPathFromRequest(?array $get = null, ?array $post = null): 
         $groupRaw = (string) $post['redirect_group'];
     }
 
-    $creatorRaw = $get['created_by'] ?? ($get['assignee'] ?? null);
+    $creatorRaw = $get['created_by'] ?? null;
     if (($creatorRaw === null || trim((string) $creatorRaw) === '') && isset($post['redirect_created_by'])) {
         $creatorRaw = $post['redirect_created_by'];
+    }
+    $assigneeRaw = $get['assignee'] ?? null;
+    if (($assigneeRaw === null || trim((string) $assigneeRaw) === '') && isset($post['redirect_assignee'])) {
+        $assigneeRaw = $post['redirect_assignee'];
     }
 
     $params = [];
@@ -79,6 +83,10 @@ function tasksRedirectPathFromRequest(?array $get = null, ?array $post = null): 
     $creatorId = isset($creatorRaw) ? (int) $creatorRaw : 0;
     if ($creatorId > 0) {
         $params['created_by'] = (string) $creatorId;
+    }
+    $assigneeId = isset($assigneeRaw) ? (int) $assigneeRaw : 0;
+    if ($assigneeId > 0) {
+        $params['assignee'] = (string) $assigneeId;
     }
 
     $query = http_build_query($params);

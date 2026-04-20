@@ -38,6 +38,7 @@ function respondTaskPanelSnapshot(): void
     }
 
     $currentWorkspace = workspaceById($currentWorkspaceId);
+    $isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
     $statusConfig = taskStatusConfig($currentWorkspaceId, $currentWorkspace);
     $statusOptions = $statusConfig['options'];
     $defaultTaskStatusKey = (string) ($statusConfig['todo_status_key'] ?? 'todo');
@@ -78,9 +79,22 @@ function respondTaskPanelSnapshot(): void
         $groupFilter = null;
     }
 
-    $creatorFilterRaw = $_GET['created_by'] ?? ($_GET['assignee'] ?? null);
+    $creatorFilterRaw = $_GET['created_by'] ?? null;
     $creatorFilterId = isset($creatorFilterRaw) ? (int) $creatorFilterRaw : null;
     $creatorFilterId = $creatorFilterId && $creatorFilterId > 0 ? $creatorFilterId : null;
+    $assigneeFilterRaw = $_GET['assignee'] ?? null;
+    $assigneeFilterId = isset($assigneeFilterRaw) ? (int) $assigneeFilterRaw : null;
+    $assigneeFilterId = $assigneeFilterId && $assigneeFilterId > 0 ? $assigneeFilterId : null;
+    $workspaceUserIds = array_map(
+        static fn (array $user): int => (int) ($user['id'] ?? 0),
+        is_array($users) ? $users : []
+    );
+    if ($creatorFilterId !== null && !in_array($creatorFilterId, $workspaceUserIds, true)) {
+        $creatorFilterId = null;
+    }
+    if ($assigneeFilterId !== null && !in_array($assigneeFilterId, $workspaceUserIds, true)) {
+        $assigneeFilterId = null;
+    }
 
     $taskVisibleKeys = [];
     foreach ($taskGroups as $taskGroupName) {
@@ -95,8 +109,8 @@ function respondTaskPanelSnapshot(): void
             return isset($taskVisibleKeys[$groupKey]);
         }
     ));
-    $tasks = filterTasks($allTasks, $groupFilter, $creatorFilterId);
-    $showEmptyGroups = $groupFilter === null && $creatorFilterId === null;
+    $tasks = filterTasks($allTasks, $groupFilter, $creatorFilterId, $assigneeFilterId);
+    $showEmptyGroups = $groupFilter === null && $creatorFilterId === null && $assigneeFilterId === null;
     $groupingSource = null;
     if ($showEmptyGroups) {
         $groupingSource = $taskGroups;

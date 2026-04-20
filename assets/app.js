@@ -556,6 +556,15 @@ window.addEventListener("DOMContentLoaded", () => {
     return node.closest("[data-inline-select-wrap], .row-inline-picker-wrap");
   };
 
+  const getClosestFromEventTarget = (target, selector) => {
+    if (!(selector && typeof selector === "string")) return null;
+    if (target instanceof HTMLElement) return target.closest(selector);
+    if (target instanceof Node && target.parentElement instanceof HTMLElement) {
+      return target.parentElement.closest(selector);
+    }
+    return null;
+  };
+
   const syncInlineSelectOptionButtons = (select) => {
     if (!(select instanceof HTMLSelectElement)) return;
     if ((select.dataset.inlineSelectSyncOptions || "").trim() !== "group") return;
@@ -765,6 +774,21 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  const getWorkspaceStatusColorInputFromControl = (control) => {
+    if (!(control instanceof HTMLElement)) return null;
+
+    const directInput = control.querySelector("[data-workspace-status-color-input]");
+    if (isWorkspaceStatusColorInput(directInput)) {
+      return directInput;
+    }
+
+    const scope = control.closest("[data-workspace-status-row], [data-workspace-status-create-row]");
+    if (!(scope instanceof HTMLElement)) return null;
+
+    const scopedInput = scope.querySelector("[data-workspace-status-color-input]");
+    return isWorkspaceStatusColorInput(scopedInput) ? scopedInput : null;
+  };
+
   const syncWorkspaceStatusRowColor = (input) => {
     if (!isWorkspaceStatusColorInput(input)) return;
     const row = input.closest("[data-workspace-status-row]");
@@ -969,7 +993,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (workspaceStatusColorOption instanceof HTMLButtonElement) {
       event.preventDefault();
       const control = workspaceStatusColorOption.closest("[data-workspace-status-color-control]");
-      const colorInput = control?.querySelector("[data-workspace-status-color-input]");
+      const colorInput = getWorkspaceStatusColorInputFromControl(control);
       const nextColor = String(workspaceStatusColorOption.dataset.value || "").trim();
 
       if (!(control instanceof HTMLElement) || !isWorkspaceStatusColorInput(colorInput) || !nextColor) {
@@ -1111,20 +1135,36 @@ window.addEventListener("DOMContentLoaded", () => {
       syncWorkspaceStatusesSaveState(form);
       return;
     }
-    if (
-      target instanceof HTMLElement &&
-      target.matches("[data-task-detail-edit-description-editor]")
-    ) {
+    const taskDetailDescriptionEditorTarget = getClosestFromEventTarget(
+      target,
+      "[data-task-detail-edit-description-editor]"
+    );
+    if (taskDetailDescriptionEditorTarget instanceof HTMLElement) {
+      if (
+        event instanceof InputEvent &&
+        event.inputType === "insertText" &&
+        (event.data === " " || event.data === "\u00A0")
+      ) {
+        convertDashLineToListInTaskDetailEditor();
+      }
       normalizeTaskDetailDescriptionEditorLists();
       syncTaskDetailDescriptionTextareaFromEditor();
       syncTaskDetailDescriptionToolbar();
       return;
     }
 
-    if (
-      target instanceof HTMLElement &&
-      target.matches("[data-create-task-description-editor]")
-    ) {
+    const createTaskDescriptionEditorTarget = getClosestFromEventTarget(
+      target,
+      "[data-create-task-description-editor]"
+    );
+    if (createTaskDescriptionEditorTarget instanceof HTMLElement) {
+      if (
+        event instanceof InputEvent &&
+        event.inputType === "insertText" &&
+        (event.data === " " || event.data === "\u00A0")
+      ) {
+        convertDashLineToListInCreateTaskEditor();
+      }
       normalizeDescriptionEditorLists(createTaskDescriptionEditor);
       syncCreateTaskDescriptionTextareaFromEditor();
       return;
@@ -1147,10 +1187,11 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const target = event.target;
-    if (
-      target instanceof HTMLElement &&
-      target.matches("[data-task-detail-edit-description-editor]")
-    ) {
+    const taskDetailDescriptionEditorTarget = getClosestFromEventTarget(
+      target,
+      "[data-task-detail-edit-description-editor]"
+    );
+    if (taskDetailDescriptionEditorTarget instanceof HTMLElement) {
       if (event.key === " " && convertDashLineToListInTaskDetailEditor()) {
         event.preventDefault();
         return;
@@ -1173,10 +1214,11 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (
-      target instanceof HTMLElement &&
-      target.matches("[data-create-task-description-editor]")
-    ) {
+    const createTaskDescriptionEditorTarget = getClosestFromEventTarget(
+      target,
+      "[data-create-task-description-editor]"
+    );
+    if (createTaskDescriptionEditorTarget instanceof HTMLElement) {
       if (event.key === " " && convertDashLineToListInCreateTaskEditor()) {
         event.preventDefault();
         return;
@@ -4265,6 +4307,13 @@ window.addEventListener("DOMContentLoaded", () => {
     );
     syncSelectOptionsFromSource(currentCreatorFilterSelect, nextCreatorFilterSelect);
     syncInlineSelectPicker(currentCreatorFilterSelect);
+
+    const currentAssigneeFilterSelect = taskFilterForm?.querySelector('select[name="assignee"]');
+    const nextAssigneeFilterSelect = nextDoc.querySelector(
+      '[data-task-filter-form] select[name="assignee"]'
+    );
+    syncSelectOptionsFromSource(currentAssigneeFilterSelect, nextAssigneeFilterSelect);
+    syncInlineSelectPicker(currentAssigneeFilterSelect);
 
     if (taskGroupsDatalist instanceof HTMLDataListElement) {
       const nextGroupsDatalist = nextDoc.querySelector("#task-group-options");
@@ -11628,12 +11677,16 @@ window.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams();
     const groupField = form.querySelector('select[name="group"]');
     const creatorField = form.querySelector('select[name="created_by"]');
+    const assigneeField = form.querySelector('select[name="assignee"]');
 
     if (groupField instanceof HTMLSelectElement && (groupField.value || "").trim() !== "") {
       params.set("group", groupField.value.trim());
     }
     if (creatorField instanceof HTMLSelectElement && (creatorField.value || "").trim() !== "") {
       params.set("created_by", creatorField.value.trim());
+    }
+    if (assigneeField instanceof HTMLSelectElement && (assigneeField.value || "").trim() !== "") {
+      params.set("assignee", assigneeField.value.trim());
     }
 
     params.set("view", "tasks");
@@ -11652,7 +11705,7 @@ window.addEventListener("DOMContentLoaded", () => {
     taskFilterForm.addEventListener("change", (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      const select = target.closest('select[name="group"], select[name="created_by"]');
+      const select = target.closest('select[name="group"], select[name="created_by"], select[name="assignee"]');
       if (!(select instanceof HTMLSelectElement)) return;
       applyTaskFilterForm(taskFilterForm);
     });
