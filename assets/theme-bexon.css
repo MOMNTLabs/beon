@@ -494,9 +494,31 @@ body.is-dashboard .workspace-sidebar-header {
 }
 
 body.is-dashboard .workspace-sidebar-picker > summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 8px;
+    width: 100%;
+    min-width: 0;
     min-height: 40px;
     padding: 2px 0;
     font-size: 1.15rem;
+}
+
+body.is-dashboard .workspace-sidebar-picker-summary-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+body.is-dashboard .workspace-sidebar-picker > summary .workspace-sidebar-picker-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media (max-width: 1024px) {
@@ -822,6 +844,10 @@ body.is-dashboard .workspace-sidebar-create-trigger {
 
 body.is-dashboard .workspace-sidebar-picker-option,
 body.is-dashboard .workspace-sidebar-picker-current {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    min-width: 0;
     padding: 0 12px;
     justify-content: flex-start;
     gap: 10px;
@@ -856,6 +882,10 @@ body.is-dashboard .workspace-sidebar-picker-current .workspace-sidebar-picker-it
 body.is-dashboard .workspace-sidebar-picker-option .workspace-sidebar-picker-item-text {
     display: block;
     flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: inherit;
 }
 
@@ -1255,7 +1285,7 @@ body.is-dashboard .status-inline-picker .row-inline-picker-option[data-status-co
     border-color: rgba(var(--wf-status-rgb), 0.36);
     background: rgba(var(--wf-status-rgb), 0.22);
     box-shadow: none;
-    font-weight: 650;
+    font-weight: 500;
 }
 
 body.is-dashboard .status-inline-picker .row-inline-picker-option[data-status-color]:hover,
@@ -1273,7 +1303,7 @@ body.is-dashboard .status-inline-picker .row-inline-picker-option[data-status-co
 
 body.is-dashboard .priority-inline-picker .row-inline-picker-option {
     box-shadow: none;
-    font-weight: 650;
+    font-weight: 500;
 }
 
 body.is-dashboard .priority-inline-picker .row-inline-picker-option,
@@ -2019,9 +2049,10 @@ body.is-dashboard .row-assignee-picker > summary:hover,
 body.is-dashboard .row-assignee-picker > summary:focus-visible,
 body.is-dashboard .create-task-title-tag-trigger:hover,
 body.is-dashboard .create-task-title-tag-trigger:focus-visible {
-    border-color: rgba(var(--color-accent-500-rgb), 0.28);
-    background: linear-gradient(180deg, #ffffff 0%, rgba(var(--color-accent-200-rgb), 0.28) 100%);
+    border-color: rgba(var(--color-accent-500-rgb), 0.24);
+    background: rgba(255, 255, 255, 0.98);
     color: var(--bexon-text-strong);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 body.is-dashboard .task-title-tag-badge {
@@ -2030,55 +2061,55 @@ body.is-dashboard .task-title-tag-badge {
 }
 
 body.is-dashboard :is(
-    .task-list-item.task-status-todo,
-    .task-list-item[data-status-kind="todo"],
-    .status-inline-picker.status-todo,
-    .status-inline-picker[data-status-value="todo"],
-    .status-inline-picker [data-inline-select-option].status-todo
+    .task-list-item.task-status-todo:not([data-status-color]),
+    .task-list-item[data-status-kind="todo"]:not([data-status-color]),
+    .status-inline-picker.status-todo:not([data-status-color]),
+    .status-inline-picker[data-status-value="todo"]:not([data-status-color]),
+    .status-inline-picker [data-inline-select-option].status-todo:not([data-status-color])
 ) {
-    --wf-status-rgb: var(--state-status-todo-rgb) !important;
-    --task-status-rgb: var(--state-status-todo-rgb) !important;
-    --wf-status-text: var(--state-status-todo-text) !important;
-    --ui-task-status-text: var(--ui-task-status-todo-text) !important;
+    --wf-status-rgb: var(--state-status-todo-rgb);
+    --task-status-rgb: var(--state-status-todo-rgb);
+    --wf-status-text: var(--state-status-todo-text);
+    --ui-task-status-text: var(--ui-task-status-todo-text);
 }
 
 body.is-dashboard :is(
-    .task-list-item.task-status-in_progress,
-    .task-list-item[data-status-kind="in_progress"],
-    .status-inline-picker.status-in_progress,
-    .status-inline-picker[data-status-value="in_progress"],
-    .status-inline-picker [data-inline-select-option].status-in_progress
+    .task-list-item.task-status-in_progress:not([data-status-color]),
+    .task-list-item[data-status-kind="in_progress"]:not([data-status-color]),
+    .status-inline-picker.status-in_progress:not([data-status-color]),
+    .status-inline-picker[data-status-value="in_progress"]:not([data-status-color]),
+    .status-inline-picker [data-inline-select-option].status-in_progress:not([data-status-color])
 ) {
-    --wf-status-rgb: var(--state-status-progress-rgb) !important;
-    --task-status-rgb: var(--state-status-progress-rgb) !important;
-    --wf-status-text: var(--state-status-progress-text) !important;
-    --ui-task-status-text: var(--ui-task-status-progress-text) !important;
+    --wf-status-rgb: var(--state-status-progress-rgb);
+    --task-status-rgb: var(--state-status-progress-rgb);
+    --wf-status-text: var(--state-status-progress-text);
+    --ui-task-status-text: var(--ui-task-status-progress-text);
 }
 
 body.is-dashboard :is(
-    .task-list-item.task-status-review,
-    .task-list-item[data-status-kind="review"],
-    .status-inline-picker.status-review,
-    .status-inline-picker[data-status-value="review"],
-    .status-inline-picker [data-inline-select-option].status-review
+    .task-list-item.task-status-review:not([data-status-color]),
+    .task-list-item[data-status-kind="review"]:not([data-status-color]),
+    .status-inline-picker.status-review:not([data-status-color]),
+    .status-inline-picker[data-status-value="review"]:not([data-status-color]),
+    .status-inline-picker [data-inline-select-option].status-review:not([data-status-color])
 ) {
-    --wf-status-rgb: var(--state-status-review-rgb) !important;
-    --task-status-rgb: var(--state-status-review-rgb) !important;
-    --wf-status-text: var(--state-status-review-text) !important;
-    --ui-task-status-text: var(--ui-task-status-review-text) !important;
+    --wf-status-rgb: var(--state-status-review-rgb);
+    --task-status-rgb: var(--state-status-review-rgb);
+    --wf-status-text: var(--state-status-review-text);
+    --ui-task-status-text: var(--ui-task-status-review-text);
 }
 
 body.is-dashboard :is(
-    .task-list-item.task-status-done,
-    .task-list-item[data-status-kind="done"],
-    .status-inline-picker.status-done,
-    .status-inline-picker[data-status-value="done"],
-    .status-inline-picker [data-inline-select-option].status-done
+    .task-list-item.task-status-done:not([data-status-color]),
+    .task-list-item[data-status-kind="done"]:not([data-status-color]),
+    .status-inline-picker.status-done:not([data-status-color]),
+    .status-inline-picker[data-status-value="done"]:not([data-status-color]),
+    .status-inline-picker [data-inline-select-option].status-done:not([data-status-color])
 ) {
-    --wf-status-rgb: var(--state-status-done-rgb) !important;
-    --task-status-rgb: var(--state-status-done-rgb) !important;
-    --wf-status-text: var(--state-status-done-text) !important;
-    --ui-task-status-text: var(--ui-task-status-done-text) !important;
+    --wf-status-rgb: var(--state-status-done-rgb);
+    --task-status-rgb: var(--state-status-done-rgb);
+    --wf-status-text: var(--state-status-done-text);
+    --ui-task-status-text: var(--ui-task-status-done-text);
 }
 
 body.is-dashboard .task-group-empty-row {
@@ -2157,6 +2188,19 @@ body.is-dashboard .task-detail-edit-description-toolbar button:focus-visible {
     border-color: rgba(var(--color-accent-500-rgb), 0.28);
     background: linear-gradient(180deg, #ffffff 0%, rgba(var(--color-accent-200-rgb), 0.28) 100%);
     color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .task-list-item .task-row-delete {
+    border-color: rgba(var(--color-accent-500-rgb), 0.1);
+    background: rgba(var(--color-accent-500-rgb), 0.06);
+    color: var(--bexon-gold);
+}
+
+body.is-dashboard .task-list-item .task-row-delete:hover,
+body.is-dashboard .task-list-item .task-row-delete:focus-visible {
+    border-color: rgba(var(--color-accent-500-rgb), 0.34);
+    background: rgba(var(--color-accent-500-rgb), 0.16);
+    color: var(--bexon-gold-strong);
 }
 
 /* Modals */
@@ -2254,8 +2298,9 @@ body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.assignee-pick
 }
 
 body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.assignee-picker[open] > summary, .task-detail-inline-assignee-picker[open] > summary, .assignee-picker > summary:hover, .task-detail-inline-assignee-picker > summary:hover, .due-date-input:focus, .due-date-display:hover) {
-    border-color: rgba(var(--color-accent-500-rgb), 0.46);
-    background: var(--ui-modal-toolbar-bg);
+    border-color: rgba(var(--color-accent-500-rgb), 0.3);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 body.is-dashboard :is(.create-task-modal, .task-detail-modal) .status-stepper-btn {
@@ -2338,6 +2383,24 @@ body.is-dashboard :is(.create-task-modal, .task-detail-modal) .priority-inline-p
     background:
         linear-gradient(180deg, rgba(var(--state-priority-urgent-rgb), 0.3) 0%, rgba(var(--state-priority-urgent-rgb), 0.15) 100%),
         rgba(19, 22, 28, 0.9);
+}
+
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option .row-inline-picker-summary-text,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option .row-inline-picker-option-flag {
+    color: rgba(255, 255, 255, 0.97);
+}
+
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:hover,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:focus-visible,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option.is-active,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:hover .row-inline-picker-summary-text,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:focus-visible .row-inline-picker-summary-text,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option.is-active .row-inline-picker-summary-text,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:hover .row-inline-picker-option-flag,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:focus-visible .row-inline-picker-option-flag,
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option.is-active .row-inline-picker-option-flag {
+    color: rgba(255, 255, 255, 0.97);
 }
 
 body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger),
@@ -2988,24 +3051,13 @@ body.is-dashboard .users-wrap .workspace-status-row {
     background: linear-gradient(180deg, #fffcf4 0%, #f6efdf 100%);
 }
 
-body.is-dashboard .users-wrap .workspace-status-row.status-todo {
-    border-color: rgba(171, 139, 84, 0.34);
-    background: linear-gradient(180deg, #fdf8ec 0%, #f7eedc 100%);
-}
-
-body.is-dashboard .users-wrap .workspace-status-row.status-in_progress {
-    border-color: rgba(214, 161, 86, 0.34);
-    background: linear-gradient(180deg, #fff4e2 0%, #f8e8cc 100%);
-}
-
-body.is-dashboard .users-wrap .workspace-status-row.status-review {
-    border-color: rgba(173, 145, 206, 0.32);
-    background: linear-gradient(180deg, #fbf6ff 0%, #f3ebff 100%);
-}
-
-body.is-dashboard .users-wrap .workspace-status-row.status-done {
-    border-color: rgba(112, 177, 136, 0.34);
-    background: linear-gradient(180deg, #edf8f1 0%, #e4f3e9 100%);
+body.is-dashboard .users-wrap .workspace-status-row[data-status-color] {
+    border-color: rgba(var(--wf-status-rgb), 0.34);
+    background: linear-gradient(
+        180deg,
+        rgba(var(--wf-status-rgb), 0.2) 0%,
+        rgba(var(--wf-status-rgb), 0.1) 100%
+    );
 }
 
 body.is-dashboard .vault-entry-value {
@@ -3041,4 +3093,80 @@ body.is-dashboard .task-list-item[data-status-color]::before {
             rgba(var(--task-status-rgb), 0.22) 64%,
             rgba(var(--task-status-rgb), 0) 88%
         );
+}
+
+body.is-dashboard .users-wrap .workspace-status-color-trigger {
+    border-color: rgba(162, 128, 74, 0.4);
+    background: linear-gradient(180deg, #fffdf8 0%, #f4ebd8 100%);
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .users-wrap .workspace-status-color-trigger:hover,
+body.is-dashboard .users-wrap .workspace-status-color-trigger:focus-visible,
+body.is-dashboard .users-wrap .workspace-status-color-control.is-open .workspace-status-color-trigger {
+    border-color: rgba(var(--color-accent-500-rgb), 0.44);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+body.is-dashboard .users-wrap .workspace-status-color-menu {
+    border-color: rgba(162, 128, 74, 0.36);
+    background: #fffdf8;
+    box-shadow: 0 14px 28px rgba(68, 47, 19, 0.16);
+}
+
+body.is-dashboard .users-wrap .workspace-status-color-option {
+    color: #5b4b2d;
+}
+
+body.is-dashboard .users-wrap .workspace-status-color-option:hover,
+body.is-dashboard .users-wrap .workspace-status-color-option:focus-visible {
+    border-color: rgba(var(--color-accent-500-rgb), 0.32);
+    background: rgba(245, 223, 185, 0.36);
+}
+
+body.is-dashboard .users-wrap .workspace-status-color-option.is-selected,
+body.is-dashboard .users-wrap .workspace-status-color-option[aria-selected="true"] {
+    border-color: rgba(var(--color-accent-500-rgb), 0.44);
+    background: rgba(244, 217, 168, 0.42);
+    color: #4f3f25;
+}
+
+body.is-dashboard .flatpickr-calendar {
+    border-color: rgba(162, 128, 74, 0.36);
+    background: #fffdf8;
+    box-shadow: 0 18px 34px rgba(53, 37, 16, 0.18);
+}
+
+body.is-dashboard .flatpickr-current-month .flatpickr-monthDropdown-months,
+body.is-dashboard .flatpickr-current-month input.cur-year {
+    border: 1px solid rgba(162, 128, 74, 0.3);
+    color: var(--bexon-text-strong);
+    background: rgba(255, 251, 243, 0.95);
+}
+
+body.is-dashboard .flatpickr-months .flatpickr-prev-month svg,
+body.is-dashboard .flatpickr-months .flatpickr-next-month svg {
+    fill: #765927;
+}
+
+body.is-dashboard .flatpickr-day {
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .flatpickr-day:hover,
+body.is-dashboard .flatpickr-day:focus-visible {
+    background: rgba(245, 223, 185, 0.4);
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+}
+
+body.is-dashboard .flatpickr-day.today {
+    border-color: rgba(var(--color-accent-500-rgb), 0.56);
+}
+
+body.is-dashboard .flatpickr-day.selected,
+body.is-dashboard .flatpickr-day.startRange,
+body.is-dashboard .flatpickr-day.endRange {
+    background: rgba(var(--color-accent-500-rgb), 0.96);
+    border-color: rgba(var(--color-accent-500-rgb), 0.96);
+    color: #fff;
 }

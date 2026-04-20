@@ -8,7 +8,9 @@ $workspaceTaskStatuses = is_array($workspaceTaskStatusConfig['list'] ?? null)
 $workspaceReviewStatusKey = $workspaceTaskStatusConfig['review_status_key'] ?? null;
 $canManageTaskStatuses = !empty($canManageWorkspace);
 $workspaceStatusesFormId = 'workspace-task-statuses-form-' . (int) ($currentWorkspaceId ?? 0);
-$newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
+$workspaceStatusColorPalette = taskStatusColorPalette();
+$newWorkspaceStatusColor = normalizeTaskStatusPaletteColor(taskStatusDefaultColorForKind('in_progress'), 'in_progress');
+$newWorkspaceStatusColorLabel = (string) ($workspaceStatusColorPalette[$newWorkspaceStatusColor] ?? $newWorkspaceStatusColor);
 ?>
 <section class="workspace-settings-card workspace-statuses-card<?= $canManageTaskStatuses ? '' : ' is-readonly' ?>">
     <div class="workspace-statuses-card-head">
@@ -33,11 +35,12 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
                 $statusKey = (string) ($statusDefinition['key'] ?? '');
                 $statusLabel = (string) ($statusDefinition['label'] ?? '');
                 $statusKind = (string) ($statusDefinition['kind'] ?? 'in_progress');
-                $statusColor = normalizeTaskStatusColor(
+                $statusColor = normalizeTaskStatusPaletteColor(
                     (string) ($statusDefinition['color'] ?? ''),
                     $statusKind
                 );
                 $statusCssVars = (string) ($statusDefinition['css_vars'] ?? taskStatusCssVars($statusColor));
+                $statusColorLabel = (string) ($workspaceStatusColorPalette[$statusColor] ?? $statusColor);
                 $statusLocked = !empty($statusDefinition['is_locked']);
                 $statusEdge = $statusLocked
                     ? ($statusKind === 'todo' ? 'start' : 'end')
@@ -54,7 +57,14 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
                     style="<?= e($statusCssVars) ?>"
                 >
                     <input type="hidden" name="status_keys[]" value="<?= e($statusKey) ?>">
-                    <input type="hidden" name="status_colors[]" value="<?= e($statusColor) ?>" data-workspace-status-color-hidden>
+                    <input
+                        type="hidden"
+                        name="status_colors[]"
+                        value="<?= e($statusColor) ?>"
+                        data-workspace-status-color-hidden
+                        data-workspace-status-color-input
+                        data-workspace-status-color-kind="<?= e($statusKind) ?>"
+                    >
                     <span class="workspace-status-tone workspace-status-tone-<?= e($statusKind) ?>" aria-hidden="true"></span>
                     <input
                         type="text"
@@ -64,15 +74,52 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
                         aria-label="Nome do status"
                         <?= $canManageTaskStatuses ? '' : 'readonly' ?>
                     >
-                    <label class="workspace-status-color-control" title="Cor do status">
-                        <input
-                            type="color"
-                            value="<?= e($statusColor) ?>"
+                    <div
+                        class="workspace-status-color-control<?= $canManageTaskStatuses ? '' : ' is-disabled' ?>"
+                        title="Cor do status"
+                        data-workspace-status-color-control
+                        style="--workspace-status-selected-color: <?= e($statusColor) ?>;"
+                    >
+                        <button
+                            type="button"
+                            class="workspace-status-color-trigger"
+                            data-workspace-status-color-trigger
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
                             aria-label="Cor do status"
-                            data-workspace-status-color-input
                             <?= $canManageTaskStatuses ? '' : 'disabled' ?>
                         >
-                    </label>
+                            <span
+                                class="workspace-status-color-trigger-swatch"
+                                aria-hidden="true"
+                                style="--workspace-status-option-color: <?= e($statusColor) ?>;"
+                            ></span>
+                            <span class="workspace-status-color-trigger-label" data-workspace-status-color-current-label>
+                                <?= e($statusColorLabel) ?>
+                            </span>
+                        </button>
+                        <div class="workspace-status-color-menu" data-workspace-status-color-menu role="listbox" hidden>
+                            <?php foreach ($workspaceStatusColorPalette as $paletteColor => $paletteLabel): ?>
+                                <?php $isSelectedPaletteColor = $statusColor === $paletteColor; ?>
+                                <button
+                                    type="button"
+                                    class="workspace-status-color-option<?= $isSelectedPaletteColor ? ' is-selected' : '' ?>"
+                                    data-workspace-status-color-option
+                                    data-value="<?= e($paletteColor) ?>"
+                                    data-label="<?= e($paletteLabel) ?>"
+                                    role="option"
+                                    aria-selected="<?= $isSelectedPaletteColor ? 'true' : 'false' ?>"
+                                >
+                                    <span
+                                        class="workspace-status-color-option-swatch"
+                                        aria-hidden="true"
+                                        style="--workspace-status-option-color: <?= e($paletteColor) ?>;"
+                                    ></span>
+                                    <span class="workspace-status-color-option-label"><?= e($paletteLabel) ?></span>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                     <button
                         type="button"
                         class="workspace-status-review-toggle<?= $canMarkAsReview ? '' : ' is-disabled' ?><?= $workspaceReviewStatusKey === $statusKey ? ' is-active' : '' ?>"
@@ -135,14 +182,58 @@ $newWorkspaceStatusColor = taskStatusDefaultColorForKind('in_progress');
                         placeholder="Novo status"
                         aria-label="Novo status"
                     >
-                    <label class="workspace-status-color-control workspace-status-color-control-new" title="Cor do novo status">
+                    <div
+                        class="workspace-status-color-control workspace-status-color-control-new"
+                        title="Cor do novo status"
+                        data-workspace-status-color-control
+                        style="--workspace-status-selected-color: <?= e($newWorkspaceStatusColor) ?>;"
+                    >
                         <input
-                            type="color"
+                            type="hidden"
                             name="new_status_color"
+                            data-workspace-status-color-input
+                            data-workspace-status-color-kind="in_progress"
                             value="<?= e($newWorkspaceStatusColor) ?>"
+                        >
+                        <button
+                            type="button"
+                            class="workspace-status-color-trigger"
+                            data-workspace-status-color-trigger
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
                             aria-label="Cor do novo status"
                         >
-                    </label>
+                            <span
+                                class="workspace-status-color-trigger-swatch"
+                                aria-hidden="true"
+                                style="--workspace-status-option-color: <?= e($newWorkspaceStatusColor) ?>;"
+                            ></span>
+                            <span class="workspace-status-color-trigger-label" data-workspace-status-color-current-label>
+                                <?= e($newWorkspaceStatusColorLabel) ?>
+                            </span>
+                        </button>
+                        <div class="workspace-status-color-menu" data-workspace-status-color-menu role="listbox" hidden>
+                            <?php foreach ($workspaceStatusColorPalette as $paletteColor => $paletteLabel): ?>
+                                <?php $isSelectedPaletteColor = $newWorkspaceStatusColor === $paletteColor; ?>
+                                <button
+                                    type="button"
+                                    class="workspace-status-color-option<?= $isSelectedPaletteColor ? ' is-selected' : '' ?>"
+                                    data-workspace-status-color-option
+                                    data-value="<?= e($paletteColor) ?>"
+                                    data-label="<?= e($paletteLabel) ?>"
+                                    role="option"
+                                    aria-selected="<?= $isSelectedPaletteColor ? 'true' : 'false' ?>"
+                                >
+                                    <span
+                                        class="workspace-status-color-option-swatch"
+                                        aria-hidden="true"
+                                        style="--workspace-status-option-color: <?= e($paletteColor) ?>;"
+                                    ></span>
+                                    <span class="workspace-status-color-option-label"><?= e($paletteLabel) ?></span>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                     <button
                         type="submit"
                         class="btn btn-mini btn-ghost workspace-status-add-button"

@@ -210,11 +210,7 @@ function respondUsersPanelSnapshot(): void
     $workspaceMembers = workspaceMembersList($workspaceId);
     $workspaceTaskStatusConfig = taskStatusConfig($workspaceId, $currentWorkspace);
     $isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
-    $showUsersDashboardTab = !$isPersonalWorkspace;
-
-    if (!$showUsersDashboardTab) {
-        throw new RuntimeException('Painel de usuarios indisponivel para workspace pessoal.');
-    }
+    $showUsersDashboardTab = true;
 
     ob_start();
     include __DIR__ . '/../partials/users_panel.php';

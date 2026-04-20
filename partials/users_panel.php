@@ -1,8 +1,12 @@
         <section class="users-wrap panel" id="users" data-dashboard-view-panel="users" hidden>
             <div class="panel-header board-header users-board-header">
                 <div>
-                    <h2>Usuarios</h2>
-                    <p>Gerencie membros, permissoes e status do workspace.</p>
+                    <h2>Configuracoes do workspace</h2>
+                    <p>
+                        <?= !empty($isPersonalWorkspace)
+                            ? 'Gerencie foto e status do workspace pessoal.'
+                            : 'Gerencie membros, permissoes e status do workspace.' ?>
+                    </p>
                 </div>
             </div>
 
@@ -24,24 +28,28 @@
                                     >
                                 </label>
                             </div>
-                            <label>
-                                <span>Nome do workspace</span>
-                                <input
-                                    type="text"
-                                    name="workspace_name"
-                                    maxlength="80"
-                                    value="<?= e((string) ($currentWorkspace['name'] ?? 'Workspace')) ?>"
-                                    required
-                                >
-                            </label>
-                            <button type="submit" class="btn btn-mini">Salvar perfil</button>
+                            <?php if (empty($isPersonalWorkspace)): ?>
+                                <label>
+                                    <span>Nome do workspace</span>
+                                    <input
+                                        type="text"
+                                        name="workspace_name"
+                                        maxlength="80"
+                                        value="<?= e((string) ($currentWorkspace['name'] ?? 'Workspace')) ?>"
+                                        required
+                                    >
+                                </label>
+                            <?php endif; ?>
+                            <button type="submit" class="btn btn-mini">
+                                <?= !empty($isPersonalWorkspace) ? 'Salvar foto' : 'Salvar perfil' ?>
+                            </button>
                         </form>
                     </section>
                 <?php endif; ?>
 
                 <section class="workspace-settings-card workspace-settings-users-card<?= empty($canManageWorkspace) ? ' is-full' : '' ?>">
                     <h3>Usuarios do workspace</h3>
-                    <?php if (!empty($canManageWorkspace)): ?>
+                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace)): ?>
                         <form method="post" class="workspace-settings-form workspace-settings-member-form">
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                             <input type="hidden" name="action" value="workspace_add_member">
@@ -51,6 +59,8 @@
                             </label>
                             <button type="submit" class="btn btn-mini">Adicionar</button>
                         </form>
+                    <?php elseif (!empty($isPersonalWorkspace)): ?>
+                        <p class="workspace-settings-member-empty">Workspace pessoal nao permite adicionar usuarios parceiros.</p>
                     <?php endif; ?>
 
                     <ul class="workspace-settings-members">
@@ -70,7 +80,7 @@
                                         <span class="workspace-member-role workspace-role-<?= e((string) $memberRole) ?>"><?= e((string) $memberRoleLabel) ?></span>
                                         <span><?= e((string) $workspaceMember['email']) ?></span>
                                     </div>
-                                    <?php if (!empty($canManageWorkspace) && $workspaceMemberId !== (int) $currentUser['id']): ?>
+                                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace) && $workspaceMemberId !== (int) $currentUser['id']): ?>
                                         <div class="workspace-settings-member-actions">
                                             <?php if ($memberRole !== 'admin'): ?>
                                                 <form method="post" class="workspace-settings-member-remove">

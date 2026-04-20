@@ -707,19 +707,87 @@ window.addEventListener("DOMContentLoaded", () => {
     return normalizeTaskStatusKind((className || "").replace(/^status-/, ""));
   };
 
-  const syncWorkspaceStatusRowColor = (input) => {
-    if (!(input instanceof HTMLInputElement)) return;
-    const row = input.closest("[data-workspace-status-row]");
-    if (!(row instanceof HTMLElement)) return;
+  const isWorkspaceStatusColorInput = (input) =>
+    input instanceof HTMLInputElement || input instanceof HTMLSelectElement;
 
-    const statusKind = getWorkspaceStatusRowKind(row);
+  const workspaceStatusColorLabelFromControl = (control, color) => {
+    if (!(control instanceof HTMLElement)) return color;
+    const normalizedColor = String(color || "").trim().toUpperCase();
+    const matchedOption = Array.from(
+      control.querySelectorAll("[data-workspace-status-color-option]")
+    ).find((option) => {
+      if (!(option instanceof HTMLElement)) return false;
+      return String(option.dataset.value || "").trim().toUpperCase() === normalizedColor;
+    });
+    const nextLabel = matchedOption instanceof HTMLElement ? String(matchedOption.dataset.label || "").trim() : "";
+    return nextLabel || color;
+  };
+
+  const setWorkspaceStatusColorMenuOpen = (control, isOpen) => {
+    if (!(control instanceof HTMLElement)) return;
+    const trigger = control.querySelector("[data-workspace-status-color-trigger]");
+    const menu = control.querySelector("[data-workspace-status-color-menu]");
+    const nextState = Boolean(isOpen);
+    control.classList.toggle("is-open", nextState);
+    if (trigger instanceof HTMLElement) {
+      trigger.setAttribute("aria-expanded", nextState ? "true" : "false");
+    }
+    if (menu instanceof HTMLElement) {
+      menu.hidden = !nextState;
+    }
+  };
+
+  const closeWorkspaceStatusColorMenus = (exceptControl = null) => {
+    document.querySelectorAll("[data-workspace-status-color-control].is-open").forEach((control) => {
+      if (!(control instanceof HTMLElement)) return;
+      if (exceptControl instanceof HTMLElement && control === exceptControl) return;
+      setWorkspaceStatusColorMenuOpen(control, false);
+    });
+  };
+
+  const syncWorkspaceStatusColorControlState = (control, color) => {
+    if (!(control instanceof HTMLElement)) return;
+    const normalizedColor = String(color || "").trim().toUpperCase();
+    const safeColor = normalizedColor || "#6EA5E9";
+    control.style.setProperty("--workspace-status-selected-color", safeColor);
+
+    const currentLabel = control.querySelector("[data-workspace-status-color-current-label]");
+    if (currentLabel instanceof HTMLElement) {
+      currentLabel.textContent = workspaceStatusColorLabelFromControl(control, safeColor);
+    }
+
+    control.querySelectorAll("[data-workspace-status-color-option]").forEach((option) => {
+      if (!(option instanceof HTMLElement)) return;
+      const optionColor = String(option.dataset.value || "").trim().toUpperCase();
+      const selected = optionColor === safeColor;
+      option.classList.toggle("is-selected", selected);
+      option.setAttribute("aria-selected", selected ? "true" : "false");
+    });
+  };
+
+  const syncWorkspaceStatusRowColor = (input) => {
+    if (!isWorkspaceStatusColorInput(input)) return;
+    const row = input.closest("[data-workspace-status-row]");
+    const statusKind =
+      row instanceof HTMLElement
+        ? getWorkspaceStatusRowKind(row)
+        : normalizeTaskStatusKind(input.dataset.workspaceStatusColorKind || "in_progress");
+
     const color = normalizeStatusColorValue(input.value, statusKind);
     input.value = color;
-    applyStatusStyleVars(row, color, statusKind);
 
-    const hiddenInput = row.querySelector("[data-workspace-status-color-hidden]");
-    if (hiddenInput instanceof HTMLInputElement) {
-      hiddenInput.value = color;
+    const colorControl = input.closest("[data-workspace-status-color-control]");
+    if (colorControl instanceof HTMLElement) {
+      syncWorkspaceStatusColorControlState(colorControl, color);
+    }
+
+    if (row instanceof HTMLElement) {
+      applyStatusStyleVars(row, color, statusKind);
+
+      const hiddenInput = row.querySelector("[data-workspace-status-color-hidden]");
+      if (hiddenInput instanceof HTMLInputElement) {
+        hiddenInput.value = color;
+      }
     }
   };
 
@@ -892,6 +960,52 @@ window.addEventListener("DOMContentLoaded", () => {
     const target = getEventTargetElement(event);
     if (!(target instanceof Element)) return;
 
+    const workspaceStatusColorControl = target.closest("[data-workspace-status-color-control]");
+    if (!(workspaceStatusColorControl instanceof HTMLElement)) {
+      closeWorkspaceStatusColorMenus();
+    }
+
+    const workspaceStatusColorOption = target.closest("[data-workspace-status-color-option]");
+    if (workspaceStatusColorOption instanceof HTMLButtonElement) {
+      event.preventDefault();
+      const control = workspaceStatusColorOption.closest("[data-workspace-status-color-control]");
+      const colorInput = control?.querySelector("[data-workspace-status-color-input]");
+      const nextColor = String(workspaceStatusColorOption.dataset.value || "").trim();
+
+      if (!(control instanceof HTMLElement) || !isWorkspaceStatusColorInput(colorInput) || !nextColor) {
+        return;
+      }
+
+      const trigger = control.querySelector("[data-workspace-status-color-trigger]");
+      if (trigger instanceof HTMLButtonElement && trigger.disabled) {
+        return;
+      }
+
+      colorInput.value = nextColor;
+      syncWorkspaceStatusRowColor(colorInput);
+      const form = colorInput.closest(".workspace-statuses-form");
+      syncWorkspaceStatusesSaveState(form);
+      setWorkspaceStatusColorMenuOpen(control, false);
+      return;
+    }
+
+    const workspaceStatusColorTrigger = target.closest("[data-workspace-status-color-trigger]");
+    if (workspaceStatusColorTrigger instanceof HTMLButtonElement) {
+      event.preventDefault();
+      const control = workspaceStatusColorTrigger.closest("[data-workspace-status-color-control]");
+      if (!(control instanceof HTMLElement)) {
+        return;
+      }
+      if (workspaceStatusColorTrigger.disabled || control.classList.contains("is-disabled")) {
+        setWorkspaceStatusColorMenuOpen(control, false);
+        return;
+      }
+      const shouldOpen = !control.classList.contains("is-open");
+      closeWorkspaceStatusColorMenus(control);
+      setWorkspaceStatusColorMenuOpen(control, shouldOpen);
+      return;
+    }
+
     const workspaceStatusReviewToggle = target.closest("[data-workspace-status-review-toggle]");
     if (workspaceStatusReviewToggle instanceof HTMLButtonElement) {
       if (workspaceStatusReviewToggle.disabled) return;
@@ -972,7 +1086,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const workspaceStatusColorInput = target.closest("[data-workspace-status-color-input]");
-    if (workspaceStatusColorInput instanceof HTMLInputElement) {
+    if (isWorkspaceStatusColorInput(workspaceStatusColorInput)) {
       syncWorkspaceStatusRowColor(workspaceStatusColorInput);
       const form = workspaceStatusColorInput.closest(".workspace-statuses-form");
       syncWorkspaceStatusesSaveState(form);
@@ -986,7 +1100,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (target instanceof HTMLInputElement && target.matches(uppercaseRequiredInputSelector)) {
       applyFirstLetterUppercaseToInput(target);
     }
-    if (target instanceof HTMLInputElement && target.matches("[data-workspace-status-color-input]")) {
+    if (isWorkspaceStatusColorInput(target) && target.matches("[data-workspace-status-color-input]")) {
       syncWorkspaceStatusRowColor(target);
       const form = target.closest(".workspace-statuses-form");
       syncWorkspaceStatusesSaveState(form);
@@ -1028,6 +1142,10 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeWorkspaceStatusColorMenus();
+    }
+
     const target = event.target;
     if (
       target instanceof HTMLElement &&
@@ -2444,6 +2562,80 @@ window.addEventListener("DOMContentLoaded", () => {
     display.classList.toggle("is-relative", meta.isRelative);
   };
 
+  const normalizeIsoDateInputValue = (value) => {
+    const rawValue = String(value || "").trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(rawValue) ? rawValue : "";
+  };
+
+  const setIsoDateInputValue = (input, value) => {
+    if (!(input instanceof HTMLInputElement)) return;
+    const normalized = normalizeIsoDateInputValue(value);
+    const picker = input._flatpickr;
+
+    if (picker && typeof picker.setDate === "function") {
+      if (normalized) {
+        picker.setDate(normalized, false, "Y-m-d");
+      } else {
+        picker.setDate([], false);
+      }
+    }
+
+    input.value = normalized;
+  };
+
+  const initializeDatePickerInput = (
+    input,
+    { onValueChange = null, clickOpens = true } = {}
+  ) => {
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.dataset.flatpickrBound === "1") return;
+    input.dataset.flatpickrBound = "1";
+
+    if (typeof window.flatpickr !== "function") return;
+
+    const localePt = window.flatpickr?.l10ns?.pt;
+    window.flatpickr(input, {
+      dateFormat: "Y-m-d",
+      allowInput: true,
+      disableMobile: true,
+      monthSelectorType: "static",
+      clickOpens,
+      locale: localePt || undefined,
+      onChange: (_selectedDates, dateString) => {
+        const normalized = normalizeIsoDateInputValue(dateString);
+        input.value = normalized;
+        if (typeof onValueChange === "function") {
+          onValueChange(input);
+        }
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      },
+      onClose: () => {
+        const normalized = normalizeIsoDateInputValue(input.value);
+        if (normalized === input.value) return;
+        input.value = normalized;
+        if (typeof onValueChange === "function") {
+          onValueChange(input);
+        }
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      },
+    });
+  };
+
+  const initializeDatePickers = (scope = document) => {
+    const root = scope instanceof Element || scope instanceof Document ? scope : document;
+    root.querySelectorAll('input[type="date"]').forEach((input) => {
+      if (!(input instanceof HTMLInputElement)) return;
+      const isTaskRowDueDateInput = input.matches("[data-due-date-input]");
+      initializeDatePickerInput(input, {
+        onValueChange: isTaskRowDueDateInput ? syncDueDateDisplay : null,
+        clickOpens: !isTaskRowDueDateInput,
+      });
+      if (isTaskRowDueDateInput) {
+        syncDueDateDisplay(input);
+      }
+    });
+  };
+
   const createTaskOverdueBadge = () => {
     const badge = document.createElement("button");
     badge.type = "button";
@@ -2658,6 +2850,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const hydrateTaskInteractiveFields = (root = document) => {
     if (!root || typeof root.querySelectorAll !== "function") return;
+
+    initializeDatePickers(root);
 
     root
       .querySelectorAll(".status-select, .priority-select")
@@ -5682,7 +5876,9 @@ window.addEventListener("DOMContentLoaded", () => {
       const wrap = dueDisplay.closest(".due-tag-field");
       const input = wrap?.querySelector("[data-due-date-input]");
       if (input instanceof HTMLInputElement) {
-        if (typeof input.showPicker === "function") {
+        if (input._flatpickr && typeof input._flatpickr.open === "function") {
+          input._flatpickr.open();
+        } else if (typeof input.showPicker === "function") {
           input.showPicker();
         } else {
           input.focus();
@@ -8676,7 +8872,7 @@ window.addEventListener("DOMContentLoaded", () => {
       syncInlineSelectPicker(taskDetailEditGroup);
     }
     if (taskDetailEditDueDate instanceof HTMLInputElement) {
-      taskDetailEditDueDate.value = dueDateInput.value || "";
+      setIsoDateInputValue(taskDetailEditDueDate, dueDateInput.value || "");
     }
     if (taskDetailEditDescription instanceof HTMLTextAreaElement) {
       taskDetailEditDescription.value = descriptionField.value || "";
@@ -8842,7 +9038,7 @@ window.addEventListener("DOMContentLoaded", () => {
     syncTaskTitleTagBadge(context.taskItem, nextTitleTag, nextTitleTagColor);
     context.statusSelect.value = taskDetailEditStatus.value;
     context.prioritySelect.value = taskDetailEditPriority.value;
-    context.dueDateInput.value = taskDetailEditDueDate.value;
+    setIsoDateInputValue(context.dueDateInput, taskDetailEditDueDate.value);
     context.descriptionField.value = taskDetailEditDescription.value;
     if (context.referenceLinksField instanceof HTMLInputElement && taskDetailEditLinks instanceof HTMLTextAreaElement) {
       writeJsonUrlListField(
@@ -10241,7 +10437,7 @@ window.addEventListener("DOMContentLoaded", () => {
       dueEntryMonthlyDayField.value = String(new Date().getDate());
     }
     if (dueEntryFixedDateField instanceof HTMLInputElement) {
-      dueEntryFixedDateField.value = todayIsoDate();
+      setIsoDateInputValue(dueEntryFixedDateField, todayIsoDate());
     }
     if (dueEntryAnnualMonthField instanceof HTMLSelectElement) {
       dueEntryAnnualMonthField.value = String(new Date().getMonth() + 1).padStart(2, "0");
@@ -10305,7 +10501,7 @@ window.addEventListener("DOMContentLoaded", () => {
       dueEntryEditMonthlyDayField.value = normalizedDay || monthlyDayFromIsoDate(dueDate) || "";
     }
     if (dueEntryEditFixedDateField instanceof HTMLInputElement) {
-      dueEntryEditFixedDateField.value = dueDate;
+      setIsoDateInputValue(dueEntryEditFixedDateField, dueDate);
     }
     if (dueEntryEditAnnualMonthField instanceof HTMLSelectElement) {
       const monthValue = monthFromIsoDate(dueDate);

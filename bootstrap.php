@@ -7099,6 +7099,25 @@ function taskStatusDefaultColorForKind(string $kind): string
     };
 }
 
+function taskStatusColorPalette(): array
+{
+    return [
+        '#6EA5E9' => 'Azul',
+        '#E8A15D' => 'Laranja',
+        '#9C84E6' => 'Roxo',
+        '#61BE92' => 'Verde',
+        '#D67A78' => 'Vermelho',
+        '#E3C86B' => 'Amarelo',
+        '#59AFC0' => 'Ciano',
+        '#8C99AD' => 'Cinza',
+    ];
+}
+
+function taskStatusColorPaletteValues(): array
+{
+    return array_keys(taskStatusColorPalette());
+}
+
 function normalizeTaskStatusColor(string $value, ?string $fallbackKind = null): string
 {
     $fallback = taskStatusDefaultColorForKind((string) $fallbackKind);
@@ -7117,6 +7136,45 @@ function normalizeTaskStatusColor(string $value, ?string $fallbackKind = null): 
     }
 
     return preg_match('/^#[0-9A-F]{6}$/', $normalized) ? $normalized : $fallback;
+}
+
+function normalizeTaskStatusPaletteColor(string $value, ?string $fallbackKind = null): string
+{
+    $paletteValues = taskStatusColorPaletteValues();
+    if ($paletteValues === []) {
+        return normalizeTaskStatusColor($value, $fallbackKind);
+    }
+
+    $fallbackColor = taskStatusDefaultColorForKind((string) $fallbackKind);
+    $normalized = normalizeTaskStatusColor($value, $fallbackKind);
+    if (in_array($normalized, $paletteValues, true)) {
+        return $normalized;
+    }
+
+    if (!preg_match('/^#[0-9A-F]{6}$/', $normalized)) {
+        return in_array($fallbackColor, $paletteValues, true)
+            ? $fallbackColor
+            : $paletteValues[0];
+    }
+
+    [$sourceRed, $sourceGreen, $sourceBlue] = hexColorToRgbComponents($normalized);
+    $nearestColor = in_array($fallbackColor, $paletteValues, true)
+        ? $fallbackColor
+        : $paletteValues[0];
+    $nearestDistance = PHP_INT_MAX;
+
+    foreach ($paletteValues as $paletteColor) {
+        [$targetRed, $targetGreen, $targetBlue] = hexColorToRgbComponents($paletteColor);
+        $distance = (($sourceRed - $targetRed) ** 2)
+            + (($sourceGreen - $targetGreen) ** 2)
+            + (($sourceBlue - $targetBlue) ** 2);
+        if ($distance < $nearestDistance) {
+            $nearestDistance = $distance;
+            $nearestColor = $paletteColor;
+        }
+    }
+
+    return $nearestColor;
 }
 
 function hexColorToRgbComponents(string $value): array
@@ -7313,7 +7371,7 @@ function normalizeWorkspaceTaskStatusDefinitions(array $definitions, ?string $re
             'review' => 'review',
             default => $kind,
         };
-        $color = normalizeTaskStatusColor((string) ($definition['color'] ?? ''), $colorFallbackKind);
+        $color = normalizeTaskStatusPaletteColor((string) ($definition['color'] ?? ''), $colorFallbackKind);
         $cssVars = taskStatusCssVars($color);
 
         $options[$key] = $label;
@@ -7356,7 +7414,7 @@ function encodeWorkspaceTaskStatusDefinitions(array $definitions): string
         static fn (array $definition): array => [
             'key' => (string) ($definition['key'] ?? ''),
             'label' => (string) ($definition['label'] ?? ''),
-            'color' => normalizeTaskStatusColor(
+            'color' => normalizeTaskStatusPaletteColor(
                 (string) ($definition['color'] ?? ''),
                 (string) ($definition['kind'] ?? 'in_progress')
             ),
@@ -7583,7 +7641,7 @@ function workspaceUpdateTaskStatusConfiguration(
             [[
                 'key' => $newKey,
                 'label' => $normalizedLabel,
-                'color' => normalizeTaskStatusColor((string) $newStatusColor, 'in_progress'),
+                'color' => normalizeTaskStatusPaletteColor((string) $newStatusColor, 'in_progress'),
             ]]
         );
     }
