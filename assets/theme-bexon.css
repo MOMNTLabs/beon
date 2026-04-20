@@ -2386,8 +2386,7 @@ body.is-dashboard :is(.create-task-modal, .task-detail-modal) .priority-inline-p
 }
 
 body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option,
-body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option .row-inline-picker-summary-text,
-body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option .row-inline-picker-option-flag {
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option .row-inline-picker-summary-text {
     color: rgba(255, 255, 255, 0.97);
 }
 
@@ -2396,11 +2395,28 @@ body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline
 body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option.is-active,
 body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:hover .row-inline-picker-summary-text,
 body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:focus-visible .row-inline-picker-summary-text,
-body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option.is-active .row-inline-picker-summary-text,
-body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:hover .row-inline-picker-option-flag,
-body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:focus-visible .row-inline-picker-option-flag,
-body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option.is-active .row-inline-picker-option-flag {
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option.is-active .row-inline-picker-summary-text {
     color: rgba(255, 255, 255, 0.97);
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-low .row-inline-picker-option-flag {
+    color: var(--ui-task-priority-low-text);
+    opacity: 1;
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-medium .row-inline-picker-option-flag {
+    color: var(--ui-task-priority-medium-text);
+    opacity: 1;
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-high .row-inline-picker-option-flag {
+    color: var(--ui-task-priority-high-text);
+    opacity: 1;
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option.priority-urgent .row-inline-picker-option-flag {
+    color: var(--ui-task-priority-urgent-text);
+    opacity: 1;
 }
 
 body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger),
@@ -3135,6 +3151,37 @@ body.is-dashboard .flatpickr-calendar {
     border-color: rgba(162, 128, 74, 0.36);
     background: #fffdf8;
     box-shadow: 0 18px 34px rgba(53, 37, 16, 0.18);
+    width: 284px;
+    font-size: 0.93rem;
+}
+
+body.is-dashboard .flatpickr-months {
+    min-height: 44px;
+}
+
+body.is-dashboard .flatpickr-months .flatpickr-month {
+    min-height: 44px;
+}
+
+body.is-dashboard .flatpickr-current-month {
+    padding-top: 4px;
+}
+
+body.is-dashboard .flatpickr-weekdays {
+    min-height: 34px;
+}
+
+body.is-dashboard span.flatpickr-weekday {
+    min-height: 34px;
+    line-height: 34px;
+    font-size: 0.97rem;
+}
+
+body.is-dashboard .flatpickr-days,
+body.is-dashboard .dayContainer {
+    width: 252px;
+    min-width: 252px;
+    max-width: 252px;
 }
 
 body.is-dashboard .flatpickr-current-month .flatpickr-monthDropdown-months,
@@ -3142,6 +3189,10 @@ body.is-dashboard .flatpickr-current-month input.cur-year {
     border: 1px solid rgba(162, 128, 74, 0.3);
     color: var(--bexon-text-strong);
     background: rgba(255, 251, 243, 0.95);
+    height: 31px;
+    line-height: 31px;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 body.is-dashboard .flatpickr-months .flatpickr-prev-month svg,
@@ -3151,6 +3202,10 @@ body.is-dashboard .flatpickr-months .flatpickr-next-month svg {
 
 body.is-dashboard .flatpickr-day {
     color: var(--bexon-text-strong);
+    width: 36px;
+    max-width: 36px;
+    height: 34px;
+    line-height: 34px;
 }
 
 body.is-dashboard .flatpickr-day:hover,
