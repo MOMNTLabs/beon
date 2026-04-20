@@ -3018,3 +3018,50 @@ body.is-dashboard .due-entry-title,
 body.is-dashboard .inventory-entry-title {
     color: var(--bexon-text-strong);
 }
+
+body.is-dashboard:not(.theme-dark) .task-list-item[data-status-color] {
+    border-color: rgba(var(--task-status-rgb), 0.44);
+    background:
+        linear-gradient(#fffdf8, #fffdf8) padding-box,
+        linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.96) 0%,
+            rgba(var(--task-status-rgb), 0.2) 56%,
+            rgba(var(--task-status-rgb), 0.34) 100%
+        ) border-box;
+}
+
+body.is-dashboard:not(.theme-dark) .task-list-item[data-status-color]::before {
+    background:
+        linear-gradient(
+            90deg,
+            rgba(var(--task-status-rgb), 0.56) 0%,
+            rgba(var(--task-status-rgb), 0.34) 34%,
+            rgba(var(--task-status-rgb), 0.14) 60%,
+            rgba(var(--task-status-rgb), 0) 84%
+        );
+}
+
+body.is-dashboard.theme-dark .task-list-item[data-status-color] {
+    border-color: rgba(var(--task-status-rgb), 0.56);
+    background:
+        linear-gradient(rgba(53, 42, 22, 0.95), rgba(45, 35, 18, 0.95)) padding-box,
+        linear-gradient(
+            90deg,
+            rgba(var(--task-status-rgb), 0.58) 0%,
+            rgba(var(--task-status-rgb), 0.34) 58%,
+            rgba(var(--task-status-rgb), 0.22) 100%
+        ) border-box;
+}
+
+body.is-dashboard.theme-dark .task-list-item[data-status-color]::before {
+    opacity: 1;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(var(--task-status-rgb), 0.64) 0%,
+            rgba(var(--task-status-rgb), 0.4) 38%,
+            rgba(var(--task-status-rgb), 0.18) 64%,
+            rgba(var(--task-status-rgb), 0) 86%
+        );
+}
