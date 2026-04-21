@@ -813,6 +813,97 @@ window.addEventListener("DOMContentLoaded", () => {
         hiddenInput.value = color;
       }
     }
+
+    const form = input.closest(".workspace-statuses-form");
+    syncWorkspaceStatusColorOptionAvailability(form);
+  };
+
+  const collectWorkspaceStatusRowColorCounts = (form) => {
+    if (!(form instanceof HTMLFormElement)) {
+      return new Map();
+    }
+
+    const counts = new Map();
+    form.querySelectorAll("[data-workspace-status-row] [data-workspace-status-color-hidden]").forEach((field) => {
+      if (!(field instanceof HTMLInputElement)) return;
+      const color = String(field.value || "").trim().toUpperCase();
+      if (!color) return;
+      counts.set(color, (counts.get(color) || 0) + 1);
+    });
+    return counts;
+  };
+
+  const workspaceStatusColorLabelByValue = (form, color) => {
+    if (!(form instanceof HTMLFormElement)) return color;
+    const normalizedColor = String(color || "").trim().toUpperCase();
+    if (!normalizedColor) return color;
+
+    const matchedOption = Array.from(
+      form.querySelectorAll("[data-workspace-status-color-option]")
+    ).find((option) => {
+      if (!(option instanceof HTMLElement)) return false;
+      return String(option.dataset.value || "").trim().toUpperCase() === normalizedColor;
+    });
+
+    const label = matchedOption instanceof HTMLElement ? String(matchedOption.dataset.label || "").trim() : "";
+    return label || normalizedColor;
+  };
+
+  const workspaceStatusDuplicateColors = (form) => {
+    const counts = collectWorkspaceStatusRowColorCounts(form);
+    return Array.from(counts.entries())
+      .filter(([, amount]) => amount > 1)
+      .map(([color]) => color);
+  };
+
+  const validateWorkspaceStatusUniqueColors = (form, { showMessage = false } = {}) => {
+    if (!(form instanceof HTMLFormElement)) return true;
+    const duplicatedColors = workspaceStatusDuplicateColors(form);
+    if (!duplicatedColors.length) return true;
+
+    if (showMessage) {
+      const duplicatedLabels = duplicatedColors.map((color) =>
+        workspaceStatusColorLabelByValue(form, color)
+      );
+      showClientFlash(
+        "error",
+        `Cada status precisa ter uma cor diferente. Cores repetidas: ${duplicatedLabels.join(", ")}.`
+      );
+    }
+    return false;
+  };
+
+  const syncWorkspaceStatusColorOptionAvailability = (form) => {
+    if (!(form instanceof HTMLFormElement)) return;
+    const rowColorCounts = collectWorkspaceStatusRowColorCounts(form);
+
+    form.querySelectorAll("[data-workspace-status-color-control]").forEach((control) => {
+      if (!(control instanceof HTMLElement)) return;
+      const input = getWorkspaceStatusColorInputFromControl(control);
+      if (!isWorkspaceStatusColorInput(input)) return;
+
+      const scope = control.closest("[data-workspace-status-row], [data-workspace-status-create-row]");
+      const isStatusRow = scope instanceof HTMLElement && scope.hasAttribute("data-workspace-status-row");
+      const currentColor = String(input.value || "").trim().toUpperCase();
+
+      control.querySelectorAll("[data-workspace-status-color-option]").forEach((option) => {
+        if (!(option instanceof HTMLButtonElement)) return;
+        const optionColor = String(option.dataset.value || "").trim().toUpperCase();
+        const usedCount = rowColorCounts.get(optionColor) || 0;
+        const isUnavailable = optionColor !== "" && (isStatusRow
+          ? optionColor !== currentColor && usedCount > 0
+          : usedCount > 0);
+
+        option.disabled = isUnavailable;
+        option.classList.toggle("is-unavailable", isUnavailable);
+        option.setAttribute("aria-disabled", isUnavailable ? "true" : "false");
+        if (isUnavailable) {
+          option.setAttribute("title", "Cor ja usada em outro status");
+        } else {
+          option.removeAttribute("title");
+        }
+      });
+    });
   };
 
   const syncWorkspaceStatusReviewToggles = (scope = document) => {
@@ -938,17 +1029,25 @@ window.addEventListener("DOMContentLoaded", () => {
     const baseline = String(form.dataset.workspaceStatusesBaseline || "");
     const current = serializeWorkspaceStatusesForm(form);
     const isDirty = baseline !== "" && baseline !== current;
+    const hasDuplicateColors = !validateWorkspaceStatusUniqueColors(form, { showMessage: false });
 
     form.dataset.workspaceStatusesDirty = isDirty ? "true" : "false";
-    saveButton.disabled = !isDirty;
+    form.dataset.workspaceStatusesDuplicateColors = hasDuplicateColors ? "true" : "false";
+    saveButton.disabled = !isDirty || hasDuplicateColors;
     saveButton.setAttribute("aria-disabled", saveButton.disabled ? "true" : "false");
-    return isDirty;
+    if (hasDuplicateColors) {
+      saveButton.setAttribute("title", "Cada status precisa ter uma cor diferente.");
+    } else {
+      saveButton.removeAttribute("title");
+    }
+    return isDirty && !hasDuplicateColors;
   };
 
   const initializeWorkspaceStatusesForms = (scope = document) => {
     const root = scope instanceof Element || scope instanceof Document ? scope : document;
     root.querySelectorAll(".workspace-statuses-form").forEach((form) => {
       if (!(form instanceof HTMLFormElement)) return;
+      syncWorkspaceStatusColorOptionAvailability(form);
       form.dataset.workspaceStatusesBaseline = serializeWorkspaceStatusesForm(form);
       syncWorkspaceStatusesSaveState(form);
     });
@@ -992,6 +1091,10 @@ window.addEventListener("DOMContentLoaded", () => {
     const workspaceStatusColorOption = target.closest("[data-workspace-status-color-option]");
     if (workspaceStatusColorOption instanceof HTMLButtonElement) {
       event.preventDefault();
+      if (workspaceStatusColorOption.disabled || workspaceStatusColorOption.classList.contains("is-unavailable")) {
+        showClientFlash("error", "Essa cor ja esta sendo usada em outro status.");
+        return;
+      }
       const control = workspaceStatusColorOption.closest("[data-workspace-status-color-control]");
       const colorInput = getWorkspaceStatusColorInputFromControl(control);
       const nextColor = String(workspaceStatusColorOption.dataset.value || "").trim();
@@ -1020,6 +1123,8 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!(control instanceof HTMLElement)) {
         return;
       }
+      const form = control.closest(".workspace-statuses-form");
+      syncWorkspaceStatusColorOptionAvailability(form);
       if (workspaceStatusColorTrigger.disabled || control.classList.contains("is-disabled")) {
         setWorkspaceStatusColorMenuOpen(control, false);
         return;
@@ -6378,6 +6483,14 @@ window.addEventListener("DOMContentLoaded", () => {
   const createTaskImageInput = document.querySelector("[data-create-task-image-input]");
   const createTaskImageAddButton = document.querySelector("[data-create-task-image-add]");
   const createTaskImageList = document.querySelector("[data-create-task-image-list]");
+  const createTaskImagesFieldWrap =
+    createTaskImagePicker instanceof HTMLElement
+      ? createTaskImagePicker.closest(".task-detail-edit-images-field")
+      : null;
+  const createTaskMainRow =
+    createTaskImagePicker instanceof HTMLElement
+      ? createTaskImagePicker.closest(".task-detail-edit-main-row")
+      : null;
   const workspaceCreateModal = document.querySelector("[data-workspace-create-modal]");
   const workspaceCreateForm = document.querySelector("[data-workspace-create-form]");
   const workspaceCreateNameInput = document.querySelector("[data-workspace-create-name-input]");
@@ -6529,6 +6642,14 @@ window.addEventListener("DOMContentLoaded", () => {
   const taskDetailImageInput = document.querySelector("[data-task-detail-image-input]");
   const taskDetailImageAddButton = document.querySelector("[data-task-detail-image-add]");
   const taskDetailImageList = document.querySelector("[data-task-detail-image-list]");
+  const taskDetailImagesFieldWrap =
+    taskDetailImagePicker instanceof HTMLElement
+      ? taskDetailImagePicker.closest(".task-detail-edit-images-field")
+      : null;
+  const taskDetailMainRow =
+    taskDetailImagePicker instanceof HTMLElement
+      ? taskDetailImagePicker.closest(".task-detail-edit-main-row")
+      : null;
   const taskDetailEditAssignees = document.querySelector("[data-task-detail-edit-assignees]");
   const taskDetailEditAssigneesMenu = document.querySelector("[data-task-detail-edit-assignees-menu]");
   const taskDetailEditButton = document.querySelector("[data-task-detail-edit]");
@@ -6563,6 +6684,8 @@ window.addEventListener("DOMContentLoaded", () => {
   let taskDetailEditSubtaskItems = [];
   let taskDetailEditSubtasksDependencyEnabled = false;
   let createTaskImageItems = [];
+  let taskDetailImagePickerExpanded = false;
+  let createTaskImagePickerExpanded = false;
   let createTaskSubtaskItems = [];
   let createTaskSubtasksDependencyEnabled = false;
   const TASK_TITLE_TAG_DEFAULT_PALETTE = [
@@ -6802,11 +6925,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const persistTaskTitleTagColorSelection = async (tagValue = "", colorValue = "") => {
-    const normalizedTag = normalizeTaskTitleTagValue(tagValue);
-    if (!normalizedTag) return false;
-
-    const normalizedColor = normalizeTaskTitleTagColorValue(colorValue, taskTitleTagDefaultColor);
+  const getTaskTitleTagCsrfToken = () => {
     const csrfField =
       (createTaskForm instanceof HTMLFormElement
         ? createTaskForm.querySelector('input[name="csrf_token"]')
@@ -6816,7 +6935,15 @@ window.addEventListener("DOMContentLoaded", () => {
         : null) ||
       document.querySelector('input[name="csrf_token"]');
 
-    const csrfToken = csrfField instanceof HTMLInputElement ? csrfField.value.trim() : "";
+    return csrfField instanceof HTMLInputElement ? csrfField.value.trim() : "";
+  };
+
+  const persistTaskTitleTagColorSelection = async (tagValue = "", colorValue = "") => {
+    const normalizedTag = normalizeTaskTitleTagValue(tagValue);
+    if (!normalizedTag) return false;
+
+    const normalizedColor = normalizeTaskTitleTagColorValue(colorValue, taskTitleTagDefaultColor);
+    const csrfToken = getTaskTitleTagCsrfToken();
     if (!csrfToken) return false;
 
     try {
@@ -6824,6 +6951,32 @@ window.addEventListener("DOMContentLoaded", () => {
         csrf_token: csrfToken,
         title_tag: normalizedTag,
         title_tag_color: normalizedColor,
+      });
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  };
+
+  const persistTaskTitleTagOptionChange = async (action = "", tagValue = "") => {
+    const normalizedAction = String(action || "").trim();
+    if (
+      normalizedAction !== "add_task_title_tag_option" &&
+      normalizedAction !== "remove_task_title_tag_option"
+    ) {
+      return false;
+    }
+
+    const normalizedTag = normalizeTaskTitleTagValue(tagValue);
+    if (!normalizedTag) return false;
+
+    const csrfToken = getTaskTitleTagCsrfToken();
+    if (!csrfToken) return false;
+
+    try {
+      await postActionJson(normalizedAction, {
+        csrf_token: csrfToken,
+        title_tag: normalizedTag,
       });
       return true;
     } catch (_error) {
@@ -7058,6 +7211,7 @@ window.addEventListener("DOMContentLoaded", () => {
         ]);
         createTaskCurrentTitleTag = newTag;
         createTaskCurrentTitleTagColor = resolveTaskTitleTagColor(newTag);
+        void persistTaskTitleTagOptionChange("add_task_title_tag_option", newTag);
       }
     }
     stopCreateTaskTitleTagCreation();
@@ -7116,6 +7270,7 @@ window.addEventListener("DOMContentLoaded", () => {
     syncTaskDetailTitleTagTrigger();
     renderCreateTaskTitleTagMenu();
     renderTaskDetailTitleTagMenu();
+    void persistTaskTitleTagOptionChange("remove_task_title_tag_option", removedTag);
     return true;
   };
 
@@ -7313,6 +7468,7 @@ window.addEventListener("DOMContentLoaded", () => {
         ]);
         taskDetailEditCurrentTitleTag = newTag;
         taskDetailEditCurrentTitleTagColor = resolveTaskTitleTagColor(newTag);
+        void persistTaskTitleTagOptionChange("add_task_title_tag_option", newTag);
       }
     }
     stopTaskDetailTitleTagCreation();
@@ -7972,11 +8128,70 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const setCreateTaskImagePickerCompactMode = (compact) => {
+    const isCompact = Boolean(compact);
+    if (createTaskImagesFieldWrap instanceof HTMLElement) {
+      createTaskImagesFieldWrap.classList.toggle("is-compact", isCompact);
+    }
+    if (createTaskMainRow instanceof HTMLElement) {
+      createTaskMainRow.classList.toggle("is-images-compact", isCompact);
+    }
+  };
+
+  const setTaskDetailImagePickerCompactMode = (compact) => {
+    const isCompact = Boolean(compact);
+    if (taskDetailImagesFieldWrap instanceof HTMLElement) {
+      taskDetailImagesFieldWrap.classList.toggle("is-compact", isCompact);
+    }
+    if (taskDetailMainRow instanceof HTMLElement) {
+      taskDetailMainRow.classList.toggle("is-images-compact", isCompact);
+    }
+  };
+
+  const syncCreateTaskImagePickerLayout = () => {
+    const shouldCompact = !createTaskImagePickerExpanded && createTaskImageItems.length === 0;
+    setCreateTaskImagePickerCompactMode(shouldCompact);
+  };
+
+  const syncTaskDetailImagePickerLayout = () => {
+    const shouldCompact = !taskDetailImagePickerExpanded && taskDetailEditImageItems.length === 0;
+    setTaskDetailImagePickerCompactMode(shouldCompact);
+  };
+
+  const collapseEmptyImagePickersIfOutside = (target) => {
+    const clickedElement = target instanceof Element ? target : null;
+
+    if (taskDetailImagePickerExpanded && taskDetailEditImageItems.length === 0) {
+      const clickedInsideTaskDetailImagesField =
+        clickedElement instanceof Element &&
+        taskDetailImagesFieldWrap instanceof HTMLElement &&
+        taskDetailImagesFieldWrap.contains(clickedElement);
+      if (!clickedInsideTaskDetailImagesField) {
+        taskDetailImagePickerExpanded = false;
+        syncTaskDetailImagePickerLayout();
+      }
+    }
+
+    if (createTaskImagePickerExpanded && createTaskImageItems.length === 0) {
+      const clickedInsideCreateTaskImagesField =
+        clickedElement instanceof Element &&
+        createTaskImagesFieldWrap instanceof HTMLElement &&
+        createTaskImagesFieldWrap.contains(clickedElement);
+      if (!clickedInsideCreateTaskImagesField) {
+        createTaskImagePickerExpanded = false;
+        syncCreateTaskImagePickerLayout();
+      }
+    }
+  };
+
   const renderTaskDetailImageList = () => {
     if (!(taskDetailImageList instanceof HTMLElement)) return;
 
     taskDetailImageList.innerHTML = "";
-    if (!taskDetailEditImageItems.length) return;
+    if (!taskDetailEditImageItems.length) {
+      syncTaskDetailImagePickerLayout();
+      return;
+    }
 
     taskDetailEditImageItems.forEach((imageValue, index) => {
       const item = document.createElement("div");
@@ -7998,13 +8213,17 @@ window.addEventListener("DOMContentLoaded", () => {
       item.append(image, removeButton);
       taskDetailImageList.append(item);
     });
+    syncTaskDetailImagePickerLayout();
   };
 
   const renderCreateTaskImageList = () => {
     if (!(createTaskImageList instanceof HTMLElement)) return;
 
     createTaskImageList.innerHTML = "";
-    if (!createTaskImageItems.length) return;
+    if (!createTaskImageItems.length) {
+      syncCreateTaskImagePickerLayout();
+      return;
+    }
 
     createTaskImageItems.forEach((imageValue, index) => {
       const item = document.createElement("div");
@@ -8026,10 +8245,14 @@ window.addEventListener("DOMContentLoaded", () => {
       item.append(image, removeButton);
       createTaskImageList.append(item);
     });
+    syncCreateTaskImagePickerLayout();
   };
 
   const setTaskDetailEditImageItems = (items) => {
     taskDetailEditImageItems = parseReferenceImageItems(items || []);
+    if (taskDetailEditImageItems.length) {
+      taskDetailImagePickerExpanded = true;
+    }
     syncTaskDetailImageHiddenField();
     renderTaskDetailImageList();
   };
@@ -8037,12 +8260,18 @@ window.addEventListener("DOMContentLoaded", () => {
   const mergeTaskDetailEditImageItems = (items) => {
     const merged = parseReferenceImageItems([...(taskDetailEditImageItems || []), ...(items || [])]);
     taskDetailEditImageItems = merged;
+    if (taskDetailEditImageItems.length) {
+      taskDetailImagePickerExpanded = true;
+    }
     syncTaskDetailImageHiddenField();
     renderTaskDetailImageList();
   };
 
   const setCreateTaskImageItems = (items) => {
     createTaskImageItems = parseReferenceImageItems(items || []);
+    if (createTaskImageItems.length) {
+      createTaskImagePickerExpanded = true;
+    }
     syncCreateTaskImageHiddenField();
     renderCreateTaskImageList();
   };
@@ -8050,6 +8279,9 @@ window.addEventListener("DOMContentLoaded", () => {
   const mergeCreateTaskImageItems = (items) => {
     const merged = parseReferenceImageItems([...(createTaskImageItems || []), ...(items || [])]);
     createTaskImageItems = merged;
+    if (createTaskImageItems.length) {
+      createTaskImagePickerExpanded = true;
+    }
     syncCreateTaskImageHiddenField();
     renderCreateTaskImageList();
   };
@@ -8121,12 +8353,16 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (taskDetailImageAddButton instanceof HTMLButtonElement && taskDetailImageInput instanceof HTMLInputElement) {
     taskDetailImageAddButton.addEventListener("click", () => {
+      taskDetailImagePickerExpanded = true;
+      syncTaskDetailImagePickerLayout();
       taskDetailImageInput.click();
     });
   }
 
   if (createTaskImageAddButton instanceof HTMLButtonElement && createTaskImageInput instanceof HTMLInputElement) {
     createTaskImageAddButton.addEventListener("click", () => {
+      createTaskImagePickerExpanded = true;
+      syncCreateTaskImagePickerLayout();
       createTaskImageInput.click();
     });
   }
@@ -8160,6 +8396,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
       if (!files.length) return;
       event.preventDefault();
+      taskDetailImagePickerExpanded = true;
+      syncTaskDetailImagePickerLayout();
       void addTaskDetailImagesFromFiles(files);
     });
   }
@@ -8177,6 +8415,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
       if (!files.length) return;
       event.preventDefault();
+      createTaskImagePickerExpanded = true;
+      syncCreateTaskImagePickerLayout();
       void addCreateTaskImagesFromFiles(files);
     });
   }
@@ -8211,6 +8451,11 @@ window.addEventListener("DOMContentLoaded", () => {
     createTaskImageItems = createTaskImageItems.filter((_item, itemIndex) => itemIndex !== index);
     syncCreateTaskImageHiddenField();
     renderCreateTaskImageList();
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    collapseEmptyImagePickersIfOutside(target);
   });
 
   const addTaskDetailSubtaskFromInput = () => {
@@ -8935,6 +9180,7 @@ window.addEventListener("DOMContentLoaded", () => {
       dependencyEnabled: subtasksDependencyEnabled,
     });
     renderTaskDetailSubtasksEditList();
+    taskDetailImagePickerExpanded = false;
     setTaskDetailEditImageItems(referenceImages);
     copyAssigneesToTaskDetailModal(rowAssigneePicker);
     writeTaskRevisionStateField(revisionStateField, hasActiveRevision);
@@ -8985,6 +9231,7 @@ window.addEventListener("DOMContentLoaded", () => {
     resetTaskDetailTitleTagPicker();
     taskDetailModal.hidden = true;
     taskDetailContext = null;
+    taskDetailImagePickerExpanded = false;
     taskDetailEditSubtaskItems = [];
     setTaskDetailEditSubtasksDependencyEnabled(false);
     setTaskDetailEditMode(false);
@@ -10031,6 +10278,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (createTaskForm) {
       createTaskForm.reset();
       syncCreateTaskDescriptionEditorFromTextarea();
+      createTaskImagePickerExpanded = false;
       setCreateTaskImageItems([]);
       setCreateTaskSubtasks([]);
       renderCreateTaskSubtasksEditList();
@@ -11971,10 +12219,15 @@ window.addEventListener("DOMContentLoaded", () => {
       createRow.contains(activeElement);
     const isDirty = syncWorkspaceStatusesSaveState(form);
     const submitter = event.submitter instanceof HTMLElement ? event.submitter : null;
+    const hasUniqueColors = validateWorkspaceStatusUniqueColors(form, { showMessage: false });
 
     if (submitter === saveButton) {
-      if (saveButton instanceof HTMLButtonElement && saveButton.disabled) {
+      if (
+        (saveButton instanceof HTMLButtonElement && saveButton.disabled) ||
+        !hasUniqueColors
+      ) {
         event.preventDefault();
+        validateWorkspaceStatusUniqueColors(form, { showMessage: true });
         return;
       }
       clearWorkspaceStatusDraftFields(form);
@@ -11982,6 +12235,24 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (submitter === addButton) {
+      const newStatusColorField = form.querySelector(
+        '[data-workspace-status-create-row] [data-workspace-status-color-input]'
+      );
+      const rowColorCounts = collectWorkspaceStatusRowColorCounts(form);
+      const newStatusColor = isWorkspaceStatusColorInput(newStatusColorField)
+        ? String(newStatusColorField.value || "").trim().toUpperCase()
+        : "";
+      if (
+        newStatusColor !== "" &&
+        (rowColorCounts.get(newStatusColor) || 0) > 0
+      ) {
+        event.preventDefault();
+        const duplicatedLabel = workspaceStatusColorLabelByValue(
+          form,
+          newStatusColor
+        );
+        showClientFlash("error", `A cor ${duplicatedLabel} ja esta em uso por outro status.`);
+      }
       return;
     }
 
@@ -11995,6 +12266,11 @@ window.addEventListener("DOMContentLoaded", () => {
         return;
       }
       if (isDirty) {
+        if (!hasUniqueColors) {
+          event.preventDefault();
+          validateWorkspaceStatusUniqueColors(form, { showMessage: true });
+          return;
+        }
         clearWorkspaceStatusDraftFields(form);
         return;
       }

@@ -1,18 +1,23 @@
 <?php
-$taskTitleTagPresetOptions = taskTitleTagPresets();
-$taskTitleTagOptions = $taskTitleTagPresetOptions;
 if (($currentWorkspaceId ?? null) !== null) {
-    $taskTitleTagColors = taskTitleTagColorsByWorkspace((int) $currentWorkspaceId);
+    $workspaceIdForTaskTags = (int) $currentWorkspaceId;
+    $taskTitleTagOptions = taskTitleTagOptionsByWorkspace($workspaceIdForTaskTags);
+    $taskTitleTagColors = taskTitleTagColorsByWorkspace($workspaceIdForTaskTags);
+    $hasPersistedTaskTitleTagOptions = hasTaskTitleTagOptionsByWorkspace($workspaceIdForTaskTags);
 } else {
+    $taskTitleTagOptions = normalizeTaskTitleTagOptionsList(taskTitleTagPresets());
     $taskTitleTagColors = [];
+    $hasPersistedTaskTitleTagOptions = false;
 }
-foreach ($tasks as $taskWithTagOption) {
-    $taskTagOption = normalizeTaskTitleTag((string) ($taskWithTagOption['title_tag'] ?? ''));
-    if ($taskTagOption !== '') {
-        $taskTitleTagOptions[] = $taskTagOption;
+if (!$hasPersistedTaskTitleTagOptions) {
+    foreach ($tasks as $taskWithTagOption) {
+        $taskTagOption = normalizeTaskTitleTag((string) ($taskWithTagOption['title_tag'] ?? ''));
+        if ($taskTagOption !== '') {
+            $taskTitleTagOptions[] = $taskTagOption;
+        }
     }
 }
-$taskTitleTagOptions = array_values(array_unique(array_filter($taskTitleTagOptions, static fn ($value) => trim((string) $value) !== '')));
+$taskTitleTagOptions = normalizeTaskTitleTagOptionsList($taskTitleTagOptions);
 $taskTitleTagOptionsPayload = [];
 $taskTitleTagColorsPayload = [];
 foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
@@ -3003,7 +3008,16 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     <div class="task-detail-edit-image-picker" data-create-task-image-picker tabindex="0" aria-label="Adicionar imagens de referencia">
                         <input type="file" accept="image/*" multiple data-create-task-image-input hidden>
                         <div class="task-detail-edit-image-picker-actions">
-                            <button type="button" class="btn btn-mini btn-ghost" data-create-task-image-add>Adicionar imagem</button>
+                            <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-create-task-image-add>
+                                <span class="task-image-add-button-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 20 20" focusable="false">
+                                        <rect x="2.5" y="4" width="15" height="12" rx="2.2"></rect>
+                                        <circle cx="7.2" cy="8.1" r="1.4"></circle>
+                                        <path d="M3.8 14.8 8.3 10.2l3 2.7 2.1-1.8 2.8 3.7"></path>
+                                    </svg>
+                                </span>
+                                <span class="sr-only">Adicionar imagem</span>
+                            </button>
                         </div>
                         <div class="task-detail-edit-image-list" data-create-task-image-list></div>
                     </div>
@@ -4331,7 +4345,16 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             <div class="task-detail-edit-image-picker" data-task-detail-image-picker tabindex="0" aria-label="Adicionar imagens de referencia">
                                 <input type="file" accept="image/*" multiple data-task-detail-image-input hidden>
                                 <div class="task-detail-edit-image-picker-actions">
-                                    <button type="button" class="btn btn-mini btn-ghost" data-task-detail-image-add>Adicionar imagem</button>
+                                    <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-task-detail-image-add>
+                                        <span class="task-image-add-button-icon" aria-hidden="true">
+                                            <svg viewBox="0 0 20 20" focusable="false">
+                                                <rect x="2.5" y="4" width="15" height="12" rx="2.2"></rect>
+                                                <circle cx="7.2" cy="8.1" r="1.4"></circle>
+                                                <path d="M3.8 14.8 8.3 10.2l3 2.7 2.1-1.8 2.8 3.7"></path>
+                                            </svg>
+                                        </span>
+                                        <span class="sr-only">Adicionar imagem</span>
+                                    </button>
                                 </div>
                                 <div class="task-detail-edit-image-list" data-task-detail-image-list></div>
                             </div>

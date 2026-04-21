@@ -2299,6 +2299,26 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     color: #3b5070;
 }
 
+.workspace-status-color-option.is-unavailable,
+.workspace-status-color-option:disabled,
+.workspace-status-color-option[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.2);
+}
+
+.workspace-status-color-option.is-unavailable:hover,
+.workspace-status-color-option.is-unavailable:focus-visible,
+.workspace-status-color-option:disabled:hover,
+.workspace-status-color-option:disabled:focus-visible,
+.workspace-status-color-option[aria-disabled="true"]:hover,
+.workspace-status-color-option[aria-disabled="true"]:focus-visible {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+}
+
 .workspace-status-color-option-label {
     white-space: nowrap;
 }
@@ -7832,14 +7852,15 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     display: block;
     width: 100%;
     height: 100%;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.04);
+    border-radius: 999px;
+    border: 0;
+    background: transparent;
     color: inherit;
     text-indent: 200%;
     white-space: nowrap;
     overflow: hidden;
-    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+    opacity: 0.82;
+    transition: color 160ms ease, opacity 160ms ease, filter 160ms ease, box-shadow 160ms ease;
 }
 
 .task-subtasks-dependency-icon svg {
@@ -7862,19 +7883,19 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 }
 
 .task-subtasks-dependency-toggle:hover .task-subtasks-dependency-icon {
-    border-color: rgba(120, 204, 255, 0.34);
-    background: rgba(120, 204, 255, 0.08);
+    opacity: 1;
+    color: rgba(188, 221, 255, 0.95);
 }
 
 .task-subtasks-dependency-toggle input:focus-visible + .task-subtasks-dependency-icon {
     box-shadow: 0 0 0 2px rgba(120, 204, 255, 0.18);
-    border-color: rgba(120, 204, 255, 0.44);
+    opacity: 1;
 }
 
 .task-subtasks-dependency-toggle input:checked + .task-subtasks-dependency-icon {
-    border-color: rgba(105, 103, 174, 0.52);
-    background: rgba(105, 103, 174, 0.14);
-    color: #cfcfff;
+    color: #e9c46a;
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(233, 196, 106, 0.24));
 }
 
 .task-subtasks-edit-add {
@@ -7951,6 +7972,11 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     align-items: stretch;
 }
 
+.task-detail-edit-main-row.is-images-compact {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+}
+
 .task-detail-edit-description-field,
 .task-detail-edit-links-field,
 .task-detail-edit-images-field {
@@ -7983,6 +8009,11 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     align-content: start;
 }
 
+.task-detail-edit-images-field.is-compact {
+    width: max-content;
+    min-width: 0;
+}
+
 .task-detail-edit-images-field > span {
     font-size: 0.78rem;
     letter-spacing: 0.08em;
@@ -8013,6 +8044,57 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     justify-content: center;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+.task-image-add-button {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.task-image-add-button-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+}
+
+.task-image-add-button-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.task-detail-edit-images-field.is-compact .task-detail-edit-image-picker {
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    display: inline-block;
+    width: max-content;
+}
+
+.task-detail-edit-images-field.is-compact .task-detail-edit-image-picker:focus-visible {
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.task-detail-edit-images-field.is-compact .task-detail-edit-image-picker-actions {
+    justify-content: flex-start;
+    width: max-content;
+    min-width: 0;
+    gap: 0;
+}
+
+.task-detail-edit-images-field.is-compact .task-detail-edit-image-list {
+    display: none;
 }
 
 .task-detail-edit-image-list {
@@ -8419,8 +8501,7 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     position: sticky;
     bottom: 0;
     z-index: 3;
-    padding-top: 10px;
-    padding-bottom: max(2px, env(safe-area-inset-bottom));
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom)) 0;
     background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--panel-strong) 46%);
 }
 
@@ -8586,6 +8667,14 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 
     .task-detail-edit-main-row {
         grid-template-columns: 1fr;
+    }
+
+    .task-detail-edit-main-row.is-images-compact {
+        grid-template-columns: 1fr;
+    }
+
+    .task-detail-edit-images-field.is-compact {
+        width: 100%;
     }
 
     .task-detail-inline-controls {
@@ -10097,32 +10186,35 @@ textarea:focus,
 
 .create-task-modal .task-subtasks-dependency-toggle,
 .task-detail-modal .task-subtasks-dependency-toggle {
-    color: #4d6a90;
+    color: rgba(230, 238, 251, 0.78);
 }
 
 .create-task-modal .task-subtasks-dependency-icon,
 .task-detail-modal .task-subtasks-dependency-icon {
-    border-color: rgba(var(--wf-accent-purple-rgb), 0.28);
-    background: #f4f7fc;
+    border-color: transparent;
+    background: transparent;
+    color: inherit;
+    opacity: 0.86;
 }
 
 .create-task-modal .task-subtasks-dependency-toggle:hover .task-subtasks-dependency-icon,
 .task-detail-modal .task-subtasks-dependency-toggle:hover .task-subtasks-dependency-icon {
-    border-color: rgba(var(--wf-accent-purple-rgb), 0.42);
-    background: #edf3fb;
+    opacity: 1;
+    color: #f0f6ff;
 }
 
 .create-task-modal .task-subtasks-dependency-toggle input:focus-visible + .task-subtasks-dependency-icon,
 .task-detail-modal .task-subtasks-dependency-toggle input:focus-visible + .task-subtasks-dependency-icon {
-    box-shadow: 0 0 0 2px rgba(var(--wf-accent-purple-rgb), 0.14);
-    border-color: rgba(var(--wf-accent-purple-rgb), 0.5);
+    box-shadow: 0 0 0 2px rgba(var(--wf-accent-purple-rgb), 0.18);
 }
 
 .create-task-modal .task-subtasks-dependency-toggle input:checked + .task-subtasks-dependency-icon,
 .task-detail-modal .task-subtasks-dependency-toggle input:checked + .task-subtasks-dependency-icon {
-    border-color: rgba(var(--wf-accent-purple-rgb), 0.58);
-    background: rgba(var(--wf-accent-purple-rgb), 0.12);
-    color: #6967ae;
+    border-color: transparent;
+    background: transparent;
+    color: #f5d27f;
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(245, 210, 127, 0.24));
 }
 
 .create-task-modal .task-subtasks-edit-remove,

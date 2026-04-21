@@ -7426,6 +7426,31 @@ function encodeWorkspaceTaskStatusDefinitions(array $definitions): string
     return is_string($encoded) && $encoded !== '' ? $encoded : '[]';
 }
 
+function workspaceTaskStatusDuplicateColors(array $definitions): array
+{
+    $counts = [];
+    $duplicates = [];
+
+    foreach ($definitions as $definition) {
+        if (!is_array($definition)) {
+            continue;
+        }
+
+        $kind = trim((string) ($definition['kind'] ?? 'in_progress'));
+        $color = normalizeTaskStatusPaletteColor((string) ($definition['color'] ?? ''), $kind);
+        if ($color === '') {
+            continue;
+        }
+
+        $counts[$color] = (int) ($counts[$color] ?? 0) + 1;
+        if ($counts[$color] > 1) {
+            $duplicates[$color] = true;
+        }
+    }
+
+    return array_keys($duplicates);
+}
+
 function &taskStatusConfigCacheStore(): array
 {
     static $cache = [];
@@ -7647,6 +7672,18 @@ function workspaceUpdateTaskStatusConfiguration(
     }
 
     $normalizedConfig = normalizeWorkspaceTaskStatusDefinitions($workingList, $workingReviewStatusKey);
+    $duplicateColors = workspaceTaskStatusDuplicateColors((array) ($normalizedConfig['list'] ?? []));
+    if ($duplicateColors !== []) {
+        $palette = taskStatusColorPalette();
+        $duplicateLabels = array_map(
+            static fn (string $color): string => (string) ($palette[$color] ?? $color),
+            $duplicateColors
+        );
+        throw new RuntimeException(
+            'Cada status precisa ter uma cor diferente. Cores repetidas: ' . implode(', ', $duplicateLabels) . '.'
+        );
+    }
+
     $updateStmt = $pdo->prepare(
         'UPDATE workspaces
          SET task_statuses_json = :task_statuses_json,
@@ -7719,6 +7756,28 @@ function taskTitleTagPalette(): array
 function taskTitleTagDefaultColor(): string
 {
     return '#6967AE';
+}
+
+function normalizeTaskTitleTagOptionsList(array $values): array
+{
+    $normalizedOptions = [];
+    $seen = [];
+    foreach ($values as $value) {
+        $normalized = normalizeTaskTitleTag((string) $value);
+        if ($normalized === '') {
+            continue;
+        }
+
+        $key = mb_strtolower($normalized, 'UTF-8');
+        if (isset($seen[$key])) {
+            continue;
+        }
+
+        $seen[$key] = true;
+        $normalizedOptions[] = $normalized;
+    }
+
+    return array_values($normalizedOptions);
 }
 
 function normalizeTaskStatus(string $value, ?int $workspaceId = null, ?array $workspace = null): string
@@ -7808,6 +7867,105 @@ function normalizeTaskTitleTagColorMap(array $tagColors): array
 function taskTitleTagColorsMetaKey(int $workspaceId): string
 {
     return 'workspace_' . max(0, $workspaceId) . '_task_title_tag_colors_v1';
+}
+
+function taskTitleTagOptionsMetaKey(int $workspaceId): string
+{
+    return 'workspace_' . max(0, $workspaceId) . '_task_title_tag_options_v1';
+}
+
+function taskTitleTagOptionsByWorkspace(int $workspaceId, ?PDO $pdo = null): array
+{
+    $fallback = normalizeTaskTitleTagOptionsList(taskTitleTagPresets());
+    if ($workspaceId <= 0) {
+        return $fallback;
+    }
+
+    $pdo = $pdo instanceof PDO ? $pdo : db();
+    $raw = appMetaGet($pdo, taskTitleTagOptionsMetaKey($workspaceId));
+    if (!is_string($raw) || trim($raw) === '') {
+        return $fallback;
+    }
+
+    try {
+        $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+    } catch (Throwable $e) {
+        $decoded = [];
+    }
+
+    if (!is_array($decoded)) {
+        return $fallback;
+    }
+
+    return normalizeTaskTitleTagOptionsList($decoded);
+}
+
+function hasTaskTitleTagOptionsByWorkspace(int $workspaceId, ?PDO $pdo = null): bool
+{
+    if ($workspaceId <= 0) {
+        return false;
+    }
+
+    $pdo = $pdo instanceof PDO ? $pdo : db();
+    $raw = appMetaGet($pdo, taskTitleTagOptionsMetaKey($workspaceId));
+    return is_string($raw) && trim($raw) !== '';
+}
+
+function saveTaskTitleTagOptionsByWorkspace(PDO $pdo, int $workspaceId, array $options): void
+{
+    if ($workspaceId <= 0) {
+        return;
+    }
+
+    $normalizedOptions = normalizeTaskTitleTagOptionsList($options);
+    $encodedOptions = json_encode(
+        $normalizedOptions,
+        JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    );
+    if (!is_string($encodedOptions) || $encodedOptions === '') {
+        $encodedOptions = '[]';
+    }
+
+    appMetaSet(
+        $pdo,
+        taskTitleTagOptionsMetaKey($workspaceId),
+        $encodedOptions
+    );
+}
+
+function addTaskTitleTagOptionForWorkspace(PDO $pdo, int $workspaceId, string $tag): array
+{
+    $normalizedTag = normalizeTaskTitleTag($tag);
+    if ($workspaceId <= 0 || $normalizedTag === '') {
+        return taskTitleTagOptionsByWorkspace($workspaceId, $pdo);
+    }
+
+    $options = taskTitleTagOptionsByWorkspace($workspaceId, $pdo);
+    $options[] = $normalizedTag;
+    $options = normalizeTaskTitleTagOptionsList($options);
+    saveTaskTitleTagOptionsByWorkspace($pdo, $workspaceId, $options);
+
+    return $options;
+}
+
+function removeTaskTitleTagOptionForWorkspace(PDO $pdo, int $workspaceId, string $tag): array
+{
+    $normalizedTag = normalizeTaskTitleTag($tag);
+    if ($workspaceId <= 0 || $normalizedTag === '') {
+        return taskTitleTagOptionsByWorkspace($workspaceId, $pdo);
+    }
+
+    $targetKey = mb_strtolower($normalizedTag, 'UTF-8');
+    $options = array_values(array_filter(
+        taskTitleTagOptionsByWorkspace($workspaceId, $pdo),
+        static function ($value) use ($targetKey): bool {
+            return mb_strtolower(normalizeTaskTitleTag((string) $value), 'UTF-8') !== $targetKey;
+        }
+    ));
+    $options = normalizeTaskTitleTagOptionsList($options);
+    saveTaskTitleTagOptionsByWorkspace($pdo, $workspaceId, $options);
+
+    return $options;
 }
 
 function taskTitleTagColorsByWorkspace(int $workspaceId, ?PDO $pdo = null): array

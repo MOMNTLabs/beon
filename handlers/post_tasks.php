@@ -544,6 +544,72 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 }
                 redirectTo('index.php#task-' . $taskId);
 
+            case 'add_task_title_tag_option':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $titleTag = normalizeTaskTitleTag((string) ($_POST['title_tag'] ?? ''));
+                if ($titleTag === '') {
+                    throw new RuntimeException('Tag invalida.');
+                }
+
+                $taskTitleTagOptions = addTaskTitleTagOptionForWorkspace(
+                    $pdo,
+                    $workspaceId,
+                    $titleTag
+                );
+                $taskTitleTagColors = taskTitleTagColorsByWorkspace($workspaceId, $pdo);
+                $resolvedColor = taskTitleTagColorForTag($titleTag, $taskTitleTagColors);
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'title_tag' => $titleTag,
+                        'title_tag_color' => $resolvedColor,
+                        'options' => $taskTitleTagOptions,
+                    ]);
+                }
+
+                flash('success', 'Tag adicionada.');
+                redirectTo('index.php#tasks');
+
+            case 'remove_task_title_tag_option':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $titleTag = normalizeTaskTitleTag((string) ($_POST['title_tag'] ?? ''));
+                if ($titleTag === '') {
+                    throw new RuntimeException('Tag invalida.');
+                }
+
+                $taskTitleTagOptions = removeTaskTitleTagOptionForWorkspace(
+                    $pdo,
+                    $workspaceId,
+                    $titleTag
+                );
+                $taskTitleTagColors = taskTitleTagColorsByWorkspace($workspaceId, $pdo);
+                $removedTagKey = mb_strtolower($titleTag, 'UTF-8');
+                if (isset($taskTitleTagColors[$removedTagKey])) {
+                    unset($taskTitleTagColors[$removedTagKey]);
+                    saveTaskTitleTagColorsByWorkspace($pdo, $workspaceId, $taskTitleTagColors);
+                }
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'title_tag' => $titleTag,
+                        'options' => $taskTitleTagOptions,
+                    ]);
+                }
+
+                flash('success', 'Tag removida.');
+                redirectTo('index.php#tasks');
             case 'set_task_title_tag_color':
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
@@ -1016,6 +1082,8 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
     return in_array($action, [
         'create_task',
         'update_task',
+        'add_task_title_tag_option',
+        'remove_task_title_tag_option',
         'set_task_title_tag_color',
         'request_task_revision',
         'remove_task_revision',
