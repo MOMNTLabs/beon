@@ -5,11 +5,19 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
 {
     $allowedSwitchWorkspaceRedirects = [
         appPath(),
+        dashboardPath('overview'),
+        dashboardPath('tasks'),
+        dashboardPath('vault'),
+        dashboardPath('dues'),
+        dashboardPath('inventory'),
+        dashboardPath('accounting'),
+        dashboardPath('users'),
         appPath('#overview'),
         appPath('#tasks'),
         appPath('#vault'),
         appPath('#dues'),
         appPath('#inventory'),
+        appPath('#accounting'),
         appPath('#users'),
     ];
 
@@ -121,6 +129,65 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $workspaceStatusesMessage = 'Status do workspace atualizados.';
                 flash('success', $workspaceStatusesMessage);
                 redirectTo('index.php#users');
+
+            case 'workspace_update_sidebar_tools':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem alterar as ferramentas do sidebar.');
+                }
+
+                $sidebarTools = $_POST['sidebar_tools'] ?? [];
+                if (!is_array($sidebarTools)) {
+                    $sidebarTools = [];
+                }
+
+                $sidebarConfig = workspaceUpdateSidebarToolsConfiguration($pdo, $workspaceId, $sidebarTools);
+                $workspaceSidebarMessage = 'Ferramentas do sidebar atualizadas.';
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => $workspaceSidebarMessage,
+                        'enabled_tools' => (array) ($sidebarConfig['enabled'] ?? []),
+                    ]);
+                }
+
+                flash('success', $workspaceSidebarMessage);
+                redirectTo(dashboardPath('users'));
+
+            case 'workspace_add_sidebar_tool':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem alterar as ferramentas do sidebar.');
+                }
+
+                $toolToAdd = normalizeWorkspaceSidebarToolKey((string) ($_POST['sidebar_tool'] ?? ''));
+                if ($toolToAdd === '') {
+                    throw new RuntimeException('Ferramenta invalida.');
+                }
+
+                $currentSidebarConfig = workspaceSidebarToolsConfig($workspaceId);
+                $enabledOptionalTools = (array) ($currentSidebarConfig['enabled_optional'] ?? []);
+                if (!in_array($toolToAdd, $enabledOptionalTools, true)) {
+                    $enabledOptionalTools[] = $toolToAdd;
+                }
+
+                workspaceUpdateSidebarToolsConfiguration($pdo, $workspaceId, $enabledOptionalTools);
+
+                $redirectPath = appPath(trim((string) ($_POST['redirect_to'] ?? '')));
+                if (!in_array($redirectPath, $allowedSwitchWorkspaceRedirects, true)) {
+                    $redirectPath = dashboardPath('users');
+                }
+
+                flash('success', 'Ferramenta adicionada ao sidebar.');
+                redirectTo($redirectPath);
 
             case 'workspace_add_member':
             case 'add_workspace_member':
@@ -292,6 +359,8 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
         'workspace_update_profile',
         'workspace_update_name',
         'workspace_update_task_statuses',
+        'workspace_update_sidebar_tools',
+        'workspace_add_sidebar_tool',
         'workspace_add_member',
         'add_workspace_member',
         'workspace_promote_member',

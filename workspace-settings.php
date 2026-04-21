@@ -108,6 +108,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'Status do workspace atualizados.');
                 redirectTo('workspace-settings.php');
 
+            case 'workspace_update_sidebar_tools':
+                $workspaceId = activeWorkspaceId($currentUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem alterar as ferramentas do sidebar.');
+                }
+
+                $sidebarTools = $_POST['sidebar_tools'] ?? [];
+                if (!is_array($sidebarTools)) {
+                    $sidebarTools = [];
+                }
+
+                workspaceUpdateSidebarToolsConfiguration($pdo, $workspaceId, $sidebarTools);
+                flash('success', 'Ferramentas do sidebar atualizadas.');
+                redirectTo('workspace-settings.php');
+
+            case 'workspace_add_sidebar_tool':
+                $workspaceId = activeWorkspaceId($currentUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem alterar as ferramentas do sidebar.');
+                }
+
+                $toolToAdd = normalizeWorkspaceSidebarToolKey((string) ($_POST['sidebar_tool'] ?? ''));
+                if ($toolToAdd === '') {
+                    throw new RuntimeException('Ferramenta invalida.');
+                }
+
+                $currentSidebarConfig = workspaceSidebarToolsConfig($workspaceId);
+                $enabledOptionalTools = (array) ($currentSidebarConfig['enabled_optional'] ?? []);
+                if (!in_array($toolToAdd, $enabledOptionalTools, true)) {
+                    $enabledOptionalTools[] = $toolToAdd;
+                }
+
+                workspaceUpdateSidebarToolsConfiguration($pdo, $workspaceId, $enabledOptionalTools);
+                flash('success', 'Ferramenta adicionada ao sidebar.');
+                redirectTo('workspace-settings.php');
+
             case 'workspace_add_member':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {

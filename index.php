@@ -257,6 +257,12 @@ $canManageWorkspace = ($currentUser && $currentWorkspaceId !== null)
     : false;
 $isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
 $showUsersDashboardTab = true;
+$workspaceSidebarConfig = ($currentUser && $currentWorkspaceId !== null)
+    ? workspaceSidebarToolsConfig($currentWorkspaceId, $currentWorkspace)
+    : workspaceSidebarToolsConfig();
+$workspaceEnabledViews = ($currentUser && $currentWorkspaceId !== null)
+    ? workspaceEnabledDashboardViews($currentWorkspaceId, $currentWorkspace, !empty($showUsersDashboardTab))
+    : [];
 $taskGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? taskGroupsList($currentWorkspaceId) : ['Geral'];
 $vaultGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? vaultGroupsList($currentWorkspaceId) : ['Geral'];
 $dueGroupsAll = ($currentUser && $currentWorkspaceId !== null) ? dueGroupsList($currentWorkspaceId) : ['Geral'];
@@ -486,6 +492,7 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     data-default-group-name="<?= e((string) $defaultTaskGroupName) ?>"
     data-workspace-id="<?= e((string) ($renderAuthScreen ? '' : ($currentWorkspaceId ?? ''))) ?>"
     data-user-id="<?= e((string) ($renderAuthScreen ? '' : ($currentUser['id'] ?? ''))) ?>"
+    data-workspace-enabled-views="<?= e((string) ($renderAuthScreen ? '' : implode(',', $workspaceEnabledViews))) ?>"
 >
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
     <div class="bg-layer bg-layer-two" aria-hidden="true"></div>

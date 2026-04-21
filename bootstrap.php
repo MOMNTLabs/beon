@@ -466,18 +466,19 @@ function ensureWorkspaceSchema(PDO $pdo): void
 
     if ($driver === 'pgsql') {
         $pdo->exec(
-            'CREATE TABLE IF NOT EXISTS workspaces (
-                id BIGSERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                slug TEXT NOT NULL UNIQUE,
-                is_personal SMALLINT NOT NULL DEFAULT 0,
-                avatar_data_url TEXT NOT NULL DEFAULT \'\',
-                task_statuses_json TEXT NOT NULL DEFAULT \'[]\',
-                task_review_status_key TEXT DEFAULT NULL,
-                created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
-                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
-            )'
+             'CREATE TABLE IF NOT EXISTS workspaces (
+                 id BIGSERIAL PRIMARY KEY,
+                 name TEXT NOT NULL,
+                 slug TEXT NOT NULL UNIQUE,
+                 is_personal SMALLINT NOT NULL DEFAULT 0,
+                 avatar_data_url TEXT NOT NULL DEFAULT \'\',
+                 task_statuses_json TEXT NOT NULL DEFAULT \'[]\',
+                 task_review_status_key TEXT DEFAULT NULL,
+                 sidebar_tools_json TEXT NOT NULL DEFAULT \'[]\',
+                 created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                 created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                 updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+             )'
         );
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS workspace_members (
@@ -495,19 +496,20 @@ function ensureWorkspaceSchema(PDO $pdo): void
         );
     } else {
         $pdo->exec(
-            'CREATE TABLE IF NOT EXISTS workspaces (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                slug TEXT NOT NULL UNIQUE,
-                is_personal INTEGER NOT NULL DEFAULT 0,
-                avatar_data_url TEXT NOT NULL DEFAULT \'\',
-                task_statuses_json TEXT NOT NULL DEFAULT \'[]\',
-                task_review_status_key TEXT DEFAULT NULL,
-                created_by INTEGER DEFAULT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-            )'
+             'CREATE TABLE IF NOT EXISTS workspaces (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 name TEXT NOT NULL,
+                 slug TEXT NOT NULL UNIQUE,
+                 is_personal INTEGER NOT NULL DEFAULT 0,
+                 avatar_data_url TEXT NOT NULL DEFAULT \'\',
+                 task_statuses_json TEXT NOT NULL DEFAULT \'[]\',
+                 task_review_status_key TEXT DEFAULT NULL,
+                 sidebar_tools_json TEXT NOT NULL DEFAULT \'[]\',
+                 created_by INTEGER DEFAULT NULL,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL,
+                 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+             )'
         );
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS workspace_members (
@@ -541,6 +543,9 @@ function ensureWorkspaceSchema(PDO $pdo): void
 
     if (!tableHasColumn($pdo, 'workspaces', 'task_review_status_key')) {
         $pdo->exec('ALTER TABLE workspaces ADD COLUMN task_review_status_key TEXT DEFAULT NULL');
+    }
+    if (!tableHasColumn($pdo, 'workspaces', 'sidebar_tools_json')) {
+        $pdo->exec("ALTER TABLE workspaces ADD COLUMN sidebar_tools_json TEXT NOT NULL DEFAULT '[]'");
     }
 
     if (!tableHasColumn($pdo, 'tasks', 'workspace_id')) {
@@ -2977,6 +2982,7 @@ function ensureWorkspaceTaskStatusSchema(PDO $pdo): void
     $columns = [
         'task_statuses_json' => "ALTER TABLE workspaces ADD COLUMN task_statuses_json TEXT NOT NULL DEFAULT '[]'",
         'task_review_status_key' => 'ALTER TABLE workspaces ADD COLUMN task_review_status_key TEXT DEFAULT NULL',
+        'sidebar_tools_json' => "ALTER TABLE workspaces ADD COLUMN sidebar_tools_json TEXT NOT NULL DEFAULT '[]'",
     ];
 
     foreach ($columns as $column => $statement) {
@@ -3017,6 +3023,7 @@ function workspaceById(int $workspaceId): ?array
              creator.avatar_data_url AS owner_avatar_data_url,
              w.task_statuses_json,
              w.task_review_status_key,
+             w.sidebar_tools_json,
              w.created_at,
              w.updated_at
          FROM workspaces w
@@ -3262,11 +3269,12 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $
 
     $taskStatusesJson = encodeWorkspaceTaskStatusDefinitions(defaultTaskStatusDefinitions());
     $taskReviewStatusKey = defaultTaskReviewStatusKey();
+    $sidebarToolsJson = encodeWorkspaceSidebarTools([]);
 
     if (dbDriverName($pdo) === 'pgsql') {
         $stmt = $pdo->prepare(
-            'INSERT INTO workspaces (name, slug, is_personal, created_by, task_statuses_json, task_review_status_key, created_at, updated_at)
-             VALUES (:name, :slug, :is_personal, :created_by, :task_statuses_json, :task_review_status_key, :created_at, :updated_at)
+            'INSERT INTO workspaces (name, slug, is_personal, created_by, task_statuses_json, task_review_status_key, sidebar_tools_json, created_at, updated_at)
+             VALUES (:name, :slug, :is_personal, :created_by, :task_statuses_json, :task_review_status_key, :sidebar_tools_json, :created_at, :updated_at)
              RETURNING id'
         );
         $stmt->execute([
@@ -3276,14 +3284,15 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $
             ':created_by' => $createdBy,
             ':task_statuses_json' => $taskStatusesJson,
             ':task_review_status_key' => $taskReviewStatusKey,
+            ':sidebar_tools_json' => $sidebarToolsJson,
             ':created_at' => $now,
             ':updated_at' => $now,
         ]);
         $workspaceId = (int) $stmt->fetchColumn();
     } else {
         $stmt = $pdo->prepare(
-            'INSERT INTO workspaces (name, slug, is_personal, created_by, task_statuses_json, task_review_status_key, created_at, updated_at)
-             VALUES (:name, :slug, :is_personal, :created_by, :task_statuses_json, :task_review_status_key, :created_at, :updated_at)'
+            'INSERT INTO workspaces (name, slug, is_personal, created_by, task_statuses_json, task_review_status_key, sidebar_tools_json, created_at, updated_at)
+             VALUES (:name, :slug, :is_personal, :created_by, :task_statuses_json, :task_review_status_key, :sidebar_tools_json, :created_at, :updated_at)'
         );
         $stmt->execute([
             ':name' => $name,
@@ -3292,6 +3301,7 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $
             ':created_by' => $createdBy,
             ':task_statuses_json' => $taskStatusesJson,
             ':task_review_status_key' => $taskReviewStatusKey,
+            ':sidebar_tools_json' => $sidebarToolsJson,
             ':created_at' => $now,
             ':updated_at' => $now,
         ]);
@@ -7700,6 +7710,139 @@ function workspaceUpdateTaskStatusConfiguration(
 
     clearTaskStatusConfigCache($workspaceId);
     return $normalizedConfig;
+}
+
+function workspaceSidebarOptionalToolLabels(): array
+{
+    return [
+        'vault' => 'Gerenciador de acessos',
+        'dues' => 'Vencimentos',
+        'inventory' => 'Estoque',
+        'accounting' => 'Contabilidade',
+    ];
+}
+
+function normalizeWorkspaceSidebarToolKey(string $value): string
+{
+    $normalized = trim(strtolower($value));
+    return array_key_exists($normalized, workspaceSidebarOptionalToolLabels()) ? $normalized : '';
+}
+
+function normalizeWorkspaceSidebarTools(array $tools): array
+{
+    $normalizedTools = [];
+    $seenTools = [];
+    foreach ($tools as $toolKey) {
+        $normalizedKey = normalizeWorkspaceSidebarToolKey((string) $toolKey);
+        if ($normalizedKey === '' || isset($seenTools[$normalizedKey])) {
+            continue;
+        }
+
+        $seenTools[$normalizedKey] = true;
+        $normalizedTools[] = $normalizedKey;
+    }
+
+    return $normalizedTools;
+}
+
+function encodeWorkspaceSidebarTools(array $tools): string
+{
+    return json_encode(
+        normalizeWorkspaceSidebarTools($tools),
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    ) ?: '[]';
+}
+
+function workspaceSidebarToolsConfig(?int $workspaceId = null, ?array $workspace = null): array
+{
+    $workspaceId = $workspaceId && $workspaceId > 0
+        ? $workspaceId
+        : (int) ($workspace['id'] ?? activeWorkspaceId() ?? 0);
+
+    $enabledOptionalTools = [];
+    if ($workspaceId > 0) {
+        if (!$workspace || (int) ($workspace['id'] ?? 0) !== $workspaceId) {
+            $workspace = workspaceById($workspaceId);
+        }
+
+        if ($workspace) {
+            $rawJson = trim((string) ($workspace['sidebar_tools_json'] ?? ''));
+            if ($rawJson !== '') {
+                try {
+                    $decoded = json_decode($rawJson, true, 512, JSON_THROW_ON_ERROR);
+                    if (is_array($decoded)) {
+                        $enabledOptionalTools = normalizeWorkspaceSidebarTools($decoded);
+                    }
+                } catch (Throwable $e) {
+                    $enabledOptionalTools = [];
+                }
+            }
+        }
+    }
+
+    $optionalLabels = workspaceSidebarOptionalToolLabels();
+    $optionalKeys = array_keys($optionalLabels);
+    $availableToAdd = array_values(array_filter(
+        $optionalKeys,
+        static fn (string $toolKey): bool => !in_array($toolKey, $enabledOptionalTools, true)
+    ));
+
+    return [
+        'enabled' => array_merge(['tasks'], $enabledOptionalTools),
+        'enabled_optional' => $enabledOptionalTools,
+        'available_to_add' => $availableToAdd,
+        'optional_labels' => $optionalLabels,
+    ];
+}
+
+function workspaceEnabledDashboardViews(?int $workspaceId = null, ?array $workspace = null, bool $includeUsers = true): array
+{
+    $sidebarConfig = workspaceSidebarToolsConfig($workspaceId, $workspace);
+    $views = ['overview', 'tasks'];
+    foreach ((array) ($sidebarConfig['enabled_optional'] ?? []) as $toolView) {
+        $normalizedView = normalizeWorkspaceSidebarToolKey((string) $toolView);
+        if ($normalizedView === '') {
+            continue;
+        }
+
+        $views[] = $normalizedView;
+    }
+
+    if ($includeUsers) {
+        $views[] = 'users';
+    }
+
+    return array_values(array_unique($views));
+}
+
+function workspaceUpdateSidebarToolsConfiguration(PDO $pdo, int $workspaceId, array $sidebarTools): array
+{
+    if ($workspaceId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    ensureWorkspaceTaskStatusSchema($pdo);
+    $normalizedTools = normalizeWorkspaceSidebarTools($sidebarTools);
+    $encodedTools = encodeWorkspaceSidebarTools($normalizedTools);
+
+    $updateStmt = $pdo->prepare(
+        'UPDATE workspaces
+         SET sidebar_tools_json = :sidebar_tools_json,
+             updated_at = :updated_at
+         WHERE id = :workspace_id'
+    );
+    $updateStmt->execute([
+        ':sidebar_tools_json' => $encodedTools,
+        ':updated_at' => nowIso(),
+        ':workspace_id' => $workspaceId,
+    ]);
+
+    $workspace = workspaceById($workspaceId);
+    if ($workspace !== null) {
+        $workspace['sidebar_tools_json'] = $encodedTools;
+    }
+
+    return workspaceSidebarToolsConfig($workspaceId, $workspace);
 }
 
 function taskStatuses(?int $workspaceId = null, ?array $workspace = null): array

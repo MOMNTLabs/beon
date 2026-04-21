@@ -543,7 +543,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const closeOpenWorkspaceSidebarPickers = (targetNode = null) => {
     document
-      .querySelectorAll("details.workspace-sidebar-picker[open]")
+      .querySelectorAll("details.workspace-sidebar-picker[open], details.workspace-sidebar-tool-adder[open]")
       .forEach((details) => {
         if (!(details instanceof HTMLDetailsElement)) return;
         if (targetNode instanceof Node && details.contains(targetNode)) return;
@@ -4690,6 +4690,7 @@ window.addEventListener("DOMContentLoaded", () => {
       throw new Error("Nao foi possivel atualizar os usuarios do workspace.");
     }
     currentUsersGrid.replaceWith(nextUsersGrid);
+    initializeWorkspaceSidebarToolsForms();
 
     const currentWorkspacePickerList = document.querySelector(
       ".workspace-sidebar-picker-list"
@@ -4818,6 +4819,141 @@ window.addEventListener("DOMContentLoaded", () => {
     const actionField = form.querySelector('input[name="action"]');
     if (!(actionField instanceof HTMLInputElement)) return "";
     return String(actionField.value || "").trim();
+  };
+
+  const workspaceSidebarToolLabels = {
+    vault: "Gerenciador de acessos",
+    dues: "Vencimentos",
+    inventory: "Estoque",
+    accounting: "Contabilidade",
+  };
+
+  const normalizeWorkspaceSidebarToolCandidate = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(workspaceSidebarToolLabels, normalized)
+      ? normalized
+      : "";
+  };
+
+  const workspaceSidebarToolRows = (form) => {
+    if (!(form instanceof HTMLFormElement)) return [];
+    const list = form.querySelector("[data-sidebar-tools-list]");
+    if (!(list instanceof HTMLElement)) return [];
+    return Array.from(list.querySelectorAll("[data-sidebar-tool-key]")).filter(
+      (row) => row instanceof HTMLElement
+    );
+  };
+
+  const syncWorkspaceSidebarToolsFormState = (form) => {
+    if (!(form instanceof HTMLFormElement)) return;
+
+    const list = form.querySelector("[data-sidebar-tools-list]");
+    if (!(list instanceof HTMLElement)) return;
+
+    const rows = workspaceSidebarToolRows(form);
+    const seenTools = new Set();
+    rows.forEach((row) => {
+      const toolKey = normalizeWorkspaceSidebarToolCandidate(row.dataset.sidebarToolKey || "");
+      if (!toolKey || seenTools.has(toolKey)) {
+        row.remove();
+        return;
+      }
+
+      seenTools.add(toolKey);
+      row.dataset.sidebarToolKey = toolKey;
+
+      const hiddenField = row.querySelector("[data-sidebar-tool-input]");
+      if (hiddenField instanceof HTMLInputElement) {
+        hiddenField.value = toolKey;
+      }
+
+      const label = row.querySelector(".workspace-sidebar-tool-item-label");
+      if (label instanceof HTMLElement) {
+        label.textContent = workspaceSidebarToolLabels[toolKey] || toolKey;
+      }
+    });
+
+    const activeRows = workspaceSidebarToolRows(form);
+    activeRows.forEach((row, index) => {
+      const moveUp = row.querySelector('[data-sidebar-tools-move="up"]');
+      const moveDown = row.querySelector('[data-sidebar-tools-move="down"]');
+      if (moveUp instanceof HTMLButtonElement) {
+        moveUp.disabled = index <= 0;
+      }
+      if (moveDown instanceof HTMLButtonElement) {
+        moveDown.disabled = index >= activeRows.length - 1;
+      }
+    });
+
+    const emptyState = form.querySelector("[data-sidebar-tools-empty]");
+    if (emptyState instanceof HTMLElement) {
+      emptyState.hidden = activeRows.length > 0;
+    }
+
+    const addSelect = form.querySelector("[data-sidebar-tools-add-select]");
+    const addButton = form.querySelector("[data-sidebar-tools-add-button]");
+    if (addSelect instanceof HTMLSelectElement) {
+      let hasAvailableOption = false;
+      Array.from(addSelect.options).forEach((option) => {
+        const key = normalizeWorkspaceSidebarToolCandidate(option.value);
+        if (!key) return;
+        const isUsed = seenTools.has(key);
+        option.disabled = isUsed;
+        option.hidden = isUsed;
+        if (!isUsed) {
+          hasAvailableOption = true;
+        }
+      });
+
+      const selectedTool = normalizeWorkspaceSidebarToolCandidate(addSelect.value);
+      if (!selectedTool || seenTools.has(selectedTool)) {
+        const nextOption = Array.from(addSelect.options).find((option) => {
+          const key = normalizeWorkspaceSidebarToolCandidate(option.value);
+          return key !== "" && !option.disabled;
+        });
+        addSelect.value = nextOption ? nextOption.value : "";
+      }
+
+      if (addButton instanceof HTMLButtonElement) {
+        addButton.disabled = !hasAvailableOption;
+      }
+    }
+  };
+
+  const createWorkspaceSidebarToolRow = (form, toolKey) => {
+    if (!(form instanceof HTMLFormElement)) return null;
+    const normalizedTool = normalizeWorkspaceSidebarToolCandidate(toolKey);
+    if (!normalizedTool) return null;
+
+    const template = form.querySelector("template[data-sidebar-tools-row-template]");
+    if (!(template instanceof HTMLTemplateElement)) return null;
+
+    const fragment = template.content.cloneNode(true);
+    const row = fragment.querySelector("[data-sidebar-tool-key]");
+    if (!(row instanceof HTMLElement)) return null;
+    row.dataset.sidebarToolKey = normalizedTool;
+
+    const hiddenField = row.querySelector("[data-sidebar-tool-input]");
+    if (hiddenField instanceof HTMLInputElement) {
+      hiddenField.value = normalizedTool;
+    }
+
+    const label = row.querySelector(".workspace-sidebar-tool-item-label");
+    if (label instanceof HTMLElement) {
+      label.textContent = workspaceSidebarToolLabels[normalizedTool] || normalizedTool;
+    }
+
+    return row;
+  };
+
+  const initializeWorkspaceSidebarToolsForms = (scope = document) => {
+    const root = scope instanceof Element || scope instanceof Document ? scope : document;
+    root
+      .querySelectorAll("[data-sidebar-tools-form]")
+      .forEach((form) => {
+        if (!(form instanceof HTMLFormElement)) return;
+        syncWorkspaceSidebarToolsFormState(form);
+      });
   };
 
   const workspaceUsersActionNames = new Set([
@@ -6221,17 +6357,35 @@ window.addEventListener("DOMContentLoaded", () => {
       : "";
   };
 
+  const dashboardViewsFromBody = (() => {
+    if (!(document.body instanceof HTMLBodyElement)) return [];
+    const rawViews = String(document.body.dataset.workspaceEnabledViews || "").trim();
+    if (!rawViews) return [];
+    const uniqueViews = new Set();
+    rawViews.split(",").forEach((rawView) => {
+      const normalized = normalizeDashboardViewCandidate(rawView);
+      if (normalized) {
+        uniqueViews.add(normalized);
+      }
+    });
+    return Array.from(uniqueViews);
+  })();
+
   const dashboardViews = new Set();
-  dashboardViewPanels.forEach((panel) => {
-    if (!(panel instanceof HTMLElement)) return;
-    const panelView = normalizeDashboardViewCandidate(panel.dataset.dashboardViewPanel || "");
-    if (panelView) dashboardViews.add(panelView);
-  });
-  dashboardViewToggleButtons.forEach((button) => {
-    if (!(button instanceof HTMLElement)) return;
-    const buttonView = normalizeDashboardViewCandidate(button.dataset.view || "");
-    if (buttonView) dashboardViews.add(buttonView);
-  });
+  if (dashboardViewsFromBody.length > 0) {
+    dashboardViewsFromBody.forEach((view) => dashboardViews.add(view));
+  } else {
+    dashboardViewPanels.forEach((panel) => {
+      if (!(panel instanceof HTMLElement)) return;
+      const panelView = normalizeDashboardViewCandidate(panel.dataset.dashboardViewPanel || "");
+      if (panelView) dashboardViews.add(panelView);
+    });
+    dashboardViewToggleButtons.forEach((button) => {
+      if (!(button instanceof HTMLElement)) return;
+      const buttonView = normalizeDashboardViewCandidate(button.dataset.view || "");
+      if (buttonView) dashboardViews.add(buttonView);
+    });
+  }
   if (!dashboardViews.has("tasks")) {
     dashboardViews.add("tasks");
   }
@@ -6303,13 +6457,25 @@ window.addEventListener("DOMContentLoaded", () => {
     const view = normalizeDashboardView(nextView);
     dashboardViewPanels.forEach((panel) => {
       if (!(panel instanceof HTMLElement)) return;
-      const panelView = normalizeDashboardView(panel.dataset.dashboardViewPanel || "");
-      panel.hidden = panelView !== view;
+      const panelView = normalizeDashboardViewCandidate(panel.dataset.dashboardViewPanel || "");
+      const isAllowedPanel = panelView !== "" && dashboardViews.has(panelView);
+      panel.hidden = !isAllowedPanel || panelView !== view;
     });
 
     dashboardViewToggleButtons.forEach((button) => {
       if (!(button instanceof HTMLElement)) return;
-      const buttonView = normalizeDashboardView(button.dataset.view || "");
+      const buttonView = normalizeDashboardViewCandidate(button.dataset.view || "");
+      const isAllowedButton = buttonView !== "" && dashboardViews.has(buttonView);
+      button.hidden = !isAllowedButton;
+      if (button instanceof HTMLButtonElement) {
+        button.disabled = !isAllowedButton;
+      }
+      if (!isAllowedButton) {
+        button.classList.remove("is-active");
+        button.setAttribute("aria-pressed", "false");
+        button.removeAttribute("aria-current");
+        return;
+      }
       const isActive = buttonView === view;
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
@@ -6335,6 +6501,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskId: dashboardTaskIdFromUrl(),
     });
   }
+  initializeWorkspaceSidebarToolsForms();
 
   const isMobileSidebarViewport = () =>
     mobileSidebarMediaQuery ? mobileSidebarMediaQuery.matches : window.innerWidth <= 768;
@@ -6492,6 +6659,7 @@ window.addEventListener("DOMContentLoaded", () => {
       ? createTaskImagePicker.closest(".task-detail-edit-main-row")
       : null;
   const workspaceCreateModal = document.querySelector("[data-workspace-create-modal]");
+  const getWorkspaceUsersModal = () => document.querySelector("[data-workspace-users-modal]");
   const workspaceCreateForm = document.querySelector("[data-workspace-create-form]");
   const workspaceCreateNameInput = document.querySelector("[data-workspace-create-name-input]");
   const createGroupModal = document.querySelector("[data-create-group-modal]");
@@ -9829,6 +9997,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const syncBodyModalLock = () => {
     const hasOpenModal = [
       createTaskModal,
+      getWorkspaceUsersModal(),
       workspaceCreateModal,
       createGroupModal,
       vaultGroupModal,
@@ -10349,6 +10518,20 @@ window.addEventListener("DOMContentLoaded", () => {
   const closeWorkspaceCreateModal = () => {
     if (!(workspaceCreateModal instanceof HTMLElement)) return;
     workspaceCreateModal.hidden = true;
+    syncBodyModalLock();
+  };
+
+  const openWorkspaceUsersModal = () => {
+    const workspaceUsersModal = getWorkspaceUsersModal();
+    if (!(workspaceUsersModal instanceof HTMLElement)) return;
+    workspaceUsersModal.hidden = false;
+    syncBodyModalLock();
+  };
+
+  const closeWorkspaceUsersModal = () => {
+    const workspaceUsersModal = getWorkspaceUsersModal();
+    if (!(workspaceUsersModal instanceof HTMLElement)) return;
+    workspaceUsersModal.hidden = true;
     syncBodyModalLock();
   };
 
@@ -11034,9 +11217,69 @@ window.addEventListener("DOMContentLoaded", () => {
       setMobileSidebarOpen(false);
     }
 
+    const sidebarToolsAddButton = target.closest("[data-sidebar-tools-add-button]");
+    if (sidebarToolsAddButton instanceof HTMLButtonElement) {
+      const form = sidebarToolsAddButton.closest("[data-sidebar-tools-form]");
+      if (!(form instanceof HTMLFormElement)) return;
+      const addSelect = form.querySelector("[data-sidebar-tools-add-select]");
+      if (!(addSelect instanceof HTMLSelectElement)) return;
+
+      const toolToAdd = normalizeWorkspaceSidebarToolCandidate(addSelect.value);
+      if (!toolToAdd) return;
+
+      const alreadyExists = workspaceSidebarToolRows(form).some(
+        (row) => normalizeWorkspaceSidebarToolCandidate(row.dataset.sidebarToolKey || "") === toolToAdd
+      );
+      if (alreadyExists) {
+        syncWorkspaceSidebarToolsFormState(form);
+        return;
+      }
+
+      const nextRow = createWorkspaceSidebarToolRow(form, toolToAdd);
+      const list = form.querySelector("[data-sidebar-tools-list]");
+      if (nextRow instanceof HTMLElement && list instanceof HTMLElement) {
+        list.appendChild(nextRow);
+      }
+      syncWorkspaceSidebarToolsFormState(form);
+      return;
+    }
+
+    const sidebarToolsMoveButton = target.closest("[data-sidebar-tools-move]");
+    if (sidebarToolsMoveButton instanceof HTMLButtonElement) {
+      const row = sidebarToolsMoveButton.closest("[data-sidebar-tool-key]");
+      const form = sidebarToolsMoveButton.closest("[data-sidebar-tools-form]");
+      const direction = String(sidebarToolsMoveButton.dataset.sidebarToolsMove || "").trim();
+      if (!(row instanceof HTMLElement) || !(form instanceof HTMLFormElement)) return;
+
+      if (direction === "up" && row.previousElementSibling instanceof HTMLElement) {
+        row.parentElement?.insertBefore(row, row.previousElementSibling);
+      } else if (direction === "down" && row.nextElementSibling instanceof HTMLElement) {
+        row.parentElement?.insertBefore(row.nextElementSibling, row);
+      }
+
+      syncWorkspaceSidebarToolsFormState(form);
+      return;
+    }
+
+    const sidebarToolsRemoveButton = target.closest("[data-sidebar-tools-remove]");
+    if (sidebarToolsRemoveButton instanceof HTMLButtonElement) {
+      const row = sidebarToolsRemoveButton.closest("[data-sidebar-tool-key]");
+      const form = sidebarToolsRemoveButton.closest("[data-sidebar-tools-form]");
+      if (!(row instanceof HTMLElement) || !(form instanceof HTMLFormElement)) return;
+      row.remove();
+      syncWorkspaceSidebarToolsFormState(form);
+      return;
+    }
+
     const dashboardViewToggle = target.closest("[data-dashboard-view-toggle]");
     if (dashboardViewToggle instanceof HTMLElement) {
-      const targetView = normalizeDashboardView(dashboardViewToggle.dataset.view || "tasks");
+      const targetViewCandidate = normalizeDashboardViewCandidate(
+        dashboardViewToggle.dataset.view || ""
+      );
+      if (!targetViewCandidate || !dashboardViews.has(targetViewCandidate)) {
+        return;
+      }
+      const targetView = normalizeDashboardView(targetViewCandidate);
       setDashboardView(targetView, { updateUrl: true });
       if (isMobileSidebarOpen()) {
         setMobileSidebarOpen(false);
@@ -11047,6 +11290,12 @@ window.addEventListener("DOMContentLoaded", () => {
     const openWorkspaceCreateTrigger = target.closest("[data-open-workspace-create-modal]");
     if (openWorkspaceCreateTrigger) {
       openWorkspaceCreateModal();
+      return;
+    }
+
+    const openWorkspaceUsersTrigger = target.closest("[data-open-workspace-users-modal]");
+    if (openWorkspaceUsersTrigger) {
+      openWorkspaceUsersModal();
       return;
     }
 
@@ -11361,6 +11610,12 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const closeWorkspaceUsersTrigger = target.closest("[data-close-workspace-users-modal]");
+    if (closeWorkspaceUsersTrigger) {
+      closeWorkspaceUsersModal();
+      return;
+    }
+
     const closeGroupTrigger = target.closest("[data-close-create-group-modal]");
     if (closeGroupTrigger) {
       closeCreateGroupModal();
@@ -11561,6 +11816,10 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (workspaceCreateModal && !workspaceCreateModal.hidden) {
       closeWorkspaceCreateModal();
+    }
+    const workspaceUsersModal = getWorkspaceUsersModal();
+    if (workspaceUsersModal && !workspaceUsersModal.hidden) {
+      closeWorkspaceUsersModal();
     }
     if (createGroupModal && !createGroupModal.hidden) {
       closeCreateGroupModal();
@@ -12418,6 +12677,13 @@ window.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("change", (event) => {
     const target = getEventTargetElement(event);
     if (!(target instanceof HTMLElement)) return;
+
+    if (target.matches("[data-sidebar-tools-add-select]")) {
+      const form = target.closest("[data-sidebar-tools-form]");
+      if (form instanceof HTMLFormElement) {
+        syncWorkspaceSidebarToolsFormState(form);
+      }
+    }
 
     const accountingEntryForm = target.closest(".accounting-entry-form");
     const isAccountingEntryField =

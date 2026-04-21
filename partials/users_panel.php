@@ -63,54 +63,92 @@
                         <p class="workspace-settings-member-empty">Workspace pessoal nao permite adicionar usuarios parceiros.</p>
                     <?php endif; ?>
 
-                    <ul class="workspace-settings-members">
-                        <?php if (!$workspaceMembers): ?>
-                            <li class="workspace-settings-member-empty">Nenhum usuario cadastrado.</li>
-                        <?php else: ?>
-                            <?php foreach ($workspaceMembers as $workspaceMember): ?>
-                                <?php
-                                $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
-                                $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
-                                $workspaceMemberId = (int) ($workspaceMember['id'] ?? 0);
-                                ?>
-                                <li class="workspace-settings-member-item">
-                                    <?= renderUserAvatar($workspaceMember, 'avatar small') ?>
-                                    <div class="workspace-settings-member-meta">
-                                        <strong><?= e((string) $workspaceMember['name']) ?></strong>
-                                        <span class="workspace-member-role workspace-role-<?= e((string) $memberRole) ?>"><?= e((string) $memberRoleLabel) ?></span>
-                                        <span><?= e((string) $workspaceMember['email']) ?></span>
-                                    </div>
-                                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace) && $workspaceMemberId !== (int) $currentUser['id']): ?>
-                                        <div class="workspace-settings-member-actions">
-                                            <?php if ($memberRole !== 'admin'): ?>
-                                                <form method="post" class="workspace-settings-member-remove">
-                                                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                                                    <input type="hidden" name="action" value="workspace_promote_member">
-                                                    <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
-                                                    <button type="submit" class="btn btn-mini btn-ghost">Tornar admin</button>
-                                                </form>
-                                            <?php else: ?>
-                                                <form method="post" class="workspace-settings-member-remove">
-                                                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                                                    <input type="hidden" name="action" value="workspace_demote_member">
-                                                    <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
-                                                    <button type="submit" class="btn btn-mini btn-ghost">Tornar usuario</button>
-                                                </form>
-                                            <?php endif; ?>
-                                            <form method="post" class="workspace-settings-member-remove">
-                                                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                                                <input type="hidden" name="action" value="workspace_remove_member">
-                                                <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
-                                                <button type="submit" class="btn btn-mini btn-ghost">Remover</button>
-                                            </form>
-                                        </div>
-                                    <?php endif; ?>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </ul>
+                    <?php
+                    $workspaceMembersCount = is_array($workspaceMembers) ? count($workspaceMembers) : 0;
+                    $workspaceMembersPreview = is_array($workspaceMembers) ? array_slice($workspaceMembers, 0, 3) : [];
+                    $hasMoreWorkspaceMembers = $workspaceMembersCount > 3;
+                    ?>
+                    <?php if ($workspaceMembersCount <= 0): ?>
+                        <p class="workspace-settings-member-empty">Nenhum usuario cadastrado.</p>
+                    <?php else: ?>
+                        <div class="workspace-members-inline-row">
+                            <div class="workspace-members-inline-list" aria-label="Usuarios visiveis no workspace">
+                                <?php foreach ($workspaceMembersPreview as $workspaceMember): ?>
+                                    <?php $workspaceMemberName = trim((string) ($workspaceMember['name'] ?? 'Usuario')); ?>
+                                    <span class="workspace-member-inline-chip" title="<?= e($workspaceMemberName) ?>">
+                                        <?= renderUserAvatar($workspaceMember, 'avatar small') ?>
+                                        <span class="workspace-member-inline-name"><?= e($workspaceMemberName) ?></span>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php if ($hasMoreWorkspaceMembers): ?>
+                                <button type="button" class="btn btn-mini btn-ghost workspace-members-view-all" data-open-workspace-users-modal>
+                                    Ver todos usuarios
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </section>
 
+                <?php if (!empty($hasMoreWorkspaceMembers)): ?>
+                    <div class="modal-backdrop" data-workspace-users-modal hidden>
+                        <div class="modal-scrim" data-close-workspace-users-modal></div>
+                        <section class="modal-card workspace-users-modal-card" role="dialog" aria-modal="true" aria-labelledby="workspace-users-modal-title">
+                            <header class="modal-head">
+                                <h2 id="workspace-users-modal-title">Todos os usuarios do workspace</h2>
+                                <button type="button" class="modal-close-button" data-close-workspace-users-modal aria-label="Fechar modal">
+                                    <span aria-hidden="true">&#10005;</span>
+                                </button>
+                            </header>
+                            <div class="workspace-users-modal-body">
+                                <ul class="workspace-settings-members workspace-users-modal-members">
+                                    <?php foreach ($workspaceMembers as $workspaceMember): ?>
+                                        <?php
+                                        $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
+                                        $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
+                                        $workspaceMemberId = (int) ($workspaceMember['id'] ?? 0);
+                                        ?>
+                                        <li class="workspace-settings-member-item">
+                                            <?= renderUserAvatar($workspaceMember, 'avatar small') ?>
+                                            <div class="workspace-settings-member-meta">
+                                                <strong><?= e((string) $workspaceMember['name']) ?></strong>
+                                                <span class="workspace-member-role workspace-role-<?= e((string) $memberRole) ?>"><?= e((string) $memberRoleLabel) ?></span>
+                                                <span><?= e((string) $workspaceMember['email']) ?></span>
+                                            </div>
+                                            <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace) && $workspaceMemberId !== (int) $currentUser['id']): ?>
+                                                <div class="workspace-settings-member-actions">
+                                                    <?php if ($memberRole !== 'admin'): ?>
+                                                        <form method="post" class="workspace-settings-member-remove">
+                                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                            <input type="hidden" name="action" value="workspace_promote_member">
+                                                            <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
+                                                            <button type="submit" class="btn btn-mini btn-ghost">Tornar admin</button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <form method="post" class="workspace-settings-member-remove">
+                                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                            <input type="hidden" name="action" value="workspace_demote_member">
+                                                            <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
+                                                            <button type="submit" class="btn btn-mini btn-ghost">Tornar usuario</button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                    <form method="post" class="workspace-settings-member-remove">
+                                                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                        <input type="hidden" name="action" value="workspace_remove_member">
+                                                        <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
+                                                        <button type="submit" class="btn btn-mini btn-ghost">Remover</button>
+                                                    </form>
+                                                </div>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        </section>
+                    </div>
+                <?php endif; ?>
+
+                <?php include __DIR__ . '/workspace_sidebar_tools_card.php'; ?>
                 <?php include __DIR__ . '/workspace_statuses_card.php'; ?>
             </div>
         </section>
