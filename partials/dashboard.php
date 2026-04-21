@@ -3005,20 +3005,20 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                 <div class="task-detail-edit-images-field">
                     <span>Imagens de referencia</span>
+                    <div class="task-detail-edit-image-picker-actions">
+                        <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-create-task-image-add>
+                            <span class="task-image-add-button-icon" aria-hidden="true">
+                                <svg viewBox="0 0 20 20" focusable="false">
+                                    <rect x="2.5" y="4" width="15" height="12" rx="2.2"></rect>
+                                    <circle cx="7.2" cy="8.1" r="1.4"></circle>
+                                    <path d="M3.8 14.8 8.3 10.2l3 2.7 2.1-1.8 2.8 3.7"></path>
+                                </svg>
+                            </span>
+                            <span class="task-image-add-button-label">Adicionar imagem</span>
+                        </button>
+                    </div>
                     <div class="task-detail-edit-image-picker" data-create-task-image-picker tabindex="0" aria-label="Adicionar imagens de referencia">
                         <input type="file" accept="image/*" multiple data-create-task-image-input hidden>
-                        <div class="task-detail-edit-image-picker-actions">
-                            <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-create-task-image-add>
-                                <span class="task-image-add-button-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 20 20" focusable="false">
-                                        <rect x="2.5" y="4" width="15" height="12" rx="2.2"></rect>
-                                        <circle cx="7.2" cy="8.1" r="1.4"></circle>
-                                        <path d="M3.8 14.8 8.3 10.2l3 2.7 2.1-1.8 2.8 3.7"></path>
-                                    </svg>
-                                </span>
-                                <span class="sr-only">Adicionar imagem</span>
-                            </button>
-                        </div>
                         <div class="task-detail-edit-image-list" data-create-task-image-list></div>
                     </div>
                     <textarea name="reference_images_json" rows="1" data-create-task-images hidden></textarea>
@@ -4342,20 +4342,20 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                         <div class="task-detail-edit-images-field">
                             <span>Imagens de referencia</span>
+                            <div class="task-detail-edit-image-picker-actions">
+                                <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-task-detail-image-add>
+                                    <span class="task-image-add-button-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 20 20" focusable="false">
+                                            <rect x="2.5" y="4" width="15" height="12" rx="2.2"></rect>
+                                            <circle cx="7.2" cy="8.1" r="1.4"></circle>
+                                            <path d="M3.8 14.8 8.3 10.2l3 2.7 2.1-1.8 2.8 3.7"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="task-image-add-button-label">Adicionar imagem</span>
+                                </button>
+                            </div>
                             <div class="task-detail-edit-image-picker" data-task-detail-image-picker tabindex="0" aria-label="Adicionar imagens de referencia">
                                 <input type="file" accept="image/*" multiple data-task-detail-image-input hidden>
-                                <div class="task-detail-edit-image-picker-actions">
-                                    <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-task-detail-image-add>
-                                        <span class="task-image-add-button-icon" aria-hidden="true">
-                                            <svg viewBox="0 0 20 20" focusable="false">
-                                                <rect x="2.5" y="4" width="15" height="12" rx="2.2"></rect>
-                                                <circle cx="7.2" cy="8.1" r="1.4"></circle>
-                                                <path d="M3.8 14.8 8.3 10.2l3 2.7 2.1-1.8 2.8 3.7"></path>
-                                            </svg>
-                                        </span>
-                                        <span class="sr-only">Adicionar imagem</span>
-                                    </button>
-                                </div>
                                 <div class="task-detail-edit-image-list" data-task-detail-image-list></div>
                             </div>
                             <textarea rows="1" data-task-detail-edit-images hidden></textarea>

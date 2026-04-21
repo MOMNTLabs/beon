@@ -8353,6 +8353,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (taskDetailImageAddButton instanceof HTMLButtonElement && taskDetailImageInput instanceof HTMLInputElement) {
     taskDetailImageAddButton.addEventListener("click", () => {
+      if (!taskDetailImagePickerExpanded && taskDetailEditImageItems.length === 0) {
+        taskDetailImagePickerExpanded = true;
+        syncTaskDetailImagePickerLayout();
+        return;
+      }
       taskDetailImagePickerExpanded = true;
       syncTaskDetailImagePickerLayout();
       taskDetailImageInput.click();
@@ -8361,6 +8366,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (createTaskImageAddButton instanceof HTMLButtonElement && createTaskImageInput instanceof HTMLInputElement) {
     createTaskImageAddButton.addEventListener("click", () => {
+      if (!createTaskImagePickerExpanded && createTaskImageItems.length === 0) {
+        createTaskImagePickerExpanded = true;
+        syncCreateTaskImagePickerLayout();
+        return;
+      }
       createTaskImagePickerExpanded = true;
       syncCreateTaskImagePickerLayout();
       createTaskImageInput.click();
