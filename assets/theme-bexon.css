@@ -2542,6 +2542,59 @@ body.is-dashboard .task-detail-view-label {
     color: var(--ui-modal-label);
 }
 
+body.is-dashboard .create-task-modal .task-detail-edit-images-field,
+body.is-dashboard .task-detail-modal .task-detail-edit-images-field {
+    justify-items: center;
+    align-content: start;
+}
+
+body.is-dashboard .create-task-modal .task-detail-edit-images-field > span,
+body.is-dashboard .task-detail-modal .task-detail-edit-images-field > span {
+    width: 100%;
+    text-align: center;
+}
+
+body.is-dashboard .create-task-modal .task-detail-edit-images-field .task-detail-edit-image-picker-actions,
+body.is-dashboard .task-detail-modal .task-detail-edit-images-field .task-detail-edit-image-picker-actions {
+    width: 100%;
+    justify-content: center;
+}
+
+body.is-dashboard .create-task-modal .task-detail-edit-images-field.is-compact,
+body.is-dashboard .task-detail-modal .task-detail-edit-images-field.is-compact {
+    justify-items: center;
+}
+
+body.is-dashboard .create-task-modal .task-detail-edit-images-field.is-compact .task-image-add-button,
+body.is-dashboard .task-detail-modal .task-detail-edit-images-field.is-compact .task-image-add-button {
+    margin-inline: auto;
+}
+
+body.is-dashboard .create-task-modal .task-image-add-button,
+body.is-dashboard .task-detail-modal .task-image-add-button,
+body.is-dashboard .create-task-modal [data-create-task-subtask-add],
+body.is-dashboard .task-detail-modal [data-task-detail-edit-subtask-add] {
+    border-color: var(--ui-modal-ghost-border);
+    background: var(--ui-modal-ghost-bg);
+    color: var(--ui-modal-ghost-text);
+    box-shadow: none;
+}
+
+body.is-dashboard .create-task-modal .task-image-add-button:hover,
+body.is-dashboard .create-task-modal .task-image-add-button:focus-visible,
+body.is-dashboard .task-detail-modal .task-image-add-button:hover,
+body.is-dashboard .task-detail-modal .task-image-add-button:focus-visible,
+body.is-dashboard .create-task-modal [data-create-task-subtask-add]:hover,
+body.is-dashboard .create-task-modal [data-create-task-subtask-add]:focus-visible,
+body.is-dashboard .task-detail-modal [data-task-detail-edit-subtask-add]:hover,
+body.is-dashboard .task-detail-modal [data-task-detail-edit-subtask-add]:focus-visible {
+    border-color: var(--ui-modal-ghost-border-hover);
+    background: var(--ui-modal-ghost-bg-hover);
+    color: var(--ui-modal-ghost-text-hover);
+    box-shadow: none;
+    transform: none;
+}
+
 body.is-dashboard .create-task-modal input::placeholder,
 body.is-dashboard .create-task-modal textarea::placeholder,
 body.is-dashboard .create-task-modal [data-create-task-subtask-input]::placeholder,
