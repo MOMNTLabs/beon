@@ -14,13 +14,13 @@ set "APACHE_ROOT="
 set "APACHE_EXE="
 
 if not exist "%LARAGON_EXE%" (
-  echo Laragon nao encontrado em "%LARAGON_EXE%".
+  echo Laragon não encontrado em "%LARAGON_EXE%".
   pause
   exit /b 1
 )
 
 if not exist "%BROWSERSYNC_CMD%" (
-  echo BrowserSync nao encontrado em "%BROWSERSYNC_CMD%".
+  echo BrowserSync não encontrado em "%BROWSERSYNC_CMD%".
   echo Rode: npm install -g browser-sync
   pause
   exit /b 1
@@ -34,7 +34,7 @@ set "APACHE_ROOT=C:\laragon\bin\apache\%APACHE_VERSION%"
 set "APACHE_EXE=%APACHE_ROOT%\bin\httpd.exe"
 
 if not exist "%APACHE_EXE%" (
-  echo Apache nao encontrado em "%APACHE_EXE%".
+  echo Apache não encontrado em "%APACHE_EXE%".
   pause
   exit /b 1
 )
@@ -44,7 +44,7 @@ timeout /t 2 /nobreak >nul
 
 cd /d "%PROJECT_DIR%"
 if errorlevel 1 (
-  echo Projeto nao encontrado em "%PROJECT_DIR%".
+  echo Projeto não encontrado em "%PROJECT_DIR%".
   pause
   exit /b 1
 )

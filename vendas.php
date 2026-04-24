@@ -21,8 +21,8 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
     <title><?= e(APP_NAME) ?> - Vendas</title>
     <link rel="icon" type="image/png" href="assets/Bexon---Logo-Symbol.png?v=1">
     <link rel="shortcut icon" href="assets/Bexon---Logo-Symbol.png?v=1">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preçonnect" href="https://fonts.googleapis.com">
+    <link rel="preçonnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
     <link rel="stylesheet" href="assets/theme-bexon.css?v=<?= e($themeBexonAssetVersion) ?>">
@@ -42,7 +42,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                 </nav>
                 <div class="sales-header-actions">
                     <a href="index.php?auth=login" class="sales-btn sales-btn-ghost">Entrar</a>
-                    <a href="index.php?auth=register" class="sales-btn sales-btn-primary">Comecar gratis</a>
+                    <a href="index.php?auth=register" class="sales-btn sales-btn-primary">Começar grátis</a>
                 </div>
             </div>
         </header>
@@ -51,20 +51,20 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
             <section class="sales-hero">
                 <div class="sales-container sales-hero-grid">
                     <div class="sales-hero-copy">
-                        <span class="sales-eyebrow">Operacao clara para equipes em crescimento</span>
+                        <span class="sales-eyebrow">Operação clara para equipes em crescimento</span>
                         <h1>Gestao de tarefas e execucao em um fluxo simples.</h1>
                         <p>
-                            O Bexon organiza tarefas, revisoes, acessos e rotinas de operacao
-                            em uma unica visao. Menos ruido, mais entrega.
+                            O Bexon organiza tarefas, revisões, acessos e rotinas de operação
+                            em uma única visão. Menos ruído, mais entrega.
                         </p>
                         <div class="sales-hero-actions">
                             <a href="index.php?auth=register" class="sales-btn sales-btn-primary">Criar workspace</a>
                             <a href="index.php?auth=login" class="sales-btn sales-btn-secondary">Ver demo no app</a>
                         </div>
                         <ul class="sales-trust-list">
-                            <li>Setup rapido</li>
+                            <li>Setup rápido</li>
                             <li>Controle por status e prioridade</li>
-                            <li>Workspace para times e operacao pessoal</li>
+                            <li>Workspace para times e operação pessoal</li>
                         </ul>
                     </div>
 
@@ -88,14 +88,14 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                                     <p>Validar custos do mes</p>
                                 </article>
                                 <article class="sales-preview-column is-review">
-                                    <h3>Revisao</h3>
+                                    <h3>Revisão</h3>
                                     <p>Aprovar automacoes</p>
-                                    <p>Conferir permissoes</p>
+                                    <p>Conferir permissões</p>
                                 </article>
                             </div>
                             <div class="sales-preview-metrics">
                                 <div>
-                                    <span>Concluidas</span>
+                                    <span>Concluídas</span>
                                     <strong>78%</strong>
                                 </div>
                                 <div>
@@ -125,10 +125,10 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                         </article>
                         <article class="sales-feature-card">
                             <h3>Permissoes por grupo</h3>
-                            <p>Controle acesso e visibilidade por area com granularidade.</p>
+                            <p>Controle acesso e visibilidade por área com granularidade.</p>
                         </article>
                         <article class="sales-feature-card">
-                            <h3>Operacao integrada</h3>
+                            <h3>Operação integrada</h3>
                             <p>Unifique tarefas, vencimentos, inventario e financeiro no mesmo lugar.</p>
                         </article>
                     </div>
@@ -139,7 +139,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                 <div class="sales-container sales-steps-shell">
                     <div class="sales-section-head">
                         <span class="sales-eyebrow">Como funciona</span>
-                        <h2>Um processo direto, do primeiro login ate a entrega.</h2>
+                        <h2>Um processo direto, do primeiro login até a entrega.</h2>
                     </div>
                     <div class="sales-steps-grid">
                         <article class="sales-step-card">
@@ -150,12 +150,12 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                         <article class="sales-step-card">
                             <span>02</span>
                             <h3>Defina status e grupos</h3>
-                            <p>Ajuste etapas, permissao e visao de cada parte da operacao.</p>
+                            <p>Ajuste etapas, permissão e visão de cada parte da operação.</p>
                         </article>
                         <article class="sales-step-card">
                             <span>03</span>
                             <h3>Execute com clareza</h3>
-                            <p>Acompanhe progresso, revisoes e prioridade sem perder contexto.</p>
+                            <p>Acompanhe progresso, revisões e prioridade sem perder contexto.</p>
                         </article>
                     </div>
                 </div>
@@ -165,7 +165,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                 <div class="sales-container">
                     <div class="sales-section-head">
                         <span class="sales-eyebrow">Planos</span>
-                        <h2>Preco simples para comecar rapido.</h2>
+                        <h2>Preço simples para começar rápido.</h2>
                     </div>
                     <div class="sales-pricing-grid">
                         <article class="sales-pricing-card">
@@ -176,7 +176,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                                 <li>Status customizavel</li>
                                 <li>Ferramentas essenciais</li>
                             </ul>
-                            <a href="index.php?auth=register" class="sales-btn sales-btn-secondary">Comecar sem custo</a>
+                            <a href="index.php?auth=register" class="sales-btn sales-btn-secondary">Começar sem custo</a>
                         </article>
                         <article class="sales-pricing-card is-highlight">
                             <h3>Equipe</h3>
@@ -195,7 +195,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
             <section class="sales-section sales-final-cta">
                 <div class="sales-container">
                     <div class="sales-cta-box">
-                        <h2>Pronto para centralizar sua operacao no Bexon?</h2>
+                        <h2>Pronto para centralizar sua operação no Bexon?</h2>
                         <p>Crie sua conta agora e monte o fluxo ideal do seu time em poucos minutos.</p>
                         <div class="sales-hero-actions">
                             <a href="index.php?auth=register" class="sales-btn sales-btn-primary">Criar conta</a>

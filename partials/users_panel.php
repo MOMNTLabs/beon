@@ -1,11 +1,11 @@
         <section class="users-wrap panel" id="users" data-dashboard-view-panel="users" hidden>
             <div class="panel-header board-header users-board-header">
                 <div>
-                    <h2>Configuracoes do workspace</h2>
+                    <h2>Configurações do workspace</h2>
                     <p>
                         <?= !empty($isPersonalWorkspace)
                             ? 'Gerencie foto e status do workspace pessoal.'
-                            : 'Gerencie membros, permissoes e status do workspace.' ?>
+                            : 'Gerencie membros, permissões e status do workspace.' ?>
                     </p>
                 </div>
             </div>
@@ -48,19 +48,19 @@
                 <?php endif; ?>
 
                 <section class="workspace-settings-card workspace-settings-users-card<?= empty($canManageWorkspace) ? ' is-full' : '' ?>">
-                    <h3>Usuarios do workspace</h3>
+                    <h3>Usuários do workspace</h3>
                     <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace)): ?>
                         <form method="post" class="workspace-settings-form workspace-settings-member-form">
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                             <input type="hidden" name="action" value="workspace_add_member">
                             <label>
-                                <span>Adicionar usuario por e-mail</span>
-                                <input type="email" name="member_email" placeholder="usuario@empresa.com" required>
+                                <span>Adicionar usuário por e-mail</span>
+                                <input type="email" name="member_email" placeholder="usuário@empresa.com" required>
                             </label>
                             <button type="submit" class="btn btn-mini">Adicionar</button>
                         </form>
                     <?php elseif (!empty($isPersonalWorkspace)): ?>
-                        <p class="workspace-settings-member-empty">Workspace pessoal nao permite adicionar usuarios parceiros.</p>
+                        <p class="workspace-settings-member-empty">Workspace pessoal não permite adicionar usuários parceiros.</p>
                     <?php endif; ?>
 
                     <?php
@@ -69,12 +69,12 @@
                     $hasMoreWorkspaceMembers = $workspaceMembersCount > 3;
                     ?>
                     <?php if ($workspaceMembersCount <= 0): ?>
-                        <p class="workspace-settings-member-empty">Nenhum usuario cadastrado.</p>
+                        <p class="workspace-settings-member-empty">Nenhum usuário cadastrado.</p>
                     <?php else: ?>
                         <div class="workspace-members-inline-row">
-                            <div class="workspace-members-inline-list" aria-label="Usuarios visiveis no workspace">
+                            <div class="workspace-members-inline-list" aria-label="Usuários visíveis no workspace">
                                 <?php foreach ($workspaceMembersPreview as $workspaceMember): ?>
-                                    <?php $workspaceMemberName = trim((string) ($workspaceMember['name'] ?? 'Usuario')); ?>
+                                    <?php $workspaceMemberName = trim((string) ($workspaceMember['name'] ?? 'Usuário')); ?>
                                     <span class="workspace-member-inline-chip" title="<?= e($workspaceMemberName) ?>">
                                         <?= renderUserAvatar($workspaceMember, 'avatar small') ?>
                                         <span class="workspace-member-inline-name"><?= e($workspaceMemberName) ?></span>
@@ -83,7 +83,7 @@
                             </div>
                             <?php if ($hasMoreWorkspaceMembers): ?>
                                 <button type="button" class="btn btn-mini btn-ghost workspace-members-view-all" data-open-workspace-users-modal>
-                                    Ver todos usuarios
+                                    Ver todos usuários
                                 </button>
                             <?php endif; ?>
                         </div>
@@ -95,7 +95,7 @@
                         <div class="modal-scrim" data-close-workspace-users-modal></div>
                         <section class="modal-card workspace-users-modal-card" role="dialog" aria-modal="true" aria-labelledby="workspace-users-modal-title">
                             <header class="modal-head">
-                                <h2 id="workspace-users-modal-title">Todos os usuarios do workspace</h2>
+                                <h2 id="workspace-users-modal-title">Todos os usuários do workspace</h2>
                                 <button type="button" class="modal-close-button" data-close-workspace-users-modal aria-label="Fechar modal">
                                     <span aria-hidden="true">&#10005;</span>
                                 </button>
@@ -105,7 +105,7 @@
                                     <?php foreach ($workspaceMembers as $workspaceMember): ?>
                                         <?php
                                         $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
-                                        $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
+                                        $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuário';
                                         $workspaceMemberId = (int) ($workspaceMember['id'] ?? 0);
                                         ?>
                                         <li class="workspace-settings-member-item">
@@ -129,7 +129,7 @@
                                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                             <input type="hidden" name="action" value="workspace_demote_member">
                                                             <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
-                                                            <button type="submit" class="btn btn-mini btn-ghost">Tornar usuario</button>
+                                                            <button type="submit" class="btn btn-mini btn-ghost">Tornar usuário</button>
                                                         </form>
                                                     <?php endif; ?>
                                                     <form method="post" class="workspace-settings-member-remove">

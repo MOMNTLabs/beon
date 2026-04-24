@@ -26,7 +26,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
                 if ($workspaceId <= 0 || !userHasWorkspaceAccess((int) $authUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Workspace invalido.');
+                    throw new RuntimeException('Workspace inválido.');
                 }
 
                 setActiveWorkspaceId($workspaceId);
@@ -45,7 +45,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
 
                 $workspaceId = createWorkspace($pdo, $workspaceName, (int) $authUser['id']);
                 if ($workspaceId <= 0) {
-                    throw new RuntimeException('Nao foi possivel criar o workspace.');
+                    throw new RuntimeException('Não foi possível criar o workspace.');
                 }
 
                 setActiveWorkspaceId($workspaceId);
@@ -57,7 +57,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar o workspace.');
@@ -91,7 +91,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar os status.');
@@ -101,7 +101,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $statusLabels = $_POST['status_labels'] ?? [];
                 $statusColors = $_POST['status_colors'] ?? [];
                 if (!is_array($statusKeys) || !is_array($statusLabels) || !is_array($statusColors)) {
-                    throw new RuntimeException('Configuracao de status invalida.');
+                    throw new RuntimeException('Configuração de status inválida.');
                 }
 
                 $statusDefinitions = [];
@@ -134,7 +134,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar as ferramentas do sidebar.');
@@ -162,7 +162,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar as ferramentas do sidebar.');
@@ -170,7 +170,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
 
                 $toolToAdd = normalizeWorkspaceSidebarToolKey((string) ($_POST['sidebar_tool'] ?? ''));
                 if ($toolToAdd === '') {
-                    throw new RuntimeException('Ferramenta invalida.');
+                    throw new RuntimeException('Ferramenta inválida.');
                 }
 
                 $currentSidebarConfig = workspaceSidebarToolsConfig($workspaceId);
@@ -194,13 +194,13 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                    throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Somente administradores podem adicionar usuarios ao workspace.');
+                    throw new RuntimeException('Somente administradores podem adicionar usuários ao workspace.');
                 }
 
                 $memberEmail = strtolower(trim((string) ($_POST['member_email'] ?? '')));
@@ -212,17 +212,17 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $memberStmt->execute([':email' => $memberEmail]);
                 $memberRow = $memberStmt->fetch();
                 if (!$memberRow) {
-                    throw new RuntimeException('Usuario nao encontrado. Cadastre a conta antes de adicionar.');
+                    throw new RuntimeException('Usuário não encontrado. Cadastre a conta antes de adicionar.');
                 }
 
                 $memberId = (int) ($memberRow['id'] ?? 0);
                 if ($memberId <= 0) {
-                    throw new RuntimeException('Usuario invalido.');
+                    throw new RuntimeException('Usuário inválido.');
                 }
 
                 upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'member');
 
-                $workspaceAddMemberMessage = 'Usuario adicionado ao workspace.';
+                $workspaceAddMemberMessage = 'Usuário adicionado ao workspace.';
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,
@@ -240,29 +240,29 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                    throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Somente administradores podem alterar permissoes.');
+                    throw new RuntimeException('Somente administradores podem alterar permissões.');
                 }
 
                 $memberId = (int) ($_POST['member_id'] ?? 0);
                 if ($memberId <= 0) {
-                    throw new RuntimeException('Usuario invalido.');
+                    throw new RuntimeException('Usuário inválido.');
                 }
                 if ($memberId === (int) $authUser['id']) {
-                    throw new RuntimeException('Sua conta ja possui permissao de administrador.');
+                    throw new RuntimeException('Sua conta já possui permissão de administrador.');
                 }
                 if (!userHasWorkspaceAccess($memberId, $workspaceId)) {
-                    throw new RuntimeException('Usuario nao pertence a este workspace.');
+                    throw new RuntimeException('Usuário não pertence a este workspace.');
                 }
 
                 upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'admin');
 
-                $workspacePromoteMemberMessage = 'Permissao de administrador concedida.';
+                $workspacePromoteMemberMessage = 'Permissão de administrador concedida.';
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,
@@ -279,31 +279,31 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                    throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Somente administradores podem alterar permissoes.');
+                    throw new RuntimeException('Somente administradores podem alterar permissões.');
                 }
 
                 $memberId = (int) ($_POST['member_id'] ?? 0);
                 if ($memberId <= 0) {
-                    throw new RuntimeException('Usuario invalido.');
+                    throw new RuntimeException('Usuário inválido.');
                 }
                 if ($memberId === (int) $authUser['id']) {
-                    throw new RuntimeException('Nao e possivel alterar a propria permissao.');
+                    throw new RuntimeException('Não e possível alterar a própria permissão.');
                 }
 
                 $targetRole = workspaceRoleForUser($memberId, $workspaceId);
                 if ($targetRole !== 'admin') {
-                    throw new RuntimeException('Este usuario nao e administrador.');
+                    throw new RuntimeException('Este usuário não e administrador.');
                 }
 
                 updateWorkspaceMemberRole($pdo, $workspaceId, $memberId, 'member');
 
-                $workspaceDemoteMemberMessage = 'Permissao alterada para usuario.';
+                $workspaceDemoteMemberMessage = 'Permissão alterada para usuário.';
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,
@@ -320,26 +320,26 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                    throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Somente administradores podem remover usuarios.');
+                    throw new RuntimeException('Somente administradores podem remover usuários.');
                 }
 
                 $memberId = (int) ($_POST['member_id'] ?? 0);
                 if ($memberId <= 0) {
-                    throw new RuntimeException('Usuario invalido.');
+                    throw new RuntimeException('Usuário inválido.');
                 }
                 if ($memberId === (int) $authUser['id']) {
-                    throw new RuntimeException('Nao e possivel remover a propria conta deste workspace.');
+                    throw new RuntimeException('Não e possível remover a própria conta deste workspace.');
                 }
 
                 removeWorkspaceMember($pdo, $workspaceId, $memberId);
 
-                $workspaceRemoveMemberMessage = 'Usuario removido do workspace.';
+                $workspaceRemoveMemberMessage = 'Usuário removido do workspace.';
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,

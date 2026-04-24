@@ -3118,7 +3118,7 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 }
 
 .task-details[open] > summary::before {
-    content: "âˆ’ ";
+    content: "- ";
 }
 
 .details-content {
@@ -8533,7 +8533,7 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 }
 
 .task-detail-edit-description-editor:empty::before {
-    content: "Escreva a descricao...";
+    content: "Escreva a descrição...";
     color: rgba(255, 255, 255, 0.36);
 }
 

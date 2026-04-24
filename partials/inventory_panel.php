@@ -141,7 +141,7 @@
                                                     method="post"
                                                     class="inventory-entry-qty inventory-entry-qty-form"
                                                     data-inventory-inline-quantity-form
-                                                    title="Quantidade disponivel"
+                                                    title="Quantidade disponível"
                                                 >
                                                     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                     <input type="hidden" name="action" value="update_inventory_entry_quantity">
@@ -179,7 +179,7 @@
                                                     <button type="submit" class="sr-only">Salvar quantidade</button>
                                                 </form>
                                                 <?php if ($inventoryLowStock): ?>
-                                                    <span class="inventory-entry-alert" title="Quantidade atual abaixo do estoque minimo">Baixo estoque</span>
+                                                    <span class="inventory-entry-alert" title="Quantidade atual abaixo do estoque mínimo">Baixo estoque</span>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -249,7 +249,7 @@
                         <a
                             href="<?= e($accountingNextPeriodPath) ?>"
                             class="accounting-period-nav"
-                            aria-label="Ir para o proximo mes"
+                            aria-label="Ir para o próximo mês"
                         >
                             <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
                                 <path d="M6.5 3.5 11 8l-4.5 4.5"></path>

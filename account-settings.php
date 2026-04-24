@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'logout':
                 logoutUser();
-                flash('success', 'Sessao encerrada.');
+                flash('success', 'Sessão encerrada.');
                 redirectTo('index.php');
 
             case 'account_update_profile':
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'account_delete_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao pode ser removido.');
+                    throw new RuntimeException('Workspace pessoal não pode ser removido.');
                 }
                 deleteWorkspaceOwnedByUser($pdo, $workspaceId, (int) $currentUser['id']);
                 ensureActiveWorkspaceSessionForUser((int) $currentUser['id']);
@@ -52,15 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'account_leave_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite sair.');
+                    throw new RuntimeException('Workspace pessoal não permite sair.');
                 }
                 leaveWorkspace($pdo, $workspaceId, (int) $currentUser['id']);
                 ensureActiveWorkspaceSessionForUser((int) $currentUser['id']);
-                flash('success', 'Voce saiu do workspace.');
+                flash('success', 'Você saiu do workspace.');
                 redirectTo('account-settings.php');
 
             default:
-                throw new RuntimeException('Acao invalida.');
+                throw new RuntimeException('Ação inválida.');
         }
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
@@ -84,11 +84,11 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e(APP_NAME) ?> - Configuracoes da Conta</title>
+    <title><?= e(APP_NAME) ?> - Configurações da Conta</title>
     <link rel="icon" type="image/png" href="assets/Bexon---Logo-Symbol.png?v=1">
     <link rel="shortcut icon" href="assets/Bexon---Logo-Symbol.png?v=1">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preçonnect" href="https://fonts.googleapis.com">
+    <link rel="preçonnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
     <link rel="stylesheet" href="assets/theme-bexon.css?v=<?= e($themeBexonAssetVersion) ?>">
@@ -138,7 +138,7 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
                 <a
                     href="account-settings.php"
                     class="icon-gear-button top-account-settings-button"
-                    aria-label="Configuracoes da conta"
+                    aria-label="Configurações da conta"
                 >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
@@ -156,8 +156,8 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
         <main class="workspace-settings-page">
             <section class="panel workspace-settings-panel">
                 <div class="panel-header workspace-settings-header">
-                    <h2>Configuracoes da conta</h2>
-                    <p>Atualize seus dados e gerencie os workspaces que voce participa.</p>
+                    <h2>Configurações da conta</h2>
+                    <p>Atualize seus dados e gerencie os workspaces que você participa.</p>
                 </div>
 
                 <div class="workspace-settings-grid account-settings-grid">
@@ -224,7 +224,7 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
                                 $workspaceId = (int) ($workspaceItem['id'] ?? 0);
                                 $workspaceName = (string) ($workspaceItem['name'] ?? 'Workspace');
                                 $workspaceRole = normalizeWorkspaceRole((string) ($workspaceItem['member_role'] ?? 'member'));
-                                $workspaceRoleLabel = workspaceRoles()[$workspaceRole] ?? 'Usuario';
+                                $workspaceRoleLabel = workspaceRoles()[$workspaceRole] ?? 'Usuário';
                                 $isOwner = (bool) ($workspaceItem['is_owner'] ?? false);
                                 $isPersonalWorkspace = !empty($workspaceItem['is_personal']);
                                 $isActiveWorkspace = $currentWorkspaceId === $workspaceId;
@@ -248,7 +248,7 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
                                         <div class="account-workspace-meta-row">
                                             <span class="workspace-member-role workspace-role-<?= e($workspaceRole) ?>"><?= e($workspaceRoleLabel) ?></span>
                                             <span class="account-workspace-meta-text">
-                                            <?= $isOwner ? 'Criado por voce' : ('Criado por ' . e($creatorName !== '' ? $creatorName : 'outro usuario')) ?>
+                                            <?= $isOwner ? 'Criado por você' : ('Criado por ' . e($creatorName !== '' ? $creatorName : 'outro usuário')) ?>
                                             &middot; <?= $isPersonalWorkspace ? 'Workspace pessoal' : (e((string) $memberCount) . ' membro(s)') ?>
                                             </span>
                                         </div>

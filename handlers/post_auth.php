@@ -87,7 +87,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
 
                 $requestPasswordResetMessage = 'Se o e-mail estiver cadastrado, enviamos as instrucoes para redefinir a senha.';
                 if (!empty($delivery['logged_to_file'])) {
-                    $requestPasswordResetMessage .= ' Se o envio nao estiver configurado neste ambiente, confira o arquivo storage/password-reset-mails.log.';
+                    $requestPasswordResetMessage .= ' Se o envio não estiver configurado neste ambiente, confira o arquivo storage/password-reset-mails.log.';
                 }
 
                 flash('success', $requestPasswordResetMessage);
@@ -103,7 +103,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
                 $newPassword = (string) ($_POST['new_password'] ?? '');
                 $newPasswordConfirm = (string) ($_POST['new_password_confirm'] ?? '');
                 if ($selector === '' || $token === '') {
-                    throw new RuntimeException('Link de redefinicao invalido.');
+                    throw new RuntimeException('Link de redefinição inválido.');
                 }
                 if ($newPassword === '' || $newPasswordConfirm === '') {
                     throw new RuntimeException('Preencha os campos de senha.');
@@ -112,17 +112,17 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
                     throw new RuntimeException('A nova senha deve ter pelo menos 6 caracteres.');
                 }
                 if ($newPassword !== $newPasswordConfirm) {
-                    throw new RuntimeException('A confirmacao da nova senha nao confere.');
+                    throw new RuntimeException('A confirmação da nova senha não confere.');
                 }
 
                 $passwordResetRow = validPasswordResetRequest($selector, $token);
                 if (!$passwordResetRow) {
-                    throw new RuntimeException('Este link de redefinicao e invalido ou expirou.');
+                    throw new RuntimeException('Este link de redefinição e inválido ou expirou.');
                 }
 
                 $userId = (int) ($passwordResetRow['user_id'] ?? 0);
                 if ($userId <= 0) {
-                    throw new RuntimeException('Usuario invalido para redefinicao de senha.');
+                    throw new RuntimeException('Usuário inválido para redefinição de senha.');
                 }
 
                 $stmt = $pdo->prepare(

@@ -24,13 +24,13 @@ function respondTaskPanelSnapshot(): void
     if (!$currentUser) {
         respondJson([
             'ok' => false,
-            'error' => 'Sessao expirada. Faca login novamente.',
+            'error' => 'Sessão expirada. Faça login novamente.',
         ], 401);
     }
 
     $currentWorkspaceId = activeWorkspaceId($currentUser);
     if ($currentWorkspaceId === null) {
-        throw new RuntimeException('Workspace ativo nao encontrado.');
+        throw new RuntimeException('Workspace ativo não encontrado.');
     }
 
     if (shouldApplyOverduePolicyDuringRequests()) {

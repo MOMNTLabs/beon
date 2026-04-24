@@ -19,7 +19,7 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
         'attention_workspace_total' => 0,
         'executive_focus_total' => 0,
         'executive_status_tone' => 'stable',
-        'executive_status_label' => 'Operacao estavel',
+        'executive_status_label' => 'Operação estável',
         'executive_status_note' => 'Nenhum ponto critico no curto prazo.',
         'balance_total_cents' => 0,
         'balance_month_movement_cents' => 0,
@@ -61,7 +61,7 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
 
         $workspaceOptionName = (string) ($workspaceOption['name'] ?? 'Workspace');
         $workspaceOptionRole = normalizeWorkspaceRole((string) ($workspaceOption['member_role'] ?? 'member'));
-        $workspaceOptionRoleLabel = $workspaceRolesMap[$workspaceOptionRole] ?? 'Usuario';
+        $workspaceOptionRoleLabel = $workspaceRolesMap[$workspaceOptionRole] ?? 'Usuário';
 
         $taskViewPermissionsByGroup = [];
         $workspaceTasks = [];
@@ -169,7 +169,7 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
                 $daysUntilLabel = 'Hoje';
                 $workspaceDueTodayCount++;
             } elseif ($daysUntil === 1) {
-                $daysUntilLabel = 'Amanha';
+                $daysUntilLabel = 'Amanh?';
                 $workspaceDueTomorrowCount++;
             } elseif ($daysUntil !== null) {
                 $daysUntilLabel = 'Em ' . $daysUntil . ' dias';
@@ -253,14 +253,14 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
             + ($workspaceDueTomorrowCount * 2)
             + count($workspaceLowStockEntries);
         $workspaceAttentionTone = 'stable';
-        $workspaceAttentionLabel = 'Estavel';
-        $workspaceAttentionNote = 'Sem pendencias imediatas.';
+        $workspaceAttentionLabel = 'Estável';
+        $workspaceAttentionNote = 'Sem pendências imediatas.';
 
         if ($workspaceUrgentTasksTodayCount > 0 || $workspaceDueTodayCount > 0) {
             $workspaceAttentionTone = 'critical';
             $workspaceAttentionLabel = 'Foco imediato';
             if ($workspaceUrgentTasksTodayCount > 0 && $workspaceDueTodayCount > 0) {
-                $workspaceAttentionNote = 'Urgencias e vencimentos hoje.';
+                $workspaceAttentionNote = 'Urgências e vencimentos hoje.';
             } elseif ($workspaceUrgentTasksTodayCount > 0) {
                 $workspaceAttentionNote = 'Tarefas urgentes para hoje.';
             } else {
@@ -270,9 +270,9 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
             $workspaceAttentionTone = 'attention';
             $workspaceAttentionLabel = 'Monitorar';
             if ($workspaceDueTomorrowCount > 0) {
-                $workspaceAttentionNote = 'Ha vencimentos previstos para amanha.';
+                $workspaceAttentionNote = 'Há vencimentos previstos para amanh?.';
             } elseif (count($workspaceLowStockEntries) > 0) {
-                $workspaceAttentionNote = 'Itens abaixo do minimo precisam reposicao.';
+                $workspaceAttentionNote = 'Itens abaixo do mínimo precisam reposição.';
             } else {
                 $workspaceAttentionNote = 'Tarefas de alta prioridade para hoje.';
             }
@@ -457,7 +457,7 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
     if ($globalDashboardOverview['executive_focus_total'] > 0) {
         $globalDashboardOverview['executive_status_tone'] = 'critical';
         $globalDashboardOverview['executive_status_label'] = 'Foco imediato';
-        $globalDashboardOverview['executive_status_note'] = 'Urgencias do dia e vencimentos de hoje merecem decisao primeiro.';
+        $globalDashboardOverview['executive_status_note'] = 'Urgências do dia e vencimentos de hoje merecem decisão primeiro.';
     } elseif (
         (int) ($globalDashboardOverview['priority_tasks_today_total'] ?? 0) > 0
         || (int) ($globalDashboardOverview['due_tomorrow_total'] ?? 0) > 0
@@ -466,7 +466,7 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
     ) {
         $globalDashboardOverview['executive_status_tone'] = 'attention';
         $globalDashboardOverview['executive_status_label'] = 'Monitoramento';
-        $globalDashboardOverview['executive_status_note'] = 'A operacao esta controlada, mas ha itens proximos exigindo acompanhamento.';
+        $globalDashboardOverview['executive_status_note'] = 'A operação esta controlada, mas ha itens próximos exigindo acompanhamento.';
     }
     $globalDashboardOverview['balance_total_display'] = dueAmountLabelFromSignedCents(
         (int) $globalDashboardOverview['balance_total_cents']

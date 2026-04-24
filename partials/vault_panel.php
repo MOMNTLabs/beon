@@ -186,7 +186,7 @@
                                                     data-password-value="<?= e($vaultPassword) ?>"
                                                     data-visible="false"
                                                 >
-                                                    <span class="vault-entry-value-text" data-vault-password-text><?= $vaultPassword !== '' ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' : '-' ?></span>
+                                                    <span class="vault-entry-value-text" data-vault-password-text><?= $vaultPassword !== '' ? '********' : '-' ?></span>
                                                     <button
                                                         type="button"
                                                         class="vault-icon-button"

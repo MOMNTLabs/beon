@@ -123,7 +123,7 @@ $sidebarToolAddRedirectPath = dashboardPath($currentSidebarView !== '' ? $curren
         </summary>
         <div class="workspace-sidebar-tool-adder-menu">
             <?php if ($availableSidebarTools === []): ?>
-                <p class="workspace-sidebar-tool-adder-empty">Todas as ferramentas ja foram adicionadas.</p>
+                <p class="workspace-sidebar-tool-adder-empty">Todas as ferramentas já foram adicionadas.</p>
             <?php else: ?>
                 <?php foreach ($availableSidebarTools as $sidebarToolKey): ?>
                     <?php $toolLabel = (string) ($sidebarOptionalToolLabels[$sidebarToolKey] ?? $sidebarToolKey); ?>

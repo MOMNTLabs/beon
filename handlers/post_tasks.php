@@ -9,7 +9,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 $actorUserId = (int) $authUser['id'];
                 $isAutosave = $action === 'update_task' && (string) ($_POST['autosave'] ?? '') === '1';
@@ -70,18 +70,18 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $assigneeIdsJson = encodeAssigneeIds($assigneeIds);
 
                 if ($title === '') {
-                    throw new RuntimeException('O titulo da tarefa e obrigatorio.');
+                    throw new RuntimeException('O título da tarefa é obrigatório.');
                 }
                 if (mb_strlen($title) > 140) {
-                    throw new RuntimeException('O titulo deve ter no maximo 140 caracteres.');
+                    throw new RuntimeException('O título deve ter no máximo 140 caracteres.');
                 }
                 if (count($submittedAssigneeIds) !== count($assigneeIds)) {
-                    throw new RuntimeException('Um ou mais responsaveis selecionados sao invalidos.');
+                    throw new RuntimeException('Um ou mais responsáveis selecionados são inválidos.');
                 }
 
                 if ($action === 'create_task') {
                     if (!userCanAccessTaskGroup($actorUserId, $workspaceId, $groupName)) {
-                        throw new RuntimeException('Voce nao possui acesso para criar tarefas neste grupo.');
+                        throw new RuntimeException('Você não possui acesso para criar tarefas neste grupo.');
                     }
                     upsertTaskGroup($pdo, $groupName, $actorUserId, $workspaceId);
 
@@ -177,7 +177,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 }
 
                 if ($taskId <= 0) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
                 $existingTaskStmt = $pdo->prepare(
                     'SELECT title, title_tag, description, status, priority, due_date, overdue_flag, overdue_since_date, assignee_ids_json, group_name, reference_links_json, reference_images_json, subtasks_json, subtasks_dependency_enabled, updated_at
@@ -192,15 +192,15 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 ]);
                 $existingTaskRow = $existingTaskStmt->fetch();
                 if (!$existingTaskRow) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
                 $taskTitleTagColors = taskTitleTagColorsByWorkspace($workspaceId, $pdo);
                 $existingTaskGroupName = normalizeTaskGroupName((string) ($existingTaskRow['group_name'] ?? 'Geral'));
                 if (!userCanAccessTaskGroup($actorUserId, $workspaceId, $existingTaskGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para editar tarefas deste grupo.');
+                    throw new RuntimeException('Você não possui acesso para editar tarefas deste grupo.');
                 }
                 if (!userCanAccessTaskGroup($actorUserId, $workspaceId, $groupName)) {
-                    throw new RuntimeException('Voce nao possui acesso ao grupo de destino.');
+                    throw new RuntimeException('Você não possui acesso ao grupo de destino.');
                 }
                 upsertTaskGroup($pdo, $groupName, $actorUserId, $workspaceId);
 
@@ -308,11 +308,11 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     ]);
                     $latestUpdatedAt = trim((string) ($currentVersionStmt->fetchColumn() ?: ''));
                     if ($latestUpdatedAt === '') {
-                        throw new RuntimeException('Tarefa invalida.');
+                        throw new RuntimeException('Tarefa inválida.');
                     }
 
                     if ($latestUpdatedAt !== $expectedUpdatedAt) {
-                        $conflictMessage = 'Esta tarefa foi atualizada em outra sessao. Atualize os dados antes de salvar novamente.';
+                        $conflictMessage = 'Esta tarefa foi atualizada em outra sessão. Atualize os dados antes de salvar novamente.';
                         if (requestExpectsJson()) {
                             $latestUpdatedAtLabel = (new DateTimeImmutable($latestUpdatedAt))->format('d/m H:i');
                             respondJson([
@@ -548,12 +548,12 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $titleTag = normalizeTaskTitleTag((string) ($_POST['title_tag'] ?? ''));
                 if ($titleTag === '') {
-                    throw new RuntimeException('Tag invalida.');
+                    throw new RuntimeException('Tag inválida.');
                 }
 
                 $taskTitleTagOptions = addTaskTitleTagOptionForWorkspace(
@@ -580,12 +580,12 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $titleTag = normalizeTaskTitleTag((string) ($_POST['title_tag'] ?? ''));
                 if ($titleTag === '') {
-                    throw new RuntimeException('Tag invalida.');
+                    throw new RuntimeException('Tag inválida.');
                 }
 
                 $taskTitleTagOptions = removeTaskTitleTagOptionForWorkspace(
@@ -614,12 +614,12 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $titleTag = normalizeTaskTitleTag((string) ($_POST['title_tag'] ?? ''));
                 if ($titleTag === '') {
-                    throw new RuntimeException('Tag invalida.');
+                    throw new RuntimeException('Tag inválida.');
                 }
 
                 $titleTagColor = normalizeTaskTitleTagColor((string) ($_POST['title_tag_color'] ?? ''));
@@ -646,20 +646,20 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 if ($taskId <= 0) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
 
                 $newDescription = trim((string) ($_POST['revision_description'] ?? ''));
                 if ($newDescription === '') {
-                    throw new RuntimeException('A nova descricao e obrigatoria.');
+                    throw new RuntimeException('A nova descrição é obrigatória.');
                 }
                 if (mb_strlen($newDescription) > 8000) {
-                    throw new RuntimeException('A nova descricao deve ter no maximo 8000 caracteres.');
+                    throw new RuntimeException('A nova descrição deve ter no máximo 8000 caracteres.');
                 }
 
                 $taskStmt = $pdo->prepare(
@@ -675,22 +675,22 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 ]);
                 $taskRow = $taskStmt->fetch();
                 if (!$taskRow) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
 
                 $taskGroupName = normalizeTaskGroupName((string) ($taskRow['group_name'] ?? 'Geral'));
                 if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $taskGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para atualizar esta tarefa.');
+                    throw new RuntimeException('Você não possui acesso para atualizar esta tarefa.');
                 }
 
                 $taskStatus = normalizeTaskStatus((string) ($taskRow['status'] ?? 'todo'), $workspaceId);
                 if (taskStatusKind($taskStatus, $workspaceId) !== 'review') {
-                    throw new RuntimeException('A solicitacao de ajuste so pode ser feita em tarefas em revisao.');
+                    throw new RuntimeException('A solicitação de ajuste só pode ser feita em tarefas em revisão.');
                 }
 
                 $previousDescription = trim((string) ($taskRow['description'] ?? ''));
                 if ($previousDescription === $newDescription) {
-                    throw new RuntimeException('A nova descricao precisa ser diferente da descricao atual.');
+                    throw new RuntimeException('A nova descrição precisa ser diferente da descrição atual.');
                 }
 
                 $updatedAt = nowIso();
@@ -745,12 +745,12 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 if ($taskId <= 0) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
 
                 $taskStmt = $pdo->prepare(
@@ -766,19 +766,19 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 ]);
                 $taskRow = $taskStmt->fetch();
                 if (!$taskRow) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
 
                 $taskGroupName = normalizeTaskGroupName((string) ($taskRow['group_name'] ?? 'Geral'));
                 if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $taskGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para atualizar esta tarefa.');
+                    throw new RuntimeException('Você não possui acesso para atualizar esta tarefa.');
                 }
 
                 $taskStatus = normalizeTaskStatus((string) ($taskRow['status'] ?? 'todo'), $workspaceId);
 
                 $currentDescription = trim((string) ($taskRow['description'] ?? ''));
                 if ($currentDescription === '') {
-                    throw new RuntimeException('A tarefa nao possui uma solicitacao ativa para remover.');
+                    throw new RuntimeException('A tarefa não possui uma solicitação ativa para remover.');
                 }
 
                 $historyEntries = taskHistoryList($taskId, 250);
@@ -808,12 +808,12 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 }
 
                 if ($activeRevision === null) {
-                    throw new RuntimeException('Nao ha solicitacao de ajuste ativa para remover.');
+                    throw new RuntimeException('Não há solicitação de ajuste ativa para remover.');
                 }
 
                 $restoredDescription = trim((string) ($activeRevision['previous_description'] ?? ''));
                 if ($restoredDescription === '') {
-                    throw new RuntimeException('Nao foi possivel restaurar a descricao anterior.');
+                    throw new RuntimeException('Não foi possível restaurar a descrição anterior.');
                 }
 
                 $updatedAt = nowIso();
@@ -861,18 +861,18 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     ]);
                 }
 
-                flash('success', 'Solicitacao de ajuste removida.');
+                flash('success', 'Solicitação de ajuste removida.');
                 redirectTo('index.php#task-' . $taskId);
 
             case 'move_task':
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 if ($taskId <= 0) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
 
                 $existingTaskStmt = $pdo->prepare(
@@ -888,11 +888,11 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 ]);
                 $existingTaskRow = $existingTaskStmt->fetch();
                 if (!$existingTaskRow) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
                 $existingTaskGroupName = normalizeTaskGroupName((string) ($existingTaskRow['group_name'] ?? 'Geral'));
                 if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $existingTaskGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para atualizar esta tarefa.');
+                    throw new RuntimeException('Você não possui acesso para atualizar esta tarefa.');
                 }
 
                 $existingStatus = normalizeTaskStatus((string) ($existingTaskRow['status'] ?? 'todo'), $workspaceId);
@@ -964,12 +964,12 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 if ($taskId <= 0) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
 
                 $taskStmt = $pdo->prepare(
@@ -985,12 +985,12 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 ]);
                 $taskRow = $taskStmt->fetch();
                 if (!$taskRow) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
 
                 $taskGroupName = normalizeTaskGroupName((string) ($taskRow['group_name'] ?? 'Geral'));
                 if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $taskGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso a esta tarefa.');
+                    throw new RuntimeException('Você não possui acesso a esta tarefa.');
                 }
 
                 $taskHistory = taskHistoryList($taskId, 40);
@@ -1034,11 +1034,11 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 $taskId = (int) ($_POST['task_id'] ?? 0);
                 if ($taskId <= 0) {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
                 $taskGroupStmt = $pdo->prepare(
                     'SELECT group_name
@@ -1053,10 +1053,10 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 ]);
                 $taskGroupName = $taskGroupStmt->fetchColumn();
                 if (!is_string($taskGroupName) || trim($taskGroupName) === '') {
-                    throw new RuntimeException('Tarefa invalida.');
+                    throw new RuntimeException('Tarefa inválida.');
                 }
                 if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $taskGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para remover esta tarefa.');
+                    throw new RuntimeException('Você não possui acesso para remover esta tarefa.');
                 }
                 $stmt = $pdo->prepare(
                     'DELETE FROM tasks

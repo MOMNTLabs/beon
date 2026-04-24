@@ -8,12 +8,12 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $groupName = normalizeVaultGroupName((string) ($_POST['group_name'] ?? ''));
                 if (findVaultGroupByName($groupName, $workspaceId) !== null) {
-                    throw new RuntimeException('Este grupo de cofre ja existe.');
+                    throw new RuntimeException('Este grupo de cofre já existe.');
                 }
 
                 upsertVaultGroup($pdo, $groupName, (int) $authUser['id'], $workspaceId);
@@ -31,17 +31,17 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $oldGroupInput = normalizeVaultGroupName((string) ($_POST['old_group_name'] ?? ''));
                 $newGroupName = normalizeVaultGroupName((string) ($_POST['new_group_name'] ?? ''));
                 $existingOldGroupName = findVaultGroupByName($oldGroupInput, $workspaceId);
                 if ($existingOldGroupName === null) {
-                    throw new RuntimeException('Grupo do cofre nao encontrado.');
+                    throw new RuntimeException('Grupo do cofre não encontrado.');
                 }
                 if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, $existingOldGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para gerenciar este grupo do cofre.');
+                    throw new RuntimeException('Você não possui acesso para gerenciar este grupo do cofre.');
                 }
 
                 $existingTargetGroupName = findVaultGroupByName($newGroupName, $workspaceId);
@@ -49,7 +49,7 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                     $existingTargetGroupName !== null &&
                     mb_strtolower($existingTargetGroupName) !== mb_strtolower($existingOldGroupName)
                 ) {
-                    throw new RuntimeException('Ja existe um grupo do cofre com este nome.');
+                    throw new RuntimeException('Já existe um grupo do cofre com este nome.');
                 }
 
                 if (mb_strtolower($existingOldGroupName) !== mb_strtolower($newGroupName)) {
@@ -113,16 +113,16 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $groupName = normalizeVaultGroupName((string) ($_POST['group_name'] ?? ''));
                 $existingGroupName = findVaultGroupByName($groupName, $workspaceId);
                 if ($existingGroupName === null) {
-                    throw new RuntimeException('Grupo do cofre nao encontrado.');
+                    throw new RuntimeException('Grupo do cofre não encontrado.');
                 }
                 if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, $existingGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para remover este grupo do cofre.');
+                    throw new RuntimeException('Você não possui acesso para remover este grupo do cofre.');
                 }
 
                 $pdo->beginTransaction();
@@ -148,7 +148,7 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                         ':group_name' => $existingGroupName,
                     ]);
                     if ($deleteGroupStmt->rowCount() <= 0) {
-                        throw new RuntimeException('Nao foi possivel remover o grupo do cofre.');
+                        throw new RuntimeException('Não foi possível remover o grupo do cofre.');
                     }
 
                     deleteVaultGroupPermissions($pdo, $workspaceId, $existingGroupName);
@@ -183,7 +183,7 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem configurar acessos por grupo.');
@@ -192,7 +192,7 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 $groupInput = normalizeVaultGroupName((string) ($_POST['group_name'] ?? ''));
                 $existingGroupName = findVaultGroupByName($groupInput, $workspaceId);
                 if ($existingGroupName === null) {
-                    throw new RuntimeException('Grupo do cofre nao encontrado.');
+                    throw new RuntimeException('Grupo do cofre não encontrado.');
                 }
 
                 $rolesByUserId = workspaceRolesByUserId(workspaceMembersList($workspaceId));
@@ -215,13 +215,13 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $groupNameInput = normalizeVaultGroupName((string) ($_POST['group_name'] ?? ''));
                 $groupName = findVaultGroupByName($groupNameInput, $workspaceId) ?? $groupNameInput;
                 if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, $groupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para adicionar itens neste grupo do cofre.');
+                    throw new RuntimeException('Você não possui acesso para adicionar itens neste grupo do cofre.');
                 }
                 $createdEntryId = createWorkspaceVaultEntry(
                     $pdo,
@@ -248,7 +248,7 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
@@ -266,10 +266,10 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 ]);
                 $entryGroupName = $entryGroupStmt->fetchColumn();
                 if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
-                    throw new RuntimeException('Registro nao encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
                 if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, (string) $entryGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para editar este item do cofre.');
+                    throw new RuntimeException('Você não possui acesso para editar este item do cofre.');
                 }
                 updateWorkspaceVaultEntryLabel($pdo, $workspaceId, $entryId, $label);
 
@@ -288,7 +288,7 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
@@ -307,13 +307,13 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 ]);
                 $entryGroupName = $entryGroupStmt->fetchColumn();
                 if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
-                    throw new RuntimeException('Registro nao encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
                 if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, (string) $entryGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para editar este item do cofre.');
+                    throw new RuntimeException('Você não possui acesso para editar este item do cofre.');
                 }
                 if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, $groupName)) {
-                    throw new RuntimeException('Voce nao possui acesso ao grupo de destino.');
+                    throw new RuntimeException('Você não possui acesso ao grupo de destino.');
                 }
                 updateWorkspaceVaultEntry(
                     $pdo,
@@ -340,7 +340,7 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
@@ -357,10 +357,10 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                 ]);
                 $entryGroupName = $entryGroupStmt->fetchColumn();
                 if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
-                    throw new RuntimeException('Registro nao encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
                 if (!userCanAccessVaultGroup((int) $authUser['id'], $workspaceId, (string) $entryGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para excluir este item do cofre.');
+                    throw new RuntimeException('Você não possui acesso para excluir este item do cofre.');
                 }
                 deleteWorkspaceVaultEntry($pdo, $workspaceId, $entryId);
 

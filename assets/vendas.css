@@ -49,8 +49,8 @@ body.is-sales-page {
 .is-sales-page .sales-brand img {
     display: block;
     width: auto;
-    height: 30px;
-    max-width: 184px;
+    height: 42px;
+    max-width: 260px;
     object-fit: contain;
 }
 
@@ -539,6 +539,11 @@ body.is-sales-page {
 }
 
 @media (max-width: 760px) {
+    .is-sales-page .sales-brand img {
+        height: 36px;
+        max-width: 220px;
+    }
+
     .is-sales-page .sales-container {
         width: min(1160px, calc(100% - 24px));
     }

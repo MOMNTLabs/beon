@@ -7,7 +7,7 @@ $pdo = db();
 $currentUser = requireAuth();
 $currentWorkspaceId = activeWorkspaceId($currentUser);
 if ($currentWorkspaceId === null) {
-    flash('error', 'Workspace ativo nao encontrado.');
+    flash('error', 'Workspace ativo não encontrado.');
     redirectTo('index.php');
 }
 
@@ -20,13 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($action) {
             case 'logout':
                 logoutUser();
-                flash('success', 'Sessao encerrada.');
+                flash('success', 'Sessão encerrada.');
                 redirectTo('index.php');
 
             case 'switch_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
                 if ($workspaceId <= 0 || !userHasWorkspaceAccess((int) $currentUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Workspace invalido.');
+                    throw new RuntimeException('Workspace inválido.');
                 }
 
                 setActiveWorkspaceId($workspaceId);
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $workspaceId = createWorkspace($pdo, $workspaceName, (int) $currentUser['id']);
                 if ($workspaceId <= 0) {
-                    throw new RuntimeException('Nao foi possivel criar o workspace.');
+                    throw new RuntimeException('Não foi possível criar o workspace.');
                 }
 
                 setActiveWorkspaceId($workspaceId);
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'workspace_update_name':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar o workspace.');
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'workspace_update_task_statuses':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar os status.');
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $statusLabels = $_POST['status_labels'] ?? [];
                 $statusColors = $_POST['status_colors'] ?? [];
                 if (!is_array($statusKeys) || !is_array($statusLabels) || !is_array($statusColors)) {
-                    throw new RuntimeException('Configuracao de status invalida.');
+                    throw new RuntimeException('Configuração de status inválida.');
                 }
 
                 $statusDefinitions = [];
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'workspace_update_sidebar_tools':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar as ferramentas do sidebar.');
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'workspace_add_sidebar_tool':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem alterar as ferramentas do sidebar.');
@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $toolToAdd = normalizeWorkspaceSidebarToolKey((string) ($_POST['sidebar_tool'] ?? ''));
                 if ($toolToAdd === '') {
-                    throw new RuntimeException('Ferramenta invalida.');
+                    throw new RuntimeException('Ferramenta inválida.');
                 }
 
                 $currentSidebarConfig = workspaceSidebarToolsConfig($workspaceId);
@@ -153,13 +153,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'workspace_add_member':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                    throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Somente administradores podem adicionar usuarios.');
+                    throw new RuntimeException('Somente administradores podem adicionar usuários.');
                 }
 
                 $memberEmail = strtolower(trim((string) ($_POST['member_email'] ?? '')));
@@ -171,95 +171,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $memberStmt->execute([':email' => $memberEmail]);
                 $memberId = (int) $memberStmt->fetchColumn();
                 if ($memberId <= 0) {
-                    throw new RuntimeException('Usuario nao encontrado. Cadastre a conta antes de adicionar.');
+                    throw new RuntimeException('Usuário não encontrado. Cadastre a conta antes de adicionar.');
                 }
 
                 upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'member');
-                flash('success', 'Usuario adicionado ao workspace.');
+                flash('success', 'Usuário adicionado ao workspace.');
                 redirectTo('workspace-settings.php');
 
             case 'workspace_promote_member':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                    throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Somente administradores podem alterar permissoes.');
+                    throw new RuntimeException('Somente administradores podem alterar permissões.');
                 }
 
                 $memberId = (int) ($_POST['member_id'] ?? 0);
                 if ($memberId <= 0) {
-                    throw new RuntimeException('Usuario invalido.');
+                    throw new RuntimeException('Usuário inválido.');
                 }
                 if ($memberId === (int) $currentUser['id']) {
-                    throw new RuntimeException('Sua conta ja possui permissao de administrador.');
+                    throw new RuntimeException('Sua conta já possui permissão de administrador.');
                 }
                 if (!userHasWorkspaceAccess($memberId, $workspaceId)) {
-                    throw new RuntimeException('Usuario nao pertence a este workspace.');
+                    throw new RuntimeException('Usuário não pertence a este workspace.');
                 }
 
                 upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'admin');
-                flash('success', 'Permissao de administrador concedida.');
+                flash('success', 'Permissão de administrador concedida.');
                 redirectTo('workspace-settings.php');
 
             case 'workspace_demote_member':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                    throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Somente administradores podem alterar permissoes.');
+                    throw new RuntimeException('Somente administradores podem alterar permissões.');
                 }
 
                 $memberId = (int) ($_POST['member_id'] ?? 0);
                 if ($memberId <= 0) {
-                    throw new RuntimeException('Usuario invalido.');
+                    throw new RuntimeException('Usuário inválido.');
                 }
                 if ($memberId === (int) $currentUser['id']) {
-                    throw new RuntimeException('Nao e possivel alterar a propria permissao.');
+                    throw new RuntimeException('Não e possível alterar a própria permissão.');
                 }
 
                 $targetRole = workspaceRoleForUser($memberId, $workspaceId);
                 if ($targetRole !== 'admin') {
-                    throw new RuntimeException('Este usuario nao e administrador.');
+                    throw new RuntimeException('Este usuário não e administrador.');
                 }
 
                 updateWorkspaceMemberRole($pdo, $workspaceId, $memberId, 'member');
-                flash('success', 'Permissao alterada para usuario.');
+                flash('success', 'Permissão alterada para usuário.');
                 redirectTo('workspace-settings.php');
 
             case 'workspace_remove_member':
                 $workspaceId = activeWorkspaceId($currentUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (workspaceIsPersonal($workspaceId)) {
-                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                    throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
                 }
                 if (!userCanManageWorkspace((int) $currentUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Somente administradores podem remover usuarios.');
+                    throw new RuntimeException('Somente administradores podem remover usuários.');
                 }
 
                 $memberId = (int) ($_POST['member_id'] ?? 0);
                 if ($memberId <= 0) {
-                    throw new RuntimeException('Usuario invalido.');
+                    throw new RuntimeException('Usuário inválido.');
                 }
                 if ($memberId === (int) $currentUser['id']) {
-                    throw new RuntimeException('Nao e possivel remover a propria conta deste workspace.');
+                    throw new RuntimeException('Não e possível remover a própria conta deste workspace.');
                 }
 
                 removeWorkspaceMember($pdo, $workspaceId, $memberId);
-                flash('success', 'Usuario removido do workspace.');
+                flash('success', 'Usuário removido do workspace.');
                 redirectTo('workspace-settings.php');
 
             default:
-                throw new RuntimeException('Acao invalida.');
+                throw new RuntimeException('Ação inválida.');
         }
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
@@ -270,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $currentUser = requireAuth();
 $currentWorkspaceId = activeWorkspaceId($currentUser);
 if ($currentWorkspaceId === null) {
-    flash('error', 'Workspace ativo nao encontrado.');
+    flash('error', 'Workspace ativo não encontrado.');
     redirectTo('index.php');
 }
 
@@ -289,11 +289,11 @@ $themeBexonAssetVersion = (string) (@filemtime(__DIR__ . '/assets/theme-bexon.cs
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e(APP_NAME) ?> - Configuracoes do Workspace</title>
+    <title><?= e(APP_NAME) ?> - Configurações do Workspace</title>
     <link rel="icon" type="image/png" href="assets/Bexon---Logo-Symbol.png?v=1">
     <link rel="shortcut icon" href="assets/Bexon---Logo-Symbol.png?v=1">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preçonnect" href="https://fonts.googleapis.com">
+    <link rel="preçonnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
     <link rel="stylesheet" href="assets/theme-bexon.css?v=<?= e($themeBexonAssetVersion) ?>">
@@ -343,7 +343,7 @@ $themeBexonAssetVersion = (string) (@filemtime(__DIR__ . '/assets/theme-bexon.cs
                 <a
                     href="account-settings.php"
                     class="icon-gear-button top-account-settings-button"
-                    aria-label="Configuracoes da conta"
+                    aria-label="Configurações da conta"
                 >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
@@ -361,8 +361,8 @@ $themeBexonAssetVersion = (string) (@filemtime(__DIR__ . '/assets/theme-bexon.cs
         <main class="workspace-settings-page">
             <section class="panel workspace-settings-panel">
                 <div class="panel-header workspace-settings-header">
-                    <h2>Configuracoes do workspace</h2>
-                    <p><?= $isPersonalWorkspace ? 'Workspace pessoal: personalize nome e status do seu fluxo.' : 'Gerencie nome, status e usuarios do espaco.' ?></p>
+                    <h2>Configurações do workspace</h2>
+                    <p><?= $isPersonalWorkspace ? 'Workspace pessoal: personalize nome e status do seu fluxo.' : 'Gerencie nome, status e usuários do espaco.' ?></p>
                 </div>
 
                 <div class="workspace-settings-grid">
@@ -402,16 +402,16 @@ $themeBexonAssetVersion = (string) (@filemtime(__DIR__ . '/assets/theme-bexon.cs
                     </section>
 
                     <section class="workspace-settings-card">
-                        <h3>Usuarios do workspace</h3>
+                        <h3>Usuários do workspace</h3>
                         <?php if ($isPersonalWorkspace): ?>
-                            <p class="workspace-settings-readonly">Este workspace e pessoal e nao permite adicionar outros usuarios.</p>
+                            <p class="workspace-settings-readonly">Este workspace ? pessoal e não permite adicionar outros usuários.</p>
                         <?php elseif ($canManageWorkspaceMembers): ?>
                             <form method="post" class="workspace-settings-form workspace-settings-member-form">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                 <input type="hidden" name="action" value="workspace_add_member">
                                 <label>
-                                    <span>Adicionar usuario por e-mail</span>
-                                    <input type="email" name="member_email" placeholder="usuario@empresa.com" required>
+                                    <span>Adicionar usuário por e-mail</span>
+                                    <input type="email" name="member_email" placeholder="usuário@empresa.com" required>
                                 </label>
                                 <button type="submit" class="btn btn-mini">Adicionar</button>
                             </form>
@@ -419,12 +419,12 @@ $themeBexonAssetVersion = (string) (@filemtime(__DIR__ . '/assets/theme-bexon.cs
 
                         <ul class="workspace-settings-members">
                             <?php if (!$workspaceMembers): ?>
-                                <li class="workspace-settings-member-empty">Nenhum usuario cadastrado.</li>
+                                <li class="workspace-settings-member-empty">Nenhum usuário cadastrado.</li>
                             <?php else: ?>
                                 <?php foreach ($workspaceMembers as $workspaceMember): ?>
                                     <?php
                                     $memberRole = normalizeWorkspaceRole((string) ($workspaceMember['workspace_role'] ?? 'member'));
-                                    $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuario';
+                                    $memberRoleLabel = workspaceRoles()[$memberRole] ?? 'Usuário';
                                     $workspaceMemberId = (int) ($workspaceMember['id'] ?? 0);
                                     ?>
                                     <li class="workspace-settings-member-item">
@@ -448,7 +448,7 @@ $themeBexonAssetVersion = (string) (@filemtime(__DIR__ . '/assets/theme-bexon.cs
                                                         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                         <input type="hidden" name="action" value="workspace_demote_member">
                                                         <input type="hidden" name="member_id" value="<?= e((string) $workspaceMemberId) ?>">
-                                                        <button type="submit" class="btn btn-mini btn-ghost">Tornar usuario</button>
+                                                        <button type="submit" class="btn btn-mini btn-ghost">Tornar usuário</button>
                                                     </form>
                                                 <?php endif; ?>
                                                 <form method="post" class="workspace-settings-member-remove">

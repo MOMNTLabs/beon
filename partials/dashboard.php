@@ -142,8 +142,8 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     data-dashboard-view-toggle
                                     data-view="users"
                                     aria-pressed="false"
-                                    aria-label="Configuracoes do workspace"
-                                    title="Configuracoes do workspace"
+                                    aria-label="Configurações do workspace"
+                                    title="Configurações do workspace"
                                 >
                                     <span class="workspace-users-settings-icon" aria-hidden="true">
                                         <svg viewBox="0 0 24 24" focusable="false">
@@ -171,7 +171,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     <strong data-dashboard-stat-total><?= e((string) $stats['total']) ?></strong>
                 </div>
                 <div class="stat-cell">
-                    <span>Concluidas</span>
+                    <span>Concluídas</span>
                     <strong data-dashboard-stat-done><?= e((string) $stats['done']) ?> (<?= e((string) $completionRate) ?>%)</strong>
                 </div>
                 <div class="stat-cell">
@@ -203,7 +203,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             type="button"
                             class="header-notification-button"
                             data-header-notifications-toggle
-                            aria-label="Notificacoes"
+                            aria-label="Notificações"
                             aria-haspopup="true"
                             aria-expanded="false"
                         >
@@ -219,21 +219,21 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             class="header-notification-dropdown"
                             data-header-notifications-dropdown
                             role="menu"
-                            aria-label="Lista de notificacoes"
+                            aria-label="Lista de notificações"
                             hidden
                         >
                             <div class="header-notification-dropdown-head">
-                                <strong>Notificacoes</strong>
+                                <strong>Notificações</strong>
                             </div>
                             <div class="header-notification-list" data-header-notifications-list>
-                                <p class="header-notification-empty">Sem notificacoes.</p>
+                                <p class="header-notification-empty">Sem notificações.</p>
                             </div>
                         </div>
                     </div>
                     <a
                         href="account-settings.php"
                         class="icon-gear-button top-account-settings-button"
-                        aria-label="Configuracoes da conta"
+                        aria-label="Configurações da conta"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M10.3 2.6h3.4l.5 2a7.8 7.8 0 0 1 1.9.8l1.8-1 2.4 2.4-1 1.8c.3.6.6 1.2.8 1.9l2 .5v3.4l-2 .5a7.8 7.8 0 0 1-.8 1.9l1 1.8-2.4 2.4-1.8-1a7.8 7.8 0 0 1-1.9.8l-.5 2h-3.4l-.5-2a7.8 7.8 0 0 1-1.9-.8l-1.8 1-2.4-2.4 1-1.8a7.8 7.8 0 0 1-.8-1.9l-2-.5v-3.4l2-.5c.2-.7.5-1.3.8-1.9l-1-1.8 2.4-2.4 1.8 1c.6-.3 1.2-.6 1.9-.8l.5-2Z"></path>
@@ -255,8 +255,8 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             $overviewExecutiveTone = (string) ($globalDashboardOverview['executive_status_tone'] ?? 'stable');
             $overviewExecutiveFocusTotal = (int) ($globalDashboardOverview['executive_focus_total'] ?? 0);
             $overviewExecutiveHeadline = $overviewExecutiveFocusTotal > 0
-                ? $overviewExecutiveFocusTotal . ' ponto(s) pedem atencao hoje'
-                : 'Operacao sob controle hoje';
+                ? $overviewExecutiveFocusTotal . ' ponto(s) pedem atenção hoje'
+                : 'Operação sob controle hoje';
             $overviewWorkspaceSummaries = array_values((array) ($globalDashboardOverview['workspace_summaries'] ?? []));
             $overviewTopWorkspaceSummaries = array_slice($overviewWorkspaceSummaries, 0, 4);
             $overviewMaxAttentionScore = 0;
@@ -336,12 +336,12 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         <div class="overview-executive-heading">
                             <h3><?= e($overviewExecutiveHeadline) ?></h3>
                             <span class="overview-executive-badge is-<?= e($overviewExecutiveTone) ?>">
-                                <?= e((string) ($globalDashboardOverview['executive_status_label'] ?? 'Operacao estavel')) ?>
+                                <?= e((string) ($globalDashboardOverview['executive_status_label'] ?? 'Operação estável')) ?>
                             </span>
                         </div>
                         <p><?= e((string) ($globalDashboardOverview['executive_status_note'] ?? '')) ?></p>
                         <?php if (!empty($overviewImportantHighlights)): ?>
-                            <div class="overview-executive-chips" aria-label="Indicadores rapidos">
+                            <div class="overview-executive-chips" aria-label="Indicadores rápidos">
                                 <?php foreach ($overviewImportantHighlights as $overviewImportantHighlight): ?>
                                     <span class="overview-executive-chip">
                                         <?= e((string) ($overviewImportantHighlight['label'] ?? '')) ?>: <?= e((string) ($overviewImportantHighlight['value'] ?? 0)) ?>
@@ -359,7 +359,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         <div class="overview-focus-card is-due">
                             <dt>Vence hoje</dt>
                             <dd><?= e((string) ($globalDashboardOverview['due_today_total'] ?? 0)) ?></dd>
-                            <small>Contas com decisao imediata</small>
+                            <small>Contas com decisão imediata</small>
                         </div>
                         <div class="overview-focus-card is-balance">
                             <dt>Fluxo do mes</dt>
@@ -374,7 +374,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         <div>
                             <span class="overview-radar-kicker">Radar</span>
                             <h3>Workspaces sob maior pressao</h3>
-                            <p>Comparativo rapido para decidir onde entrar primeiro.</p>
+                            <p>Comparativo rápido para decidir onde entrar primeiro.</p>
                         </div>
                         <div class="overview-radar-summary">
                             <span class="overview-summary-pill">Criticos <?= e((string) ($globalDashboardOverview['critical_workspace_total'] ?? 0)) ?></span>
@@ -385,8 +385,8 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         <div class="overview-empty-state">
                             <span class="overview-empty-icon" aria-hidden="true"></span>
                             <div class="overview-empty-copy">
-                                <strong>Nenhum comparativo disponivel</strong>
-                                <span>Assim que houver workspaces visiveis, o radar aparece aqui.</span>
+                                <strong>Nenhum comparativo disponível</strong>
+                                <span>Assim que houver workspaces visíveis, o radar aparece aqui.</span>
                             </div>
                         </div>
                     <?php else: ?>
@@ -413,10 +413,10 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                     <span class="overview-workspace-current">Ativo</span>
                                                 <?php endif; ?>
                                             </div>
-                                            <p><?= e((string) ($workspaceSummary['attention_note'] ?? 'Sem pendencias imediatas.')) ?></p>
+                                            <p><?= e((string) ($workspaceSummary['attention_note'] ?? 'Sem pendências imediatas.')) ?></p>
                                         </div>
                                         <span class="overview-workspace-health is-<?= e($workspaceAttentionTone) ?>">
-                                            <?= e((string) ($workspaceSummary['attention_label'] ?? 'Estavel')) ?>
+                                            <?= e((string) ($workspaceSummary['attention_label'] ?? 'Estável')) ?>
                                         </span>
                                     </div>
                                     <div class="overview-radar-meter" style="--attention-share: <?= e((string) $workspaceAttentionShare) ?>%;">
@@ -444,7 +444,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             </div>
 
             <?php if ($showOverviewTasksStatCard || $showOverviewDueStatCard || $showOverviewBalanceStatCard || $showOverviewLowStockStatCard): ?>
-                <section class="stats-strip overview-stats" style="--overview-order: 1;" aria-label="Resumo geral do usuario">
+                <section class="stats-strip overview-stats" style="--overview-order: 1;" aria-label="Resumo geral do usuário">
                     <?php if ($showOverviewTasksStatCard): ?>
                         <article class="stat-cell overview-stat-card is-tasks">
                             <span>Tarefas de hoje</span>
@@ -454,9 +454,9 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     <?php endif; ?>
                     <?php if ($showOverviewDueStatCard): ?>
                         <article class="stat-cell overview-stat-card is-due">
-                            <span>Vencimentos proximos</span>
+                            <span>Vencimentos próximos</span>
                             <strong><?= e((string) $overviewDueSoonTotal) ?></strong>
-                            <small class="overview-stat-note"><?= e((string) $overviewDueTodayTotal) ?> hoje, <?= e((string) $overviewDueTomorrowTotal) ?> amanha</small>
+                            <small class="overview-stat-note"><?= e((string) $overviewDueTodayTotal) ?> hoje, <?= e((string) $overviewDueTomorrowTotal) ?> amanh?</small>
                         </article>
                     <?php endif; ?>
                     <?php if ($showOverviewBalanceStatCard): ?>
@@ -487,7 +487,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             Abrir tarefas
                         </button>
                     </div>
-                    <div class="overview-card-inline-metrics" aria-label="Resumo rapido de tarefas">
+                    <div class="overview-card-inline-metrics" aria-label="Resumo rápido de tarefas">
                         <span class="overview-card-inline-chip is-critical">Urgentes <?= e((string) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0)) ?></span>
                         <span class="overview-card-inline-chip">Alta prioridade <?= e((string) ($globalDashboardOverview['priority_tasks_today_total'] ?? 0)) ?></span>
                     </div>
@@ -496,7 +496,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             <span class="overview-empty-icon" aria-hidden="true"></span>
                             <div class="overview-empty-copy">
                                 <strong>Nenhuma tarefa sua para hoje</strong>
-                                <span>Seu foco esta livre neste momento.</span>
+                                <span>Seu foco est? livre neste momento.</span>
                             </div>
                             <button type="button" class="overview-empty-action" data-dashboard-view-toggle data-view="tasks">
                                 Abrir tarefas
@@ -533,9 +533,9 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             Abrir vencimentos
                         </button>
                     </div>
-                    <div class="overview-card-inline-metrics" aria-label="Resumo rapido de vencimentos">
+                    <div class="overview-card-inline-metrics" aria-label="Resumo rápido de vencimentos">
                         <span class="overview-card-inline-chip is-critical">Hoje <?= e((string) ($globalDashboardOverview['due_today_total'] ?? 0)) ?></span>
-                        <span class="overview-card-inline-chip is-attention">Amanha <?= e((string) ($globalDashboardOverview['due_tomorrow_total'] ?? 0)) ?></span>
+                        <span class="overview-card-inline-chip is-attention">Amanh? <?= e((string) ($globalDashboardOverview['due_tomorrow_total'] ?? 0)) ?></span>
                     </div>
                     <?php if (empty($globalDashboardOverview['due_soon'])): ?>
                         <div class="overview-empty-state">
@@ -593,16 +593,16 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             Abrir estoque
                         </button>
                     </div>
-                    <div class="overview-card-inline-metrics" aria-label="Resumo rapido de estoque">
-                        <span class="overview-card-inline-chip is-attention">Itens abaixo do minimo <?= e((string) ($globalDashboardOverview['low_stock_total'] ?? 0)) ?></span>
+                    <div class="overview-card-inline-metrics" aria-label="Resumo rápido de estoque">
+                        <span class="overview-card-inline-chip is-attention">Itens abaixo do mínimo <?= e((string) ($globalDashboardOverview['low_stock_total'] ?? 0)) ?></span>
                         <span class="overview-card-inline-chip">Workspaces em foco <?= e((string) (((int) ($globalDashboardOverview['critical_workspace_total'] ?? 0)) + ((int) ($globalDashboardOverview['attention_workspace_total'] ?? 0)))) ?></span>
                     </div>
                     <?php if (empty($globalDashboardOverview['low_stock'])): ?>
                         <div class="overview-empty-state">
                             <span class="overview-empty-icon" aria-hidden="true"></span>
                             <div class="overview-empty-copy">
-                                <strong>Nenhum item abaixo do minimo</strong>
-                                <span>Seu estoque visivel esta equilibrado agora.</span>
+                                <strong>Nenhum item abaixo do mínimo</strong>
+                                <span>Seu estoque visível está equilibrado agora.</span>
                             </div>
                             <button type="button" class="overview-empty-action" data-dashboard-view-toggle data-view="inventory">
                                 Abrir estoque
@@ -642,7 +642,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         <span class="overview-empty-icon" aria-hidden="true"></span>
                         <div class="overview-empty-copy">
                             <strong>Nenhum workspace encontrado</strong>
-                            <span>Sua conta ainda nao possui workspaces visiveis para resumir.</span>
+                            <span>Sua conta ainda não possui workspaces visíveis para resumir.</span>
                         </div>
                     </div>
                 <?php else: ?>
@@ -666,11 +666,11 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         <div class="overview-workspace-title-row">
                                             <strong><?= e((string) ($workspaceSummary['workspace_name'] ?? 'Workspace')) ?></strong>
                                             <span class="overview-workspace-health is-<?= e($workspaceAttentionTone) ?>">
-                                                <?= e((string) ($workspaceSummary['attention_label'] ?? 'Estavel')) ?>
+                                                <?= e((string) ($workspaceSummary['attention_label'] ?? 'Estável')) ?>
                                             </span>
                                         </div>
                                         <div class="overview-workspace-badges">
-                                            <span class="overview-workspace-role"><?= e((string) ($workspaceSummary['workspace_role_label'] ?? 'Usuario')) ?></span>
+                                            <span class="overview-workspace-role"><?= e((string) ($workspaceSummary['workspace_role_label'] ?? 'Usuário')) ?></span>
                                             <?php if ((int) ($workspaceSummary['urgent_tasks_today_count'] ?? 0) > 0): ?>
                                                 <span class="overview-workspace-chip is-critical"><?= e((string) ($workspaceSummary['urgent_tasks_today_count'] ?? 0)) ?> urgente(s)</span>
                                             <?php elseif ((int) ($workspaceSummary['due_today_count'] ?? 0) > 0): ?>
@@ -691,7 +691,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         <?php endif; ?>
                                     </div>
                                 </div>
-                                <p class="overview-workspace-note"><?= e((string) ($workspaceSummary['attention_note'] ?? 'Sem pendencias imediatas.')) ?></p>
+                                <p class="overview-workspace-note"><?= e((string) ($workspaceSummary['attention_note'] ?? 'Sem pendências imediatas.')) ?></p>
                                 <div class="overview-workspace-meter">
                                     <div class="overview-workspace-meter-meta">
                                         <span>Pressao operacional</span>
@@ -715,7 +715,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         <dd><?= e((string) ($workspaceSummary['due_today_count'] ?? 0)) ?></dd>
                                     </div>
                                     <div class="overview-workspace-kpi is-tomorrow">
-                                        <dt>Amanha</dt>
+                                        <dt>Amanh?</dt>
                                         <dd><?= e((string) ($workspaceSummary['due_tomorrow_count'] ?? 0)) ?></dd>
                                     </div>
                                     <div class="overview-workspace-kpi is-stock">
@@ -743,7 +743,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     <h2>Lista de tarefas</h2>
                 </div>
                 <div class="board-summary">
-                    <span data-board-visible-count><?= e((string) count($tasks)) ?> visiveis</span>
+                    <span data-board-visible-count><?= e((string) count($tasks)) ?> visíveis</span>
                     <span data-board-total-count><?= e((string) $stats['total']) ?> total</span>
                 </div>
             </div>
@@ -1004,11 +1004,11 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         type="button"
                                         class="group-done-toggle-button"
                                         data-toggle-group-done
-                                        data-label-hide="Ocultar concluidas"
-                                        data-label-show="Exibir concluidas"
+                                        data-label-hide="Ocultar concluídas"
+                                        data-label-show="Exibir concluídas"
                                         aria-pressed="false"
-                                        aria-label="Ocultar concluidas do grupo <?= e((string) $groupName) ?>"
-                                    >Ocultar concluidas</button>
+                                        aria-label="Ocultar concluídas do grupo <?= e((string) $groupName) ?>"
+                                    >Ocultar concluídas</button>
                                     <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace)): ?>
                                         <button
                                             type="button"
@@ -1166,9 +1166,9 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                             type="button"
                                                             class="task-revision-badge"
                                                             data-task-revision-badge
-                                                            title="Solicitacao de revisao ativa. Clique para remover."
-                                                            aria-label="Remover solicitacao de revisao"
-                                                        >Revisao</button>
+                                                            title="Solicitação de revisão ativa. Clique para remover."
+                                                            aria-label="Remover solicitação de revisão"
+                                                        >Revisão</button>
                                                     <?php endif; ?>
                                                     <button
                                                         type="button"
@@ -1252,7 +1252,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                         type="button"
                                                         class="status-stepper-btn"
                                                         data-status-step="1"
-                                                        aria-label="Proximo status"
+                                                        aria-label="Próximo status"
                                                     >
                                                         <span aria-hidden="true">&#8250;</span>
                                                     </button>
@@ -1386,7 +1386,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                     </label>
 
                                                     <label>
-                                                        <span>Descricao</span>
+                                                        <span>Descrição</span>
                                                         <textarea name="description" rows="3"><?= e((string) $task['description']) ?></textarea>
                                                     </label>
                                                 </div>
@@ -1873,7 +1873,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                     class="due-entry-schedule<?= $dueRecurrenceType === 'monthly' ? ' is-monthly' : ($dueRecurrenceType === 'annual' ? ' is-annual' : ' is-fixed') ?>"
                                                     title="<?= e($dueScheduleTitle) ?>"
                                                 ><?= e($dueScheduleLabel) ?></span>
-                                                <span class="due-entry-next" title="Proximo vencimento: <?= e($dueNextTitle) ?>">
+                                                <span class="due-entry-next" title="Próximo vencimento: <?= e($dueNextTitle) ?>">
                                                     <span class="due-entry-inline-label">Prox.:</span>
                                                     <strong class="due-entry-next-date"><?= e($dueNextDateLabel) ?></strong>
                                                 </span>
@@ -2066,7 +2066,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                     method="post"
                                                     class="inventory-entry-qty inventory-entry-qty-form"
                                                     data-inventory-inline-quantity-form
-                                                    title="Quantidade disponivel"
+                                                    title="Quantidade disponível"
                                                 >
                                                     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                     <input type="hidden" name="action" value="update_inventory_entry_quantity">
@@ -2104,7 +2104,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                     <button type="submit" class="sr-only">Salvar quantidade</button>
                                                 </form>
                                                 <?php if ($inventoryLowStock): ?>
-                                                    <span class="inventory-entry-alert" title="Quantidade atual abaixo do estoque minimo">Baixo estoque</span>
+                                                    <span class="inventory-entry-alert" title="Quantidade atual abaixo do estoque mínimo">Baixo estoque</span>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -2174,7 +2174,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         <a
                             href="<?= e($accountingNextPeriodPath) ?>"
                             class="accounting-period-nav"
-                            aria-label="Ir para o proximo mes"
+                            aria-label="Ir para o próximo mês"
                         >
                             <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
                                 <path d="M6.5 3.5 11 8l-4.5 4.5"></path>
@@ -2641,7 +2641,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         <summary>Selecionar</summary>
                         <div class="assignee-picker-menu">
                             <?php if (!$users): ?>
-                                <p class="assignee-picker-empty">Nenhum usuario cadastrado.</p>
+                                <p class="assignee-picker-empty">Nenhum usuário cadastrado.</p>
                             <?php else: ?>
                                 <?php foreach ($users as $user): ?>
                                     <label class="assignee-option">
@@ -2751,7 +2751,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             type="button"
                             class="status-stepper-btn"
                             data-status-step="1"
-                            aria-label="Proximo status"
+                            aria-label="Próximo status"
                         >
                             <span aria-hidden="true">&#8250;</span>
                         </button>
@@ -2880,7 +2880,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
             <div class="task-detail-edit-main-row">
                 <div class="task-detail-edit-description-field">
-                    <span>Descricao</span>
+                    <span>Descrição</span>
                     <div class="task-detail-edit-description-wrap task-create-description-wrap" data-create-task-description-wrap>
                         <div class="task-detail-edit-description-toolbar task-create-description-toolbar" data-create-task-description-toolbar>
                             <button
@@ -2910,7 +2910,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             contenteditable="true"
                             role="textbox"
                             aria-multiline="true"
-                            aria-label="Descricao da tarefa"
+                            aria-label="Descrição da tarefa"
                         ></div>
                     </div>
                     <textarea name="description" rows="5" data-create-task-description hidden></textarea>
@@ -3012,7 +3012,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
         }
         $createGroupPermissionRows[] = [
             'id' => $memberId,
-            'name' => (string) ($workspaceMember['name'] ?? 'Usuario'),
+            'name' => (string) ($workspaceMember['name'] ?? 'Usuário'),
             'email' => (string) ($workspaceMember['email'] ?? ''),
             'enabled' => $memberEnabled,
             'required' => $memberId === $createGroupCurrentUserId,
@@ -3062,7 +3062,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     </summary>
                     <div class="group-permissions-list">
                         <?php if (!$createGroupPermissionRows): ?>
-                            <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
+                            <p class="group-permissions-empty">Nenhum usuário disponível para configurar.</p>
                         <?php else: ?>
                             <?php foreach ($createGroupPermissionRows as $createGroupPermissionRow): ?>
                                 <div class="group-permissions-row">
@@ -3081,7 +3081,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                             <?= !empty($createGroupPermissionRow['required']) ? 'disabled' : '' ?>
                                             data-permission-enabled-checkbox
                                         >
-                                        <span><?= !empty($createGroupPermissionRow['required']) ? 'Obrigatorio' : 'Permitido' ?></span>
+                                        <span><?= !empty($createGroupPermissionRow['required']) ? 'Obrigatório' : 'Permitido' ?></span>
                                     </label>
                                 </div>
                             <?php endforeach; ?>
@@ -3493,7 +3493,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             </div>
 
             <label>
-                <span>Estoque minimo</span>
+                <span>Estoque mínimo</span>
                 <input type="number" name="min_quantity_value" min="0" step="1" data-inventory-entry-min-quantity>
             </label>
 
@@ -3550,7 +3550,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             </div>
 
             <label>
-                <span>Estoque minimo</span>
+                <span>Estoque mínimo</span>
                 <input type="number" name="min_quantity_value" min="0" step="1" data-inventory-entry-edit-min-quantity>
             </label>
 
@@ -3604,7 +3604,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         }
                         $taskPermissionRows[] = [
                             'id' => $memberId,
-                            'name' => (string) ($workspaceMember['name'] ?? 'Usuario'),
+                            'name' => (string) ($workspaceMember['name'] ?? 'Usuário'),
                             'email' => (string) ($workspaceMember['email'] ?? ''),
                             'enabled' => $memberEnabled,
                             'required' => $isRequiredMember,
@@ -3631,12 +3631,12 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                     <details class="group-permissions-members" open>
                         <summary>
-                            <span>Usuarios do workspace</span>
+                            <span>Usuários do workspace</span>
                             <span class="group-permissions-summary-count" data-permission-summary-count><?= e($taskCounterLabel) ?></span>
                         </summary>
                         <div class="group-permissions-list">
                             <?php if (!$taskPermissionRows): ?>
-                                <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
+                                <p class="group-permissions-empty">Nenhum usuário disponível para configurar.</p>
                             <?php else: ?>
                                 <?php foreach ($taskPermissionRows as $taskPermissionRow): ?>
                                     <div class="group-permissions-row">
@@ -3655,7 +3655,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                 <?= !empty($taskPermissionRow['required']) ? 'disabled' : '' ?>
                                                 data-permission-enabled-checkbox
                                             >
-                                            <span><?= !empty($taskPermissionRow['required']) ? 'Obrigatorio' : 'Permitido' ?></span>
+                                            <span><?= !empty($taskPermissionRow['required']) ? 'Obrigatório' : 'Permitido' ?></span>
                                         </label>
                                     </div>
                                 <?php endforeach; ?>
@@ -3665,7 +3665,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                     <div class="modal-actions">
                         <button type="button" class="btn btn-mini btn-ghost" data-close-group-permissions-modal>Cancelar</button>
-                        <button type="submit" class="btn btn-pill">Salvar permissoes</button>
+                        <button type="submit" class="btn btn-pill">Salvar permissões</button>
                     </div>
                 </form>
             </section>
@@ -3712,7 +3712,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         }
                         $vaultPermissionRows[] = [
                             'id' => $memberId,
-                            'name' => (string) ($workspaceMember['name'] ?? 'Usuario'),
+                            'name' => (string) ($workspaceMember['name'] ?? 'Usuário'),
                             'email' => (string) ($workspaceMember['email'] ?? ''),
                             'enabled' => $memberEnabled,
                         ];
@@ -3737,12 +3737,12 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                     <details class="group-permissions-members" open>
                         <summary>
-                            <span>Usuarios do workspace</span>
+                            <span>Usuários do workspace</span>
                             <span class="group-permissions-summary-count" data-permission-summary-count><?= e($vaultCounterLabel) ?></span>
                         </summary>
                         <div class="group-permissions-list">
                             <?php if (!$vaultPermissionRows): ?>
-                                <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
+                                <p class="group-permissions-empty">Nenhum usuário disponível para configurar.</p>
                             <?php else: ?>
                                 <?php foreach ($vaultPermissionRows as $vaultPermissionRow): ?>
                                     <div class="group-permissions-row">
@@ -3769,7 +3769,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                     <div class="modal-actions">
                         <button type="button" class="btn btn-mini btn-ghost" data-close-group-permissions-modal>Cancelar</button>
-                        <button type="submit" class="btn btn-pill">Salvar permissoes</button>
+                        <button type="submit" class="btn btn-pill">Salvar permissões</button>
                     </div>
                 </form>
             </section>
@@ -3816,7 +3816,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         }
                         $duePermissionRows[] = [
                             'id' => $memberId,
-                            'name' => (string) ($workspaceMember['name'] ?? 'Usuario'),
+                            'name' => (string) ($workspaceMember['name'] ?? 'Usuário'),
                             'email' => (string) ($workspaceMember['email'] ?? ''),
                             'enabled' => $memberEnabled,
                         ];
@@ -3841,12 +3841,12 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                     <details class="group-permissions-members" open>
                         <summary>
-                            <span>Usuarios do workspace</span>
+                            <span>Usuários do workspace</span>
                             <span class="group-permissions-summary-count" data-permission-summary-count><?= e($dueCounterLabel) ?></span>
                         </summary>
                         <div class="group-permissions-list">
                             <?php if (!$duePermissionRows): ?>
-                                <p class="group-permissions-empty">Nenhum usuario disponivel para configurar.</p>
+                                <p class="group-permissions-empty">Nenhum usuário disponível para configurar.</p>
                             <?php else: ?>
                                 <?php foreach ($duePermissionRows as $duePermissionRow): ?>
                                     <div class="group-permissions-row">
@@ -3873,7 +3873,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                     <div class="modal-actions">
                         <button type="button" class="btn btn-mini btn-ghost" data-close-group-permissions-modal>Cancelar</button>
-                        <button type="submit" class="btn btn-pill">Salvar permissoes</button>
+                        <button type="submit" class="btn btn-pill">Salvar permissões</button>
                     </div>
                 </form>
             </section>
@@ -3917,14 +3917,14 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                         <div class="task-detail-view-block">
                             <div class="task-detail-view-label-row">
-                                <div class="task-detail-view-label">Descricao</div>
+                                <div class="task-detail-view-label">Descrição</div>
                                 <button
                                     type="button"
                                     class="task-detail-description-remove"
                                     data-task-detail-remove-revision
                                     hidden
-                                    aria-label="Remover ultima solicitacao de ajuste"
-                                    title="Remover ultima solicitacao de ajuste"
+                                    aria-label="Remover ultima solicitação de ajuste"
+                                    title="Remover ultima solicitação de ajuste"
                                 >
                                     <span aria-hidden="true">&#10005;</span>
                                 </button>
@@ -4090,7 +4090,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     type="button"
                                     class="status-stepper-btn"
                                     data-status-step="1"
-                                    aria-label="Proximo status"
+                                    aria-label="Próximo status"
                                 >
                                     <span aria-hidden="true">&#8250;</span>
                                 </button>
@@ -4217,7 +4217,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
 
                     <div class="task-detail-edit-main-row">
                         <div class="task-detail-edit-description-field">
-                            <span>Descricao</span>
+                            <span>Descrição</span>
                             <div class="task-detail-edit-description-wrap" data-task-detail-edit-description-wrap>
                                 <div class="task-detail-edit-description-toolbar" data-task-detail-edit-description-toolbar>
                                     <button
@@ -4247,7 +4247,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     contenteditable="true"
                                     role="textbox"
                                     aria-multiline="true"
-                                    aria-label="Descricao da tarefa"
+                                    aria-label="Descrição da tarefa"
                                 ></div>
                             </div>
                             <textarea rows="5" data-task-detail-edit-description hidden></textarea>
@@ -4344,7 +4344,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             <input type="hidden" name="task_id" value="" data-task-review-task-id>
 
             <label>
-                <span>Nova descricao para ajustes</span>
+                <span>Nova descrição para ajustes</span>
                 <textarea name="revision_description" rows="6" maxlength="8000" required data-task-review-description></textarea>
             </label>
 

@@ -24,18 +24,18 @@ function requireSnapshotWorkspaceContext(): array
 {
     $currentUser = currentUser();
     if (!$currentUser) {
-        throw new RuntimeException('Sessao expirada. Faca login novamente.');
+        throw new RuntimeException('Sessão expirada. Faça login novamente.');
     }
 
     $workspaceId = activeWorkspaceId($currentUser);
     if ($workspaceId === null) {
-        throw new RuntimeException('Workspace ativo nao encontrado.');
+        throw new RuntimeException('Workspace ativo não encontrado.');
     }
     $currentWorkspace = workspaceById($workspaceId);
 
     $userId = (int) ($currentUser['id'] ?? 0);
     if ($userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     return [

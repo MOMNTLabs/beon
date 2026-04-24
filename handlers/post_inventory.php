@@ -8,12 +8,12 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $groupName = normalizeInventoryGroupName((string) ($_POST['group_name'] ?? ''));
                 if (findInventoryGroupByName($groupName, $workspaceId) !== null) {
-                    throw new RuntimeException('Este grupo de estoque ja existe.');
+                    throw new RuntimeException('Este grupo de estoque já existe.');
                 }
 
                 upsertInventoryGroup($pdo, $groupName, (int) $authUser['id'], $workspaceId);
@@ -24,14 +24,14 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $oldGroupInput = normalizeInventoryGroupName((string) ($_POST['old_group_name'] ?? ''));
                 $newGroupName = normalizeInventoryGroupName((string) ($_POST['new_group_name'] ?? ''));
                 $existingOldGroupName = findInventoryGroupByName($oldGroupInput, $workspaceId);
                 if ($existingOldGroupName === null) {
-                    throw new RuntimeException('Grupo de estoque nao encontrado.');
+                    throw new RuntimeException('Grupo de estoque não encontrado.');
                 }
 
                 $existingTargetGroupName = findInventoryGroupByName($newGroupName, $workspaceId);
@@ -39,7 +39,7 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                     $existingTargetGroupName !== null &&
                     mb_strtolower($existingTargetGroupName) !== mb_strtolower($existingOldGroupName)
                 ) {
-                    throw new RuntimeException('Ja existe um grupo de estoque com este nome.');
+                    throw new RuntimeException('Já existe um grupo de estoque com este nome.');
                 }
 
                 if (mb_strtolower($existingOldGroupName) !== mb_strtolower($newGroupName)) {
@@ -87,13 +87,13 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $groupName = normalizeInventoryGroupName((string) ($_POST['group_name'] ?? ''));
                 $existingGroupName = findInventoryGroupByName($groupName, $workspaceId);
                 if ($existingGroupName === null) {
-                    throw new RuntimeException('Grupo de estoque nao encontrado.');
+                    throw new RuntimeException('Grupo de estoque não encontrado.');
                 }
 
                 $pdo->beginTransaction();
@@ -119,7 +119,7 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                         ':group_name' => $existingGroupName,
                     ]);
                     if ($deleteGroupStmt->rowCount() <= 0) {
-                        throw new RuntimeException('Nao foi possivel remover o grupo de estoque.');
+                        throw new RuntimeException('Não foi possível remover o grupo de estoque.');
                     }
 
                     $pdo->commit();
@@ -142,7 +142,7 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $groupNameInput = normalizeInventoryGroupName((string) ($_POST['group_name'] ?? ''));
@@ -175,7 +175,7 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
@@ -194,7 +194,7 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 ]);
                 $entryGroupName = $entryGroupStmt->fetchColumn();
                 if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
-                    throw new RuntimeException('Registro nao encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
 
                 updateWorkspaceInventoryEntry(
@@ -224,7 +224,7 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
@@ -250,7 +250,7 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
@@ -267,7 +267,7 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 ]);
                 $entryGroupName = $entryGroupStmt->fetchColumn();
                 if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
-                    throw new RuntimeException('Registro nao encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
 
                 deleteWorkspaceInventoryEntry($pdo, $workspaceId, $entryId);

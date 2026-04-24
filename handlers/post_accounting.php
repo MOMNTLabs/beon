@@ -11,7 +11,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $periodKey = normalizeAccountingPeriodKey((string) ($_POST['period_key'] ?? ''));
@@ -49,12 +49,12 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
                 if ($entryId <= 0) {
-                    throw new RuntimeException('Registro invalido.');
+                    throw new RuntimeException('Registro inválido.');
                 }
 
                 $entryWorkspaceStmt = $pdo->prepare(
@@ -67,7 +67,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $entryRow = $entryWorkspaceStmt->fetch(PDO::FETCH_ASSOC);
                 $entryWorkspaceId = (int) ($entryRow['workspace_id'] ?? 0);
                 if ($entryWorkspaceId <= 0 || $entryWorkspaceId !== $workspaceId) {
-                    throw new RuntimeException('Registro nao encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
 
                 $isSettled = array_key_exists('is_settled', $_POST) ? 1 : 0;
@@ -101,12 +101,12 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
                 if ($entryId <= 0) {
-                    throw new RuntimeException('Registro invalido.');
+                    throw new RuntimeException('Registro inválido.');
                 }
 
                 $entryWorkspaceStmt = $pdo->prepare(
@@ -118,7 +118,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $entryWorkspaceStmt->execute([':id' => $entryId]);
                 $entryWorkspaceId = (int) $entryWorkspaceStmt->fetchColumn();
                 if ($entryWorkspaceId <= 0 || $entryWorkspaceId !== $workspaceId) {
-                    throw new RuntimeException('Registro nao encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
 
                 deleteWorkspaceAccountingEntry($pdo, $workspaceId, $entryId);

@@ -4,7 +4,7 @@
                     <h2>Lista de tarefas</h2>
                 </div>
                 <div class="board-summary">
-                    <span data-board-visible-count><?= e((string) count($tasks)) ?> visiveis</span>
+                    <span data-board-visible-count><?= e((string) count($tasks)) ?> visíveis</span>
                     <span data-board-total-count><?= e((string) $stats['total']) ?> total</span>
                 </div>
             </div>
@@ -266,11 +266,11 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         type="button"
                                         class="group-done-toggle-button"
                                         data-toggle-group-done
-                                        data-label-hide="Ocultar concluidas"
-                                        data-label-show="Exibir concluidas"
+                                        data-label-hide="Ocultar concluídas"
+                                        data-label-show="Exibir concluídas"
                                         aria-pressed="false"
-                                        aria-label="Ocultar concluidas do grupo <?= e((string) $groupName) ?>"
-                                    >Ocultar concluidas</button>
+                                        aria-label="Ocultar concluídas do grupo <?= e((string) $groupName) ?>"
+                                    >Ocultar concluídas</button>
                                     <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace)): ?>
                                         <button
                                             type="button"
@@ -428,9 +428,9 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                             type="button"
                                                             class="task-revision-badge"
                                                             data-task-revision-badge
-                                                            title="Solicitacao de revisao ativa. Clique para remover."
-                                                            aria-label="Remover solicitacao de revisao"
-                                                        >Revisao</button>
+                                                            title="Solicitação de revisão ativa. Clique para remover."
+                                                            aria-label="Remover solicitação de revisão"
+                                                        >Revisão</button>
                                                     <?php endif; ?>
                                                     <button
                                                         type="button"
@@ -514,7 +514,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                         type="button"
                                                         class="status-stepper-btn"
                                                         data-status-step="1"
-                                                        aria-label="Proximo status"
+                                                        aria-label="Próximo status"
                                                     >
                                                         <span aria-hidden="true">&#8250;</span>
                                                     </button>
@@ -648,7 +648,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                     </label>
 
                                                     <label>
-                                                        <span>Descricao</span>
+                                                        <span>Descrição</span>
                                                         <textarea name="description" rows="3"><?= e((string) $task['description']) ?></textarea>
                                                     </label>
                                                 </div>

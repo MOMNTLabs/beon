@@ -197,7 +197,7 @@
                                                     class="due-entry-schedule<?= $dueRecurrenceType === 'monthly' ? ' is-monthly' : ($dueRecurrenceType === 'annual' ? ' is-annual' : ' is-fixed') ?>"
                                                     title="<?= e($dueScheduleTitle) ?>"
                                                 ><?= e($dueScheduleLabel) ?></span>
-                                                <span class="due-entry-next" title="Proximo vencimento: <?= e($dueNextTitle) ?>">
+                                                <span class="due-entry-next" title="Próximo vencimento: <?= e($dueNextTitle) ?>">
                                                     <span class="due-entry-inline-label">Prox.:</span>
                                                     <strong class="due-entry-next-date"><?= e($dueNextDateLabel) ?></strong>
                                                 </span>

@@ -8,12 +8,12 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
 
                 if (findTaskGroupByName($groupName, $workspaceId) !== null) {
-                    throw new RuntimeException('Este grupo jÃ¡ existe.');
+                    throw new RuntimeException('Este grupo já existe.');
                 }
 
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
@@ -50,17 +50,17 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 $oldGroupInput = normalizeTaskGroupName((string) ($_POST['old_group_name'] ?? ''));
                 $newGroupName = normalizeTaskGroupName((string) ($_POST['new_group_name'] ?? ''));
                 $existingOldGroupName = findTaskGroupByName($oldGroupInput, $workspaceId);
 
                 if ($existingOldGroupName === null) {
-                    throw new RuntimeException('Grupo nao encontrado.');
+                    throw new RuntimeException('Grupo não encontrado.');
                 }
                 if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $existingOldGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para gerenciar este grupo.');
+                    throw new RuntimeException('Você não possui acesso para gerenciar este grupo.');
                 }
 
                 $existingTargetGroupName = findTaskGroupByName($newGroupName, $workspaceId);
@@ -68,7 +68,7 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                     $existingTargetGroupName !== null &&
                     mb_strtolower($existingTargetGroupName) !== mb_strtolower($existingOldGroupName)
                 ) {
-                    throw new RuntimeException('Ja existe um grupo com este nome.');
+                    throw new RuntimeException('Já existe um grupo com este nome.');
                 }
 
                 $taskCountStmt = $pdo->prepare(
@@ -173,16 +173,16 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 $groupName = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
                 $existingGroupName = findTaskGroupByName($groupName, $workspaceId);
 
                 if ($existingGroupName === null) {
-                    throw new RuntimeException('Grupo nao encontrado.');
+                    throw new RuntimeException('Grupo não encontrado.');
                 }
                 if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $existingGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para remover este grupo.');
+                    throw new RuntimeException('Você não possui acesso para remover este grupo.');
                 }
 
                 $taskIdsStmt = $pdo->prepare(
@@ -238,7 +238,7 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                     ]);
 
                     if ($deleteGroupStmt->rowCount() <= 0) {
-                        throw new RuntimeException('Nao foi possivel remover o grupo.');
+                        throw new RuntimeException('Não foi possível remover o grupo.');
                     }
 
                     deleteTaskGroupPermissions($pdo, $workspaceId, $existingGroupName);
@@ -272,7 +272,7 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem configurar acessos por grupo.');
@@ -281,7 +281,7 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                 $groupInput = normalizeTaskGroupName((string) ($_POST['group_name'] ?? ''));
                 $existingGroupName = findTaskGroupByName($groupInput, $workspaceId);
                 if ($existingGroupName === null) {
-                    throw new RuntimeException('Grupo nao encontrado.');
+                    throw new RuntimeException('Grupo não encontrado.');
                 }
 
                 $rolesByUserId = workspaceRolesByUserId(workspaceMembersList($workspaceId));

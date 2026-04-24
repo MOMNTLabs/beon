@@ -57,13 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $selector = trim((string) ($_GET['selector'] ?? ''));
         $token = trim((string) ($_GET['token'] ?? ''));
         if ($selector === '' || $token === '') {
-            flash('error', 'Link de redefinicao invalido.');
+            flash('error', 'Link de redefinição inválido.');
             redirectTo('index.php?auth=forgot-password#forgot-password');
         }
 
         $passwordResetRequest = validPasswordResetRequest($selector, $token);
         if (!$passwordResetRequest) {
-            flash('error', 'Este link de redefinicao e invalido ou expirou.');
+            flash('error', 'Este link de redefinição e inválido ou expirou.');
             redirectTo('index.php?auth=forgot-password#forgot-password');
         }
 
@@ -145,13 +145,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             if (!$authUser) {
                 respondJson([
                     'ok' => false,
-                    'error' => 'Sessao expirada. Faca login novamente.',
+                    'error' => 'Sessão expirada. Faça login novamente.',
                 ], 401);
             }
 
             $workspaceId = activeWorkspaceId($authUser);
             if ($workspaceId === null) {
-                throw new RuntimeException('Workspace ativo nao encontrado.');
+                throw new RuntimeException('Workspace ativo não encontrado.');
             }
 
             if (shouldApplyOverduePolicyDuringRequests()) {
@@ -226,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (handleTaskGroupPostAction($pdo, $action)) {
                     break;
                 }
-                throw new RuntimeException('Acao invalida.');
+                throw new RuntimeException('Ação inválida.');
         }
     } catch (Throwable $e) {
         if (requestExpectsJson()) {
@@ -488,8 +488,8 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <title><?= e(APP_NAME) ?></title>
     <link rel="icon" type="image/png" href="assets/Bexon---Logo-Symbol.png?v=1">
     <link rel="shortcut icon" href="assets/Bexon---Logo-Symbol.png?v=1">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preçonnect" href="https://fonts.googleapis.com">
+    <link rel="preçonnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">

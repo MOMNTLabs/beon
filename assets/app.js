@@ -310,7 +310,7 @@ window.addEventListener("DOMContentLoaded", () => {
         allowEmpty: true,
       });
       if (normalizedMinQuantity === null) {
-        showClientFlash("error", "Use apenas numeros inteiros no estoque minimo.");
+        showClientFlash("error", "Use apenas numeros inteiros no estoque mínimo.");
         minQuantityField.focus();
         return false;
       }
@@ -898,7 +898,7 @@ window.addEventListener("DOMContentLoaded", () => {
         option.classList.toggle("is-unavailable", isUnavailable);
         option.setAttribute("aria-disabled", isUnavailable ? "true" : "false");
         if (isUnavailable) {
-          option.setAttribute("title", "Cor ja usada em outro status");
+          option.setAttribute("title", "Cor já usada em outro status");
         } else {
           option.removeAttribute("title");
         }
@@ -1092,7 +1092,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (workspaceStatusColorOption instanceof HTMLButtonElement) {
       event.preventDefault();
       if (workspaceStatusColorOption.disabled || workspaceStatusColorOption.classList.contains("is-unavailable")) {
-        showClientFlash("error", "Essa cor ja esta sendo usada em outro status.");
+        showClientFlash("error", "Essa cor já esta sendo usada em outro status.");
         return;
       }
       const control = workspaceStatusColorOption.closest("[data-workspace-status-color-control]");
@@ -1475,8 +1475,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (raw === tomorrowIso) {
       return {
-        display: "Amanha",
-        title: `Amanha (${formatted})`,
+        display: "Amanh?",
+        title: `Amanh? (${formatted})`,
         isRelative: true,
       };
     }
@@ -1745,7 +1745,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailViewDescription.innerHTML = formatTaskDescriptionHtml(currentDescription);
       taskDetailViewDescription.classList.remove("is-empty");
     } else {
-      taskDetailViewDescription.textContent = "Sem descricao.";
+      taskDetailViewDescription.textContent = "Sem descrição.";
       taskDetailViewDescription.classList.add("is-empty");
     }
 
@@ -1767,8 +1767,8 @@ window.addEventListener("DOMContentLoaded", () => {
       const summaryDate = formatHistoryDateTime(revision.createdAt || "");
       const summaryActor = revision.actorName ? ` · ${revision.actorName}` : "";
       summary.textContent = summaryDate
-        ? `Descricao anterior ${index + 1} · ${summaryDate}${summaryActor}`
-        : `Descricao anterior ${index + 1}`;
+        ? `Descrição anterior ${index + 1} · ${summaryDate}${summaryActor}`
+        : `Descrição anterior ${index + 1}`;
 
       const body = document.createElement("div");
       body.className = "task-detail-description-version-body";
@@ -2554,9 +2554,9 @@ window.addEventListener("DOMContentLoaded", () => {
           Number(payload.new_completed) || 0
         }/${Number(payload.new_total) || 0}`;
       case "revision_requested":
-        return "Solicitacao de ajuste na descricao";
+        return "Solicitação de ajuste na descrição";
       case "revision_removed":
-        return "Solicitacao de ajuste removida";
+        return "Solicitação de ajuste removida";
       case "overdue_started":
         return `Atraso detectado (${Math.max(0, Number(payload.overdue_days) || 0)} dia(s))`;
       case "overdue_cleared":
@@ -2581,7 +2581,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const overdueItem = document.createElement("div");
       overdueItem.className = "task-detail-history-item is-alert";
       const title = document.createElement("strong");
-      title.textContent = `Em atraso ha ${Math.max(0, Number(overdueDays) || 0)} dia(s)`;
+      title.textContent = `Em atraso h? ${Math.max(0, Number(overdueDays) || 0)} dia(s)`;
       const subtitle = document.createElement("span");
       subtitle.textContent = overdueSinceDate
         ? `Desde ${formatHistoryDate(overdueSinceDate)}`
@@ -2799,9 +2799,9 @@ window.addEventListener("DOMContentLoaded", () => {
     badge.type = "button";
     badge.className = "task-revision-badge";
     badge.dataset.taskRevisionBadge = "";
-    badge.textContent = "Revisao";
-    badge.title = "Solicitacao de revisao ativa. Clique para remover.";
-    badge.setAttribute("aria-label", "Remover solicitacao de revisao");
+    badge.textContent = "Revisão";
+    badge.title = "Solicitação de revisão ativa. Clique para remover.";
+    badge.setAttribute("aria-label", "Remover solicitação de revisão");
     return badge;
   };
 
@@ -3085,7 +3085,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const adjustBoardSummaryCounts = ({ visible = 0, total = 0 } = {}) => {
-    updateBoardCountText("[data-board-visible-count]", "visiveis", visible);
+    updateBoardCountText("[data-board-visible-count]", "visíveis", visible);
     updateBoardCountText("[data-board-total-count]", "total", total);
   };
 
@@ -3147,7 +3147,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const row = document.createElement("div");
     row.className = "task-group-hidden-done-row";
     row.dataset.taskGroupHiddenDoneRow = "";
-    row.textContent = "Tarefas concluidas ocultas.";
+    row.textContent = "Tarefas concluídas ocultas.";
     return row;
   };
 
@@ -3156,8 +3156,8 @@ window.addEventListener("DOMContentLoaded", () => {
     const toggleButton = groupSection.querySelector("[data-toggle-group-done]");
     if (!(toggleButton instanceof HTMLButtonElement)) return;
 
-    const hideLabel = (toggleButton.dataset.labelHide || "").trim() || "Ocultar concluidas";
-    const showLabel = (toggleButton.dataset.labelShow || "").trim() || "Exibir concluidas";
+    const hideLabel = (toggleButton.dataset.labelHide || "").trim() || "Ocultar concluídas";
+    const showLabel = (toggleButton.dataset.labelShow || "").trim() || "Exibir concluídas";
     const isDoneHidden = groupSection.classList.contains("is-done-hidden");
     const nextLabel = isDoneHidden ? showLabel : hideLabel;
     const groupName = (groupSection.dataset.groupName || "Geral").trim() || "Geral";
@@ -3226,8 +3226,8 @@ window.addEventListener("DOMContentLoaded", () => {
     if (hiddenDoneCount > 0 && visibleTaskCount === 0 && totalTaskCount > 0) {
       const hiddenLabel =
         hiddenDoneCount === 1
-          ? "1 tarefa concluida oculta."
-          : `${hiddenDoneCount} tarefas concluidas ocultas.`;
+          ? "1 tarefa concluída oculta."
+          : `${hiddenDoneCount} tarefas concluídas ocultas.`;
       if (doneHiddenRow instanceof HTMLElement) {
         doneHiddenRow.textContent = hiddenLabel;
       } else {
@@ -3621,7 +3621,7 @@ window.addEventListener("DOMContentLoaded", () => {
       return { response, data };
     };
 
-    let lastMessage = "Nao foi possivel concluir a operacao.";
+    let lastMessage = "Não foi possível concluir a operação.";
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const { response, data } = await runAttempt();
@@ -3631,7 +3631,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
       const message =
         (data && (data.error || data.message)) ||
-        "Nao foi possivel concluir a operacao.";
+        "Não foi possível concluir a operação.";
       lastMessage = message;
 
       const shouldRetry = attempt === 0 && isDatabaseLockedMessage(message);
@@ -3671,7 +3671,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!response.ok || !data || data.ok !== true) {
-      const message = (data && (data.error || data.message)) || "Nao foi possivel concluir a operacao.";
+      const message = (data && (data.error || data.message)) || "Não foi possível concluir a operação.";
       throw new Error(message);
     }
 
@@ -3844,7 +3844,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (taskNotificationState.notifications.length === 0) {
       const empty = document.createElement("p");
       empty.className = "header-notification-empty";
-      empty.textContent = "Sem notificacoes.";
+      empty.textContent = "Sem notificações.";
       headerNotificationsList.append(empty);
       updateHeaderNotificationCount();
       return;
@@ -3964,7 +3964,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (!response.ok || !data || data.ok !== true) {
       throw new Error(
-        (data && (data.error || data.message)) || "Nao foi possivel carregar notificacoes."
+        (data && (data.error || data.message)) || "Não foi possível carregar notificações."
       );
     }
 
@@ -4311,7 +4311,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const fetchTaskPanelSnapshot = async () =>
-    fetchPanelSnapshot("task_panel_snapshot", "Nao foi possivel atualizar tarefas.");
+    fetchPanelSnapshot("task_panel_snapshot", "Não foi possível atualizar tarefas.");
 
   const fetchDashboardDocumentLegacy = async (fallbackErrorMessage) => {
     const url = `${window.location.pathname}${window.location.search}`;
@@ -4347,7 +4347,7 @@ window.addEventListener("DOMContentLoaded", () => {
       nextDoc = parser.parseFromString(panelHtml, "text/html");
     } catch (_snapshotError) {
       snapshotData = null;
-      nextDoc = await fetchDashboardDocumentLegacy("Nao foi possivel atualizar tarefas.");
+      nextDoc = await fetchDashboardDocumentLegacy("Não foi possível atualizar tarefas.");
     }
 
     const currentGroupsList =
@@ -4475,7 +4475,7 @@ window.addEventListener("DOMContentLoaded", () => {
     try {
       snapshotData = await fetchPanelSnapshot(
         "vault_panel_snapshot",
-        "Nao foi possivel atualizar o cofre."
+        "Não foi possível atualizar o cofre."
       );
       const panelHtml = String(snapshotData.panel_html || "").trim();
       if (!panelHtml) {
@@ -4486,7 +4486,7 @@ window.addEventListener("DOMContentLoaded", () => {
       nextDoc = parser.parseFromString(panelHtml, "text/html");
     } catch (_snapshotError) {
       snapshotData = null;
-      nextDoc = await fetchDashboardDocumentLegacy("Nao foi possivel atualizar o cofre.");
+      nextDoc = await fetchDashboardDocumentLegacy("Não foi possível atualizar o cofre.");
     }
 
     const currentGroupsList = document.querySelector("#vault .vault-groups-list");
@@ -4541,7 +4541,7 @@ window.addEventListener("DOMContentLoaded", () => {
     try {
       snapshotData = await fetchPanelSnapshot(
         "due_panel_snapshot",
-        "Nao foi possivel atualizar os vencimentos."
+        "Não foi possível atualizar os vencimentos."
       );
       const panelHtml = String(snapshotData.panel_html || "").trim();
       if (!panelHtml) {
@@ -4552,7 +4552,7 @@ window.addEventListener("DOMContentLoaded", () => {
       nextDoc = parser.parseFromString(panelHtml, "text/html");
     } catch (_snapshotError) {
       snapshotData = null;
-      nextDoc = await fetchDashboardDocumentLegacy("Nao foi possivel atualizar os vencimentos.");
+      nextDoc = await fetchDashboardDocumentLegacy("Não foi possível atualizar os vencimentos.");
     }
 
     const currentGroupsList = document.querySelector("#dues .due-groups-list");
@@ -4603,7 +4603,7 @@ window.addEventListener("DOMContentLoaded", () => {
     try {
       snapshotData = await fetchPanelSnapshot(
         "inventory_panel_snapshot",
-        "Nao foi possivel atualizar o estoque."
+        "Não foi possível atualizar o estoque."
       );
       const panelHtml = String(snapshotData.panel_html || "").trim();
       if (!panelHtml) {
@@ -4614,7 +4614,7 @@ window.addEventListener("DOMContentLoaded", () => {
       nextDoc = parser.parseFromString(panelHtml, "text/html");
     } catch (_snapshotError) {
       snapshotData = null;
-      nextDoc = await fetchDashboardDocumentLegacy("Nao foi possivel atualizar o estoque.");
+      nextDoc = await fetchDashboardDocumentLegacy("Não foi possível atualizar o estoque.");
     }
 
     const currentGroupsList = document.querySelector("#inventory .inventory-groups-list");
@@ -4668,11 +4668,11 @@ window.addEventListener("DOMContentLoaded", () => {
     try {
       snapshotData = await fetchPanelSnapshot(
         "users_panel_snapshot",
-        "Nao foi possivel atualizar os usuarios do workspace."
+        "Não foi possível atualizar os usuários do workspace."
       );
       const panelHtml = String(snapshotData.panel_html || "").trim();
       if (!panelHtml) {
-        throw new Error("Snapshot de usuarios vazio.");
+        throw new Error("Snapshot de usuários vazio.");
       }
 
       const parser = new DOMParser();
@@ -4680,14 +4680,14 @@ window.addEventListener("DOMContentLoaded", () => {
     } catch (_snapshotError) {
       snapshotData = null;
       nextDoc = await fetchDashboardDocumentLegacy(
-        "Nao foi possivel atualizar os usuarios do workspace."
+        "Não foi possível atualizar os usuários do workspace."
       );
     }
 
     const currentUsersGrid = document.querySelector("#users .users-settings-grid");
     const nextUsersGrid = nextDoc.querySelector("#users .users-settings-grid");
     if (!(currentUsersGrid instanceof HTMLElement) || !(nextUsersGrid instanceof HTMLElement)) {
-      throw new Error("Nao foi possivel atualizar os usuarios do workspace.");
+      throw new Error("Não foi possível atualizar os usuários do workspace.");
     }
     currentUsersGrid.replaceWith(nextUsersGrid);
     initializeWorkspaceSidebarToolsForms();
@@ -4970,7 +4970,7 @@ window.addEventListener("DOMContentLoaded", () => {
     form,
     {
       successMessage = "",
-      fallbackError = "Falha ao atualizar usuarios do workspace.",
+      fallbackError = "Falha ao atualizar usuários do workspace.",
     } = {}
   ) => {
     if (!(form instanceof HTMLFormElement)) return false;
@@ -5201,7 +5201,7 @@ window.addEventListener("DOMContentLoaded", () => {
     try {
       snapshotData = await fetchPanelSnapshot(
         "accounting_panel_snapshot",
-        "Nao foi possivel atualizar a contabilidade."
+        "Não foi possível atualizar a contabilidade."
       );
       const sheetHtml = String(snapshotData.accounting_sheet_html || "").trim();
       if (!sheetHtml) {
@@ -5212,7 +5212,7 @@ window.addEventListener("DOMContentLoaded", () => {
     } catch (_snapshotError) {
       snapshotData = null;
       nextDoc = await fetchDashboardDocumentLegacy(
-        "Nao foi possivel atualizar a contabilidade."
+        "Não foi possível atualizar a contabilidade."
       );
     }
 
@@ -5221,7 +5221,7 @@ window.addEventListener("DOMContentLoaded", () => {
       nextDoc.querySelector(".accounting-sheet") ||
       nextDoc.querySelector("#accounting .accounting-sheet");
     if (!(currentSheet instanceof HTMLElement) || !(nextSheet instanceof HTMLElement)) {
-      throw new Error("Nao foi possivel atualizar a contabilidade.");
+      throw new Error("Não foi possível atualizar a contabilidade.");
     }
 
     currentSheet.replaceWith(nextSheet);
@@ -8457,7 +8457,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const readFileAsDataUrl = (file) =>
     new Promise((resolve, reject) => {
       if (!(file instanceof File)) {
-        reject(new Error("Arquivo invalido."));
+        reject(new Error("Arquivo inválido."));
         return;
       }
 
@@ -9462,7 +9462,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const copyTaskDetailModalToRow = (context = taskDetailContext) => {
     if (!context) return false;
     if (context.readOnly) {
-      showClientFlash("error", "Voce nao possui acesso para editar tarefas deste grupo.");
+      showClientFlash("error", "Você não possui acesso para editar tarefas deste grupo.");
       return false;
     }
     if (
@@ -9619,14 +9619,14 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(taskReviewModal instanceof HTMLElement)) return;
     if (!(taskDetailContext?.form instanceof HTMLFormElement)) return;
     if (Boolean(taskDetailContext.readOnly)) {
-      showClientFlash("error", "Voce nao possui acesso para solicitar ajuste nesta tarefa.");
+      showClientFlash("error", "Você não possui acesso para solicitar ajuste nesta tarefa.");
       return;
     }
 
     const statusValue = String(taskDetailContext.statusSelect?.value || "").trim();
     const statusKind = getStatusOptionKind(getSelectedStatusOption(taskDetailContext.statusSelect));
     if (!statusValue || statusKind !== "review") {
-      showClientFlash("error", "A solicitacao de ajuste so esta disponivel para tarefas em revisao.");
+      showClientFlash("error", "A solicitação de ajuste so esta disponível para tarefas em revisão.");
       return;
     }
 
@@ -9715,7 +9715,7 @@ window.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       showClientFlash(
         "error",
-        error instanceof Error ? error.message : "Nao foi possivel solicitar ajuste na tarefa."
+        error instanceof Error ? error.message : "Não foi possível solicitar ajuste na tarefa."
       );
     } finally {
       if (taskReviewSubmitButton instanceof HTMLButtonElement) {
@@ -9732,7 +9732,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const sourceForm = taskDetailContext?.form;
     if (!(sourceForm instanceof HTMLFormElement)) return;
     if (Boolean(taskDetailContext?.readOnly)) {
-      showClientFlash("error", "Voce nao possui acesso para remover ajuste desta tarefa.");
+      showClientFlash("error", "Você não possui acesso para remover ajuste desta tarefa.");
       return;
     }
 
@@ -9819,12 +9819,12 @@ window.addEventListener("DOMContentLoaded", () => {
           setTaskDetailEditMode(false);
         }
 
-        showClientFlash("success", "Solicitacao de ajuste removida.");
+        showClientFlash("success", "Solicitação de ajuste removida.");
         return true;
       } catch (error) {
         showClientFlash(
           "error",
-          error instanceof Error ? error.message : "Nao foi possivel remover a solicitacao de ajuste."
+          error instanceof Error ? error.message : "Não foi possível remover a solicitação de ajuste."
         );
         return false;
       } finally {
@@ -9938,12 +9938,12 @@ window.addEventListener("DOMContentLoaded", () => {
         setTaskDetailEditMode(false);
       }
 
-      showClientFlash("success", "Solicitacao de ajuste removida.");
+      showClientFlash("success", "Solicitação de ajuste removida.");
       return true;
     } catch (error) {
       showClientFlash(
         "error",
-        error instanceof Error ? error.message : "Nao foi possivel remover a solicitacao de ajuste."
+        error instanceof Error ? error.message : "Não foi possível remover a solicitação de ajuste."
       );
       return false;
     } finally {
@@ -9958,7 +9958,7 @@ window.addEventListener("DOMContentLoaded", () => {
       try {
         await hydrateTaskDetailPayloadFromServer(taskDetailContext);
       } catch (_error) {
-        // continua com os dados locais ja exibidos
+        // continua com os dados locais já exibidos
       }
     }
     if (!copyTaskDetailModalToRow(taskDetailContext)) return;
@@ -11551,7 +11551,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (removeTaskReviewTrigger) {
       openConfirmModal({
         title: "Remover ajuste",
-        message: "Remover a solicitacao de ajuste atual e restaurar a descricao anterior?",
+        message: "Remover a solicitação de ajuste atual e restaurar a descrição anterior?",
         confirmLabel: "Remover ajuste",
         confirmVariant: "danger",
         onConfirm: async () => {
@@ -12520,7 +12520,7 @@ window.addEventListener("DOMContentLoaded", () => {
           form,
           newStatusColor
         );
-        showClientFlash("error", `A cor ${duplicatedLabel} ja esta em uso por outro status.`);
+        showClientFlash("error", `A cor ${duplicatedLabel} já esta em uso por outro status.`);
       }
       return;
     }
@@ -12651,26 +12651,26 @@ window.addEventListener("DOMContentLoaded", () => {
     const successMessageByAction = {
       workspace_update_profile: "Dados do workspace atualizados.",
       workspace_update_name: "Dados do workspace atualizados.",
-      workspace_add_member: "Usuario adicionado ao workspace.",
-      add_workspace_member: "Usuario adicionado ao workspace.",
-      workspace_promote_member: "Permissao de administrador concedida.",
-      workspace_demote_member: "Permissao alterada para usuario.",
-      workspace_remove_member: "Usuario removido do workspace.",
+      workspace_add_member: "Usuário adicionado ao workspace.",
+      add_workspace_member: "Usuário adicionado ao workspace.",
+      workspace_promote_member: "Permissão de administrador concedida.",
+      workspace_demote_member: "Permissão alterada para usuário.",
+      workspace_remove_member: "Usuário removido do workspace.",
     };
 
     const fallbackErrorByAction = {
       workspace_update_profile: "Falha ao atualizar os dados do workspace.",
       workspace_update_name: "Falha ao atualizar os dados do workspace.",
-      workspace_add_member: "Falha ao adicionar usuario ao workspace.",
-      add_workspace_member: "Falha ao adicionar usuario ao workspace.",
-      workspace_promote_member: "Falha ao promover usuario.",
-      workspace_demote_member: "Falha ao alterar permissao do usuario.",
-      workspace_remove_member: "Falha ao remover usuario do workspace.",
+      workspace_add_member: "Falha ao adicionar usuário ao workspace.",
+      add_workspace_member: "Falha ao adicionar usuário ao workspace.",
+      workspace_promote_member: "Falha ao promover usuário.",
+      workspace_demote_member: "Falha ao alterar permissão do usuário.",
+      workspace_remove_member: "Falha ao remover usuário do workspace.",
     };
 
     void submitWorkspaceUsersActionForm(form, {
       successMessage: successMessageByAction[action] || "",
-      fallbackError: fallbackErrorByAction[action] || "Falha ao atualizar usuarios do workspace.",
+      fallbackError: fallbackErrorByAction[action] || "Falha ao atualizar usuários do workspace.",
     }).catch(() => {});
   });
 

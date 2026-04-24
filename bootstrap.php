@@ -150,7 +150,7 @@ function postgresConfigFromUrl(string $databaseUrl): array
 {
     $parts = parse_url($databaseUrl);
     if ($parts === false) {
-        throw new RuntimeException('DATABASE_URL invalida.');
+        throw new RuntimeException('DATABASE_URL inválida.');
     }
 
     $host = $parts['host'] ?? null;
@@ -2557,7 +2557,7 @@ function deletePasswordResetTokensForUser(int $userId): void
 function issuePasswordResetToken(int $userId): array
 {
     if ($userId <= 0) {
-        throw new RuntimeException('Usuario invalido para redefinicao de senha.');
+        throw new RuntimeException('Usuário inválido para redefinição de senha.');
     }
 
     $pdo = db();
@@ -2764,7 +2764,7 @@ function sendPasswordResetEmail(string $email, string $name, string $resetUrl, s
         return ['sent' => false, 'logged_to_file' => false];
     }
 
-    $subject = APP_NAME . ' | Redefinicao de senha';
+    $subject = APP_NAME . ' | Redefinição de senha';
     $body = implode("\n", [
         'Oi' . ($name !== '' ? ' ' . $name : '') . ',',
         '',
@@ -2773,7 +2773,7 @@ function sendPasswordResetEmail(string $email, string $name, string $resetUrl, s
         $resetUrl,
         '',
         'Este link expira em ' . $expiresAt . '.',
-        'Se voce nao fez esse pedido, pode ignorar esta mensagem.',
+        'Se você não fez esse pedido, pode ignorar esta mensagem.',
     ]);
 
     $configuredFromAddress = trim((string) envValue('MAIL_FROM_ADDRESS', ''));
@@ -2859,7 +2859,7 @@ function verifyCsrf(): void
     $sessionToken = $_SESSION['csrf_token'] ?? '';
 
     if (!$token || !$sessionToken || !hash_equals($sessionToken, $token)) {
-        throw new RuntimeException('Sessao expirada ou token CSRF invalido. Recarregue a pagina e tente novamente.');
+        throw new RuntimeException('Sessão expirada ou token CSRF inválido. Recarregue a página e tente novamente.');
     }
 }
 
@@ -2867,7 +2867,7 @@ function workspaceRoles(): array
 {
     return [
         'admin' => 'Administrador',
-        'member' => 'Usuario',
+        'member' => 'Usuário',
     ];
 }
 
@@ -3257,7 +3257,7 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $
 {
     $createdBy = (int) $createdBy;
     if ($createdBy <= 0) {
-        throw new RuntimeException('Criador do workspace invalido.');
+        throw new RuntimeException('Criador do workspace inválido.');
     }
 
     ensureWorkspaceTaskStatusSchema($pdo);
@@ -3327,14 +3327,14 @@ function updateWorkspaceProfile(
     bool $allowRename = true
 ): void {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     ensureWorkspaceProfileSchema($pdo);
     ensureUserProfileSchema($pdo);
     $workspace = workspaceById($workspaceId);
     if (!$workspace) {
-        throw new RuntimeException('Workspace nao encontrado.');
+        throw new RuntimeException('Workspace não encontrado.');
     }
     $isPersonalWorkspace = !empty($workspace['is_personal']);
     $workspaceOwnerId = (int) ($workspace['created_by'] ?? 0);
@@ -3410,13 +3410,13 @@ function workspaceAdminCount(int $workspaceId): int
 function updateWorkspaceMemberRole(PDO $pdo, int $workspaceId, int $userId, string $role): void
 {
     if ($workspaceId <= 0 || $userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     $nextRole = normalizeWorkspaceRole($role);
     $currentRole = workspaceRoleForUser($userId, $workspaceId);
     if ($currentRole === null) {
-        throw new RuntimeException('Usuario nao pertence a este workspace.');
+        throw new RuntimeException('Usuário não pertence a este workspace.');
     }
     if ($currentRole === $nextRole) {
         return;
@@ -3443,12 +3443,12 @@ function updateWorkspaceMemberRole(PDO $pdo, int $workspaceId, int $userId, stri
 function removeWorkspaceMember(PDO $pdo, int $workspaceId, int $userId): void
 {
     if ($workspaceId <= 0 || $userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     $existingRole = workspaceRoleForUser($userId, $workspaceId);
     if ($existingRole === null) {
-        throw new RuntimeException('Usuario nao pertence a este workspace.');
+        throw new RuntimeException('Usuário não pertence a este workspace.');
     }
 
     if ($existingRole === 'admin' && workspaceAdminCount($workspaceId) <= 1) {
@@ -3516,9 +3516,9 @@ function renderUserAvatar(array $user, string $class = 'avatar', bool $ariaHidde
     $tag = in_array($tag, ['div', 'span'], true) ? $tag : 'div';
     $class = trim($class);
     $avatarDataUrl = userAvatarDataUrl($user);
-    $name = trim((string) ($user['name'] ?? 'Usuario'));
+    $name = trim((string) ($user['name'] ?? 'Usuário'));
     $attributes = $class !== '' ? ' class="' . e($class . ($avatarDataUrl !== '' ? ' has-image' : '')) . '"' : '';
-    $attributes .= $ariaHidden ? ' aria-hidden="true"' : ' aria-label="' . e($name !== '' ? $name : 'Usuario') . '"';
+    $attributes .= $ariaHidden ? ' aria-hidden="true"' : ' aria-label="' . e($name !== '' ? $name : 'Usuário') . '"';
 
     if ($avatarDataUrl !== '') {
         return sprintf(
@@ -3550,21 +3550,21 @@ function uploadedUserAvatarDataUrl(array $file): string
 
     $size = (int) ($file['size'] ?? 0);
     if ($size <= 0) {
-        throw new RuntimeException('Arquivo de foto invalido.');
+        throw new RuntimeException('Arquivo de foto inválido.');
     }
 
     if ($size > 2 * 1024 * 1024) {
-        throw new RuntimeException('A foto de perfil deve ter no maximo 2 MB.');
+        throw new RuntimeException('A foto de perfil deve ter no máximo 2 MB.');
     }
 
     $tmpName = (string) ($file['tmp_name'] ?? '');
     if ($tmpName === '' || !is_file($tmpName)) {
-        throw new RuntimeException('Arquivo de foto invalido.');
+        throw new RuntimeException('Arquivo de foto inválido.');
     }
 
     $contents = file_get_contents($tmpName);
     if (!is_string($contents) || $contents === '') {
-        throw new RuntimeException('Nao foi possivel ler a foto de perfil.');
+        throw new RuntimeException('Não foi possível ler a foto de perfil.');
     }
 
     $imageInfo = @getimagesizefromstring($contents);
@@ -3655,21 +3655,21 @@ function uploadedWorkspaceAvatarDataUrl(array $file): string
 
     $size = (int) ($file['size'] ?? 0);
     if ($size <= 0) {
-        throw new RuntimeException('Arquivo de foto do workspace invalido.');
+        throw new RuntimeException('Arquivo de foto do workspace inválido.');
     }
 
     if ($size > 2 * 1024 * 1024) {
-        throw new RuntimeException('A foto do workspace deve ter no maximo 2 MB.');
+        throw new RuntimeException('A foto do workspace deve ter no máximo 2 MB.');
     }
 
     $tmpName = (string) ($file['tmp_name'] ?? '');
     if ($tmpName === '' || !is_file($tmpName)) {
-        throw new RuntimeException('Arquivo de foto do workspace invalido.');
+        throw new RuntimeException('Arquivo de foto do workspace inválido.');
     }
 
     $contents = file_get_contents($tmpName);
     if (!is_string($contents) || $contents === '') {
-        throw new RuntimeException('Nao foi possivel ler a foto do workspace.');
+        throw new RuntimeException('Não foi possível ler a foto do workspace.');
     }
 
     $imageInfo = @getimagesizefromstring($contents);
@@ -3685,7 +3685,7 @@ function uploadedWorkspaceAvatarDataUrl(array $file): string
 function updateUserProfile(PDO $pdo, int $userId, string $name, array $avatarFile = []): void
 {
     if ($userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     ensureUserProfileSchema($pdo);
@@ -3719,7 +3719,7 @@ function updateUserProfile(PDO $pdo, int $userId, string $name, array $avatarFil
 function updateUserPassword(PDO $pdo, int $userId, string $currentPassword, string $newPassword, string $confirmPassword): void
 {
     if ($userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
@@ -3727,7 +3727,7 @@ function updateUserPassword(PDO $pdo, int $userId, string $currentPassword, stri
     }
 
     if ($newPassword !== $confirmPassword) {
-        throw new RuntimeException('A confirmacao da nova senha nao confere.');
+        throw new RuntimeException('A confirmação da nova senha não confere.');
     }
 
     if (mb_strlen($newPassword) < 6) {
@@ -3738,11 +3738,11 @@ function updateUserPassword(PDO $pdo, int $userId, string $currentPassword, stri
     $stmt->execute([':id' => $userId]);
     $hash = (string) $stmt->fetchColumn();
     if ($hash === '') {
-        throw new RuntimeException('Usuario nao encontrado.');
+        throw new RuntimeException('Usuário não encontrado.');
     }
 
     if (!password_verify($currentPassword, $hash)) {
-        throw new RuntimeException('Senha atual invalida.');
+        throw new RuntimeException('Senha atual inválida.');
     }
 
     if (password_verify($newPassword, $hash)) {
@@ -3778,7 +3778,7 @@ function workspaceMembershipCount(int $workspaceId): int
 function deleteWorkspaceOwnedByUser(PDO $pdo, int $workspaceId, int $ownerUserId): void
 {
     if ($workspaceId <= 0 || $ownerUserId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $workspaceStmt = $pdo->prepare(
@@ -3790,7 +3790,7 @@ function deleteWorkspaceOwnedByUser(PDO $pdo, int $workspaceId, int $ownerUserId
     $workspaceStmt->execute([':workspace_id' => $workspaceId]);
     $workspace = $workspaceStmt->fetch();
     if (!$workspace) {
-        throw new RuntimeException('Workspace nao encontrado.');
+        throw new RuntimeException('Workspace não encontrado.');
     }
 
     if ((int) ($workspace['created_by'] ?? 0) !== $ownerUserId) {
@@ -3850,7 +3850,7 @@ function deleteWorkspaceOwnedByUser(PDO $pdo, int $workspaceId, int $ownerUserId
 function leaveWorkspace(PDO $pdo, int $workspaceId, int $userId): void
 {
     if ($workspaceId <= 0 || $userId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $workspaceStmt = $pdo->prepare(
@@ -3862,16 +3862,16 @@ function leaveWorkspace(PDO $pdo, int $workspaceId, int $userId): void
     $workspaceStmt->execute([':workspace_id' => $workspaceId]);
     $workspace = $workspaceStmt->fetch();
     if (!$workspace) {
-        throw new RuntimeException('Workspace nao encontrado.');
+        throw new RuntimeException('Workspace não encontrado.');
     }
 
     if ((int) ($workspace['created_by'] ?? 0) === $userId) {
-        throw new RuntimeException('Voce criou este workspace. Use a opcao de remover workspace.');
+        throw new RuntimeException('Você criou este workspace. Use a opcao de remover workspace.');
     }
 
     $role = workspaceRoleForUser($userId, $workspaceId);
     if ($role === null) {
-        throw new RuntimeException('Voce nao pertence a este workspace.');
+        throw new RuntimeException('Você não pertence a este workspace.');
     }
 
     $pdo->beginTransaction();
@@ -3891,7 +3891,7 @@ function leaveWorkspace(PDO $pdo, int $workspaceId, int $userId): void
             ]);
             $nextAdminUserId = (int) $promoteStmt->fetchColumn();
             if ($nextAdminUserId <= 0) {
-                throw new RuntimeException('Nao foi possivel sair deste workspace agora.');
+                throw new RuntimeException('Não foi possível sair deste workspace agora.');
             }
 
             $updateRoleStmt = $pdo->prepare(
@@ -4080,7 +4080,7 @@ function setActiveWorkspaceId(?int $workspaceId): void
 function personalWorkspaceDefaultName(int $userId): string
 {
     if ($userId <= 0) {
-        return 'Usuario Workspace';
+        return 'Usuário Workspace';
     }
 
     $stmt = db()->prepare(
@@ -4092,7 +4092,7 @@ function personalWorkspaceDefaultName(int $userId): string
     $stmt->execute([':user_id' => $userId]);
     $userName = normalizeUserDisplayName((string) $stmt->fetchColumn());
     if ($userName === '') {
-        $userName = 'Usuario';
+        $userName = 'Usuário';
     }
 
     return $userName . ' Workspace';
@@ -4427,7 +4427,7 @@ function upsertVaultGroup(PDO $pdo, string $groupName, ?int $createdBy = null, ?
 {
     $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
     if ($workspaceId === null) {
-        throw new RuntimeException('Workspace ativo nao encontrado.');
+        throw new RuntimeException('Workspace ativo não encontrado.');
     }
 
     $normalized = normalizeVaultGroupName($groupName);
@@ -4538,7 +4538,7 @@ function createWorkspaceVaultEntry(
     ?int $createdBy = null
 ): int {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $label = normalizeVaultEntryLabel($label);
@@ -4616,7 +4616,7 @@ function updateWorkspaceVaultEntry(
     string $groupName = 'Geral'
 ): void {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $label = normalizeVaultEntryLabel($label);
@@ -4664,7 +4664,7 @@ function updateWorkspaceVaultEntry(
             ':workspace_id' => $workspaceId,
         ]);
         if (!$existsStmt->fetchColumn()) {
-            throw new RuntimeException('Registro nao encontrado.');
+            throw new RuntimeException('Registro não encontrado.');
         }
     }
 }
@@ -4676,7 +4676,7 @@ function updateWorkspaceVaultEntryLabel(
     string $label
 ): void {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $label = normalizeVaultEntryLabel($label);
@@ -4711,7 +4711,7 @@ function updateWorkspaceVaultEntryLabel(
             ':workspace_id' => $workspaceId,
         ]);
         if (!$existsStmt->fetchColumn()) {
-            throw new RuntimeException('Registro nao encontrado.');
+            throw new RuntimeException('Registro não encontrado.');
         }
     }
 }
@@ -4719,7 +4719,7 @@ function updateWorkspaceVaultEntryLabel(
 function deleteWorkspaceVaultEntry(PDO $pdo, int $workspaceId, int $entryId): void
 {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $stmt = $pdo->prepare(
@@ -4733,7 +4733,7 @@ function deleteWorkspaceVaultEntry(PDO $pdo, int $workspaceId, int $entryId): vo
     ]);
 
     if ($stmt->rowCount() <= 0) {
-        throw new RuntimeException('Registro nao encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
 }
 
@@ -5120,7 +5120,7 @@ function upsertDueGroup(PDO $pdo, string $groupName, ?int $createdBy = null, ?in
 {
     $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
     if ($workspaceId === null) {
-        throw new RuntimeException('Workspace ativo nao encontrado.');
+        throw new RuntimeException('Workspace ativo não encontrado.');
     }
 
     $normalized = normalizeDueGroupName($groupName);
@@ -5234,7 +5234,7 @@ function createWorkspaceDueEntry(
     $monthlyDay = null
 ): int {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $label = normalizeDueEntryLabel($label);
@@ -5355,7 +5355,7 @@ function updateWorkspaceDueEntry(
     $monthlyDay = null
 ): void {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $label = normalizeDueEntryLabel($label);
@@ -5435,7 +5435,7 @@ function updateWorkspaceDueEntry(
             ':workspace_id' => $workspaceId,
         ]);
         if (!$existsStmt->fetchColumn()) {
-            throw new RuntimeException('Registro nao encontrado.');
+            throw new RuntimeException('Registro não encontrado.');
         }
     }
 }
@@ -5443,7 +5443,7 @@ function updateWorkspaceDueEntry(
 function deleteWorkspaceDueEntry(PDO $pdo, int $workspaceId, int $entryId): void
 {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $stmt = $pdo->prepare(
@@ -5457,7 +5457,7 @@ function deleteWorkspaceDueEntry(PDO $pdo, int $workspaceId, int $entryId): void
     ]);
 
     if ($stmt->rowCount() <= 0) {
-        throw new RuntimeException('Registro nao encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
 }
 
@@ -5648,7 +5648,7 @@ function upsertInventoryGroup(PDO $pdo, string $groupName, ?int $createdBy = nul
 {
     $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
     if ($workspaceId === null) {
-        throw new RuntimeException('Workspace ativo nao encontrado.');
+        throw new RuntimeException('Workspace ativo não encontrado.');
     }
 
     $normalized = normalizeInventoryGroupName($groupName);
@@ -5841,7 +5841,7 @@ function createWorkspaceInventoryEntry(
     ?int $createdBy = null
 ): int {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $label = normalizeInventoryEntryLabel($label);
@@ -5937,7 +5937,7 @@ function updateWorkspaceInventoryEntry(
     string $notes = ''
 ): void {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $label = normalizeInventoryEntryLabel($label);
@@ -5993,7 +5993,7 @@ function updateWorkspaceInventoryEntry(
             ':workspace_id' => $workspaceId,
         ]);
         if (!$existsStmt->fetchColumn()) {
-            throw new RuntimeException('Registro nao encontrado.');
+            throw new RuntimeException('Registro não encontrado.');
         }
     }
 }
@@ -6005,7 +6005,7 @@ function updateWorkspaceInventoryEntryQuantity(
     $quantityValue
 ): void {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $quantity = normalizeInventoryQuantityValue($quantityValue);
@@ -6040,7 +6040,7 @@ function updateWorkspaceInventoryEntryQuantity(
             ':workspace_id' => $workspaceId,
         ]);
         if (!$existsStmt->fetchColumn()) {
-            throw new RuntimeException('Registro nao encontrado.');
+            throw new RuntimeException('Registro não encontrado.');
         }
     }
 }
@@ -6048,7 +6048,7 @@ function updateWorkspaceInventoryEntryQuantity(
 function deleteWorkspaceInventoryEntry(PDO $pdo, int $workspaceId, int $entryId): void
 {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $stmt = $pdo->prepare(
@@ -6062,7 +6062,7 @@ function deleteWorkspaceInventoryEntry(PDO $pdo, int $workspaceId, int $entryId)
     ]);
 
     if ($stmt->rowCount() <= 0) {
-        throw new RuntimeException('Registro nao encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
 }
 
@@ -6680,7 +6680,7 @@ function setWorkspaceAccountingOpeningBalance(
     ?int $updatedBy = null
 ): int {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $periodKey = normalizeAccountingPeriodKey($periodKey);
@@ -6804,7 +6804,7 @@ function createWorkspaceAccountingEntry(
     $installmentTotalInput = null
 ): int {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $periodKey = normalizeAccountingPeriodKey($periodKey);
@@ -6950,7 +6950,7 @@ function updateWorkspaceAccountingEntry(
     $installmentTotalInput = null
 ): void {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $label = normalizeAccountingEntryLabel($label);
@@ -7006,7 +7006,7 @@ function updateWorkspaceAccountingEntry(
             ':workspace_id' => $workspaceId,
         ]);
         if (!$existsStmt->fetchColumn()) {
-            throw new RuntimeException('Registro nao encontrado.');
+            throw new RuntimeException('Registro não encontrado.');
         }
     }
 }
@@ -7014,7 +7014,7 @@ function updateWorkspaceAccountingEntry(
 function deleteWorkspaceAccountingEntry(PDO $pdo, int $workspaceId, int $entryId): void
 {
     if ($workspaceId <= 0 || $entryId <= 0) {
-        throw new RuntimeException('Registro invalido.');
+        throw new RuntimeException('Registro inválido.');
     }
 
     $stmt = $pdo->prepare(
@@ -7028,7 +7028,7 @@ function deleteWorkspaceAccountingEntry(PDO $pdo, int $workspaceId, int $entryId
     ]);
 
     if ($stmt->rowCount() <= 0) {
-        throw new RuntimeException('Registro nao encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
 }
 
@@ -7617,7 +7617,7 @@ function workspaceUpdateTaskStatusConfiguration(
     ?string $newStatusColor = null
 ): array {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     ensureWorkspaceTaskStatusSchema($pdo);
@@ -7818,7 +7818,7 @@ function workspaceEnabledDashboardViews(?int $workspaceId = null, ?array $worksp
 function workspaceUpdateSidebarToolsConfiguration(PDO $pdo, int $workspaceId, array $sidebarTools): array
 {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     ensureWorkspaceTaskStatusSchema($pdo);
@@ -8709,25 +8709,25 @@ function taskNotificationMessageFromHistory(array $historyEntry, int $viewerUser
             $isAssigned = in_array($viewerUserId, $newAssigneeIds, true);
             if (!$wasAssigned && $isAssigned) {
                 return [
-                    'title' => 'Voce foi atribuido',
-                    'message' => $actorPrefix . 'atribuiu voce a "' . $taskTitle . '".',
+                    'title' => 'Você foi atribuido',
+                    'message' => $actorPrefix . 'atribuiu você a "' . $taskTitle . '".',
                 ];
             }
 
             return [
                 'title' => 'Responsaveis atualizados',
-                'message' => $actorPrefix . 'atualizou responsaveis em "' . $taskTitle . '".',
+                'message' => $actorPrefix . 'atualizou responsáveis em "' . $taskTitle . '".',
             ];
 
         case 'revision_requested':
             return [
-                'title' => 'Solicitacao de revisao',
+                'title' => 'Solicitação de revisão',
                 'message' => $actorPrefix . 'solicitou ajuste em "' . $taskTitle . '".',
             ];
 
         case 'revision_removed':
             return [
-                'title' => 'Solicitacao de revisao removida',
+                'title' => 'Solicitação de revisão removida',
                 'message' => $actorPrefix . 'removeu o ajuste de "' . $taskTitle . '".',
             ];
 
@@ -9840,7 +9840,7 @@ function saveTaskGroupPermissions(
     array $workspaceRolesByUserId
 ): void {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $groupName = normalizeTaskGroupName($groupName);
@@ -9893,7 +9893,7 @@ function saveVaultGroupPermissions(
     array $workspaceRolesByUserId
 ): void {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $groupName = normalizeVaultGroupName($groupName);
@@ -9951,7 +9951,7 @@ function saveDueGroupPermissions(
     array $workspaceRolesByUserId
 ): void {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $groupName = normalizeDueGroupName($groupName);
@@ -10137,7 +10137,7 @@ function upsertTaskGroup(PDO $pdo, string $groupName, ?int $createdBy = null, ?i
 {
     $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
     if ($workspaceId === null) {
-        throw new RuntimeException('Workspace ativo nao encontrado para salvar grupo.');
+        throw new RuntimeException('Workspace ativo não encontrado para salvar grupo.');
     }
 
     $normalizedName = normalizeTaskGroupName($groupName);
@@ -10505,8 +10505,8 @@ function taskDueDatePresentation(?string $dueDateValue): array
 
     if ($iso === $tomorrow) {
         return [
-            'display' => 'Amanha',
-            'title' => 'Amanha (' . $fullLabel . ')',
+            'display' => 'Amanh?',
+            'title' => 'Amanh? (' . $fullLabel . ')',
             'is_relative' => true,
         ];
     }

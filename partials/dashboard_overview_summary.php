@@ -29,46 +29,46 @@ $overviewHasImmediateAttention = $overviewUrgentTasksTodayTotal > 0
     || $overviewCriticalWorkspaceTotal > 0;
 
 $overviewHeadline = 'Dashboard limpo por enquanto';
-$overviewNote = 'Os principais pontos de atencao vao aparecer aqui assim que houver movimento.';
+$overviewNote = 'Os principais pontos de atenção vão aparecer aqui assim que houver movimento.';
 $overviewListTitle = 'Principais pontos';
 if ($overviewUrgentTasksTodayTotal > 0) {
     $overviewHeadline = $overviewUrgentTasksTodayTotal === 1
-        ? 'Existe 1 urgencia para olhar agora'
-        : 'Existem ' . $overviewUrgentTasksTodayTotal . ' urgencias para olhar agora';
-    $overviewNote = 'Comece pelo que precisa de decisao imediata e avance depois para o restante do dia.';
+        ? 'Existe 1 urgência para olhar agora'
+        : 'Existem ' . $overviewUrgentTasksTodayTotal . ' urgências para olhar agora';
+    $overviewNote = 'Comece pelo que precisa de decisão imediata e avance depois para o restante do dia.';
     $overviewListTitle = 'Prioridade agora';
 } elseif ($overviewDueTodayTotal > 0) {
     $overviewHeadline = $overviewDueTodayTotal === 1
-        ? 'Ha 1 vencimento para hoje'
-        : 'Ha ' . $overviewDueTodayTotal . ' vencimentos para hoje';
-    $overviewNote = 'Vale abrir os vencimentos primeiro para nao deixar nada passar.';
-    $overviewListTitle = 'Atencao imediata';
+        ? 'Há 1 vencimento para hoje'
+        : 'Há ' . $overviewDueTodayTotal . ' vencimentos para hoje';
+    $overviewNote = 'Vale abrir os vencimentos primeiro para não deixar nada passar.';
+    $overviewListTitle = 'Atenção imediata';
 } elseif ($overviewLowStockTotal > 0) {
     $overviewHeadline = $overviewLowStockTotal === 1
-        ? 'Existe 1 item pedindo reposicao'
-        : 'Existem ' . $overviewLowStockTotal . ' itens pedindo reposicao';
-    $overviewNote = 'O dashboard fica enxuto e traz so o que ja esta merecendo acompanhamento.';
+        ? 'Existe 1 item pedindo reposição'
+        : 'Existem ' . $overviewLowStockTotal . ' itens pedindo reposição';
+    $overviewNote = 'O dashboard fica enxuto e traz só o que já está merecendo acompanhamento.';
     $overviewListTitle = 'Itens em foco';
 } elseif ($overviewTasksTodayTotal > 0) {
     $overviewHeadline = $overviewTasksTodayTotal === 1
-        ? 'Voce tem 1 tarefa no radar de hoje'
-        : 'Voce tem ' . $overviewTasksTodayTotal . ' tarefas no radar de hoje';
-    $overviewNote = 'Nada urgente por enquanto, mas estes sao os pontos mais relevantes para abrir primeiro.';
+        ? 'Você tem 1 tarefa no radar de hoje'
+        : 'Você tem ' . $overviewTasksTodayTotal . ' tarefas no radar de hoje';
+    $overviewNote = 'Nada urgente por enquanto, mas estes são os pontos mais relevantes para abrir primeiro.';
     $overviewListTitle = 'Mais relevantes';
 } elseif ($overviewTasksTomorrowTotal > 0) {
     $overviewHeadline = $overviewTasksTomorrowTotal === 1
-        ? 'Voce tem 1 tarefa programada para amanhã'
-        : 'Voce tem ' . $overviewTasksTomorrowTotal . ' tarefas programadas para amanhã';
-    $overviewNote = 'Sem urgencias agora, entao o dashboard ja antecipa o que entra no seu radar no proximo dia.';
-    $overviewListTitle = 'Proximos passos';
+        ? 'Você tem 1 tarefa programada para amanhã'
+        : 'Você tem ' . $overviewTasksTomorrowTotal . ' tarefas programadas para amanhã';
+    $overviewNote = 'Sem urgências agora, então o dashboard já antecipa o que entra no seu radar no próximo dia.';
+    $overviewListTitle = 'Próximos passos';
 } elseif ($overviewDueSoonTotal > 0) {
     $overviewHeadline = $overviewDueSoonTotal === 1
-        ? 'Ha 1 vencimento proximo no radar'
-        : 'Ha ' . $overviewDueSoonTotal . ' vencimentos proximos no radar';
-    $overviewNote = 'Mesmo sem urgencia agora, vale acompanhar o que esta mais perto.';
+        ? 'Há 1 vencimento próximo no radar'
+        : 'Há ' . $overviewDueSoonTotal . ' vencimentos próximos no radar';
+    $overviewNote = 'Mesmo sem urgência agora, vale acompanhar o que está mais perto.';
     $overviewListTitle = 'Mais relevantes';
 } elseif (!empty($overviewWorkspaceSummaries)) {
-    $overviewHeadline = 'Resumo rapido dos workspaces';
+    $overviewHeadline = 'Resumo rápido dos workspaces';
     $overviewNote = 'Quando surgirem tarefas, vencimentos ou alertas, eles aparecem aqui em destaque.';
     $overviewListTitle = 'Mais relevantes';
 }
@@ -196,8 +196,8 @@ $appendOverviewWorkspace = static function (array $workspaceSummary) use ($appen
         'tone' => (string) ($workspaceSummary['attention_tone'] ?? 'stable'),
         'kicker' => 'Workspace em foco',
         'title' => trim((string) ($workspaceSummary['workspace_name'] ?? 'Workspace')),
-        'meta' => trim((string) ($workspaceSummary['workspace_role_label'] ?? 'Usuario')),
-        'detail' => trim((string) ($workspaceSummary['attention_note'] ?? 'Sem pendencias imediatas.')),
+        'meta' => trim((string) ($workspaceSummary['workspace_role_label'] ?? 'Usuário')),
+        'detail' => trim((string) ($workspaceSummary['attention_note'] ?? 'Sem pendências imediatas.')),
     ]);
 };
 
@@ -252,7 +252,7 @@ if (empty($overviewAttentionItems)) {
         $daysUntil = (int) ($overviewDueSoonItem['days_until'] ?? -1);
         $appendOverviewDue(
             $overviewDueSoonItem,
-            $daysUntil === 1 ? 'Vence amanhã' : 'Proximo vencimento',
+            $daysUntil === 1 ? 'Vence amanhã' : 'Próximo vencimento',
             $daysUntil === 1 ? 'attention' : 'stable'
         );
     }
@@ -303,13 +303,13 @@ if (empty($overviewAttentionItems)) {
 <div class="panel-header board-header overview-board-header dashboard-brief-head">
     <div>
         <h2>Dashboard</h2>
-        <p>Um resumo curto do que merece sua atencao primeiro.</p>
+        <p>Um resumo curto do que merece sua atenção primeiro.</p>
     </div>
 </div>
 
 <div class="dashboard-brief-grid">
     <section class="dashboard-brief-hero is-<?= e($overviewExecutiveTone) ?>" aria-label="Resumo principal do dashboard">
-        <span class="dashboard-brief-kicker"><?= $overviewHasImmediateAttention ? 'Agora' : 'Visao geral' ?></span>
+        <span class="dashboard-brief-kicker"><?= $overviewHasImmediateAttention ? 'Agora' : 'Visão geral' ?></span>
         <h3><?= e($overviewHeadline) ?></h3>
         <p><?= e($overviewNote) ?></p>
         <?php if (!empty($overviewQuickStats)): ?>
@@ -365,7 +365,7 @@ if (empty($overviewAttentionItems)) {
         <?php if (empty($overviewAttentionItems)): ?>
             <div class="dashboard-brief-empty">
                 <strong>Nada para acompanhar ainda</strong>
-                <p>Esta area vai mostrar os principais pontos de atencao assim que eles existirem.</p>
+                <p>Esta área vai mostrar os principais pontos de atenção assim que eles existirem.</p>
             </div>
         <?php else: ?>
             <ul class="dashboard-brief-list">

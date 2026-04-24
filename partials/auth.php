@@ -27,7 +27,7 @@
 
                 <label>
                     <span>E-mail</span>
-                    <input type="email" name="email" placeholder="voce@empresa.com" autocomplete="email" required>
+                    <input type="email" name="email" placeholder="você@empresa.com" autocomplete="email" required>
                 </label>
 
                 <label>
@@ -43,7 +43,7 @@
             </p>
 
             <p class="auth-switch-line">
-                Nao tem conta?
+                Não tem conta?
                 <button type="button" class="auth-inline-link" data-auth-target="register">Criar conta</button>
             </p>
         </section>
@@ -65,12 +65,12 @@
 
                 <label>
                     <span>E-mail</span>
-                    <input type="email" name="email" placeholder="voce@empresa.com" autocomplete="email" required>
+                    <input type="email" name="email" placeholder="você@empresa.com" autocomplete="email" required>
                 </label>
 
                 <label>
                     <span>Senha</span>
-                    <input type="password" name="password" placeholder="Minimo 6 caracteres" minlength="6" autocomplete="new-password" required>
+                    <input type="password" name="password" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required>
                 </label>
 
                 <label>
@@ -82,7 +82,7 @@
             </form>
 
             <p class="auth-switch-line">
-                Ja tem conta?
+                Já tem conta?
                 <button type="button" class="auth-inline-link" data-auth-target="login">Entrar</button>
             </p>
         </section>
@@ -99,14 +99,14 @@
 
                 <label>
                     <span>E-mail</span>
-                    <input type="email" name="email" placeholder="voce@empresa.com" autocomplete="email" required>
+                    <input type="email" name="email" placeholder="você@empresa.com" autocomplete="email" required>
                 </label>
 
-                <button class="btn btn-pill btn-accent btn-block" type="submit">Enviar link de redefinicao</button>
+                <button class="btn btn-pill btn-accent btn-block" type="submit">Enviar link de redefinição</button>
             </form>
 
             <p class="auth-switch-line">
-                Enviaremos um link para voce cadastrar uma nova senha.
+                Enviaremos um link para você cadastrar uma nova senha.
             </p>
 
             <p class="auth-switch-line">
@@ -130,7 +130,7 @@
 
                     <label>
                         <span>Nova senha</span>
-                        <input type="password" name="new_password" placeholder="Minimo 6 caracteres" minlength="6" autocomplete="new-password" required>
+                        <input type="password" name="new_password" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required>
                     </label>
 
                     <label>
@@ -146,7 +146,7 @@
                 </p>
             <?php else: ?>
                 <p class="auth-switch-line">
-                    Este link nao esta disponivel mais.
+                    Este link não esta disponível mais.
                 </p>
 
                 <p class="auth-switch-line">

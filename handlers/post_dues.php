@@ -8,12 +8,12 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $groupName = normalizeDueGroupName((string) ($_POST['group_name'] ?? ''));
                 if (findDueGroupByName($groupName, $workspaceId) !== null) {
-                    throw new RuntimeException('Este grupo de vencimentos ja existe.');
+                    throw new RuntimeException('Este grupo de vencimentos já existe.');
                 }
 
                 upsertDueGroup($pdo, $groupName, (int) $authUser['id'], $workspaceId);
@@ -31,17 +31,17 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $oldGroupInput = normalizeDueGroupName((string) ($_POST['old_group_name'] ?? ''));
                 $newGroupName = normalizeDueGroupName((string) ($_POST['new_group_name'] ?? ''));
                 $existingOldGroupName = findDueGroupByName($oldGroupInput, $workspaceId);
                 if ($existingOldGroupName === null) {
-                    throw new RuntimeException('Grupo de vencimentos nao encontrado.');
+                    throw new RuntimeException('Grupo de vencimentos não encontrado.');
                 }
                 if (!userCanAccessDueGroup((int) $authUser['id'], $workspaceId, $existingOldGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para gerenciar este grupo de vencimentos.');
+                    throw new RuntimeException('Você não possui acesso para gerenciar este grupo de vencimentos.');
                 }
 
                 $existingTargetGroupName = findDueGroupByName($newGroupName, $workspaceId);
@@ -49,7 +49,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                     $existingTargetGroupName !== null &&
                     mb_strtolower($existingTargetGroupName) !== mb_strtolower($existingOldGroupName)
                 ) {
-                    throw new RuntimeException('Ja existe um grupo de vencimentos com este nome.');
+                    throw new RuntimeException('Já existe um grupo de vencimentos com este nome.');
                 }
 
                 if (mb_strtolower($existingOldGroupName) !== mb_strtolower($newGroupName)) {
@@ -113,16 +113,16 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $groupName = normalizeDueGroupName((string) ($_POST['group_name'] ?? ''));
                 $existingGroupName = findDueGroupByName($groupName, $workspaceId);
                 if ($existingGroupName === null) {
-                    throw new RuntimeException('Grupo de vencimentos nao encontrado.');
+                    throw new RuntimeException('Grupo de vencimentos não encontrado.');
                 }
                 if (!userCanAccessDueGroup((int) $authUser['id'], $workspaceId, $existingGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para remover este grupo de vencimentos.');
+                    throw new RuntimeException('Você não possui acesso para remover este grupo de vencimentos.');
                 }
 
                 $pdo->beginTransaction();
@@ -148,7 +148,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                         ':group_name' => $existingGroupName,
                     ]);
                     if ($deleteGroupStmt->rowCount() <= 0) {
-                        throw new RuntimeException('Nao foi possivel remover o grupo de vencimentos.');
+                        throw new RuntimeException('Não foi possível remover o grupo de vencimentos.');
                     }
 
                     deleteDueGroupPermissions($pdo, $workspaceId, $existingGroupName);
@@ -183,7 +183,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
                     throw new RuntimeException('Somente administradores podem configurar acessos por grupo.');
@@ -192,7 +192,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 $groupInput = normalizeDueGroupName((string) ($_POST['group_name'] ?? ''));
                 $existingGroupName = findDueGroupByName($groupInput, $workspaceId);
                 if ($existingGroupName === null) {
-                    throw new RuntimeException('Grupo de vencimentos nao encontrado.');
+                    throw new RuntimeException('Grupo de vencimentos não encontrado.');
                 }
 
                 $rolesByUserId = workspaceRolesByUserId(workspaceMembersList($workspaceId));
@@ -215,13 +215,13 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $groupNameInput = normalizeDueGroupName((string) ($_POST['group_name'] ?? ''));
                 $groupName = findDueGroupByName($groupNameInput, $workspaceId) ?? $groupNameInput;
                 if (!userCanAccessDueGroup((int) $authUser['id'], $workspaceId, $groupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para adicionar itens neste grupo de vencimentos.');
+                    throw new RuntimeException('Você não possui acesso para adicionar itens neste grupo de vencimentos.');
                 }
 
                 $createdEntryId = createWorkspaceDueEntry(
@@ -252,7 +252,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
@@ -271,13 +271,13 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 ]);
                 $entryGroupName = $entryGroupStmt->fetchColumn();
                 if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
-                    throw new RuntimeException('Registro nao encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
                 if (!userCanAccessDueGroup((int) $authUser['id'], $workspaceId, (string) $entryGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para editar este vencimento.');
+                    throw new RuntimeException('Você não possui acesso para editar este vencimento.');
                 }
                 if (!userCanAccessDueGroup((int) $authUser['id'], $workspaceId, $groupName)) {
-                    throw new RuntimeException('Voce nao possui acesso ao grupo de destino.');
+                    throw new RuntimeException('Você não possui acesso ao grupo de destino.');
                 }
 
                 updateWorkspaceDueEntry(
@@ -308,7 +308,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
@@ -325,10 +325,10 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 ]);
                 $entryGroupName = $entryGroupStmt->fetchColumn();
                 if (!is_string($entryGroupName) || trim($entryGroupName) === '') {
-                    throw new RuntimeException('Registro nao encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
                 if (!userCanAccessDueGroup((int) $authUser['id'], $workspaceId, (string) $entryGroupName)) {
-                    throw new RuntimeException('Voce nao possui acesso para excluir este vencimento.');
+                    throw new RuntimeException('Você não possui acesso para excluir este vencimento.');
                 }
 
                 deleteWorkspaceDueEntry($pdo, $workspaceId, $entryId);
