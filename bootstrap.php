@@ -2474,8 +2474,22 @@ function appPath(string $path = ''): string
         return $trimmedPath;
     }
 
-    if (preg_match('~^/?index\.php(?=$|[?#])~i', $trimmedPath)) {
-        $trimmedPath = preg_replace('~^/?index\.php~i', '', $trimmedPath) ?? $trimmedPath;
+    if (preg_match('~^/?([a-z0-9-]+)\.php(?=$|[?#])~i', $trimmedPath, $matches)) {
+        $matchedScript = (string) ($matches[1] ?? '');
+        $routeSlug = strtolower($matchedScript);
+        if ($routeSlug === 'vendas') {
+            $routeSlug = 'home';
+        }
+
+        $suffix = (string) substr($trimmedPath, strlen((string) ($matches[0] ?? '')));
+        if ($routeSlug === 'index') {
+            $trimmedPath = $suffix;
+        } elseif ($suffix === '' || $suffix[0] === '?' || $suffix[0] === '#') {
+            $trimmedPath = $routeSlug . $suffix;
+        } else {
+            $trimmedPath = $routeSlug . '/' . ltrim($suffix, '/');
+        }
+
         if ($trimmedPath === '') {
             return $baseRoot;
         }

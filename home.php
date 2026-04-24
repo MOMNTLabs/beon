@@ -82,14 +82,14 @@ $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
 $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
     ? (string) filemtime(__DIR__ . '/assets/theme-bexon.css')
     : '1';
-$salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
-    ? (string) filemtime(__DIR__ . '/assets/vendas.css')
+$salesAssetVersion = is_file(__DIR__ . '/assets/home.css')
+    ? (string) filemtime(__DIR__ . '/assets/home.css')
     : '1';
 
 $currentUser = currentUser();
 $checkoutAction = trim((string) ($_GET['action'] ?? ''));
-$stripeProductId = trim((string) (envValue('STRIPE_PRODUCT_ID') ?? 'prod_UOPXAsaQr5J2aA'));
-$checkoutPath = appPath('vendas.php?action=checkout');
+$stripeBillingId = trim((string) (envValue('STRIPE_PRICE_ID') ?? envValue('STRIPE_PRODUCT_ID') ?? 'prod_UOPXAsaQr5J2aA'));
+$checkoutPath = appPath('home?action=checkout');
 $loginPath = $currentUser ? appPath('#tasks') : appPath('?auth=login');
 
 if ($checkoutAction === 'checkout') {
@@ -98,32 +98,36 @@ if ($checkoutAction === 'checkout') {
         if ($stripeSecretKey === '') {
             throw new RuntimeException('Checkout Stripe não configurado. Defina STRIPE_SECRET_KEY no ambiente.');
         }
-        if ($stripeProductId === '') {
-            throw new RuntimeException('Produto Stripe não configurado. Defina STRIPE_PRODUCT_ID no ambiente.');
+        if ($stripeBillingId === '') {
+            throw new RuntimeException('Identificador Stripe não configurado. Defina STRIPE_PRICE_ID (ou STRIPE_PRODUCT_ID) no ambiente.');
         }
 
         $entryUrl = rtrim(appEntryUrl(), '/');
-        $successUrl = $entryUrl . '/vendas.php?checkout=success';
-        $cancelUrl = $entryUrl . '/vendas.php?checkout=cancel';
+        $successUrl = appEntryUrl() . appPath('home?checkout=success');
+        $cancelUrl = appEntryUrl() . appPath('home?checkout=cancel');
+
+        $lineItem = ['quantity' => 1];
+        if (str_starts_with($stripeBillingId, 'price_')) {
+            $lineItem['price'] = $stripeBillingId;
+        } elseif (str_starts_with($stripeBillingId, 'prod_')) {
+            $lineItem['price_data'] = [
+                'currency' => 'brl',
+                'unit_amount' => 1990,
+                'product' => $stripeBillingId,
+                'recurring' => [
+                    'interval' => 'month',
+                ],
+            ];
+        } else {
+            throw new RuntimeException('ID Stripe inválido. Use STRIPE_PRICE_ID (price_...) ou STRIPE_PRODUCT_ID (prod_...).');
+        }
 
         $checkoutPayload = [
             'mode' => 'subscription',
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
             'locale' => 'pt-BR',
-            'line_items' => [
-                [
-                    'quantity' => 1,
-                    'price_data' => [
-                        'currency' => 'brl',
-                        'unit_amount' => 1990,
-                        'product' => $stripeProductId,
-                        'recurring' => [
-                            'interval' => 'month',
-                        ],
-                    ],
-                ],
-            ],
+            'line_items' => [$lineItem],
             'subscription_data' => [
                 'trial_period_days' => 7,
             ],
@@ -143,7 +147,7 @@ if ($checkoutAction === 'checkout') {
         exit;
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
-        redirectTo('vendas.php');
+        redirectTo('home');
     }
 }
 
@@ -168,7 +172,7 @@ $flashes = getFlashes();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e(APP_NAME) ?> - Vendas</title>
+    <title><?= e(APP_NAME) ?> - Home</title>
     <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
     <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -176,13 +180,13 @@ $flashes = getFlashes();
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(appPath('assets/styles.css?v=' . $stylesAssetVersion)) ?>">
     <link rel="stylesheet" href="<?= e(appPath('assets/theme-bexon.css?v=' . $themeBexonAssetVersion)) ?>">
-    <link rel="stylesheet" href="<?= e(appPath('assets/vendas.css?v=' . $salesAssetVersion)) ?>">
+    <link rel="stylesheet" href="<?= e(appPath('assets/home.css?v=' . $salesAssetVersion)) ?>">
 </head>
 <body class="is-sales-page">
     <div class="sales-page" id="top">
         <header class="sales-header">
             <div class="sales-container sales-header-inner">
-                <a href="<?= e(appPath('vendas.php')) ?>" class="sales-brand" aria-label="<?= e(APP_NAME) ?>">
+                <a href="<?= e(appPath('home')) ?>" class="sales-brand" aria-label="<?= e(APP_NAME) ?>">
                     <img src="<?= e(appPath('assets/Bexon - Logo Horizontal.png?v=1')) ?>" alt="<?= e(APP_NAME) ?>">
                 </a>
                 <nav class="sales-nav" aria-label="Navega&ccedil;&atilde;o principal">

@@ -6,6 +6,15 @@
 :{$PORT:8080} {
     root * /app
     encode zstd gzip
+    @legacyVendas path /vendas /vendas/ /vendas.php
+    redir @legacyVendas /home 308
     redir /index.php / 308
+    redir /home.php /home 308
+    redir /account-settings.php /account-settings 308
+    redir /workspace-settings.php /workspace-settings 308
+
+    @hasPhpFile file {path}.php
+    rewrite @hasPhpFile {path}.php
+
     php_server
 }

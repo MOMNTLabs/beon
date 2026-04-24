@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'logout':
                 logoutUser();
                 flash('success', 'Sessão encerrada.');
-                redirectTo('index.php');
+                redirectTo('');
 
             case 'account_update_profile':
                 updateUserProfile(
@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_FILES['avatar'] ?? []
                 );
                 flash('success', 'Perfil atualizado.');
-                redirectTo('account-settings.php');
+                redirectTo('account-settings');
 
             case 'account_update_password':
                 updateUserPassword(
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     (string) ($_POST['new_password_confirm'] ?? '')
                 );
                 flash('success', 'Senha atualizada.');
-                redirectTo('account-settings.php');
+                redirectTo('account-settings');
 
             case 'account_delete_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 deleteWorkspaceOwnedByUser($pdo, $workspaceId, (int) $currentUser['id']);
                 ensureActiveWorkspaceSessionForUser((int) $currentUser['id']);
                 flash('success', 'Workspace removido.');
-                redirectTo('account-settings.php');
+                redirectTo('account-settings');
 
             case 'account_leave_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
@@ -57,14 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 leaveWorkspace($pdo, $workspaceId, (int) $currentUser['id']);
                 ensureActiveWorkspaceSessionForUser((int) $currentUser['id']);
                 flash('success', 'Você saiu do workspace.');
-                redirectTo('account-settings.php');
+                redirectTo('account-settings');
 
             default:
                 throw new RuntimeException('Ação inválida.');
         }
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
-        redirectTo('account-settings.php');
+        redirectTo('account-settings');
     }
 }
 
@@ -136,7 +136,7 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
             </div>
             <div class="top-nav-actions">
                 <a
-                    href="account-settings.php"
+                    href="<?= e(appPath('account-settings')) ?>"
                     class="icon-gear-button top-account-settings-button"
                     aria-label="Configurações da conta"
                 >

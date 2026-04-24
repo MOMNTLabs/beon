@@ -231,7 +231,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         </div>
                     </div>
                     <a
-                        href="account-settings.php"
+                        href="<?= e(appPath('account-settings')) ?>"
                         class="icon-gear-button top-account-settings-button"
                         aria-label="Configurações da conta"
                     >

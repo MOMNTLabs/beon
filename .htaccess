@@ -1,1 +1,21 @@
-DirectoryIndex vendas.php index.php
+DirectoryIndex index.php home.php
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Canonical extensionless URLs
+RewriteRule ^index\.php$ ./ [R=302,L,NC]
+RewriteRule ^home\.php$ home [R=302,L,NC]
+RewriteRule ^account-settings\.php$ account-settings [R=302,L,NC]
+RewriteRule ^workspace-settings\.php$ workspace-settings [R=302,L,NC]
+
+# Legacy sales routes
+RewriteRule ^vendas/?$ home [R=302,L,NC]
+RewriteRule ^vendas\.php$ home [R=302,L,NC]
+
+# Resolve extensionless routes to *.php files.
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+?)/?$ $1.php [L]
+</IfModule>

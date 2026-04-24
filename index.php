@@ -47,7 +47,7 @@ if (
     && !$forceAuthScreen
     && $entryAction === ''
 ) {
-    redirectTo('vendas.php');
+    redirectTo('home');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -58,13 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $token = trim((string) ($_GET['token'] ?? ''));
         if ($selector === '' || $token === '') {
             flash('error', 'Link de redefinição inválido.');
-            redirectTo('index.php?auth=forgot-password#forgot-password');
+            redirectTo('?auth=forgot-password#forgot-password');
         }
 
         $passwordResetRequest = validPasswordResetRequest($selector, $token);
         if (!$passwordResetRequest) {
             flash('error', 'Este link de redefinição e inválido ou expirou.');
-            redirectTo('index.php?auth=forgot-password#forgot-password');
+            redirectTo('?auth=forgot-password#forgot-password');
         }
 
         $passwordResetRequest['selector'] = $selector;
@@ -194,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) ($_POST['action'] ?? '');
-    $redirectPathOnError = 'index.php';
+    $redirectPathOnError = '';
 
     try {
         verifyCsrf();

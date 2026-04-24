@@ -8,7 +8,7 @@ $currentUser = requireAuth();
 $currentWorkspaceId = activeWorkspaceId($currentUser);
 if ($currentWorkspaceId === null) {
     flash('error', 'Workspace ativo não encontrado.');
-    redirectTo('index.php');
+    redirectTo('');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'logout':
                 logoutUser();
                 flash('success', 'Sessão encerrada.');
-                redirectTo('index.php');
+                redirectTo('');
 
             case 'switch_workspace':
                 $workspaceId = (int) ($_POST['workspace_id'] ?? 0);
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 setActiveWorkspaceId($workspaceId);
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             case 'create_workspace':
                 $workspaceName = normalizeWorkspaceName((string) ($_POST['workspace_name'] ?? ''));
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 setActiveWorkspaceId($workspaceId);
                 flash('success', 'Workspace criado.');
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             case 'workspace_update_profile':
             case 'workspace_update_name':
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $canRenameWorkspace
                 );
                 flash('success', 'Dados do workspace atualizados.');
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             case 'workspace_update_task_statuses':
                 $workspaceId = activeWorkspaceId($currentUser);
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     (string) ($_POST['new_status_color'] ?? '')
                 );
                 flash('success', 'Status do workspace atualizados.');
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             case 'workspace_update_sidebar_tools':
                 $workspaceId = activeWorkspaceId($currentUser);
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 workspaceUpdateSidebarToolsConfiguration($pdo, $workspaceId, $sidebarTools);
                 flash('success', 'Ferramentas do sidebar atualizadas.');
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             case 'workspace_add_sidebar_tool':
                 $workspaceId = activeWorkspaceId($currentUser);
@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 workspaceUpdateSidebarToolsConfiguration($pdo, $workspaceId, $enabledOptionalTools);
                 flash('success', 'Ferramenta adicionada ao sidebar.');
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             case 'workspace_add_member':
                 $workspaceId = activeWorkspaceId($currentUser);
@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'member');
                 flash('success', 'Usuário adicionado ao workspace.');
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             case 'workspace_promote_member':
                 $workspaceId = activeWorkspaceId($currentUser);
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'admin');
                 flash('success', 'Permissão de administrador concedida.');
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             case 'workspace_demote_member':
                 $workspaceId = activeWorkspaceId($currentUser);
@@ -232,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 updateWorkspaceMemberRole($pdo, $workspaceId, $memberId, 'member');
                 flash('success', 'Permissão alterada para usuário.');
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             case 'workspace_remove_member':
                 $workspaceId = activeWorkspaceId($currentUser);
@@ -256,14 +256,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 removeWorkspaceMember($pdo, $workspaceId, $memberId);
                 flash('success', 'Usuário removido do workspace.');
-                redirectTo('workspace-settings.php');
+                redirectTo('workspace-settings');
 
             default:
                 throw new RuntimeException('Ação inválida.');
         }
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
-        redirectTo('workspace-settings.php');
+        redirectTo('workspace-settings');
     }
 }
 
@@ -271,7 +271,7 @@ $currentUser = requireAuth();
 $currentWorkspaceId = activeWorkspaceId($currentUser);
 if ($currentWorkspaceId === null) {
     flash('error', 'Workspace ativo não encontrado.');
-    redirectTo('index.php');
+    redirectTo('');
 }
 
 $currentWorkspace = activeWorkspace($currentUser);
@@ -341,7 +341,7 @@ $themeBexonAssetVersion = (string) (@filemtime(__DIR__ . '/assets/theme-bexon.cs
             </div>
             <div class="top-nav-actions">
                 <a
-                    href="account-settings.php"
+                    href="<?= e(appPath('account-settings')) ?>"
                     class="icon-gear-button top-account-settings-button"
                     aria-label="Configurações da conta"
                 >
