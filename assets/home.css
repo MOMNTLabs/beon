@@ -325,6 +325,24 @@ body.is-sales-page {
     padding: 38px 0;
 }
 
+.is-sales-page .sales-topic {
+    position: relative;
+    overflow: clip;
+    border-top: 1px solid rgba(32, 68, 107, 0.08);
+    border-bottom: 1px solid rgba(32, 68, 107, 0.08);
+}
+
+.is-sales-page .sales-topic-soft {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0.46) 100%);
+}
+
+.is-sales-page .sales-topic-contrast {
+    background:
+        radial-gradient(circle at 12% 16%, rgba(183, 132, 56, 0.1), transparent 40%),
+        radial-gradient(circle at 88% 82%, rgba(36, 94, 157, 0.1), transparent 44%),
+        rgba(238, 244, 251, 0.72);
+}
+
 .is-sales-page .sales-section-head {
     display: grid;
     gap: 10px;

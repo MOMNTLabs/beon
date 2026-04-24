@@ -278,7 +278,7 @@ $flashes = getFlashes();
                 </div>
             </section>
 
-            <section id="recursos" class="sales-section">
+            <section id="recursos" class="sales-section sales-topic sales-topic-soft">
                 <div class="sales-container">
                     <div class="sales-section-head">
                         <span class="sales-eyebrow">Recursos principais</span>
@@ -301,7 +301,7 @@ $flashes = getFlashes();
                 </div>
             </section>
 
-            <section id="fluxo" class="sales-section">
+            <section id="fluxo" class="sales-section sales-topic sales-topic-contrast">
                 <div class="sales-container sales-steps-shell">
                     <div class="sales-section-head">
                         <span class="sales-eyebrow">Como funciona</span>
@@ -327,7 +327,7 @@ $flashes = getFlashes();
                 </div>
             </section>
 
-            <section id="planos" class="sales-section">
+            <section id="planos" class="sales-section sales-topic sales-topic-soft">
                 <div class="sales-container">
                     <div class="sales-section-head">
                         <span class="sales-eyebrow">Plano</span>
@@ -350,7 +350,7 @@ $flashes = getFlashes();
                 </div>
             </section>
 
-            <section class="sales-section sales-final-cta">
+            <section class="sales-section sales-final-cta sales-topic sales-topic-contrast">
                 <div class="sales-container">
                     <div class="sales-cta-box">
                         <h2>Pronto para centralizar sua opera&ccedil;&atilde;o no Bexon?</h2>
