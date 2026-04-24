@@ -19,30 +19,30 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e(APP_NAME) ?> - Vendas</title>
-    <link rel="icon" type="image/png" href="assets/Bexon---Logo-Symbol.png?v=1">
-    <link rel="shortcut icon" href="assets/Bexon---Logo-Symbol.png?v=1">
-    <link rel="preçonnect" href="https://fonts.googleapis.com">
-    <link rel="preçonnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
-    <link rel="stylesheet" href="assets/theme-bexon.css?v=<?= e($themeBexonAssetVersion) ?>">
-    <link rel="stylesheet" href="assets/vendas.css?v=<?= e($salesAssetVersion) ?>">
+    <link rel="stylesheet" href="<?= e(appPath('assets/styles.css?v=' . $stylesAssetVersion)) ?>">
+    <link rel="stylesheet" href="<?= e(appPath('assets/theme-bexon.css?v=' . $themeBexonAssetVersion)) ?>">
+    <link rel="stylesheet" href="<?= e(appPath('assets/vendas.css?v=' . $salesAssetVersion)) ?>">
 </head>
 <body class="is-sales-page">
-    <div class="sales-page">
+    <div class="sales-page" id="top">
         <header class="sales-header">
             <div class="sales-container sales-header-inner">
-                <a href="vendas.php" class="sales-brand" aria-label="<?= e(APP_NAME) ?>">
-                    <img src="assets/Bexon - Logo Horizontal.png?v=1" alt="<?= e(APP_NAME) ?>">
+                <a href="<?= e(appPath('vendas.php')) ?>" class="sales-brand" aria-label="<?= e(APP_NAME) ?>">
+                    <img src="<?= e(appPath('assets/Bexon - Logo Horizontal.png?v=1')) ?>" alt="<?= e(APP_NAME) ?>">
                 </a>
-                <nav class="sales-nav" aria-label="Navegacao principal">
+                <nav class="sales-nav" aria-label="Navegação principal">
                     <a href="#recursos">Recursos</a>
                     <a href="#fluxo">Como funciona</a>
                     <a href="#planos">Planos</a>
                 </nav>
                 <div class="sales-header-actions">
-                    <a href="index.php?auth=login" class="sales-btn sales-btn-ghost">Entrar</a>
-                    <a href="index.php?auth=register" class="sales-btn sales-btn-primary">Começar grátis</a>
+                    <a href="<?= e(appPath('?auth=login')) ?>" class="sales-btn sales-btn-ghost">Entrar</a>
+                    <a href="<?= e(appPath('?auth=register')) ?>" class="sales-btn sales-btn-primary">Começar grátis</a>
                 </div>
             </div>
         </header>
@@ -52,14 +52,14 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                 <div class="sales-container sales-hero-grid">
                     <div class="sales-hero-copy">
                         <span class="sales-eyebrow">Operação clara para equipes em crescimento</span>
-                        <h1>Gestao de tarefas e execucao em um fluxo simples.</h1>
+                        <h1>Gestão de tarefas e execução em um fluxo simples.</h1>
                         <p>
                             O Bexon organiza tarefas, revisões, acessos e rotinas de operação
                             em uma única visão. Menos ruído, mais entrega.
                         </p>
                         <div class="sales-hero-actions">
-                            <a href="index.php?auth=register" class="sales-btn sales-btn-primary">Criar workspace</a>
-                            <a href="index.php?auth=login" class="sales-btn sales-btn-secondary">Ver demo no app</a>
+                            <a href="<?= e(appPath('?auth=register')) ?>" class="sales-btn sales-btn-primary">Criar workspace</a>
+                            <a href="<?= e(appPath('?auth=login')) ?>" class="sales-btn sales-btn-secondary">Ver demo no app</a>
                         </div>
                         <ul class="sales-trust-list">
                             <li>Setup rápido</li>
@@ -85,11 +85,11 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                                 <article class="sales-preview-column is-progress">
                                     <h3>Em andamento</h3>
                                     <p>Atualizar quadro de vendas</p>
-                                    <p>Validar custos do mes</p>
+                                    <p>Validar custos do mês</p>
                                 </article>
                                 <article class="sales-preview-column is-review">
                                     <h3>Revisão</h3>
-                                    <p>Aprovar automacoes</p>
+                                    <p>Aprovar automações</p>
                                     <p>Conferir permissões</p>
                                 </article>
                             </div>
@@ -99,7 +99,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                                     <strong>78%</strong>
                                 </div>
                                 <div>
-                                    <span>Tempo medio</span>
+                                    <span>Tempo médio</span>
                                     <strong>-31%</strong>
                                 </div>
                                 <div>
@@ -120,16 +120,16 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                     </div>
                     <div class="sales-feature-grid">
                         <article class="sales-feature-card">
-                            <h3>Quadro de status configuravel</h3>
+                            <h3>Quadro de status configurável</h3>
                             <p>Personalize etapas, cores e ordem para refletir seu fluxo real.</p>
                         </article>
                         <article class="sales-feature-card">
-                            <h3>Permissoes por grupo</h3>
+                            <h3>Permissões por grupo</h3>
                             <p>Controle acesso e visibilidade por área com granularidade.</p>
                         </article>
                         <article class="sales-feature-card">
                             <h3>Operação integrada</h3>
-                            <p>Unifique tarefas, vencimentos, inventario e financeiro no mesmo lugar.</p>
+                            <p>Unifique tarefas, vencimentos, inventário e financeiro no mesmo lugar.</p>
                         </article>
                     </div>
                 </div>
@@ -145,7 +145,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                         <article class="sales-step-card">
                             <span>01</span>
                             <h3>Crie seu workspace</h3>
-                            <p>Comece com um espaco pessoal ou convide o time em minutos.</p>
+                            <p>Comece com um espaço pessoal ou convide o time em minutos.</p>
                         </article>
                         <article class="sales-step-card">
                             <span>02</span>
@@ -170,23 +170,23 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                     <div class="sales-pricing-grid">
                         <article class="sales-pricing-card">
                             <h3>Starter</h3>
-                            <p class="sales-price">R$ 0<span>/mes</span></p>
+                            <p class="sales-price">R$ 0<span>/mês</span></p>
                             <ul>
                                 <li>Workspace pessoal</li>
-                                <li>Status customizavel</li>
+                                <li>Status customizável</li>
                                 <li>Ferramentas essenciais</li>
                             </ul>
-                            <a href="index.php?auth=register" class="sales-btn sales-btn-secondary">Começar sem custo</a>
+                            <a href="<?= e(appPath('?auth=register')) ?>" class="sales-btn sales-btn-secondary">Começar sem custo</a>
                         </article>
                         <article class="sales-pricing-card is-highlight">
                             <h3>Equipe</h3>
-                            <p class="sales-price">R$ 49<span>/mes</span></p>
+                            <p class="sales-price">R$ 49<span>/mês</span></p>
                             <ul>
                                 <li>Membros ilimitados</li>
-                                <li>Permissoes por grupo</li>
+                                <li>Permissões por grupo</li>
                                 <li>Dashboard completo</li>
                             </ul>
-                            <a href="index.php?auth=register" class="sales-btn sales-btn-primary">Criar workspace</a>
+                            <a href="<?= e(appPath('?auth=register')) ?>" class="sales-btn sales-btn-primary">Criar workspace</a>
                         </article>
                     </div>
                 </div>
@@ -198,8 +198,8 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
                         <h2>Pronto para centralizar sua operação no Bexon?</h2>
                         <p>Crie sua conta agora e monte o fluxo ideal do seu time em poucos minutos.</p>
                         <div class="sales-hero-actions">
-                            <a href="index.php?auth=register" class="sales-btn sales-btn-primary">Criar conta</a>
-                            <a href="index.php?auth=login" class="sales-btn sales-btn-ghost">Entrar no app</a>
+                            <a href="<?= e(appPath('?auth=register')) ?>" class="sales-btn sales-btn-primary">Criar conta</a>
+                            <a href="<?= e(appPath('?auth=login')) ?>" class="sales-btn sales-btn-ghost">Entrar no app</a>
                         </div>
                     </div>
                 </div>
