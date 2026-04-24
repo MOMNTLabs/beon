@@ -3122,7 +3122,7 @@ body.is-dashboard .accounting-balance-values div.is-final {
 }
 
 body.is-dashboard .users-wrap {
-    background: linear-gradient(180deg, #fffefb 0%, #faf5e9 100%);
+    background: #ffffff;
 }
 
 body.is-dashboard .workspace-settings-card {
@@ -3131,9 +3131,15 @@ body.is-dashboard .workspace-settings-card {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
+body.is-dashboard .users-wrap .workspace-settings-card {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
 body.is-dashboard .workspace-member-inline-chip {
     border-color: rgba(162, 128, 74, 0.3);
-    background: linear-gradient(180deg, #fffbf3 0%, #f5eddd 100%);
+    background: #ffffff;
 }
 
 body.is-dashboard .workspace-member-inline-name {
@@ -3150,7 +3156,7 @@ body.is-dashboard .workspace-users-modal-card {
 
 body.is-dashboard .workspace-sidebar-tool-item {
     border-color: rgba(162, 128, 74, 0.28);
-    background: linear-gradient(180deg, #fffbf3 0%, #f5eddd 100%);
+    background: #ffffff;
 }
 
 body.is-dashboard .workspace-sidebar-tool-item-label {
@@ -3177,7 +3183,7 @@ body.is-dashboard .workspace-sidebar-tools-empty {
 
 body.is-dashboard .workspace-sidebar-tools-readonly-list li {
     border-color: rgba(162, 128, 74, 0.28);
-    background: linear-gradient(180deg, #fffbf3 0%, #f5eddd 100%);
+    background: #ffffff;
     color: var(--bexon-text-soft);
 }
 
@@ -3190,7 +3196,7 @@ body.is-dashboard .workspace-settings-member-empty {
 
 body.is-dashboard .workspace-settings-member-item {
     border-color: rgba(162, 128, 74, 0.28);
-    background: linear-gradient(180deg, #fffbf3 0%, #f5eddd 100%);
+    background: #ffffff;
 }
 
 body.is-dashboard .workspace-settings-member-meta strong,
@@ -3223,16 +3229,12 @@ body.is-dashboard .workspace-role-member {
 
 body.is-dashboard .users-wrap .workspace-status-row {
     border-color: rgba(162, 128, 74, 0.28);
-    background: linear-gradient(180deg, #fffcf4 0%, #f6efdf 100%);
+    background: #ffffff;
 }
 
 body.is-dashboard .users-wrap .workspace-status-row[data-status-color] {
     border-color: rgba(var(--wf-status-rgb), 0.34);
-    background: linear-gradient(
-        180deg,
-        rgba(var(--wf-status-rgb), 0.2) 0%,
-        rgba(var(--wf-status-rgb), 0.1) 100%
-    );
+    background: rgba(var(--wf-status-rgb), 0.12);
 }
 
 body.is-dashboard .vault-entry-value {
@@ -3272,7 +3274,7 @@ body.is-dashboard .task-list-item[data-status-color]::before {
 
 body.is-dashboard .users-wrap .workspace-status-color-trigger {
     border-color: rgba(162, 128, 74, 0.4);
-    background: linear-gradient(180deg, #fffdf8 0%, #f4ebd8 100%);
+    background: #ffffff;
     color: var(--bexon-text-strong);
 }
 

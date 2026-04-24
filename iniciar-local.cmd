@@ -1,10 +1,12 @@
 @echo off
 setlocal
 
-set "PROJECT_DIR=C:\laragon\www\Beon"
+set "PROJECT_DIR=%~dp0"
+if "%PROJECT_DIR:~-1%"=="\" set "PROJECT_DIR=%PROJECT_DIR:~0,-1%"
+for %%I in ("%PROJECT_DIR%") do set "PROJECT_NAME=%%~nxI"
 set "LARAGON_EXE=C:\laragon\laragon.exe"
 set "BROWSERSYNC_CMD=%APPDATA%\npm\browser-sync.cmd"
-set "PROXY_TARGET=localhost/Beon"
+set "PROXY_TARGET=localhost/%PROJECT_NAME%"
 set "BROWSERSYNC_PORT=3001"
 set "FILES_WATCH=assets/**/*.css,assets/**/*.js,**/*.php"
 set "APACHE_VERSION="
@@ -37,7 +39,7 @@ if not exist "%APACHE_EXE%" (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='%APACHE_EXE%'; $r='%APACHE_ROOT%'; if(-not (Get-Process httpd -ErrorAction SilentlyContinue)){ Start-Process -FilePath $p -ArgumentList @('-d',$r) | Out-Null }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='%APACHE_EXE%'; $r='%APACHE_ROOT%'; if(-not (Get-Process httpd -ErrorAction SilentlyContinue)){ Start-Process -FilePath $p -ArgumentList @('-d',$r,'-C','ServerName localhost') -WindowStyle Hidden | Out-Null }"
 timeout /t 2 /nobreak >nul
 
 cd /d "%PROJECT_DIR%"
@@ -49,6 +51,6 @@ if errorlevel 1 (
 
 echo.
 echo Iniciando BrowserSync...
-echo Abra: http://localhost:%BROWSERSYNC_PORT%/Beon
+echo Abra: http://localhost:%BROWSERSYNC_PORT%/%PROJECT_NAME%
 echo.
 call "%BROWSERSYNC_CMD%" start --proxy "%PROXY_TARGET%" --files "%FILES_WATCH%" --port %BROWSERSYNC_PORT% --no-ui --no-open

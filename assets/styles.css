@@ -3311,11 +3311,26 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     padding-bottom: 6px;
 }
 
+.is-dashboard .users-wrap.panel {
+    background: #ffffff;
+    border-color: rgba(39, 106, 171, 0.16);
+    box-shadow: none;
+    padding: 22px 24px 18px;
+}
+
 .users-settings-grid {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding-right: 2px;
+    padding: 6px 4px 4px;
+}
+
+.users-wrap .workspace-settings-card {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
 }
 
 .users-wrap .workspace-settings-users-card {
@@ -3328,6 +3343,13 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 
 .users-wrap .workspace-settings-users-card.is-full {
     grid-column: 1 / -1;
+}
+
+.users-wrap .workspace-sidebar-tools-card,
+.users-wrap .workspace-statuses-card {
+    grid-column: auto;
+    border-top: 1px solid rgba(39, 106, 171, 0.16);
+    padding-top: 12px;
 }
 
 .users-wrap .workspace-settings-members {
@@ -13053,17 +13075,24 @@ select option:checked,
         padding-bottom: 10px;
     }
 
+    .is-dashboard .users-wrap.panel {
+        padding: 16px 14px 12px;
+    }
+
     .is-dashboard .users-wrap .users-settings-grid {
         flex: none;
         min-height: 0;
         overflow: visible;
-        padding-right: 0;
+        padding: 4px 0 0;
         gap: 12px;
     }
 
     .is-dashboard .users-wrap .workspace-settings-card {
-        border-radius: 14px;
-        padding: 14px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
         gap: 10px;
     }
 

@@ -39,6 +39,17 @@ if (in_array($requestedAuthPanel, ['login', 'register', 'forgot-password', 'rese
     $forceAuthScreen = true;
 }
 
+$entryUser = currentUser();
+$entryAction = trim((string) ($_GET['action'] ?? ''));
+if (
+    $_SERVER['REQUEST_METHOD'] === 'GET'
+    && !$entryUser
+    && !$forceAuthScreen
+    && $entryAction === ''
+) {
+    redirectTo('vendas.php');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $getAction = trim((string) ($_GET['action'] ?? ''));
 
