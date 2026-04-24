@@ -46,6 +46,14 @@ body.is-sales-page {
     align-items: center;
 }
 
+.is-sales-page .sales-brand img {
+    display: block;
+    width: auto;
+    height: 30px;
+    max-width: 184px;
+    object-fit: contain;
+}
+
 .is-sales-page .sales-nav {
     display: inline-flex;
     justify-content: center;

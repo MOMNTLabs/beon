@@ -33,7 +33,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/vendas.css')
         <header class="sales-header">
             <div class="sales-container sales-header-inner">
                 <a href="vendas.php" class="sales-brand" aria-label="<?= e(APP_NAME) ?>">
-                    <img src="assets/Bexon - Logo Horizontal.png?v=1" alt="<?= e(APP_NAME) ?>" width="116" height="29">
+                    <img src="assets/Bexon - Logo Horizontal.png?v=1" alt="<?= e(APP_NAME) ?>">
                 </a>
                 <nav class="sales-nav" aria-label="Navegacao principal">
                     <a href="#recursos">Recursos</a>
