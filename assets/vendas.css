@@ -127,6 +127,15 @@ body.is-sales-page {
     padding: 56px 0 38px;
 }
 
+.is-sales-page .sales-alerts {
+    padding-top: 14px;
+    padding-bottom: 0;
+}
+
+.is-sales-page .sales-alerts .flash + .flash {
+    margin-top: 10px;
+}
+
 .is-sales-page .sales-hero-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(360px, 0.95fr);
@@ -422,6 +431,11 @@ body.is-sales-page {
     gap: 14px;
 }
 
+.is-sales-page .sales-pricing-grid.is-single {
+    grid-template-columns: minmax(0, 560px);
+    justify-content: center;
+}
+
 .is-sales-page .sales-pricing-card {
     padding: 20px;
     display: grid;
@@ -454,6 +468,13 @@ body.is-sales-page {
     font-size: 0.95rem;
     font-weight: 600;
     color: #5f7491;
+}
+
+.is-sales-page .sales-price-note {
+    margin: -2px 0 0;
+    color: #4e6687;
+    font-size: 0.9rem;
+    line-height: 1.55;
 }
 
 .is-sales-page .sales-pricing-card ul {
