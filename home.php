@@ -104,7 +104,7 @@ if ($checkoutAction === 'checkout') {
 
         $entryUrl = rtrim(appEntryUrl(), '/');
         $successUrl = appEntryUrl() . appPath('home?checkout=success');
-        $cancelUrl = appEntryUrl() . appPath('home?checkout=cancel');
+        $cancelUrl = appEntryUrl() . appPath('home');
 
         $lineItem = ['quantity' => 1];
         if (str_starts_with($stripeBillingId, 'price_')) {
@@ -157,11 +157,6 @@ if ($checkoutStatus === 'success') {
         $checkoutNotice = [
         'type' => 'success',
         'message' => 'Checkout concluído. Seu teste grátis de 7 dias foi ativado.',
-    ];
-} elseif ($checkoutStatus === 'cancel') {
-    $checkoutNotice = [
-        'type' => 'error',
-        'message' => 'Checkout cancelado. Você pode tentar novamente quando quiser.',
     ];
 }
 

@@ -331,6 +331,25 @@ body.is-sales-page {
     margin-bottom: 20px;
 }
 
+.is-sales-page .sales-section-head .sales-eyebrow {
+    justify-self: start;
+    min-height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #9a6b2e;
+    letter-spacing: 0.11em;
+}
+
+.is-sales-page .sales-section-head .sales-eyebrow::before {
+    content: "";
+    width: 24px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(183, 132, 56, 0.92), rgba(183, 132, 56, 0.36));
+}
+
 .is-sales-page .sales-section-head h2 {
     margin: 0;
     color: #1a2f4d;
