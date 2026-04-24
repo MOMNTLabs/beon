@@ -19,6 +19,11 @@ body.is-sales-page {
     overflow-x: clip;
 }
 
+.is-sales-page a {
+    color: inherit;
+    text-decoration: none;
+}
+
 .is-sales-page .sales-container {
     width: min(1160px, calc(100% - 48px));
     margin: 0 auto;
@@ -29,8 +34,9 @@ body.is-sales-page {
     top: 0;
     z-index: 20;
     backdrop-filter: blur(10px);
-    background: rgba(245, 247, 251, 0.84);
+    background: rgba(245, 247, 251, 0.78);
     border-bottom: 1px solid rgba(28, 65, 107, 0.1);
+    box-shadow: 0 8px 20px rgba(23, 53, 87, 0.06);
 }
 
 .is-sales-page .sales-header-inner {
@@ -63,9 +69,35 @@ body.is-sales-page {
     color: #4d6280;
 }
 
+.is-sales-page .sales-nav a {
+    position: relative;
+    padding-bottom: 4px;
+}
+
+.is-sales-page .sales-nav a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(183, 132, 56, 0.9), rgba(36, 94, 157, 0.55));
+    opacity: 0;
+    transform: scaleX(0.3);
+    transform-origin: center;
+    transition: 180ms ease;
+}
+
 .is-sales-page .sales-nav a:hover,
 .is-sales-page .sales-nav a:focus-visible {
     color: #1f3555;
+}
+
+.is-sales-page .sales-nav a:hover::after,
+.is-sales-page .sales-nav a:focus-visible::after {
+    opacity: 1;
+    transform: scaleX(1);
 }
 
 .is-sales-page .sales-header-actions {
@@ -84,7 +116,7 @@ body.is-sales-page {
     font-weight: 700;
     font-size: 0.9rem;
     letter-spacing: 0.01em;
-    transition: 180ms ease;
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease, color 200ms ease;
 }
 
 .is-sales-page .sales-btn-primary {
@@ -96,8 +128,8 @@ body.is-sales-page {
 
 .is-sales-page .sales-btn-primary:hover,
 .is-sales-page .sales-btn-primary:focus-visible {
-    transform: translateY(-1px);
-    box-shadow: 0 14px 26px rgba(183, 132, 56, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 28px rgba(183, 132, 56, 0.3);
 }
 
 .is-sales-page .sales-btn-ghost {
@@ -160,13 +192,28 @@ body.is-sales-page {
 }
 
 .is-sales-page .sales-hero-copy h1 {
-    margin: 14px 0 14px;
+    margin: 0 0 14px;
     font-family: "Syne", sans-serif;
     font-size: clamp(2rem, 3.6vw, 3.4rem);
     line-height: 1.06;
     letter-spacing: -0.02em;
     color: #1a2f4d;
-    max-width: 16ch;
+    max-width: 17ch;
+}
+
+.is-sales-page .sales-title-accent {
+    color: inherit;
+    text-shadow: none;
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+    .is-sales-page .sales-hero-copy h1 {
+        background: linear-gradient(108deg, #1f2937 0%, #4b5563 58%, #b78438 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: transparent;
+    }
 }
 
 .is-sales-page .sales-hero-copy p {
@@ -194,24 +241,45 @@ body.is-sales-page {
 }
 
 .is-sales-page .sales-trust-list li {
-    min-height: 32px;
-    padding: 0 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(34, 75, 121, 0.16);
-    background: rgba(255, 255, 255, 0.76);
-    color: #466183;
+    min-height: auto;
+    padding: 0 0 0 20px;
+    border: 0;
+    background: transparent;
+    color: #4f6786;
     display: inline-flex;
     align-items: center;
-    font-size: 0.84rem;
+    font-size: 0.92rem;
     font-weight: 600;
+    position: relative;
+}
+
+.is-sales-page .sales-trust-list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: linear-gradient(140deg, rgba(183, 132, 56, 0.95), rgba(36, 94, 157, 0.55));
+    box-shadow: 0 0 0 2px rgba(183, 132, 56, 0.1);
 }
 
 .is-sales-page .sales-preview-window {
+    position: relative;
     border-radius: 22px;
     border: 1px solid rgba(32, 68, 107, 0.2);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 252, 0.98));
     box-shadow: 0 24px 48px rgba(15, 40, 72, 0.16);
     overflow: hidden;
+}
+
+.is-sales-page .sales-preview-window::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 84px;
+    background: linear-gradient(180deg, rgba(183, 132, 56, 0.08), transparent 100%);
+    pointer-events: none;
 }
 
 .is-sales-page .sales-preview-head {
@@ -328,8 +396,13 @@ body.is-sales-page {
 .is-sales-page .sales-topic {
     position: relative;
     overflow: clip;
-    border-top: 1px solid rgba(32, 68, 107, 0.08);
-    border-bottom: 1px solid rgba(32, 68, 107, 0.08);
+    border-top: 1px solid rgba(32, 68, 107, 0.06);
+    border-bottom: 1px solid rgba(32, 68, 107, 0.06);
+}
+
+.is-sales-page .sales-topic.sales-section {
+    padding-top: 46px;
+    padding-bottom: 46px;
 }
 
 .is-sales-page .sales-topic-soft {
@@ -346,7 +419,7 @@ body.is-sales-page {
 .is-sales-page .sales-section-head {
     display: grid;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 22px;
 }
 
 .is-sales-page .sales-section-head .sales-eyebrow {
@@ -378,19 +451,136 @@ body.is-sales-page {
     max-width: 22ch;
 }
 
+.is-sales-page .sales-section-head-alt h2 {
+    color: #374151;
+}
+
+.is-sales-page .sales-section-head-right {
+    justify-items: end;
+    text-align: right;
+}
+
+.is-sales-page .sales-section-head-right .sales-eyebrow {
+    justify-self: end;
+}
+
+.is-sales-page .sales-section-head-center {
+    justify-items: center;
+    text-align: center;
+}
+
+.is-sales-page .sales-section-head-center .sales-eyebrow {
+    justify-self: center;
+}
+
+.is-sales-page .sales-section-head-center .sales-eyebrow::before {
+    background: linear-gradient(90deg, rgba(183, 132, 56, 0.36), rgba(183, 132, 56, 0.92));
+}
+
+.is-sales-page .sales-section-head-center .sales-eyebrow::after {
+    content: "";
+    width: 24px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(183, 132, 56, 0.92), rgba(183, 132, 56, 0.36));
+}
+
+.is-sales-page .sales-usecases-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.is-sales-page .sales-usecase-card {
+    border-radius: 18px;
+    border: 1px solid rgba(32, 68, 107, 0.16);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 18px;
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.is-sales-page .sales-usecase-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(183, 132, 56, 0.28);
+    background: linear-gradient(150deg, rgba(255, 247, 233, 0.96), rgba(243, 249, 255, 0.88));
+    display: inline-grid;
+    place-items: center;
+}
+
+.is-sales-page .sales-usecase-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: #31567d;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.is-sales-page .sales-usecase-card h3 {
+    margin: 0;
+    color: #21466f;
+    font-size: 1.05rem;
+    font-family: "Space Grotesk", sans-serif;
+}
+
+.is-sales-page .sales-usecase-card p {
+    margin: 0;
+    color: #5a7090;
+    line-height: 1.58;
+    font-size: 0.95rem;
+}
+
 .is-sales-page .sales-feature-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
 }
 
+.is-sales-page .sales-feature-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid rgba(183, 132, 56, 0.28);
+    background: linear-gradient(150deg, rgba(255, 247, 233, 0.96), rgba(243, 249, 255, 0.88));
+    display: inline-grid;
+    place-items: center;
+}
+
+.is-sales-page .sales-feature-icon svg {
+    width: 21px;
+    height: 21px;
+    stroke: #31567d;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .is-sales-page .sales-feature-card,
 .is-sales-page .sales-step-card,
-.is-sales-page .sales-pricing-card,
-.is-sales-page .sales-cta-box {
+.is-sales-page .sales-pricing-card {
+    position: relative;
     border-radius: 18px;
     border: 1px solid rgba(32, 68, 107, 0.16);
     background: rgba(255, 255, 255, 0.95);
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.is-sales-page .sales-feature-card:hover,
+.is-sales-page .sales-feature-card:focus-within,
+.is-sales-page .sales-usecase-card:hover,
+.is-sales-page .sales-usecase-card:focus-within,
+.is-sales-page .sales-step-card:hover,
+.is-sales-page .sales-step-card:focus-within,
+.is-sales-page .sales-pricing-card:hover,
+.is-sales-page .sales-pricing-card:focus-within {
+    transform: translateY(-4px);
+    border-color: rgba(32, 68, 107, 0.24);
+    box-shadow: 0 18px 30px rgba(20, 45, 76, 0.11);
 }
 
 .is-sales-page .sales-feature-card {
@@ -481,7 +671,10 @@ body.is-sales-page {
 }
 
 .is-sales-page .sales-pricing-card.is-highlight {
-    border-color: rgba(183, 132, 56, 0.34);
+    border: 1px solid transparent;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95)) padding-box,
+        linear-gradient(140deg, rgba(183, 132, 56, 0.5), rgba(36, 94, 157, 0.22)) border-box;
     box-shadow: 0 18px 32px rgba(183, 132, 56, 0.16);
 }
 
@@ -540,12 +733,13 @@ body.is-sales-page {
 }
 
 .is-sales-page .sales-cta-box {
-    padding: 26px;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 8px 0 0;
     text-align: center;
-    border-color: rgba(183, 132, 56, 0.3);
-    background:
-        radial-gradient(circle at 50% 0%, rgba(183, 132, 56, 0.16), transparent 55%),
-        rgba(255, 255, 255, 0.95);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 
 .is-sales-page .sales-cta-box h2 {
@@ -561,6 +755,48 @@ body.is-sales-page {
     color: #58708e;
     max-width: 60ch;
     line-height: 1.6;
+}
+
+@keyframes salesFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .is-sales-page .sales-hero-copy,
+    .is-sales-page .sales-hero-preview,
+    .is-sales-page .sales-section-head,
+    .is-sales-page .sales-usecase-card,
+    .is-sales-page .sales-feature-card,
+    .is-sales-page .sales-step-card,
+    .is-sales-page .sales-pricing-card,
+    .is-sales-page .sales-cta-box {
+        opacity: 0;
+        animation: salesFadeUp 520ms cubic-bezier(0.21, 1, 0.25, 1) forwards;
+    }
+
+    .is-sales-page .sales-hero-preview {
+        animation-delay: 80ms;
+    }
+
+    .is-sales-page .sales-feature-card:nth-child(2),
+    .is-sales-page .sales-usecase-card:nth-child(2),
+    .is-sales-page .sales-step-card:nth-child(2) {
+        animation-delay: 90ms;
+    }
+
+    .is-sales-page .sales-feature-card:nth-child(3),
+    .is-sales-page .sales-usecase-card:nth-child(3),
+    .is-sales-page .sales-step-card:nth-child(3) {
+        animation-delay: 150ms;
+    }
 }
 
 .is-sales-page .sales-footer {
@@ -586,6 +822,7 @@ body.is-sales-page {
         gap: 22px;
     }
 
+    .is-sales-page .sales-usecases-grid,
     .is-sales-page .sales-feature-grid,
     .is-sales-page .sales-steps-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -637,14 +874,41 @@ body.is-sales-page {
         grid-template-columns: 1fr;
     }
 
+    .is-sales-page .sales-usecases-grid,
     .is-sales-page .sales-feature-grid,
     .is-sales-page .sales-steps-grid {
         grid-template-columns: 1fr;
     }
 
     .is-sales-page .sales-steps-shell,
-    .is-sales-page .sales-cta-box,
     .is-sales-page .sales-pricing-card {
         padding: 18px;
+    }
+
+    .is-sales-page .sales-cta-box {
+        padding-top: 0;
+    }
+
+    .is-sales-page .sales-topic.sales-section {
+        padding-top: 34px;
+        padding-bottom: 34px;
+    }
+
+    .is-sales-page .sales-section-head-right {
+        justify-items: start;
+        text-align: left;
+    }
+
+    .is-sales-page .sales-section-head-right .sales-eyebrow {
+        justify-self: start;
+    }
+
+    .is-sales-page .sales-section-head-center {
+        justify-items: start;
+        text-align: left;
+    }
+
+    .is-sales-page .sales-section-head-center .sales-eyebrow {
+        justify-self: start;
     }
 }

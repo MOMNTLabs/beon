@@ -186,6 +186,7 @@ $flashes = getFlashes();
                 </a>
                 <nav class="sales-nav" aria-label="Navega&ccedil;&atilde;o principal">
                     <a href="#recursos">Recursos</a>
+                    <a href="#uso">Para quem</a>
                     <a href="#fluxo">Como funciona</a>
                     <a href="#planos">Planos</a>
                 </nav>
@@ -217,11 +218,10 @@ $flashes = getFlashes();
             <section class="sales-hero">
                 <div class="sales-container sales-hero-grid">
                     <div class="sales-hero-copy">
-                        <span class="sales-eyebrow">Opera&ccedil;&atilde;o clara para equipes em crescimento</span>
-                        <h1>Gest&atilde;o de tarefas e execu&ccedil;&atilde;o em um fluxo simples.</h1>
+                        <h1>Tarefas pessoais, do neg&oacute;cio e da equipe em um fluxo <span class="sales-title-accent">simples.</span></h1>
                         <p>
-                            O Bexon organiza tarefas, revis&otilde;es, acessos e rotinas de opera&ccedil;&atilde;o
-                            em uma &uacute;nica vis&atilde;o. Menos ru&iacute;do, mais entrega.
+                            O Bexon une o que voc&ecirc; precisa fazer sozinho e com o time no mesmo lugar.
+                            Menos troca de contexto, mais clareza para executar.
                         </p>
                         <div class="sales-hero-actions">
                             <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Iniciar 7 dias gr&aacute;tis</a>
@@ -230,7 +230,7 @@ $flashes = getFlashes();
                         <ul class="sales-trust-list">
                             <li>7 dias gr&aacute;tis</li>
                             <li>R$ 19,90/m&ecirc;s ap&oacute;s o teste</li>
-                            <li>Cancele quando quiser</li>
+                            <li>Pessoal + neg&oacute;cio + equipe</li>
                         </ul>
                     </div>
 
@@ -278,24 +278,89 @@ $flashes = getFlashes();
                 </div>
             </section>
 
+            <section id="uso" class="sales-section sales-topic sales-topic-soft">
+                <div class="sales-container">
+                    <div class="sales-section-head sales-section-head-alt">
+                        <span class="sales-eyebrow">Feito para a rotina real</span>
+                        <h2>Do pessoal ao time, tudo organizado sem complicar.</h2>
+                    </div>
+                    <div class="sales-usecases-grid">
+                        <article class="sales-usecase-card">
+                            <span class="sales-usecase-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path>
+                                    <path d="M5 20a7 7 0 0 1 14 0"></path>
+                                </svg>
+                            </span>
+                            <h3>Pessoal</h3>
+                            <p>Organize tarefas do dia a dia, pend&ecirc;ncias e prioridades pessoais em minutos.</p>
+                        </article>
+                        <article class="sales-usecase-card">
+                            <span class="sales-usecase-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <rect x="3" y="6" width="18" height="13" rx="2"></rect>
+                                    <path d="M8 6V4h8v2"></path>
+                                    <path d="M3 11h18"></path>
+                                </svg>
+                            </span>
+                            <h3>Neg&oacute;cio</h3>
+                            <p>Centralize opera&ccedil;&otilde;es, clientes e demandas do neg&oacute;cio em um quadro claro.</p>
+                        </article>
+                        <article class="sales-usecase-card">
+                            <span class="sales-usecase-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M16 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
+                                    <path d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path>
+                                    <path d="M2 20a6 6 0 0 1 12 0"></path>
+                                    <path d="M13 20a5 5 0 0 1 9 0"></path>
+                                </svg>
+                            </span>
+                            <h3>Equipe</h3>
+                            <p>Delegue, acompanhe e revise tarefas da equipe sem perder a simplicidade.</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
             <section id="recursos" class="sales-section sales-topic sales-topic-soft">
                 <div class="sales-container">
-                    <div class="sales-section-head">
+                    <div class="sales-section-head sales-section-head-right sales-section-head-alt">
                         <span class="sales-eyebrow">Recursos principais</span>
-                        <h2>Tudo que seu time precisa, sem camada extra de complexidade.</h2>
+                        <h2>Mais organiza&ccedil;&atilde;o, menos fric&ccedil;&atilde;o na rotina pessoal e profissional.</h2>
                     </div>
                     <div class="sales-feature-grid">
                         <article class="sales-feature-card">
-                            <h3>Quadro de status configur&aacute;vel</h3>
-                            <p>Personalize etapas, cores e ordem para refletir seu fluxo real.</p>
+                            <span class="sales-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M4 6h16"></path>
+                                    <path d="M4 12h10"></path>
+                                    <path d="M4 18h7"></path>
+                                    <circle cx="18" cy="12" r="2"></circle>
+                                </svg>
+                            </span>
+                            <h3>Quadro &uacute;nico e flex&iacute;vel</h3>
+                            <p>Junte tarefas pessoais, do neg&oacute;cio e da equipe em um s&oacute; fluxo visual.</p>
                         </article>
                         <article class="sales-feature-card">
-                            <h3>Permiss&otilde;es por grupo</h3>
-                            <p>Controle acesso e visibilidade por &aacute;rea com granularidade.</p>
+                            <span class="sales-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+                                    <path d="M8 9h8"></path>
+                                    <path d="M8 13h5"></path>
+                                </svg>
+                            </span>
+                            <h3>Organiza&ccedil;&atilde;o por contexto</h3>
+                            <p>Separe por prioridade, status e respons&aacute;vel sem criar um sistema complexo.</p>
                         </article>
                         <article class="sales-feature-card">
-                            <h3>Opera&ccedil;&atilde;o integrada</h3>
-                            <p>Unifique tarefas, vencimentos, invent&aacute;rio e financeiro no mesmo lugar.</p>
+                            <span class="sales-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M4 12h6l2.2 3L15 9l2 3h3"></path>
+                                    <path d="M4 5h16v14H4z"></path>
+                                </svg>
+                            </span>
+                            <h3>Execu&ccedil;&atilde;o sem ru&iacute;do</h3>
+                            <p>Saiba o que fazer agora, o que delegar e o que revisar com poucos cliques.</p>
                         </article>
                     </div>
                 </div>
@@ -303,25 +368,25 @@ $flashes = getFlashes();
 
             <section id="fluxo" class="sales-section sales-topic sales-topic-contrast">
                 <div class="sales-container sales-steps-shell">
-                    <div class="sales-section-head">
+                    <div class="sales-section-head sales-section-head-alt">
                         <span class="sales-eyebrow">Como funciona</span>
-                        <h2>Um processo direto, do primeiro login at&eacute; a entrega.</h2>
+                        <h2>Tr&ecirc;s passos para simplificar sua organiza&ccedil;&atilde;o pessoal e do time.</h2>
                     </div>
                     <div class="sales-steps-grid">
                         <article class="sales-step-card">
                             <span>01</span>
-                            <h3>Inicie seu teste gr&aacute;tis</h3>
-                            <p>Ative 7 dias gr&aacute;tis em poucos cliques com checkout seguro da Stripe.</p>
+                            <h3>Comece em minutos</h3>
+                            <p>Ative seu teste gr&aacute;tis e crie seu fluxo inicial sem configura&ccedil;&otilde;es complexas.</p>
                         </article>
                         <article class="sales-step-card">
                             <span>02</span>
-                            <h3>Defina status e grupos</h3>
-                            <p>Ajuste etapas, permiss&atilde;o e vis&atilde;o de cada parte da opera&ccedil;&atilde;o.</p>
+                            <h3>Organize por contexto</h3>
+                            <p>Separe tarefas pessoais, operacionais e da equipe com status e prioridades claras.</p>
                         </article>
                         <article class="sales-step-card">
                             <span>03</span>
-                            <h3>Escale com previsibilidade</h3>
-                            <p>Depois do teste, continue por R$ 19,90/m&ecirc;s sem surpresa na cobran&ccedil;a.</p>
+                            <h3>Execute com clareza</h3>
+                            <p>Mantenha foco no que importa e acompanhe entregas sem perder tempo com ferramenta.</p>
                         </article>
                     </div>
                 </div>
@@ -329,9 +394,9 @@ $flashes = getFlashes();
 
             <section id="planos" class="sales-section sales-topic sales-topic-soft">
                 <div class="sales-container">
-                    <div class="sales-section-head">
+                    <div class="sales-section-head sales-section-head-center">
                         <span class="sales-eyebrow">Plano</span>
-                        <h2>7 dias gr&aacute;tis e depois R$ 19,90 por m&ecirc;s.</h2>
+                        <h2>Simplicidade total: 7 dias gr&aacute;tis e depois R$ 19,90 por m&ecirc;s.</h2>
                     </div>
                     <div class="sales-pricing-grid is-single">
                         <article class="sales-pricing-card is-highlight">
@@ -339,10 +404,10 @@ $flashes = getFlashes();
                             <p class="sales-price">R$ 19,90<span>/m&ecirc;s</span></p>
                             <p class="sales-price-note">Voc&ecirc; s&oacute; paga ap&oacute;s o per&iacute;odo de teste gr&aacute;tis de 7 dias.</p>
                             <ul>
-                                <li>Projetos e tarefas ilimitados</li>
-                                <li>Permiss&otilde;es por grupo</li>
-                                <li>Dashboard completo</li>
-                                <li>Suporte cont&iacute;nuo</li>
+                                <li>Tarefas pessoais e profissionais no mesmo lugar</li>
+                                <li>Organiza&ccedil;&atilde;o simples para equipes</li>
+                                <li>Fluxo visual com status e prioridades</li>
+                                <li>Suporte cont&iacute;nuo sem custo extra</li>
                             </ul>
                             <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Ativar teste gr&aacute;tis</a>
                         </article>
@@ -353,8 +418,8 @@ $flashes = getFlashes();
             <section class="sales-section sales-final-cta sales-topic sales-topic-contrast">
                 <div class="sales-container">
                     <div class="sales-cta-box">
-                        <h2>Pronto para centralizar sua opera&ccedil;&atilde;o no Bexon?</h2>
-                        <p>Comece com 7 dias gr&aacute;tis. Depois, continue por apenas R$ 19,90/m&ecirc;s.</p>
+                        <h2>Pronto para simplificar sua rotina pessoal, do neg&oacute;cio e da equipe?</h2>
+                        <p>Comece com 7 dias gr&aacute;tis e veja como organizar tudo pode ser mais leve no Bexon.</p>
                         <div class="sales-hero-actions">
                             <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Iniciar teste gr&aacute;tis</a>
                             <a href="<?= e($loginPath) ?>" class="sales-btn sales-btn-ghost">Entrar no app</a>
