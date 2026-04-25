@@ -85,6 +85,9 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
 $salesAssetVersion = is_file(__DIR__ . '/assets/home.css')
     ? (string) filemtime(__DIR__ . '/assets/home.css')
     : '1';
+$salesIllustrationVersion = is_file(__DIR__ . '/assets/sales-hero-illustration.svg')
+    ? (string) filemtime(__DIR__ . '/assets/sales-hero-illustration.svg')
+    : '1';
 
 $currentUser = currentUser();
 $checkoutAction = trim((string) ($_GET['action'] ?? ''));
@@ -235,45 +238,12 @@ $flashes = getFlashes();
                     </div>
 
                     <div class="sales-hero-preview" aria-hidden="true">
-                        <div class="sales-preview-window">
-                            <div class="sales-preview-head">
-                                <div class="sales-preview-dots">
-                                    <span></span><span></span><span></span>
-                                </div>
-                                <strong>Workspace Bexon</strong>
-                            </div>
-                            <div class="sales-preview-board">
-                                <article class="sales-preview-column is-todo">
-                                    <h3>A fazer</h3>
-                                    <p>Revisar checklist de onboarding</p>
-                                    <p>Ajustar rotas de entregas</p>
-                                </article>
-                                <article class="sales-preview-column is-progress">
-                                    <h3>Em andamento</h3>
-                                    <p>Atualizar quadro de vendas</p>
-                                    <p>Validar custos do m&ecirc;s</p>
-                                </article>
-                                <article class="sales-preview-column is-review">
-                                    <h3>Revis&atilde;o</h3>
-                                    <p>Aprovar automa&ccedil;&otilde;es</p>
-                                    <p>Conferir permiss&otilde;es</p>
-                                </article>
-                            </div>
-                            <div class="sales-preview-metrics">
-                                <div>
-                                    <span>Conclu&iacute;das</span>
-                                    <strong>78%</strong>
-                                </div>
-                                <div>
-                                    <span>Tempo m&eacute;dio</span>
-                                    <strong>-31%</strong>
-                                </div>
-                                <div>
-                                    <span>Visibilidade</span>
-                                    <strong>100%</strong>
-                                </div>
-                            </div>
-                        </div>
+                        <img
+                            src="<?= e(appPath('assets/sales-hero-illustration.svg?v=' . $salesIllustrationVersion)) ?>"
+                            alt=""
+                            class="sales-preview-illustration"
+                            decoding="async"
+                        >
                     </div>
                 </div>
             </section>
