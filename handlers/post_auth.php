@@ -73,7 +73,14 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
                 throw new RuntimeException('Credenciais inválidas.');
             }
 
-            loginUser((int) $userRow['id'], true);
+            $userId = (int) $userRow['id'];
+            if (envFlag('APP_ENFORCE_BILLING', false) && !userHasBillingAccess($userId)) {
+                logoutUser();
+                setPendingCheckoutUserId($userId);
+                redirectTo('home?action=checkout');
+            }
+
+            loginUser($userId, true);
             flash('success', 'Login realizado.');
             redirectTo($nextPath);
 
