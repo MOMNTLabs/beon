@@ -15,6 +15,29 @@ window.addEventListener("DOMContentLoaded", () => {
     }, 5000);
   });
 
+  document.addEventListener("click", (event) => {
+    const target =
+      event.target instanceof Element ? event.target : event.target?.parentElement;
+    if (!(target instanceof Element)) return;
+
+    const toggle = target.closest("[data-password-toggle]");
+    if (!(toggle instanceof HTMLButtonElement)) return;
+
+    const field = toggle.closest(".auth-password-field");
+    const input = field?.querySelector("input");
+    if (!(input instanceof HTMLInputElement)) return;
+
+    const shouldShow = input.type === "password";
+    input.type = shouldShow ? "text" : "password";
+    toggle.setAttribute("aria-pressed", shouldShow ? "true" : "false");
+    toggle.setAttribute("aria-label", shouldShow ? "Ocultar senha" : "Mostrar senha");
+
+    const label = toggle.querySelector("[data-password-toggle-label]");
+    if (label) {
+      label.textContent = shouldShow ? "Ocultar" : "Mostrar";
+    }
+  });
+
   document.documentElement.style.colorScheme = "light";
 
   const authTabs = Array.from(

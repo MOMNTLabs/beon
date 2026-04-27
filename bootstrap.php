@@ -4593,6 +4593,10 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
 
 function userHasBillingAccess(int $userId, ?string $referenceTime = null): bool
 {
+    if (userHasGuestBillingAccess($userId)) {
+        return true;
+    }
+
     $subscription = userSubscriptionByUserId($userId);
     if (!$subscription) {
         return false;
@@ -4610,6 +4614,41 @@ function userHasBillingAccess(int $userId, ?string $referenceTime = null): bool
     }
 
     return false;
+}
+
+function billingGuestEmails(): array
+{
+    $rawEmails = trim((string) (envValue('APP_BILLING_GUEST_EMAILS') ?? envValue('APP_GUEST_EMAILS') ?? ''));
+    if ($rawEmails === '') {
+        return [];
+    }
+
+    $emails = preg_split('/[\s,;]+/', $rawEmails) ?: [];
+    $normalizedEmails = [];
+    foreach ($emails as $email) {
+        $email = strtolower(trim((string) $email));
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $normalizedEmails[$email] = true;
+        }
+    }
+
+    return array_keys($normalizedEmails);
+}
+
+function userHasGuestBillingAccess(int $userId): bool
+{
+    if ($userId <= 0) {
+        return false;
+    }
+
+    $guestEmails = billingGuestEmails();
+    if (!$guestEmails) {
+        return false;
+    }
+
+    $user = userById($userId);
+    $email = strtolower(trim((string) ($user['email'] ?? '')));
+    return $email !== '' && in_array($email, $guestEmails, true);
 }
 
 function requireAuth(): array

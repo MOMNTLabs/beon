@@ -33,7 +33,12 @@
 
                 <label>
                     <span>Senha</span>
-                    <input type="password" name="password" placeholder="Sua senha" autocomplete="current-password" required>
+                    <span class="auth-password-field">
+                        <input type="password" name="password" placeholder="Sua senha" autocomplete="current-password" required>
+                        <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
+                            <span data-password-toggle-label>Mostrar</span>
+                        </button>
+                    </span>
                 </label>
 
                 <button class="btn btn-pill btn-accent btn-block" type="submit">Entrar</button>
@@ -72,12 +77,22 @@
 
                 <label>
                     <span>Senha</span>
-                    <input type="password" name="password" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required>
+                    <span class="auth-password-field">
+                        <input type="password" name="password" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required>
+                        <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
+                            <span data-password-toggle-label>Mostrar</span>
+                        </button>
+                    </span>
                 </label>
 
                 <label>
                     <span>Confirmar senha</span>
-                    <input type="password" name="password_confirm" placeholder="Repita a senha" minlength="6" autocomplete="new-password" required>
+                    <span class="auth-password-field">
+                        <input type="password" name="password_confirm" placeholder="Repita a senha" minlength="6" autocomplete="new-password" required>
+                        <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
+                            <span data-password-toggle-label>Mostrar</span>
+                        </button>
+                    </span>
                 </label>
 
                 <button class="btn btn-pill btn-accent btn-block" type="submit">Criar conta</button>
@@ -132,12 +147,22 @@
 
                     <label>
                         <span>Nova senha</span>
-                        <input type="password" name="new_password" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required>
+                        <span class="auth-password-field">
+                            <input type="password" name="new_password" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required>
+                            <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
+                                <span data-password-toggle-label>Mostrar</span>
+                            </button>
+                        </span>
                     </label>
 
                     <label>
                         <span>Confirmar nova senha</span>
-                        <input type="password" name="new_password_confirm" placeholder="Repita a nova senha" minlength="6" autocomplete="new-password" required>
+                        <span class="auth-password-field">
+                            <input type="password" name="new_password_confirm" placeholder="Repita a nova senha" minlength="6" autocomplete="new-password" required>
+                            <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
+                                <span data-password-toggle-label>Mostrar</span>
+                            </button>
+                        </span>
                     </label>
 
                     <button class="btn btn-pill btn-accent btn-block" type="submit">Salvar nova senha</button>
