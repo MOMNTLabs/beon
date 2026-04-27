@@ -33,6 +33,7 @@ require_once __DIR__ . '/handlers/dashboard_overview.php';
 $forceAuthScreen = false;
 $authInitialPanel = 'login';
 $passwordResetRequest = null;
+$authRedirectPath = safeRedirectPath((string) (($_GET['next'] ?? $_POST['next'] ?? '')), 'index.php');
 $requestedAuthPanel = trim((string) ($_GET['auth'] ?? ''));
 if (in_array($requestedAuthPanel, ['login', 'register', 'forgot-password', 'reset-password'], true)) {
     $authInitialPanel = $requestedAuthPanel;
@@ -40,6 +41,10 @@ if (in_array($requestedAuthPanel, ['login', 'register', 'forgot-password', 'rese
 }
 
 $entryUser = currentUser();
+if ($entryUser && envFlag('APP_ENFORCE_BILLING', false) && !userHasBillingAccess((int) ($entryUser['id'] ?? 0))) {
+    flash('error', 'Seu período de teste/assinatura está inativo. Ative seu plano para continuar.');
+    redirectTo('home');
+}
 $entryAction = trim((string) ($_GET['action'] ?? ''));
 if (
     $_SERVER['REQUEST_METHOD'] === 'GET'
