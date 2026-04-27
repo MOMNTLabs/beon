@@ -200,6 +200,7 @@ function migrate(PDO $pdo): void
     ensureTaskGroupsSchema($pdo);
     ensureTaskHistorySchema($pdo);
     ensureGroupPermissionSchema($pdo);
+    ensureBillingSchema($pdo);
 }
 
 function migrateSqlite(PDO $pdo): void
@@ -405,6 +406,68 @@ function ensureWorkspaceProfileSchema(PDO $pdo): void
     }
 
     $pdo->exec("ALTER TABLE workspaces ADD COLUMN avatar_data_url TEXT NOT NULL DEFAULT ''");
+}
+function ensureBillingSchema(PDO $pdo): void
+{
+    $driver = dbDriverName($pdo);
+
+    if ($driver === 'pgsql') {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS user_subscriptions (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                stripe_customer_id TEXT DEFAULT NULL,
+                stripe_subscription_id TEXT DEFAULT NULL,
+                stripe_checkout_session_id TEXT DEFAULT NULL,
+                subscription_status TEXT NOT NULL DEFAULT \'inactive\',
+                checkout_status TEXT NOT NULL DEFAULT \'\',
+                trial_end TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL,
+                current_period_end TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL,
+                cancel_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL,
+                raw_payload_json TEXT NOT NULL DEFAULT \'{}\',
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_customer
+             ON user_subscriptions(stripe_customer_id)
+             WHERE stripe_customer_id IS NOT NULL'
+        );
+        $pdo->exec(
+            'CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_subscription
+             ON user_subscriptions(stripe_subscription_id)
+             WHERE stripe_subscription_id IS NOT NULL'
+        );
+        $pdo->exec(
+            'CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_checkout_session
+             ON user_subscriptions(stripe_checkout_session_id)
+             WHERE stripe_checkout_session_id IS NOT NULL'
+        );
+        return;
+    }
+
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS user_subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL UNIQUE,
+            stripe_customer_id TEXT DEFAULT NULL,
+            stripe_subscription_id TEXT DEFAULT NULL,
+            stripe_checkout_session_id TEXT DEFAULT NULL,
+            subscription_status TEXT NOT NULL DEFAULT \'inactive\',
+            checkout_status TEXT NOT NULL DEFAULT \'\',
+            trial_end TEXT DEFAULT NULL,
+            current_period_end TEXT DEFAULT NULL,
+            cancel_at TEXT DEFAULT NULL,
+            raw_payload_json TEXT NOT NULL DEFAULT \'{}\',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )'
+    );
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_customer ON user_subscriptions(stripe_customer_id)');
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_subscription ON user_subscriptions(stripe_subscription_id)');
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_checkout_session ON user_subscriptions(stripe_checkout_session_id)');
 }
 
 function appMetaGet(PDO $pdo, string $metaKey): ?string
@@ -2532,6 +2595,40 @@ function appEntryUrl(): string
     $host = trim((string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
     return $scheme . '://' . $host . appBasePath();
 }
+function safeRedirectPath(?string $path, string $fallback = 'index.php'): string
+{
+    $rawPath = trim((string) $path);
+    if ($rawPath === '') {
+        return $fallback;
+    }
+
+    if (preg_match('~^[a-z][a-z0-9+.-]*:~i', $rawPath) || str_starts_with($rawPath, '//')) {
+        return $fallback;
+    }
+
+    $normalizedPath = canonicalizeAppRelativePath($rawPath);
+    if ($normalizedPath === '') {
+        return $fallback;
+    }
+
+    return $normalizedPath;
+}
+
+function stripeTimestampToIso($value): ?string
+{
+    if (!is_numeric($value)) {
+        return null;
+    }
+
+    $timestamp = (int) $value;
+    if ($timestamp <= 0) {
+        return null;
+    }
+
+    return (new DateTimeImmutable('@' . $timestamp))
+        ->setTimezone(new DateTimeZone(date_default_timezone_get()))
+        ->format('Y-m-d H:i:s');
+}
 
 function passwordResetPath(string $selector, string $token, bool $absolute = false): string
 {
@@ -4271,6 +4368,190 @@ function currentUser(): ?array
     ensureActiveWorkspaceSessionForUser((int) $user['id']);
 
     return $user;
+}
+function userSubscriptionByUserId(int $userId): ?array
+{
+    if ($userId <= 0) {
+        return null;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT *
+         FROM user_subscriptions
+         WHERE user_id = :user_id
+         LIMIT 1'
+    );
+    $stmt->execute([':user_id' => $userId]);
+    $row = $stmt->fetch();
+    return $row ?: null;
+}
+
+function userIdByStripeCustomerId(string $customerId): ?int
+{
+    $customerId = trim($customerId);
+    if ($customerId === '') {
+        return null;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT user_id
+         FROM user_subscriptions
+         WHERE stripe_customer_id = :customer_id
+         LIMIT 1'
+    );
+    $stmt->execute([':customer_id' => $customerId]);
+    $userId = (int) $stmt->fetchColumn();
+    return $userId > 0 ? $userId : null;
+}
+
+function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
+{
+    if ($userId <= 0) {
+        return;
+    }
+
+    $existing = userSubscriptionByUserId($userId) ?? [];
+    $now = nowIso();
+    $data = [
+        'stripe_customer_id' => trim((string) ($attributes['stripe_customer_id'] ?? ($existing['stripe_customer_id'] ?? ''))),
+        'stripe_subscription_id' => trim((string) ($attributes['stripe_subscription_id'] ?? ($existing['stripe_subscription_id'] ?? ''))),
+        'stripe_checkout_session_id' => trim((string) ($attributes['stripe_checkout_session_id'] ?? ($existing['stripe_checkout_session_id'] ?? ''))),
+        'subscription_status' => trim((string) ($attributes['subscription_status'] ?? ($existing['subscription_status'] ?? 'inactive'))),
+        'checkout_status' => trim((string) ($attributes['checkout_status'] ?? ($existing['checkout_status'] ?? ''))),
+        'trial_end' => $attributes['trial_end'] ?? ($existing['trial_end'] ?? null),
+        'current_period_end' => $attributes['current_period_end'] ?? ($existing['current_period_end'] ?? null),
+        'cancel_at' => $attributes['cancel_at'] ?? ($existing['cancel_at'] ?? null),
+        'raw_payload_json' => trim((string) ($attributes['raw_payload_json'] ?? ($existing['raw_payload_json'] ?? '{}'))),
+    ];
+
+    if ($data['subscription_status'] === '') {
+        $data['subscription_status'] = 'inactive';
+    }
+
+    if ($data['raw_payload_json'] === '') {
+        $data['raw_payload_json'] = '{}';
+    }
+
+    if (dbDriverName($pdo) === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO user_subscriptions (
+                user_id,
+                stripe_customer_id,
+                stripe_subscription_id,
+                stripe_checkout_session_id,
+                subscription_status,
+                checkout_status,
+                trial_end,
+                current_period_end,
+                cancel_at,
+                raw_payload_json,
+                created_at,
+                updated_at
+             ) VALUES (
+                :user_id,
+                NULLIF(:stripe_customer_id, \'\'),
+                NULLIF(:stripe_subscription_id, \'\'),
+                NULLIF(:stripe_checkout_session_id, \'\'),
+                :subscription_status,
+                :checkout_status,
+                :trial_end,
+                :current_period_end,
+                :cancel_at,
+                :raw_payload_json,
+                :created_at,
+                :updated_at
+            )
+            ON CONFLICT (user_id)
+            DO UPDATE SET
+                stripe_customer_id = EXCLUDED.stripe_customer_id,
+                stripe_subscription_id = EXCLUDED.stripe_subscription_id,
+                stripe_checkout_session_id = EXCLUDED.stripe_checkout_session_id,
+                subscription_status = EXCLUDED.subscription_status,
+                checkout_status = EXCLUDED.checkout_status,
+                trial_end = EXCLUDED.trial_end,
+                current_period_end = EXCLUDED.current_period_end,
+                cancel_at = EXCLUDED.cancel_at,
+                raw_payload_json = EXCLUDED.raw_payload_json,
+                updated_at = EXCLUDED.updated_at'
+        );
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT INTO user_subscriptions (
+                user_id,
+                stripe_customer_id,
+                stripe_subscription_id,
+                stripe_checkout_session_id,
+                subscription_status,
+                checkout_status,
+                trial_end,
+                current_period_end,
+                cancel_at,
+                raw_payload_json,
+                created_at,
+                updated_at
+            ) VALUES (
+                :user_id,
+                NULLIF(:stripe_customer_id, \'\'),
+                NULLIF(:stripe_subscription_id, \'\'),
+                NULLIF(:stripe_checkout_session_id, \'\'),
+                :subscription_status,
+                :checkout_status,
+                :trial_end,
+                :current_period_end,
+                :cancel_at,
+                :raw_payload_json,
+                :created_at,
+                :updated_at
+            )
+            ON CONFLICT(user_id) DO UPDATE SET
+                stripe_customer_id = excluded.stripe_customer_id,
+                stripe_subscription_id = excluded.stripe_subscription_id,
+                stripe_checkout_session_id = excluded.stripe_checkout_session_id,
+                subscription_status = excluded.subscription_status,
+                checkout_status = excluded.checkout_status,
+                trial_end = excluded.trial_end,
+                current_period_end = excluded.current_period_end,
+                cancel_at = excluded.cancel_at,
+                raw_payload_json = excluded.raw_payload_json,
+                updated_at = excluded.updated_at'
+        );
+    }
+
+    $stmt->execute([
+        ':user_id' => $userId,
+        ':stripe_customer_id' => $data['stripe_customer_id'],
+        ':stripe_subscription_id' => $data['stripe_subscription_id'],
+        ':stripe_checkout_session_id' => $data['stripe_checkout_session_id'],
+        ':subscription_status' => $data['subscription_status'],
+        ':checkout_status' => $data['checkout_status'],
+        ':trial_end' => $data['trial_end'],
+        ':current_period_end' => $data['current_period_end'],
+        ':cancel_at' => $data['cancel_at'],
+        ':raw_payload_json' => $data['raw_payload_json'],
+        ':created_at' => (string) ($existing['created_at'] ?? $now),
+        ':updated_at' => $now,
+    ]);
+}
+
+function userHasBillingAccess(int $userId, ?string $referenceTime = null): bool
+{
+    $subscription = userSubscriptionByUserId($userId);
+    if (!$subscription) {
+        return false;
+    }
+
+    $status = strtolower(trim((string) ($subscription['subscription_status'] ?? '')));
+    if (in_array($status, ['active', 'trialing'], true)) {
+        return true;
+    }
+
+    $referenceTime = $referenceTime ?: nowIso();
+    $trialEnd = trim((string) ($subscription['trial_end'] ?? ''));
+    if ($trialEnd !== '' && $trialEnd >= $referenceTime) {
+        return true;
+    }
+
+    return false;
 }
 
 function requireAuth(): array
