@@ -58,8 +58,7 @@ if (
     && envFlag('APP_ENFORCE_BILLING', false)
     && !userHasBillingAccess((int) ($entryUser['id'] ?? 0))
 ) {
-    flash('error', 'Seu período de teste/assinatura está inativo. Ative seu plano para continuar.');
-    redirectTo('home');
+    redirectTo('home?checkout=required#planos');
 }
 if (
     $_SERVER['REQUEST_METHOD'] === 'GET'

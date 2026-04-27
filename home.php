@@ -145,10 +145,11 @@ $currentUser = currentUser();
 $checkoutAction = trim((string) ($_GET['action'] ?? ''));
 $stripeBillingId = trim((string) (envValue('STRIPE_PRICE_ID') ?? envValue('STRIPE_PRODUCT_ID') ?? ''));
 $checkoutPath = appPath('home?action=checkout');
+$checkoutRequiredPath = appPath('home?checkout=required#planos');
 $authPath = appPath('?auth=login#login');
 $currentUserCanAccessApp = $currentUser
     && (!envFlag('APP_ENFORCE_BILLING', false) || userHasBillingAccess((int) ($currentUser['id'] ?? 0)));
-$appEntryPath = $currentUserCanAccessApp ? appPath('#tasks') : $authPath;
+$appEntryPath = $currentUserCanAccessApp ? appPath('#tasks') : ($currentUser ? $checkoutRequiredPath : $authPath);
 
 if ($checkoutAction === 'checkout') {
     if (!$currentUser) {
@@ -272,6 +273,11 @@ if ($checkoutStatus === 'success') {
     $checkoutNotice = [
         'type' => 'info',
         'message' => 'Checkout cancelado. Você pode tentar novamente quando quiser.',
+    ];
+} elseif ($checkoutStatus === 'required') {
+    $checkoutNotice = [
+        'type' => 'info',
+        'message' => 'Seu checkout ainda não foi concluído. Ative o teste grátis para liberar o acesso ao app.',
     ];
 }
 
