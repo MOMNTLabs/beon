@@ -10897,8 +10897,8 @@ function taskDueDatePresentation(?string $dueDateValue): array
 
     if ($iso === $tomorrow) {
         return [
-            'display' => 'Amanh?',
-            'title' => 'Amanh? (' . $fullLabel . ')',
+            'display' => 'Amanhã',
+            'title' => 'Amanhã (' . $fullLabel . ')',
             'is_relative' => true,
         ];
     }

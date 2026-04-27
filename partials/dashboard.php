@@ -535,7 +535,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     </div>
                     <div class="overview-card-inline-metrics" aria-label="Resumo rápido de vencimentos">
                         <span class="overview-card-inline-chip is-critical">Hoje <?= e((string) ($globalDashboardOverview['due_today_total'] ?? 0)) ?></span>
-                        <span class="overview-card-inline-chip is-attention">Amanh? <?= e((string) ($globalDashboardOverview['due_tomorrow_total'] ?? 0)) ?></span>
+                        <span class="overview-card-inline-chip is-attention">Amanhã <?= e((string) ($globalDashboardOverview['due_tomorrow_total'] ?? 0)) ?></span>
                     </div>
                     <?php if (empty($globalDashboardOverview['due_soon'])): ?>
                         <div class="overview-empty-state">
@@ -715,7 +715,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         <dd><?= e((string) ($workspaceSummary['due_today_count'] ?? 0)) ?></dd>
                                     </div>
                                     <div class="overview-workspace-kpi is-tomorrow">
-                                        <dt>Amanh?</dt>
+                                        <dt>Amanhã</dt>
                                         <dd><?= e((string) ($workspaceSummary['due_tomorrow_count'] ?? 0)) ?></dd>
                                     </div>
                                     <div class="overview-workspace-kpi is-stock">

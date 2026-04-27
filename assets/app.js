@@ -1493,8 +1493,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (raw === tomorrowIso) {
       return {
-        display: "Amanh?",
-        title: `Amanh? (${formatted})`,
+        display: "Amanhã",
+        title: `Amanhã (${formatted})`,
         isRelative: true,
       };
     }

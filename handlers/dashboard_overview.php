@@ -169,7 +169,7 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
                 $daysUntilLabel = 'Hoje';
                 $workspaceDueTodayCount++;
             } elseif ($daysUntil === 1) {
-                $daysUntilLabel = 'Amanh?';
+                $daysUntilLabel = 'Amanhã';
                 $workspaceDueTomorrowCount++;
             } elseif ($daysUntil !== null) {
                 $daysUntilLabel = 'Em ' . $daysUntil . ' dias';
