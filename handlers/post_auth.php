@@ -80,7 +80,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
         case 'logout':
             logoutUser();
             flash('success', 'Sessão encerrada.');
-            redirectTo('index.php');
+            redirectTo('home');
 
         case 'request_password_reset':
             $redirectPathOnError = 'index.php?auth=forgot-password#forgot-password';

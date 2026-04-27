@@ -141,19 +141,26 @@ $salesIllustrationVersion = is_file(__DIR__ . '/assets/sales-hero-illustration.s
     : '1';
 
 $pdo = db();
-$currentUser = currentUser();
 $checkoutAction = trim((string) ($_GET['action'] ?? ''));
 $stripeBillingId = trim((string) (envValue('STRIPE_PRICE_ID') ?? envValue('STRIPE_PRODUCT_ID') ?? ''));
 $checkoutPath = appPath('home?action=checkout');
-$checkoutRequiredPath = appPath('home?checkout=required#planos');
 $authPath = appPath('?auth=login#login');
-$currentUserCanAccessApp = $currentUser
-    && (!envFlag('APP_ENFORCE_BILLING', false) || userHasBillingAccess((int) ($currentUser['id'] ?? 0)));
-$appEntryPath = $currentUserCanAccessApp ? appPath('#tasks') : ($currentUser ? $checkoutRequiredPath : $authPath);
+$appEntryPath = $authPath;
 
 if ($checkoutAction === 'checkout') {
-    if (!$currentUser) {
+    $checkoutUser = currentUser();
+    if (!$checkoutUser) {
+        $pendingCheckoutUserId = pendingCheckoutUserId();
+        $checkoutUser = $pendingCheckoutUserId !== null ? userById($pendingCheckoutUserId) : null;
+    }
+
+    if (!$checkoutUser) {
         redirectTo('index.php?auth=login&next=' . urlencode('home?action=checkout') . '#login');
+    }
+
+    $checkoutUserId = (int) ($checkoutUser['id'] ?? 0);
+    if ($checkoutUserId > 0 && userHasBillingAccess($checkoutUserId)) {
+        redirectTo('index.php');
     }
 
     try {
@@ -165,7 +172,7 @@ if ($checkoutAction === 'checkout') {
             throw new RuntimeException('Identificador Stripe não configurado. Defina STRIPE_PRICE_ID (ou STRIPE_PRODUCT_ID) no ambiente.');
         }
 
-        $userId = (int) ($currentUser['id'] ?? 0);
+        $userId = $checkoutUserId;
         $successUrl = appEntryUrl() . appPath('home?action=checkout_success&session_id={CHECKOUT_SESSION_ID}');
         $cancelUrl = appEntryUrl() . appPath('home?checkout=cancelled');
 
@@ -203,8 +210,8 @@ if ($checkoutAction === 'checkout') {
             ],
         ];
 
-        if (!empty($currentUser['email'])) {
-            $checkoutPayload['customer_email'] = (string) $currentUser['email'];
+        if (!empty($checkoutUser['email'])) {
+            $checkoutPayload['customer_email'] = (string) $checkoutUser['email'];
         }
 
         $checkoutSession = stripeRequestForm('POST', 'https://api.stripe.com/v1/checkout/sessions', $checkoutPayload, $stripeSecretKey);
@@ -222,6 +229,8 @@ if ($checkoutAction === 'checkout') {
             throw new RuntimeException('A Stripe não retornou a URL do checkout.');
         }
 
+        getFlashes();
+        logoutUser();
         header('Location: ' . $checkoutUrl);
         exit;
     } catch (Throwable $e) {
@@ -231,11 +240,6 @@ if ($checkoutAction === 'checkout') {
 }
 
 if ($checkoutAction === 'checkout_success') {
-    if (!$currentUser) {
-        flash('error', 'Faça login para confirmar o checkout.');
-        redirectTo('index.php?auth=login&next=' . urlencode('home?action=checkout_success&session_id=' . ((string) ($_GET['session_id'] ?? ''))) . '#login');
-    }
-
     try {
         $stripeSecretKey = trim((string) (envValue('STRIPE_SECRET_KEY') ?? envValue('STRIPE_API_KEY') ?? ''));
         if ($stripeSecretKey === '') {
@@ -254,7 +258,18 @@ if ($checkoutAction === 'checkout_success') {
             $stripeSecretKey
         );
 
-        syncSubscriptionFromStripeSession($pdo, (int) ($currentUser['id'] ?? 0), $checkoutSession);
+        $currentUser = currentUser();
+        $checkoutUserId = (int) ($currentUser['id'] ?? 0);
+        if ($checkoutUserId <= 0) {
+            $metadata = is_array($checkoutSession['metadata'] ?? null) ? $checkoutSession['metadata'] : [];
+            $checkoutUserId = (int) ($metadata['bexon_user_id'] ?? ($checkoutSession['client_reference_id'] ?? 0));
+        }
+        if ($checkoutUserId <= 0) {
+            throw new RuntimeException('Não foi possível identificar a conta do checkout.');
+        }
+
+        syncSubscriptionFromStripeSession($pdo, $checkoutUserId, $checkoutSession);
+        logoutUser();
         redirectTo('home?checkout=success');
     } catch (Throwable $e) {
         flash('error', $e->getMessage());

@@ -16,12 +16,6 @@
             <h1 id="auth-title">Acesso ao workspace</h1>
         </div>
 
-        <?php if (!empty($currentUser)): ?>
-            <p class="auth-switch-line">
-                Você já tem uma sessão aberta. Entrar com outra conta substituirá a atual.
-            </p>
-        <?php endif; ?>
-
         <section
             class="auth-pane is-active"
             id="auth-panel-login"

@@ -13,6 +13,7 @@ const PASSWORD_RESET_TOKEN_HOURS = 1;
 const PASSWORD_RESET_LOG_PATH = __DIR__ . '/storage/password-reset-mails.log';
 const LAST_WORKSPACE_COOKIE_NAME = 'wf_last_workspace';
 const LAST_WORKSPACE_COOKIE_DAYS = 365;
+const PENDING_CHECKOUT_SESSION_TTL_SECONDS = 1800;
 
 function ensureStorage(): void
 {
@@ -2112,6 +2113,7 @@ function createUser(PDO $pdo, string $name, string $email, string $passwordHash,
 function loginUser(int $userId, bool $remember = true): void
 {
     $_SESSION['user_id'] = $userId;
+    clearPendingCheckoutUserId();
     session_regenerate_id(true);
     ensureUserWorkspaceAccess($userId);
     ensureActiveWorkspaceSessionForUser($userId);
@@ -2127,7 +2129,37 @@ function logoutUser(): void
     clearRememberCookie();
     unset($_SESSION['user_id']);
     unset($_SESSION['workspace_id']);
+    clearPendingCheckoutUserId();
     session_regenerate_id(true);
+}
+
+function setPendingCheckoutUserId(int $userId): void
+{
+    if ($userId <= 0) {
+        clearPendingCheckoutUserId();
+        return;
+    }
+
+    $_SESSION['pending_checkout_user_id'] = $userId;
+    $_SESSION['pending_checkout_created_at'] = time();
+}
+
+function pendingCheckoutUserId(): ?int
+{
+    $userId = (int) ($_SESSION['pending_checkout_user_id'] ?? 0);
+    $createdAt = (int) ($_SESSION['pending_checkout_created_at'] ?? 0);
+
+    if ($userId <= 0 || $createdAt <= 0 || (time() - $createdAt) > PENDING_CHECKOUT_SESSION_TTL_SECONDS) {
+        clearPendingCheckoutUserId();
+        return null;
+    }
+
+    return $userId;
+}
+
+function clearPendingCheckoutUserId(): void
+{
+    unset($_SESSION['pending_checkout_user_id'], $_SESSION['pending_checkout_created_at']);
 }
 
 function issueRememberToken(int $userId): void
@@ -4341,6 +4373,22 @@ function activeWorkspace(?array $user = null): ?array
     return $workspace;
 }
 
+function userById(int $userId): ?array
+{
+    if ($userId <= 0) {
+        return null;
+    }
+
+    $pdo = db();
+    ensureUserProfileSchema($pdo);
+
+    $stmt = $pdo->prepare('SELECT id, name, email, avatar_data_url, created_at FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $userId]);
+    $user = $stmt->fetch();
+
+    return $user ?: null;
+}
+
 function currentUser(): ?array
 {
     if (empty($_SESSION['user_id'])) {
@@ -4352,12 +4400,7 @@ function currentUser(): ?array
         return null;
     }
 
-    $pdo = db();
-    ensureUserProfileSchema($pdo);
-
-    $stmt = $pdo->prepare('SELECT id, name, email, avatar_data_url, created_at FROM users WHERE id = :id LIMIT 1');
-    $stmt->execute([':id' => $userId]);
-    $user = $stmt->fetch();
+    $user = userById((int) $userId);
 
     if (!$user) {
         logoutUser();
