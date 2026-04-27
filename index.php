@@ -33,6 +33,7 @@ require_once __DIR__ . '/handlers/dashboard_overview.php';
 $forceAuthScreen = false;
 $authInitialPanel = 'login';
 $passwordResetRequest = null;
+$authRedirectPath = safeRedirectPath((string) ($_GET['next'] ?? $_POST['next'] ?? ''), 'index.php');
 $requestedAuthPanel = trim((string) ($_GET['auth'] ?? ''));
 if (in_array($requestedAuthPanel, ['login', 'register', 'forgot-password', 'reset-password'], true)) {
     $authInitialPanel = $requestedAuthPanel;
@@ -241,6 +242,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $currentUser = currentUser();
+$enforceBillingAccess = envFlag('APP_ENFORCE_BILLING', false);
+$subscriptionSummary = null;
+if ($currentUser) {
+    $subscriptionSummary = userSubscriptionByUserId((int) $currentUser['id']);
+    if ($enforceBillingAccess && !userHasBillingAccess((int) $currentUser['id'])) {
+        flash('error', 'Seu período de teste ou assinatura não está ativo. Inicie um checkout para continuar.');
+        redirectTo('home');
+    }
+}
 $renderAuthScreen = !$currentUser || $forceAuthScreen;
 $currentWorkspaceId = $currentUser ? activeWorkspaceId($currentUser) : null;
 $currentWorkspace = ($currentUser && $currentWorkspaceId !== null) ? activeWorkspace($currentUser) : null;

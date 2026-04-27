@@ -3,8 +3,11 @@ declare(strict_types=1);
 
 function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnError): bool
 {
+    $nextPath = safeRedirectPath((string) ($_POST['next'] ?? ''), 'index.php');
+
     switch ($action) {
             case 'register':
+                $redirectPathOnError = 'index.php?auth=register&next=' . rawurlencode($nextPath) . '#register';
                 $name = trim((string) ($_POST['name'] ?? ''));
                 $email = strtolower(trim((string) ($_POST['email'] ?? '')));
                 $password = (string) ($_POST['password'] ?? '');
@@ -38,9 +41,10 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
                 );
                 loginUser($newUserId, true);
                 flash('success', 'Conta criada com sucesso.');
-                redirectTo('index.php');
+                redirectTo($nextPath);
 
             case 'login':
+                $redirectPathOnError = 'index.php?auth=login&next=' . rawurlencode($nextPath) . '#login';
                 $email = strtolower(trim((string) ($_POST['email'] ?? '')));
                 $password = (string) ($_POST['password'] ?? '');
                 if ($email === '' || $password === '') {
@@ -56,7 +60,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
 
                 loginUser((int) $userRow['id'], true);
                 flash('success', 'Login realizado.');
-                redirectTo('index.php');
+                redirectTo($nextPath);
 
             case 'logout':
                 logoutUser();
@@ -156,4 +160,3 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
         'perform_password_reset',
     ], true);
 }
-

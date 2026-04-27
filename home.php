@@ -3,28 +3,45 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
-function stripePostForm(string $url, array $payload, string $secretKey): array
+function stripeRequestForm(string $method, string $url, array $payload, string $secretKey): array
 {
-    $body = http_build_query($payload, '', '&', PHP_QUERY_RFC3986);
+    $method = strtoupper(trim($method));
+    if (!in_array($method, ['GET', 'POST'], true)) {
+        throw new RuntimeException('Método HTTP Stripe inválido.');
+    }
+
+    $queryString = http_build_query($payload, '', '&', PHP_QUERY_RFC3986);
+    $requestUrl = $url;
+    $body = '';
+    if ($method === 'GET' && $queryString !== '') {
+        $separator = str_contains($url, '?') ? '&' : '?';
+        $requestUrl = $url . $separator . $queryString;
+    }
+    if ($method === 'POST') {
+        $body = $queryString;
+    }
+
     $headers = [
         'Authorization: Bearer ' . $secretKey,
         'Content-Type: application/x-www-form-urlencoded',
-        'Content-Length: ' . strlen($body),
     ];
+    if ($method === 'POST') {
+        $headers[] = 'Content-Length: ' . strlen($body);
+    }
 
     $responseBody = '';
     $statusCode = 0;
 
     if (function_exists('curl_init')) {
-        $ch = curl_init($url);
+        $ch = curl_init($requestUrl);
         if ($ch === false) {
             throw new RuntimeException('Falha ao inicializar o cliente HTTP.');
         }
 
         curl_setopt_array($ch, [
-            CURLOPT_POST => true,
+            CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_POSTFIELDS => $method === 'POST' ? $body : null,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 20,
         ]);
@@ -39,17 +56,22 @@ function stripePostForm(string $url, array $payload, string $secretKey): array
         $statusCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
     } else {
+        $headerText = implode("\r\n", $headers);
+        if ($method === 'POST') {
+            $headerText .= "\r\nContent-Length: " . strlen($body);
+        }
+
         $context = stream_context_create([
             'http' => [
-                'method' => 'POST',
-                'header' => implode("\r\n", $headers),
-                'content' => $body,
+                'method' => $method,
+                'header' => $headerText,
+                'content' => $method === 'POST' ? $body : '',
                 'timeout' => 20,
                 'ignore_errors' => true,
             ],
         ]);
 
-        $responseBody = @file_get_contents($url, false, $context);
+        $responseBody = @file_get_contents($requestUrl, false, $context);
         if ($responseBody === false) {
             throw new RuntimeException('Falha ao conectar com a API da Stripe.');
         }
@@ -69,11 +91,66 @@ function stripePostForm(string $url, array $payload, string $secretKey): array
     }
 
     if ($statusCode >= 400) {
-        $errorMessage = trim((string) ($decoded['error']['message'] ?? 'Não foi possível iniciar o checkout Stripe.'));
-        throw new RuntimeException($errorMessage !== '' ? $errorMessage : 'Não foi possível iniciar o checkout Stripe.');
+        $errorMessage = trim((string) ($decoded['error']['message'] ?? 'Não foi possível processar a requisição Stripe.'));
+        throw new RuntimeException($errorMessage !== '' ? $errorMessage : 'Não foi possível processar a requisição Stripe.');
     }
 
     return $decoded;
+}
+
+function syncSubscriptionFromStripeSession(PDO $pdo, array $session, ?int $fallbackUserId = null): ?int
+{
+    $userId = (int) ($session['client_reference_id'] ?? 0);
+    if ($userId <= 0) {
+        $metadataUserId = (int) (($session['metadata']['bexon_user_id'] ?? 0));
+        if ($metadataUserId > 0) {
+            $userId = $metadataUserId;
+        }
+    }
+
+    $customerId = trim((string) ($session['customer'] ?? ''));
+    if ($userId <= 0 && $customerId !== '') {
+        $userId = userIdByStripeCustomerId($customerId) ?? 0;
+    }
+
+    if ($userId <= 0 && $fallbackUserId !== null && $fallbackUserId > 0) {
+        $userId = $fallbackUserId;
+    }
+
+    if ($userId <= 0) {
+        return null;
+    }
+
+    $subscription = $session['subscription'] ?? null;
+    $subscriptionId = '';
+    $subscriptionStatus = 'inactive';
+    $trialEnd = null;
+    $currentPeriodEnd = null;
+    $cancelAt = null;
+
+    if (is_array($subscription)) {
+        $subscriptionId = trim((string) ($subscription['id'] ?? ''));
+        $subscriptionStatus = trim((string) ($subscription['status'] ?? 'inactive'));
+        $trialEnd = stripeTimestampToIso($subscription['trial_end'] ?? null);
+        $currentPeriodEnd = stripeTimestampToIso($subscription['current_period_end'] ?? null);
+        $cancelAt = stripeTimestampToIso($subscription['cancel_at'] ?? null);
+    } else {
+        $subscriptionId = trim((string) $subscription);
+    }
+
+    upsertUserSubscription($pdo, $userId, [
+        'stripe_customer_id' => $customerId,
+        'stripe_subscription_id' => $subscriptionId,
+        'stripe_checkout_session_id' => trim((string) ($session['id'] ?? '')),
+        'subscription_status' => $subscriptionStatus,
+        'checkout_status' => trim((string) ($session['status'] ?? '')),
+        'trial_end' => $trialEnd,
+        'current_period_end' => $currentPeriodEnd,
+        'cancel_at' => $cancelAt,
+        'raw_payload_json' => json_encode($session, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}',
+    ]);
+
+    return $userId;
 }
 
 $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
@@ -89,13 +166,21 @@ $salesIllustrationVersion = is_file(__DIR__ . '/assets/sales-hero-illustration.s
     ? (string) filemtime(__DIR__ . '/assets/sales-hero-illustration.svg')
     : '1';
 
+$pdo = db();
 $currentUser = currentUser();
 $checkoutAction = trim((string) ($_GET['action'] ?? ''));
 $stripeBillingId = trim((string) (envValue('STRIPE_PRICE_ID') ?? envValue('STRIPE_PRODUCT_ID') ?? 'prod_UOPXAsaQr5J2aA'));
-$checkoutPath = appPath('home?action=checkout');
-$loginPath = $currentUser ? appPath('#tasks') : appPath('?auth=login');
+$checkoutPath = $currentUser
+    ? appPath('home?action=checkout')
+    : appPath('?auth=register&next=' . rawurlencode('home?action=checkout') . '#register');
+$loginPath = $currentUser ? appPath('#tasks') : appPath('?auth=login&next=' . rawurlencode('home?action=checkout') . '#login');
 
 if ($checkoutAction === 'checkout') {
+    if (!$currentUser) {
+        flash('info', 'Crie sua conta para iniciar o checkout e ativar o teste grátis.');
+        redirectTo('?auth=register&next=' . rawurlencode('home?action=checkout') . '#register');
+    }
+
     try {
         $stripeSecretKey = trim((string) (envValue('STRIPE_SECRET_KEY') ?? envValue('STRIPE_API_KEY') ?? ''));
         if ($stripeSecretKey === '') {
@@ -105,9 +190,8 @@ if ($checkoutAction === 'checkout') {
             throw new RuntimeException('Identificador Stripe não configurado. Defina STRIPE_PRICE_ID (ou STRIPE_PRODUCT_ID) no ambiente.');
         }
 
-        $entryUrl = rtrim(appEntryUrl(), '/');
-        $successUrl = appEntryUrl() . appPath('home?checkout=success');
-        $cancelUrl = appEntryUrl() . appPath('home');
+        $successUrl = appEntryUrl() . appPath('home?action=checkout_success&session_id={CHECKOUT_SESSION_ID}');
+        $cancelUrl = appEntryUrl() . appPath('home?checkout=cancelled');
 
         $lineItem = ['quantity' => 1];
         if (str_starts_with($stripeBillingId, 'price_')) {
@@ -130,21 +214,32 @@ if ($checkoutAction === 'checkout') {
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
             'locale' => 'pt-BR',
+            'client_reference_id' => (string) ((int) $currentUser['id']),
             'line_items' => [$lineItem],
             'subscription_data' => [
                 'trial_period_days' => 7,
+                'metadata' => [
+                    'bexon_user_id' => (string) ((int) $currentUser['id']),
+                ],
             ],
+            'metadata' => [
+                'bexon_user_id' => (string) ((int) $currentUser['id']),
+            ],
+            'customer_email' => (string) ($currentUser['email'] ?? ''),
         ];
 
-        if (!empty($currentUser['email'])) {
-            $checkoutPayload['customer_email'] = (string) $currentUser['email'];
-        }
-
-        $checkoutSession = stripePostForm('https://api.stripe.com/v1/checkout/sessions', $checkoutPayload, $stripeSecretKey);
+        $checkoutSession = stripeRequestForm('POST', 'https://api.stripe.com/v1/checkout/sessions', $checkoutPayload, $stripeSecretKey);
         $checkoutUrl = trim((string) ($checkoutSession['url'] ?? ''));
         if ($checkoutUrl === '') {
             throw new RuntimeException('A Stripe não retornou a URL do checkout.');
         }
+
+        upsertUserSubscription($pdo, (int) $currentUser['id'], [
+            'stripe_checkout_session_id' => trim((string) ($checkoutSession['id'] ?? '')),
+            'checkout_status' => trim((string) ($checkoutSession['status'] ?? 'open')),
+            'subscription_status' => 'pending_checkout',
+            'raw_payload_json' => json_encode($checkoutSession, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}',
+        ]);
 
         header('Location: ' . $checkoutUrl);
         exit;
@@ -154,12 +249,51 @@ if ($checkoutAction === 'checkout') {
     }
 }
 
+if ($checkoutAction === 'checkout_success') {
+    try {
+        if (!$currentUser) {
+            throw new RuntimeException('Faça login para confirmar seu checkout.');
+        }
+
+        $sessionId = trim((string) ($_GET['session_id'] ?? ''));
+        if ($sessionId === '') {
+            throw new RuntimeException('Checkout concluído, mas o identificador da sessão não foi recebido.');
+        }
+
+        $stripeSecretKey = trim((string) (envValue('STRIPE_SECRET_KEY') ?? envValue('STRIPE_API_KEY') ?? ''));
+        if ($stripeSecretKey === '') {
+            throw new RuntimeException('Checkout Stripe não configurado. Defina STRIPE_SECRET_KEY no ambiente.');
+        }
+
+        $session = stripeRequestForm(
+            'GET',
+            'https://api.stripe.com/v1/checkout/sessions/' . rawurlencode($sessionId),
+            [
+                'expand' => ['subscription'],
+            ],
+            $stripeSecretKey
+        );
+
+        syncSubscriptionFromStripeSession($pdo, $session, (int) $currentUser['id']);
+        flash('success', 'Checkout confirmado. Seu acesso já está ativo.');
+    } catch (Throwable $e) {
+        flash('error', 'Não foi possível confirmar o checkout automaticamente: ' . $e->getMessage());
+    }
+
+    redirectTo('home?checkout=success');
+}
+
 $checkoutStatus = trim((string) ($_GET['checkout'] ?? ''));
 $checkoutNotice = null;
 if ($checkoutStatus === 'success') {
-        $checkoutNotice = [
+    $checkoutNotice = [
         'type' => 'success',
         'message' => 'Checkout concluído. Seu teste grátis de 7 dias foi ativado.',
+    ];
+} elseif ($checkoutStatus === 'cancelled') {
+    $checkoutNotice = [
+        'type' => 'info',
+        'message' => 'Checkout cancelado. Você pode tentar novamente quando quiser.',
     ];
 }
 
