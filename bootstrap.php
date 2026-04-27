@@ -4369,13 +4369,27 @@ function currentUser(): ?array
 
     return $user;
 }
+
+function billingSchemaPdo(?PDO $pdo = null): PDO
+{
+    static $initialized = false;
+
+    $pdo ??= db();
+    if (!$initialized) {
+        ensureBillingSchema($pdo);
+        $initialized = true;
+    }
+
+    return $pdo;
+}
+
 function userSubscriptionByUserId(int $userId): ?array
 {
     if ($userId <= 0) {
         return null;
     }
 
-    $stmt = db()->prepare(
+    $stmt = billingSchemaPdo()->prepare(
         'SELECT *
          FROM user_subscriptions
          WHERE user_id = :user_id
@@ -4393,7 +4407,7 @@ function userIdByStripeCustomerId(string $customerId): ?int
         return null;
     }
 
-    $stmt = db()->prepare(
+    $stmt = billingSchemaPdo()->prepare(
         'SELECT user_id
          FROM user_subscriptions
          WHERE stripe_customer_id = :customer_id
@@ -4410,6 +4424,7 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
         return;
     }
 
+    $pdo = billingSchemaPdo($pdo);
     $existing = userSubscriptionByUserId($userId) ?? [];
     $now = nowIso();
     $data = [
