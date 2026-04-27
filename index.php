@@ -40,12 +40,27 @@ if (in_array($requestedAuthPanel, ['login', 'register', 'forgot-password', 'rese
     $forceAuthScreen = true;
 }
 
+$entryAction = trim((string) ($_POST['action'] ?? $_GET['action'] ?? ''));
+$billingGateBypassActions = [
+    'login',
+    'register',
+    'logout',
+    'request_password_reset',
+    'perform_password_reset',
+    'reset_password',
+];
+$shouldBypassBillingGate = $forceAuthScreen || in_array($entryAction, $billingGateBypassActions, true);
+
 $entryUser = currentUser();
-if ($entryUser && envFlag('APP_ENFORCE_BILLING', false) && !userHasBillingAccess((int) ($entryUser['id'] ?? 0))) {
+if (
+    $entryUser
+    && !$shouldBypassBillingGate
+    && envFlag('APP_ENFORCE_BILLING', false)
+    && !userHasBillingAccess((int) ($entryUser['id'] ?? 0))
+) {
     flash('error', 'Seu período de teste/assinatura está inativo. Ative seu plano para continuar.');
     redirectTo('home');
 }
-$entryAction = trim((string) ($_GET['action'] ?? ''));
 if (
     $_SERVER['REQUEST_METHOD'] === 'GET'
     && !$entryUser

@@ -145,7 +145,10 @@ $currentUser = currentUser();
 $checkoutAction = trim((string) ($_GET['action'] ?? ''));
 $stripeBillingId = trim((string) (envValue('STRIPE_PRICE_ID') ?? envValue('STRIPE_PRODUCT_ID') ?? ''));
 $checkoutPath = appPath('home?action=checkout');
-$loginPath = $currentUser ? appPath('#tasks') : appPath('?auth=login');
+$authPath = appPath('?auth=login#login');
+$currentUserCanAccessApp = $currentUser
+    && (!envFlag('APP_ENFORCE_BILLING', false) || userHasBillingAccess((int) ($currentUser['id'] ?? 0)));
+$appEntryPath = $currentUserCanAccessApp ? appPath('#tasks') : $authPath;
 
 if ($checkoutAction === 'checkout') {
     if (!$currentUser) {
@@ -273,6 +276,10 @@ if ($checkoutStatus === 'success') {
 }
 
 $flashes = getFlashes();
+$salesFlashes = $flashes;
+if ($checkoutNotice) {
+    array_unshift($salesFlashes, $checkoutNotice);
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -290,6 +297,16 @@ $flashes = getFlashes();
     <link rel="stylesheet" href="<?= e(appPath('assets/home.css?v=' . $salesAssetVersion)) ?>">
 </head>
 <body class="is-sales-page">
+    <?php if (!empty($salesFlashes)): ?>
+        <div class="flash-stack" aria-live="polite">
+            <?php foreach ($salesFlashes as $flash): ?>
+                <div class="flash flash-<?= e((string) ($flash['type'] ?? 'info')) ?>" data-flash>
+                    <span><?= e((string) ($flash['message'] ?? '')) ?></span>
+                    <button type="button" class="flash-close" data-flash-close aria-label="Fechar">×</button>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
     <div class="sales-page" id="top">
         <header class="sales-header">
             <div class="sales-container sales-header-inner">
@@ -303,30 +320,13 @@ $flashes = getFlashes();
                     <a href="#planos">Planos</a>
                 </nav>
                 <div class="sales-header-actions">
-                    <a href="<?= e($loginPath) ?>" class="sales-btn sales-btn-ghost">Entrar</a>
+                    <a href="<?= e($authPath) ?>" class="sales-btn sales-btn-ghost">Entrar</a>
                     <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Come&ccedil;ar 7 dias gr&aacute;tis</a>
                 </div>
             </div>
         </header>
 
         <main>
-            <?php if ($checkoutNotice || !empty($flashes)): ?>
-                <section class="sales-section sales-alerts">
-                    <div class="sales-container">
-                        <?php if ($checkoutNotice): ?>
-                            <div class="flash flash-<?= e((string) $checkoutNotice['type']) ?>">
-                                <span><?= e((string) $checkoutNotice['message']) ?></span>
-                            </div>
-                        <?php endif; ?>
-                        <?php foreach ($flashes as $flash): ?>
-                            <div class="flash flash-<?= e((string) ($flash['type'] ?? 'info')) ?>">
-                                <span><?= e((string) ($flash['message'] ?? '')) ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </section>
-            <?php endif; ?>
-
             <section class="sales-hero">
                 <div class="sales-container sales-hero-grid">
                     <div class="sales-hero-copy">
@@ -337,7 +337,7 @@ $flashes = getFlashes();
                         </p>
                         <div class="sales-hero-actions">
                             <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Iniciar 7 dias gr&aacute;tis</a>
-                            <a href="<?= e($loginPath) ?>" class="sales-btn sales-btn-secondary">Ver demo no app</a>
+                            <a href="<?= e($appEntryPath) ?>" class="sales-btn sales-btn-secondary">Ver demo no app</a>
                         </div>
                         <ul class="sales-trust-list">
                             <li>7 dias gr&aacute;tis</li>
@@ -501,7 +501,7 @@ $flashes = getFlashes();
                         <p>Comece com 7 dias gr&aacute;tis e veja como organizar tudo pode ser mais leve no Bexon.</p>
                         <div class="sales-hero-actions">
                             <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Iniciar teste gr&aacute;tis</a>
-                            <a href="<?= e($loginPath) ?>" class="sales-btn sales-btn-ghost">Entrar no app</a>
+                            <a href="<?= e($appEntryPath) ?>" class="sales-btn sales-btn-ghost">Entrar no app</a>
                         </div>
                     </div>
                 </div>
@@ -514,5 +514,33 @@ $flashes = getFlashes();
             </div>
         </footer>
     </div>
+    <script>
+        document.addEventListener('click', function (event) {
+            var target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            var button = target.closest('[data-flash-close]');
+            if (!button) {
+                return;
+            }
+
+            var flash = button.closest('[data-flash]');
+            if (flash) {
+                flash.remove();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-flash]').forEach(function (flash) {
+                window.setTimeout(function () {
+                    if (flash.isConnected) {
+                        flash.remove();
+                    }
+                }, 5000);
+            });
+        });
+    </script>
 </body>
 </html>

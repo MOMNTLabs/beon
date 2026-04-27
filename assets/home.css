@@ -159,15 +159,6 @@ body.is-sales-page {
     padding: 56px 0 38px;
 }
 
-.is-sales-page .sales-alerts {
-    padding-top: 14px;
-    padding-bottom: 0;
-}
-
-.is-sales-page .sales-alerts .flash + .flash {
-    margin-top: 10px;
-}
-
 .is-sales-page .sales-hero-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(360px, 0.95fr);
