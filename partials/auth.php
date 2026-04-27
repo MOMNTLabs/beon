@@ -24,6 +24,7 @@
             <form method="post" class="form-stack auth-form">
                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                 <input type="hidden" name="action" value="login">
+                <input type="hidden" name="next" value="<?= e((string) ($authRedirectPath ?? 'index.php')) ?>">
 
                 <label>
                     <span>E-mail</span>
@@ -57,6 +58,7 @@
             <form method="post" class="form-stack auth-form">
                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                 <input type="hidden" name="action" value="register">
+                <input type="hidden" name="next" value="<?= e((string) ($authRedirectPath ?? 'index.php')) ?>">
 
                 <label>
                     <span>Nome</span>
