@@ -1108,7 +1108,7 @@ body.is-auth .auth-form input {
 }
 
 body.is-auth .auth-password-field input {
-    padding-right: 94px;
+    padding-right: 58px;
 }
 
 body.is-auth .auth-form input::placeholder {
@@ -1146,9 +1146,11 @@ body.is-auth .auth-password-toggle {
     position: absolute;
     top: 50%;
     right: 10px;
-    min-width: 72px;
-    min-height: 32px;
-    padding: 0 10px;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    padding: 0;
     border: 1px solid rgba(var(--color-accent-500-rgb), 0.28);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.72);
@@ -1166,6 +1168,28 @@ body.is-auth .auth-password-toggle:focus-visible {
     background: #ffffff;
     color: var(--color-accent-900);
     outline: none;
+}
+
+body.is-auth .auth-password-icon {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.9;
+}
+
+body.is-auth .auth-password-icon-hide {
+    display: none;
+}
+
+body.is-auth .auth-password-toggle[aria-pressed="true"] .auth-password-icon-show {
+    display: none;
+}
+
+body.is-auth .auth-password-toggle[aria-pressed="true"] .auth-password-icon-hide {
+    display: block;
 }
 
 body.is-auth .auth-switch-line {

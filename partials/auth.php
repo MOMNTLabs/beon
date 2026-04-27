@@ -36,7 +36,16 @@
                     <span class="auth-password-field">
                         <input type="password" name="password" placeholder="Sua senha" autocomplete="current-password" required>
                         <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
-                            <span data-password-toggle-label>Mostrar</span>
+                            <svg class="auth-password-icon auth-password-icon-show" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="auth-password-icon auth-password-icon-hide" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m3 3 18 18"></path>
+                                <path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-1.2"></path>
+                                <path d="M7.4 7.4C4.3 9 2.5 12 2.5 12s3.5 6 9.5 6c1.8 0 3.3-.5 4.6-1.2"></path>
+                                <path d="M14 6.2C18.8 7.1 21.5 12 21.5 12a16.3 16.3 0 0 1-2.1 2.7"></path>
+                            </svg>
                         </button>
                     </span>
                 </label>
@@ -80,7 +89,16 @@
                     <span class="auth-password-field">
                         <input type="password" name="password" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required>
                         <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
-                            <span data-password-toggle-label>Mostrar</span>
+                            <svg class="auth-password-icon auth-password-icon-show" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="auth-password-icon auth-password-icon-hide" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m3 3 18 18"></path>
+                                <path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-1.2"></path>
+                                <path d="M7.4 7.4C4.3 9 2.5 12 2.5 12s3.5 6 9.5 6c1.8 0 3.3-.5 4.6-1.2"></path>
+                                <path d="M14 6.2C18.8 7.1 21.5 12 21.5 12a16.3 16.3 0 0 1-2.1 2.7"></path>
+                            </svg>
                         </button>
                     </span>
                 </label>
@@ -90,7 +108,16 @@
                     <span class="auth-password-field">
                         <input type="password" name="password_confirm" placeholder="Repita a senha" minlength="6" autocomplete="new-password" required>
                         <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
-                            <span data-password-toggle-label>Mostrar</span>
+                            <svg class="auth-password-icon auth-password-icon-show" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="auth-password-icon auth-password-icon-hide" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m3 3 18 18"></path>
+                                <path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-1.2"></path>
+                                <path d="M7.4 7.4C4.3 9 2.5 12 2.5 12s3.5 6 9.5 6c1.8 0 3.3-.5 4.6-1.2"></path>
+                                <path d="M14 6.2C18.8 7.1 21.5 12 21.5 12a16.3 16.3 0 0 1-2.1 2.7"></path>
+                            </svg>
                         </button>
                     </span>
                 </label>
@@ -150,7 +177,16 @@
                         <span class="auth-password-field">
                             <input type="password" name="new_password" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required>
                             <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
-                                <span data-password-toggle-label>Mostrar</span>
+                                <svg class="auth-password-icon auth-password-icon-show" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="auth-password-icon auth-password-icon-hide" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m3 3 18 18"></path>
+                                    <path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-1.2"></path>
+                                    <path d="M7.4 7.4C4.3 9 2.5 12 2.5 12s3.5 6 9.5 6c1.8 0 3.3-.5 4.6-1.2"></path>
+                                    <path d="M14 6.2C18.8 7.1 21.5 12 21.5 12a16.3 16.3 0 0 1-2.1 2.7"></path>
+                                </svg>
                             </button>
                         </span>
                     </label>
@@ -160,7 +196,16 @@
                         <span class="auth-password-field">
                             <input type="password" name="new_password_confirm" placeholder="Repita a nova senha" minlength="6" autocomplete="new-password" required>
                             <button type="button" class="auth-password-toggle" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
-                                <span data-password-toggle-label>Mostrar</span>
+                                <svg class="auth-password-icon auth-password-icon-show" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="auth-password-icon auth-password-icon-hide" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m3 3 18 18"></path>
+                                    <path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-1.2"></path>
+                                    <path d="M7.4 7.4C4.3 9 2.5 12 2.5 12s3.5 6 9.5 6c1.8 0 3.3-.5 4.6-1.2"></path>
+                                    <path d="M14 6.2C18.8 7.1 21.5 12 21.5 12a16.3 16.3 0 0 1-2.1 2.7"></path>
+                                </svg>
                             </button>
                         </span>
                     </label>

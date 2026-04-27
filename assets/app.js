@@ -31,11 +31,6 @@ window.addEventListener("DOMContentLoaded", () => {
     input.type = shouldShow ? "text" : "password";
     toggle.setAttribute("aria-pressed", shouldShow ? "true" : "false");
     toggle.setAttribute("aria-label", shouldShow ? "Ocultar senha" : "Mostrar senha");
-
-    const label = toggle.querySelector("[data-password-toggle-label]");
-    if (label) {
-      label.textContent = shouldShow ? "Ocultar" : "Mostrar";
-    }
   });
 
   document.documentElement.style.colorScheme = "light";
