@@ -87,6 +87,9 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
         $workspaceTasksTomorrow = [];
         $workspaceUrgentTasksTodayCount = 0;
         $workspacePriorityTasksTodayCount = 0;
+        $workspaceUserTaskTotal = 0;
+        $workspaceUserTaskDoneCount = 0;
+        $workspaceUserOpenTaskCount = 0;
         foreach ($workspaceTasks as $workspaceTask) {
             $statusKey = normalizeTaskStatus((string) ($workspaceTask['status'] ?? 'todo'), $workspaceOptionId);
             $isDone = taskStatusKind($statusKey, $workspaceOptionId) === 'done';
@@ -102,12 +105,15 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
             }
 
             $priorityKey = normalizeTaskPriority((string) ($workspaceTask['priority'] ?? 'medium'));
+            $workspaceUserTaskTotal++;
             $globalDashboardOverview['user_task_total']++;
             if ($isDone) {
+                $workspaceUserTaskDoneCount++;
                 $globalDashboardOverview['user_task_done_total']++;
                 continue;
             }
 
+            $workspaceUserOpenTaskCount++;
             $globalDashboardOverview['user_open_task_total']++;
             if ($priorityKey === 'urgent') {
                 $globalDashboardOverview['user_urgent_open_total']++;
@@ -296,7 +302,11 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
             'workspace_name' => $workspaceOptionName,
             'workspace_role' => $workspaceOptionRole,
             'workspace_role_label' => $workspaceOptionRoleLabel,
+            'user_task_count' => $workspaceUserTaskTotal,
+            'user_task_done_count' => $workspaceUserTaskDoneCount,
+            'user_open_task_count' => $workspaceUserOpenTaskCount,
             'tasks_today_count' => count($workspaceTasksToday),
+            'tasks_tomorrow_count' => count($workspaceTasksTomorrow),
             'urgent_tasks_today_count' => $workspaceUrgentTasksTodayCount,
             'priority_tasks_today_count' => $workspacePriorityTasksTodayCount,
             'due_soon_count' => count($workspaceDueSoon),
