@@ -82,13 +82,10 @@ if ($overviewLowStockTotal > 0) {
 }
 $overviewPrimaryAction = $overviewOpenActions[0] ?? null;
 
+$overviewAttentionLimit = 6;
 $overviewAttentionItems = [];
 $overviewSeenAttentionKeys = [];
 $appendOverviewAttention = static function (array $item) use (&$overviewAttentionItems, &$overviewSeenAttentionKeys): void {
-    if (count($overviewAttentionItems) >= 4) {
-        return;
-    }
-
     $itemKey = trim((string) ($item['key'] ?? ''));
     if ($itemKey !== '' && isset($overviewSeenAttentionKeys[$itemKey])) {
         return;
@@ -161,7 +158,7 @@ foreach ($overviewTasksToday as $overviewTaskToday) {
         continue;
     }
 
-    $appendOverviewTask($overviewTaskToday, 'Urgente hoje', 'critical');
+    $appendOverviewTask($overviewTaskToday, 'Hoje', 'critical');
 }
 
 foreach ($overviewTasksToday as $overviewTaskToday) {
@@ -172,7 +169,7 @@ foreach ($overviewTasksToday as $overviewTaskToday) {
 
     $appendOverviewTask(
         $overviewTaskToday,
-        'Para hoje',
+        'Hoje',
         $taskPriority === 'high' ? 'attention' : 'stable'
     );
 }
@@ -182,7 +179,7 @@ foreach ($overviewDueSoon as $overviewDueSoonItem) {
         continue;
     }
 
-    $appendOverviewDue($overviewDueSoonItem, 'Vence hoje', 'critical');
+    $appendOverviewDue($overviewDueSoonItem, 'Hoje', 'critical');
 }
 
 foreach ($overviewLowStock as $overviewLowStockItem) {
@@ -194,7 +191,7 @@ if (empty($overviewAttentionItems)) {
         $taskPriority = normalizeTaskPriority((string) ($overviewTaskToday['priority'] ?? 'medium'));
         $appendOverviewTask(
             $overviewTaskToday,
-            'Para hoje',
+            'Hoje',
             ($taskPriority === 'high' || $taskPriority === 'urgent') ? 'attention' : 'stable'
         );
     }
@@ -212,7 +209,7 @@ if (empty($overviewAttentionItems)) {
         $daysUntil = (int) ($overviewDueSoonItem['days_until'] ?? -1);
         $appendOverviewDue(
             $overviewDueSoonItem,
-            $daysUntil === 1 ? 'Vence amanhã' : 'Próximo vencimento',
+            $daysUntil === 1 ? 'Amanhã' : 'Próximo',
             $daysUntil === 1 ? 'attention' : 'stable'
         );
     }
@@ -223,7 +220,7 @@ if (empty($overviewAttentionItems)) {
             continue;
         }
 
-        $appendOverviewTask($overviewTaskToday, 'Alta prioridade', 'attention');
+        $appendOverviewTask($overviewTaskToday, 'Hoje', 'attention');
     }
 
     foreach ($overviewDueSoon as $overviewDueSoonItem) {
@@ -231,7 +228,7 @@ if (empty($overviewAttentionItems)) {
             continue;
         }
 
-        $appendOverviewDue($overviewDueSoonItem, 'Vence amanhã', 'attention');
+        $appendOverviewDue($overviewDueSoonItem, 'Amanhã', 'attention');
     }
 
     foreach ($overviewTasksTomorrow as $overviewTaskTomorrow) {
@@ -243,6 +240,8 @@ if (empty($overviewAttentionItems)) {
         );
     }
 }
+
+$overviewAttentionItems = array_slice($overviewAttentionItems, 0, $overviewAttentionLimit);
 
 $overviewWorkspaceTitle = ($overviewCriticalWorkspaceTotal + $overviewAttentionWorkspaceTotal) > 0
     ? 'Workspaces com atenção'
@@ -259,7 +258,7 @@ $overviewWorkspaceTitle = ($overviewCriticalWorkspaceTotal + $overviewAttentionW
         <div class="dashboard-brief-list-head">
             <div>
                 <h3><?= e($overviewListTitle) ?></h3>
-                <small>Até 4 itens, ordenados por urgência e prazo.</small>
+                <small>Até 6 itens, ordenados por urgência e prazo.</small>
             </div>
             <div class="dashboard-brief-head-actions">
                 <?php if (!empty($overviewAttentionItems)): ?>
