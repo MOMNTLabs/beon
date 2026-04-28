@@ -1,6 +1,5 @@
 <?php
 $overviewExecutiveTone = (string) ($globalDashboardOverview['executive_status_tone'] ?? 'stable');
-$overviewWorkspaceCount = (int) ($globalDashboardOverview['workspace_count'] ?? 0);
 $overviewDueSoonTotal = (int) ($globalDashboardOverview['due_soon_total'] ?? 0);
 $overviewTasksTodayTotal = (int) ($globalDashboardOverview['tasks_today_total'] ?? 0);
 $overviewTasksTomorrowTotal = (int) ($globalDashboardOverview['tasks_tomorrow_total'] ?? 0);
@@ -214,21 +213,6 @@ $appendOverviewStock = static function (array $stockItem) use ($appendOverviewAt
         'workspace_name' => $workspaceName,
     ]);
 };
-$appendOverviewWorkspace = static function (array $workspaceSummary) use ($appendOverviewAttention, $overviewWorkspaceForItem): void {
-    $workspace = $overviewWorkspaceForItem($workspaceSummary);
-    $workspaceName = trim((string) ($workspace['name'] ?? $workspaceSummary['workspace_name'] ?? 'Workspace'));
-    $appendOverviewAttention([
-        'key' => 'workspace:' . (string) ($workspaceSummary['workspace_id'] ?? 0),
-        'tone' => (string) ($workspaceSummary['attention_tone'] ?? 'stable'),
-        'kicker' => 'Workspace em foco',
-        'title' => trim((string) ($workspaceSummary['attention_label'] ?? 'Workspace em foco')),
-        'workspace' => $workspace,
-        'workspace_name' => $workspaceName,
-        'meta' => trim((string) ($workspaceSummary['workspace_role_label'] ?? 'Usuário')),
-        'detail' => trim((string) ($workspaceSummary['attention_note'] ?? 'Sem pendências imediatas.')),
-    ]);
-};
-
 foreach ($overviewTasksToday as $overviewTaskToday) {
     if (normalizeTaskPriority((string) ($overviewTaskToday['priority'] ?? 'medium')) !== 'urgent') {
         continue;
@@ -247,14 +231,6 @@ foreach ($overviewDueSoon as $overviewDueSoonItem) {
 
 foreach ($overviewLowStock as $overviewLowStockItem) {
     $appendOverviewStock($overviewLowStockItem);
-}
-
-foreach ($overviewWorkspaceSummaries as $overviewWorkspaceSummary) {
-    if ((string) ($overviewWorkspaceSummary['attention_tone'] ?? 'stable') !== 'critical') {
-        continue;
-    }
-
-    $appendOverviewWorkspace($overviewWorkspaceSummary);
 }
 
 if (empty($overviewAttentionItems)) {
@@ -285,13 +261,6 @@ if (empty($overviewAttentionItems)) {
         );
     }
 
-    foreach (array_slice($overviewWorkspaceSummaries, 0, 1) as $overviewWorkspaceSummary) {
-        if ((int) ($overviewWorkspaceSummary['attention_score'] ?? 0) <= 0 && $overviewWorkspaceCount > 0) {
-            continue;
-        }
-
-        $appendOverviewWorkspace($overviewWorkspaceSummary);
-    }
 } else {
     foreach ($overviewTasksToday as $overviewTaskToday) {
         $taskPriority = normalizeTaskPriority((string) ($overviewTaskToday['priority'] ?? 'medium'));
@@ -319,13 +288,6 @@ if (empty($overviewAttentionItems)) {
         $appendOverviewTask($overviewTaskTomorrow, 'Amanhã', 'attention');
     }
 
-    foreach ($overviewWorkspaceSummaries as $overviewWorkspaceSummary) {
-        if ((string) ($overviewWorkspaceSummary['attention_tone'] ?? 'stable') !== 'attention') {
-            continue;
-        }
-
-        $appendOverviewWorkspace($overviewWorkspaceSummary);
-    }
 }
 ?>
 <div class="panel-header board-header overview-board-header dashboard-brief-head">

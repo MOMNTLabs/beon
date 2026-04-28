@@ -1770,10 +1770,15 @@ body.is-dashboard .overview-board-header.dashboard-brief-head {
     box-shadow: none;
 }
 
-body.is-dashboard .dashboard-brief-hero,
-body.is-dashboard .dashboard-brief-list-card {
+body.is-dashboard .dashboard-brief-hero {
     border-color: rgba(130, 112, 79, 0.26);
     background: linear-gradient(180deg, #fbf8f1, #f2ecdf);
+    box-shadow: none;
+}
+
+body.is-dashboard .dashboard-brief-list-card {
+    border-color: rgba(130, 112, 79, 0.18);
+    background: linear-gradient(180deg, #fffefb, #fbf8f1);
     box-shadow: none;
 }
 
