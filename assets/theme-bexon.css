@@ -1825,22 +1825,23 @@ body.is-dashboard .dashboard-brief-empty p {
 
 body.is-dashboard .dashboard-brief-item-detail {
     color: var(--bexon-muted);
+    font-weight: 800;
 }
 
 body.is-dashboard .dashboard-brief-item-detail.priority-low {
-    color: var(--state-priority-low-text);
+    color: #2563eb;
 }
 
 body.is-dashboard .dashboard-brief-item-detail.priority-medium {
-    color: var(--state-priority-medium-text);
+    color: #b45309;
 }
 
 body.is-dashboard .dashboard-brief-item-detail.priority-high {
-    color: var(--state-priority-high-text);
+    color: #c2410c;
 }
 
 body.is-dashboard .dashboard-brief-item-detail.priority-urgent {
-    color: var(--state-priority-urgent-text);
+    color: #dc2626;
 }
 
 body.is-dashboard .dashboard-brief-chip {
