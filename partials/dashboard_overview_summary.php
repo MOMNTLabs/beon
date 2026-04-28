@@ -16,6 +16,24 @@ $overviewTasksTomorrow = array_values((array) ($globalDashboardOverview['tasks_t
 $overviewDueSoon = array_values((array) ($globalDashboardOverview['due_soon'] ?? []));
 $overviewLowStock = array_values((array) ($globalDashboardOverview['low_stock'] ?? []));
 $overviewWorkspaceSummaries = array_values((array) ($globalDashboardOverview['workspace_summaries'] ?? []));
+$overviewWorkspacesById = [];
+foreach ((array) ($userWorkspaces ?? []) as $overviewWorkspaceOption) {
+    $overviewWorkspaceOptionId = (int) ($overviewWorkspaceOption['id'] ?? 0);
+    if ($overviewWorkspaceOptionId > 0) {
+        $overviewWorkspacesById[$overviewWorkspaceOptionId] = $overviewWorkspaceOption;
+    }
+}
+$overviewWorkspaceForItem = static function (array $item) use ($overviewWorkspacesById): array {
+    $workspaceId = (int) ($item['workspace_id'] ?? 0);
+    if ($workspaceId > 0 && isset($overviewWorkspacesById[$workspaceId])) {
+        return $overviewWorkspacesById[$workspaceId];
+    }
+
+    return [
+        'id' => $workspaceId,
+        'name' => trim((string) ($item['workspace_name'] ?? 'Workspace')),
+    ];
+};
 $overviewPrimaryTasksWorkspaceId = (int) (
     $overviewTasksToday[0]['workspace_id']
     ?? $overviewTasksTomorrow[0]['workspace_id']
@@ -143,23 +161,25 @@ $appendOverviewAttention = static function (array $item) use (&$overviewAttentio
 
     $overviewAttentionItems[] = $item;
 };
-$appendOverviewTask = static function (array $taskItem, string $kicker, string $tone) use ($appendOverviewAttention): void {
-    $workspaceName = trim((string) ($taskItem['workspace_name'] ?? 'Workspace'));
+$appendOverviewTask = static function (array $taskItem, string $kicker, string $tone) use ($appendOverviewAttention, $overviewWorkspaceForItem): void {
+    $workspace = $overviewWorkspaceForItem($taskItem);
+    $workspaceName = trim((string) ($workspace['name'] ?? $taskItem['workspace_name'] ?? 'Workspace'));
     $groupName = trim((string) ($taskItem['group_name'] ?? ''));
-    $metaParts = array_filter([$workspaceName, $groupName !== '' ? $groupName : null]);
     $appendOverviewAttention([
         'key' => 'task:' . (string) ($taskItem['task_id'] ?? 0),
         'tone' => $tone,
         'kicker' => $kicker,
         'title' => trim((string) ($taskItem['title'] ?? 'Tarefa')),
-        'meta' => implode(' - ', $metaParts),
+        'meta' => $groupName,
         'detail' => trim((string) ($taskItem['priority_label'] ?? 'Media')),
+        'workspace' => $workspace,
+        'workspace_name' => $workspaceName,
     ]);
 };
-$appendOverviewDue = static function (array $dueItem, string $kicker, string $tone) use ($appendOverviewAttention): void {
-    $workspaceName = trim((string) ($dueItem['workspace_name'] ?? 'Workspace'));
+$appendOverviewDue = static function (array $dueItem, string $kicker, string $tone) use ($appendOverviewAttention, $overviewWorkspaceForItem): void {
+    $workspace = $overviewWorkspaceForItem($dueItem);
+    $workspaceName = trim((string) ($workspace['name'] ?? $dueItem['workspace_name'] ?? 'Workspace'));
     $groupName = trim((string) ($dueItem['group_name'] ?? ''));
-    $metaParts = array_filter([$workspaceName, $groupName !== '' ? $groupName : null]);
     $daysLabel = trim((string) ($dueItem['days_until_label'] ?? ''));
     $amountLabel = trim((string) ($dueItem['amount_display'] ?? ''));
     $detailParts = array_filter([$daysLabel, $amountLabel]);
@@ -168,14 +188,16 @@ $appendOverviewDue = static function (array $dueItem, string $kicker, string $to
         'tone' => $tone,
         'kicker' => $kicker,
         'title' => trim((string) ($dueItem['label'] ?? 'Vencimento')),
-        'meta' => implode(' - ', $metaParts),
+        'meta' => $groupName,
         'detail' => implode(' - ', $detailParts),
+        'workspace' => $workspace,
+        'workspace_name' => $workspaceName,
     ]);
 };
-$appendOverviewStock = static function (array $stockItem) use ($appendOverviewAttention): void {
-    $workspaceName = trim((string) ($stockItem['workspace_name'] ?? 'Workspace'));
+$appendOverviewStock = static function (array $stockItem) use ($appendOverviewAttention, $overviewWorkspaceForItem): void {
+    $workspace = $overviewWorkspaceForItem($stockItem);
+    $workspaceName = trim((string) ($workspace['name'] ?? $stockItem['workspace_name'] ?? 'Workspace'));
     $groupName = trim((string) ($stockItem['group_name'] ?? ''));
-    $metaParts = array_filter([$workspaceName, $groupName !== '' ? $groupName : null]);
     $stockDetail = trim((string) ($stockItem['quantity_display'] ?? '0'))
         . '/'
         . trim((string) ($stockItem['min_quantity_display'] ?? '0'))
@@ -186,16 +208,22 @@ $appendOverviewStock = static function (array $stockItem) use ($appendOverviewAt
         'tone' => 'attention',
         'kicker' => 'Baixo estoque',
         'title' => trim((string) ($stockItem['label'] ?? 'Item')),
-        'meta' => implode(' - ', $metaParts),
+        'meta' => $groupName,
         'detail' => $stockDetail,
+        'workspace' => $workspace,
+        'workspace_name' => $workspaceName,
     ]);
 };
-$appendOverviewWorkspace = static function (array $workspaceSummary) use ($appendOverviewAttention): void {
+$appendOverviewWorkspace = static function (array $workspaceSummary) use ($appendOverviewAttention, $overviewWorkspaceForItem): void {
+    $workspace = $overviewWorkspaceForItem($workspaceSummary);
+    $workspaceName = trim((string) ($workspace['name'] ?? $workspaceSummary['workspace_name'] ?? 'Workspace'));
     $appendOverviewAttention([
         'key' => 'workspace:' . (string) ($workspaceSummary['workspace_id'] ?? 0),
         'tone' => (string) ($workspaceSummary['attention_tone'] ?? 'stable'),
         'kicker' => 'Workspace em foco',
-        'title' => trim((string) ($workspaceSummary['workspace_name'] ?? 'Workspace')),
+        'title' => trim((string) ($workspaceSummary['attention_label'] ?? 'Workspace em foco')),
+        'workspace' => $workspace,
+        'workspace_name' => $workspaceName,
         'meta' => trim((string) ($workspaceSummary['workspace_role_label'] ?? 'Usuário')),
         'detail' => trim((string) ($workspaceSummary['attention_note'] ?? 'Sem pendências imediatas.')),
     ]);
@@ -374,18 +402,37 @@ if (empty($overviewAttentionItems)) {
                     $overviewAttentionToneClass = trim((string) ($overviewAttentionItem['tone'] ?? 'stable'));
                     $overviewAttentionMeta = trim((string) ($overviewAttentionItem['meta'] ?? ''));
                     $overviewAttentionDetail = trim((string) ($overviewAttentionItem['detail'] ?? ''));
+                    $overviewAttentionWorkspace = is_array($overviewAttentionItem['workspace'] ?? null)
+                        ? $overviewAttentionItem['workspace']
+                        : [];
+                    $overviewAttentionWorkspaceName = trim((string) (
+                        $overviewAttentionWorkspace['name']
+                        ?? $overviewAttentionItem['workspace_name']
+                        ?? ''
+                    ));
+                    $overviewAttentionHasWorkspace = $overviewAttentionWorkspaceName !== '';
+                    if ($overviewAttentionHasWorkspace) {
+                        $overviewAttentionWorkspace['name'] = $overviewAttentionWorkspaceName;
+                    }
                     ?>
-                    <li class="dashboard-brief-item is-<?= e($overviewAttentionToneClass) ?>">
+                    <li class="dashboard-brief-item is-<?= e($overviewAttentionToneClass) ?><?= $overviewAttentionHasWorkspace ? ' has-workspace-avatar' : '' ?>">
                         <div class="dashboard-brief-item-top">
                             <span class="dashboard-brief-item-kicker"><?= e((string) ($overviewAttentionItem['kicker'] ?? 'Ponto importante')) ?></span>
                             <?php if ($overviewAttentionDetail !== ''): ?>
                                 <span class="dashboard-brief-item-detail"><?= e($overviewAttentionDetail) ?></span>
                             <?php endif; ?>
                         </div>
-                        <strong><?= e((string) ($overviewAttentionItem['title'] ?? 'Item')) ?></strong>
-                        <?php if ($overviewAttentionMeta !== ''): ?>
-                            <span class="dashboard-brief-item-meta"><?= e($overviewAttentionMeta) ?></span>
-                        <?php endif; ?>
+                        <div class="dashboard-brief-item-main">
+                            <?php if ($overviewAttentionHasWorkspace): ?>
+                                <?= renderWorkspaceAvatar($overviewAttentionWorkspace, 'avatar small dashboard-brief-workspace-avatar', false, 'span') ?>
+                            <?php endif; ?>
+                            <div class="dashboard-brief-item-copy">
+                                <strong><?= e((string) ($overviewAttentionItem['title'] ?? 'Item')) ?></strong>
+                                <?php if ($overviewAttentionMeta !== ''): ?>
+                                    <span class="dashboard-brief-item-meta"><?= e($overviewAttentionMeta) ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </li>
                 <?php endforeach; ?>
             </ul>

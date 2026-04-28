@@ -1846,6 +1846,20 @@ body.is-dashboard .dashboard-brief-item.is-critical {
     background: linear-gradient(180deg, rgba(255, 246, 244, 0.98), rgba(250, 228, 224, 0.9));
 }
 
+body.is-dashboard .dashboard-brief-workspace-avatar {
+    border-color: rgba(130, 112, 79, 0.28);
+    background:
+        radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.44), transparent 44%),
+        linear-gradient(145deg, rgba(215, 190, 143, 0.84), rgba(135, 116, 82, 0.72));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 12px 20px rgba(59, 49, 36, 0.12);
+}
+
+body.is-dashboard .dashboard-brief-workspace-avatar.has-image {
+    background: #fffaf1;
+}
+
 /* Task list controls */
 body.is-dashboard .task-group-head {
     border-bottom-color: var(--bexon-group-head-border);
