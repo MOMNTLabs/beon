@@ -1,5 +1,4 @@
 <?php
-$overviewExecutiveTone = (string) ($globalDashboardOverview['executive_status_tone'] ?? 'stable');
 $overviewDueSoonTotal = (int) ($globalDashboardOverview['due_soon_total'] ?? 0);
 $overviewTasksTodayTotal = (int) ($globalDashboardOverview['tasks_today_total'] ?? 0);
 $overviewTasksTomorrowTotal = (int) ($globalDashboardOverview['tasks_tomorrow_total'] ?? 0);
@@ -7,7 +6,6 @@ $overviewUrgentTasksTodayTotal = (int) ($globalDashboardOverview['urgent_tasks_t
 $overviewLowStockTotal = (int) ($globalDashboardOverview['low_stock_total'] ?? 0);
 $overviewPriorityTasksTodayTotal = (int) ($globalDashboardOverview['priority_tasks_today_total'] ?? 0);
 $overviewDueTodayTotal = (int) ($globalDashboardOverview['due_today_total'] ?? 0);
-$overviewDueTomorrowTotal = (int) ($globalDashboardOverview['due_tomorrow_total'] ?? 0);
 $overviewAttentionWorkspaceTotal = (int) ($globalDashboardOverview['attention_workspace_total'] ?? 0);
 $overviewCriticalWorkspaceTotal = (int) ($globalDashboardOverview['critical_workspace_total'] ?? 0);
 $overviewTasksToday = array_values((array) ($globalDashboardOverview['tasks_today'] ?? []));
@@ -15,16 +13,6 @@ $overviewTasksTomorrow = array_values((array) ($globalDashboardOverview['tasks_t
 $overviewDueSoon = array_values((array) ($globalDashboardOverview['due_soon'] ?? []));
 $overviewLowStock = array_values((array) ($globalDashboardOverview['low_stock'] ?? []));
 $overviewWorkspaceSummaries = array_values((array) ($globalDashboardOverview['workspace_summaries'] ?? []));
-$overviewUserTaskTotal = (int) ($globalDashboardOverview['user_task_total'] ?? 0);
-$overviewUserTaskDoneTotal = (int) ($globalDashboardOverview['user_task_done_total'] ?? 0);
-$overviewUserOpenTaskTotal = (int) ($globalDashboardOverview['user_open_task_total'] ?? 0);
-$overviewCompletionPercent = $overviewUserTaskTotal > 0
-    ? max(0, min(100, (int) round(($overviewUserTaskDoneTotal / $overviewUserTaskTotal) * 100)))
-    : 0;
-$overviewCompletionSummary = $overviewUserTaskTotal > 0
-    ? $overviewUserTaskDoneTotal . '/' . $overviewUserTaskTotal . ' · ' . $overviewCompletionPercent . '%'
-    : 'Sem tarefas';
-$overviewExecutiveLabel = trim((string) ($globalDashboardOverview['executive_status_label'] ?? 'Visão geral'));
 
 $overviewWorkspacesById = [];
 foreach ((array) ($userWorkspaces ?? []) as $overviewWorkspaceOption) {
@@ -53,115 +41,51 @@ $overviewPrimaryTasksWorkspaceId = (int) (
 );
 $overviewPrimaryDueWorkspaceId = (int) ($overviewDueSoon[0]['workspace_id'] ?? 0);
 $overviewPrimaryInventoryWorkspaceId = (int) ($overviewLowStock[0]['workspace_id'] ?? 0);
-$overviewHasImmediateAttention = $overviewUrgentTasksTodayTotal > 0
-    || $overviewDueTodayTotal > 0
-    || $overviewLowStockTotal > 0
-    || $overviewCriticalWorkspaceTotal > 0;
 
-$overviewHeadline = 'Dashboard limpo por enquanto';
-$overviewListTitle = 'Principais pontos';
-if ($overviewUrgentTasksTodayTotal > 0) {
-    if ($overviewTasksTodayTotal > $overviewUrgentTasksTodayTotal) {
-        $overviewHeadline = $overviewUrgentTasksTodayTotal === 1
-            ? 'Existe 1 urgência entre ' . $overviewTasksTodayTotal . ' tarefas de hoje'
-            : 'Existem ' . $overviewUrgentTasksTodayTotal . ' urgências entre ' . $overviewTasksTodayTotal . ' tarefas de hoje';
-    } else {
-        $overviewHeadline = $overviewUrgentTasksTodayTotal === 1
-            ? 'Existe 1 urgência para olhar agora'
-            : 'Existem ' . $overviewUrgentTasksTodayTotal . ' urgências para olhar agora';
-    }
-    $overviewListTitle = 'Minha prioridade agora';
-} elseif ($overviewDueTodayTotal > 0) {
-    $overviewHeadline = $overviewDueTodayTotal === 1
-        ? 'Há 1 vencimento para hoje'
-        : 'Há ' . $overviewDueTodayTotal . ' vencimentos para hoje';
+$overviewListTitle = 'Minha prioridade agora';
+if ($overviewUrgentTasksTodayTotal <= 0 && $overviewDueTodayTotal > 0) {
     $overviewListTitle = 'Atenção imediata';
-} elseif ($overviewLowStockTotal > 0) {
-    $overviewHeadline = $overviewLowStockTotal === 1
-        ? 'Existe 1 item pedindo reposição'
-        : 'Existem ' . $overviewLowStockTotal . ' itens pedindo reposição';
+} elseif ($overviewUrgentTasksTodayTotal <= 0 && $overviewLowStockTotal > 0) {
     $overviewListTitle = 'Itens em foco';
-} elseif ($overviewTasksTodayTotal > 0) {
-    $overviewHeadline = $overviewTasksTodayTotal === 1
-        ? 'Você tem 1 tarefa no radar de hoje'
-        : 'Você tem ' . $overviewTasksTodayTotal . ' tarefas no radar de hoje';
-    $overviewListTitle = 'Mais relevantes';
-} elseif ($overviewTasksTomorrowTotal > 0) {
-    $overviewHeadline = $overviewTasksTomorrowTotal === 1
-        ? 'Você tem 1 tarefa programada para amanhã'
-        : 'Você tem ' . $overviewTasksTomorrowTotal . ' tarefas programadas para amanhã';
+} elseif ($overviewUrgentTasksTodayTotal <= 0 && $overviewTasksTodayTotal <= 0 && $overviewTasksTomorrowTotal > 0) {
     $overviewListTitle = 'Próximos passos';
-} elseif ($overviewDueSoonTotal > 0) {
-    $overviewHeadline = $overviewDueSoonTotal === 1
-        ? 'Há 1 vencimento próximo no radar'
-        : 'Há ' . $overviewDueSoonTotal . ' vencimentos próximos no radar';
-    $overviewListTitle = 'Mais relevantes';
-} elseif (!empty($overviewWorkspaceSummaries)) {
-    $overviewHeadline = 'Resumo rápido dos workspaces';
 }
 
 $overviewOpenActions = [];
 if ($overviewTasksTodayTotal > 0) {
     $overviewOpenActions[] = [
         'view' => 'tasks',
-        'label' => 'Abrir tarefas',
+        'label' => 'Ver tarefas',
         'workspace_id' => $overviewPrimaryTasksWorkspaceId,
     ];
 }
 if ($overviewTasksTomorrowTotal > 0 && $overviewTasksTodayTotal === 0) {
     $overviewOpenActions[] = [
         'view' => 'tasks',
-        'label' => 'Ver tarefas de amanhã',
+        'label' => 'Ver amanhã',
         'workspace_id' => $overviewPrimaryTasksWorkspaceId,
     ];
 }
 if ($overviewDueSoonTotal > 0) {
     $overviewOpenActions[] = [
         'view' => 'dues',
-        'label' => 'Abrir vencimentos',
+        'label' => 'Ver vencimentos',
         'workspace_id' => $overviewPrimaryDueWorkspaceId,
     ];
 }
 if ($overviewLowStockTotal > 0) {
     $overviewOpenActions[] = [
         'view' => 'inventory',
-        'label' => 'Abrir estoque',
+        'label' => 'Ver estoque',
         'workspace_id' => $overviewPrimaryInventoryWorkspaceId,
     ];
 }
-$overviewOpenActions = array_slice($overviewOpenActions, 0, 3);
-
-$overviewDayMetrics = [
-    [
-        'label' => 'Urgentes hoje',
-        'value' => $overviewUrgentTasksTodayTotal,
-        'tone' => $overviewUrgentTasksTodayTotal > 0 ? 'critical' : 'stable',
-        'hint' => $overviewUrgentTasksTodayTotal > 0 ? 'fazer primeiro' : 'sem urgência',
-    ],
-    [
-        'label' => 'Hoje',
-        'value' => $overviewTasksTodayTotal,
-        'tone' => $overviewTasksTodayTotal > 0 ? 'today' : 'stable',
-        'hint' => 'tarefas no radar',
-    ],
-    [
-        'label' => 'Amanhã',
-        'value' => $overviewTasksTomorrowTotal,
-        'tone' => $overviewTasksTomorrowTotal > 0 ? 'tomorrow' : 'stable',
-        'hint' => 'próximas tarefas',
-    ],
-    [
-        'label' => 'Abertas',
-        'value' => $overviewUserOpenTaskTotal,
-        'tone' => $overviewUserOpenTaskTotal > 0 ? 'open' : 'stable',
-        'hint' => 'todos workspaces',
-    ],
-];
+$overviewPrimaryAction = $overviewOpenActions[0] ?? null;
 
 $overviewAttentionItems = [];
 $overviewSeenAttentionKeys = [];
 $appendOverviewAttention = static function (array $item) use (&$overviewAttentionItems, &$overviewSeenAttentionKeys): void {
-    if (count($overviewAttentionItems) >= 8) {
+    if (count($overviewAttentionItems) >= 4) {
         return;
     }
 
@@ -312,7 +236,6 @@ if (empty($overviewAttentionItems)) {
 
     foreach ($overviewTasksTomorrow as $overviewTaskTomorrow) {
         $taskPriority = normalizeTaskPriority((string) ($overviewTaskTomorrow['priority'] ?? 'medium'));
-
         $appendOverviewTask(
             $overviewTaskTomorrow,
             'Amanhã',
@@ -320,6 +243,10 @@ if (empty($overviewAttentionItems)) {
         );
     }
 }
+
+$overviewWorkspaceTitle = ($overviewCriticalWorkspaceTotal + $overviewAttentionWorkspaceTotal) > 0
+    ? 'Workspaces com atenção'
+    : 'Por workspace';
 ?>
 <div class="panel-header board-header overview-board-header dashboard-brief-head">
     <div>
@@ -327,40 +254,21 @@ if (empty($overviewAttentionItems)) {
     </div>
 </div>
 
-<div class="dashboard-brief-grid">
-    <section class="dashboard-brief-hero is-<?= e($overviewExecutiveTone) ?>" aria-label="Resumo do dia">
-        <div class="dashboard-brief-hero-head">
-            <span class="dashboard-brief-kicker">Resumo do dia</span>
-            <span class="dashboard-brief-status is-<?= e($overviewExecutiveTone) ?>"><?= e($overviewExecutiveLabel) ?></span>
-        </div>
-        <h3><?= e($overviewHeadline) ?></h3>
-
-        <dl class="dashboard-day-metrics" aria-label="Indicadores do dia">
-            <?php foreach ($overviewDayMetrics as $overviewDayMetric): ?>
-                <div class="dashboard-day-metric is-<?= e((string) ($overviewDayMetric['tone'] ?? 'stable')) ?>">
-                    <dt><?= e((string) ($overviewDayMetric['label'] ?? 'Indicador')) ?></dt>
-                    <dd><?= e((string) ($overviewDayMetric['value'] ?? 0)) ?></dd>
-                    <small><?= e((string) ($overviewDayMetric['hint'] ?? '')) ?></small>
-                </div>
-            <?php endforeach; ?>
-        </dl>
-
-        <div class="dashboard-progress-card" style="--dashboard-progress: <?= e((string) $overviewCompletionPercent) ?>%;">
-            <div class="dashboard-progress-card-head">
-                <span>Concluídas</span>
-                <strong><?= e($overviewCompletionSummary) ?></strong>
+<div class="dashboard-brief-grid dashboard-brief-grid-compact">
+    <section class="dashboard-brief-list-card dashboard-priority-card" aria-label="Minha prioridade agora">
+        <div class="dashboard-brief-list-head">
+            <div>
+                <h3><?= e($overviewListTitle) ?></h3>
+                <small>Até 4 itens, ordenados por urgência e prazo.</small>
             </div>
-            <div class="dashboard-progress-track" aria-hidden="true">
-                <span></span>
-            </div>
-        </div>
-
-        <?php if (!empty($overviewOpenActions)): ?>
-            <div class="dashboard-brief-actions">
-                <?php foreach ($overviewOpenActions as $overviewOpenAction): ?>
+            <div class="dashboard-brief-head-actions">
+                <?php if (!empty($overviewAttentionItems)): ?>
+                    <span><?= e((string) count($overviewAttentionItems)) ?> item(ns)</span>
+                <?php endif; ?>
+                <?php if ($overviewPrimaryAction): ?>
                     <?php
-                    $overviewActionView = trim((string) ($overviewOpenAction['view'] ?? 'overview'));
-                    $overviewActionWorkspaceId = (int) ($overviewOpenAction['workspace_id'] ?? 0);
+                    $overviewActionView = trim((string) ($overviewPrimaryAction['view'] ?? 'overview'));
+                    $overviewActionWorkspaceId = (int) ($overviewPrimaryAction['workspace_id'] ?? 0);
                     $overviewActionRedirect = dashboardPath($overviewActionView);
                     $overviewNeedsWorkspaceSwitch = $overviewActionWorkspaceId > 0
                         && $overviewActionWorkspaceId !== (int) ($currentWorkspaceId ?? 0);
@@ -371,40 +279,21 @@ if (empty($overviewAttentionItems)) {
                             <input type="hidden" name="action" value="switch_workspace">
                             <input type="hidden" name="workspace_id" value="<?= e((string) $overviewActionWorkspaceId) ?>">
                             <input type="hidden" name="redirect_to" value="<?= e($overviewActionRedirect) ?>">
-                            <button type="submit" class="dashboard-brief-action">
-                                <?= e((string) ($overviewOpenAction['label'] ?? 'Abrir')) ?>
-                            </button>
+                            <button type="submit" class="dashboard-brief-action">Ver tudo</button>
                         </form>
                     <?php else: ?>
-                        <button
-                            type="button"
-                            class="dashboard-brief-action"
-                            data-dashboard-view-toggle
-                            data-view="<?= e($overviewActionView) ?>"
-                        >
-                            <?= e((string) ($overviewOpenAction['label'] ?? 'Abrir')) ?>
+                        <button type="button" class="dashboard-brief-action" data-dashboard-view-toggle data-view="<?= e($overviewActionView) ?>">
+                            Ver tudo
                         </button>
                     <?php endif; ?>
-                <?php endforeach; ?>
+                <?php endif; ?>
             </div>
-        <?php endif; ?>
-    </section>
-
-    <section class="dashboard-brief-list-card" aria-label="Minha prioridade agora">
-        <div class="dashboard-brief-list-head">
-            <div>
-                <h3><?= e($overviewListTitle) ?></h3>
-                <small>Regra: urgência + prazo</small>
-            </div>
-            <?php if (!empty($overviewAttentionItems)): ?>
-                <span><?= e((string) count($overviewAttentionItems)) ?> item(ns)</span>
-            <?php endif; ?>
         </div>
 
         <?php if (empty($overviewAttentionItems)): ?>
             <div class="dashboard-brief-empty">
-                <strong>Nada para acompanhar ainda</strong>
-                <p>Esta área vai mostrar os principais pontos de atenção assim que eles existirem.</p>
+                <strong>Nada para acompanhar agora</strong>
+                <p>Quando surgir algo importante, aparece aqui.</p>
             </div>
         <?php else: ?>
             <ul class="dashboard-brief-list">
@@ -454,11 +343,11 @@ if (empty($overviewAttentionItems)) {
         <?php endif; ?>
     </section>
 
-    <section class="dashboard-workspace-summary-card" aria-label="Resumo por workspace">
+    <section class="dashboard-workspace-summary-card is-compact" aria-label="Resumo por workspace">
         <div class="dashboard-brief-list-head dashboard-workspace-summary-head">
             <div>
-                <h3>Por workspace</h3>
-                <small><?= e((string) count($overviewWorkspaceSummaries)) ?> workspace(s) no painel</small>
+                <h3><?= e($overviewWorkspaceTitle) ?></h3>
+                <small>Resumo rápido de todos os workspaces.</small>
             </div>
         </div>
 
@@ -468,7 +357,7 @@ if (empty($overviewAttentionItems)) {
                 <p>Quando você participar de workspaces, eles aparecem aqui.</p>
             </div>
         <?php else: ?>
-            <ul class="dashboard-workspace-summary-list">
+            <ul class="dashboard-workspace-summary-list is-compact">
                 <?php foreach ($overviewWorkspaceSummaries as $overviewWorkspaceSummary): ?>
                     <?php
                     $overviewWorkspaceSummaryId = (int) ($overviewWorkspaceSummary['workspace_id'] ?? 0);
@@ -482,29 +371,33 @@ if (empty($overviewAttentionItems)) {
                         'name' => $overviewWorkspaceSummaryName,
                     ];
                     $overviewWorkspaceCard['name'] = $overviewWorkspaceSummaryName;
-                    $overviewWorkspaceTaskTotal = (int) ($overviewWorkspaceSummary['user_task_count'] ?? 0);
-                    $overviewWorkspaceDoneTotal = (int) ($overviewWorkspaceSummary['user_task_done_count'] ?? 0);
                     $overviewWorkspaceOpenTotal = (int) ($overviewWorkspaceSummary['user_open_task_count'] ?? 0);
-                    $overviewWorkspaceCompletion = $overviewWorkspaceTaskTotal > 0
-                        ? max(0, min(100, (int) round(($overviewWorkspaceDoneTotal / $overviewWorkspaceTaskTotal) * 100)))
-                        : 0;
-                    $overviewWorkspaceProgressLabel = $overviewWorkspaceTaskTotal > 0
-                        ? $overviewWorkspaceDoneTotal . '/' . $overviewWorkspaceTaskTotal . ' concluídas'
-                        : 'Sem tarefas';
-                    $overviewWorkspaceKpis = [
-                        ['label' => 'Abertas', 'value' => $overviewWorkspaceOpenTotal, 'tone' => $overviewWorkspaceOpenTotal > 0 ? 'open' : 'stable'],
-                        ['label' => 'Hoje', 'value' => (int) ($overviewWorkspaceSummary['tasks_today_count'] ?? 0), 'tone' => ((int) ($overviewWorkspaceSummary['tasks_today_count'] ?? 0)) > 0 ? 'today' : 'stable'],
-                        ['label' => 'Urgentes', 'value' => (int) ($overviewWorkspaceSummary['urgent_tasks_today_count'] ?? 0), 'tone' => ((int) ($overviewWorkspaceSummary['urgent_tasks_today_count'] ?? 0)) > 0 ? 'critical' : 'stable'],
-                        ['label' => 'Amanhã', 'value' => (int) ($overviewWorkspaceSummary['tasks_tomorrow_count'] ?? 0), 'tone' => ((int) ($overviewWorkspaceSummary['tasks_tomorrow_count'] ?? 0)) > 0 ? 'tomorrow' : 'stable'],
-                    ];
-                    $overviewWorkspaceSignals = [];
+                    $overviewWorkspaceTodayTotal = (int) ($overviewWorkspaceSummary['tasks_today_count'] ?? 0);
+                    $overviewWorkspaceUrgentTotal = (int) ($overviewWorkspaceSummary['urgent_tasks_today_count'] ?? 0);
+                    $overviewWorkspaceTomorrowTotal = (int) ($overviewWorkspaceSummary['tasks_tomorrow_count'] ?? 0);
                     $overviewWorkspaceDueToday = (int) ($overviewWorkspaceSummary['due_today_count'] ?? 0);
                     $overviewWorkspaceLowStock = (int) ($overviewWorkspaceSummary['low_stock_count'] ?? 0);
+                    $overviewWorkspacePills = [];
+                    if ($overviewWorkspaceOpenTotal > 0) {
+                        $overviewWorkspacePills[] = $overviewWorkspaceOpenTotal . ' aberta(s)';
+                    }
+                    if ($overviewWorkspaceTodayTotal > 0) {
+                        $overviewWorkspacePills[] = $overviewWorkspaceTodayTotal . ' hoje';
+                    }
+                    if ($overviewWorkspaceUrgentTotal > 0) {
+                        $overviewWorkspacePills[] = $overviewWorkspaceUrgentTotal . ' urgente(s)';
+                    }
+                    if ($overviewWorkspaceTomorrowTotal > 0) {
+                        $overviewWorkspacePills[] = $overviewWorkspaceTomorrowTotal . ' amanhã';
+                    }
                     if ($overviewWorkspaceDueToday > 0) {
-                        $overviewWorkspaceSignals[] = $overviewWorkspaceDueToday . ' vence(m) hoje';
+                        $overviewWorkspacePills[] = $overviewWorkspaceDueToday . ' vence(m) hoje';
                     }
                     if ($overviewWorkspaceLowStock > 0) {
-                        $overviewWorkspaceSignals[] = $overviewWorkspaceLowStock . ' baixo estoque';
+                        $overviewWorkspacePills[] = $overviewWorkspaceLowStock . ' baixo estoque';
+                    }
+                    if (empty($overviewWorkspacePills)) {
+                        $overviewWorkspacePills[] = 'sem pendências';
                     }
                     $overviewWorkspaceActionRedirect = dashboardPath('tasks');
                     $overviewWorkspaceNeedsSwitch = $overviewWorkspaceSummaryId > 0
@@ -518,46 +411,28 @@ if (empty($overviewAttentionItems)) {
                                     <strong><?= e($overviewWorkspaceSummaryName) ?></strong>
                                     <span class="dashboard-brief-status is-<?= e($overviewWorkspaceSummaryTone) ?>"><?= e((string) ($overviewWorkspaceSummary['attention_label'] ?? 'Estável')) ?></span>
                                 </div>
-                                <span><?= e((string) ($overviewWorkspaceSummary['workspace_role_label'] ?? 'Usuário')) ?> · <?= e((string) ($overviewWorkspaceSummary['attention_note'] ?? 'Sem pendências imediatas.')) ?></span>
+                                <span><?= e((string) ($overviewWorkspaceSummary['workspace_role_label'] ?? 'Usuário')) ?></span>
                             </div>
                         </div>
 
-                        <dl class="dashboard-workspace-summary-kpis">
-                            <?php foreach ($overviewWorkspaceKpis as $overviewWorkspaceKpi): ?>
-                                <div class="is-<?= e((string) ($overviewWorkspaceKpi['tone'] ?? 'stable')) ?>">
-                                    <dt><?= e((string) ($overviewWorkspaceKpi['label'] ?? 'Item')) ?></dt>
-                                    <dd><?= e((string) ($overviewWorkspaceKpi['value'] ?? 0)) ?></dd>
-                                </div>
+                        <div class="dashboard-workspace-summary-pills">
+                            <?php foreach (array_slice($overviewWorkspacePills, 0, 4) as $overviewWorkspacePill): ?>
+                                <span><?= e($overviewWorkspacePill) ?></span>
                             <?php endforeach; ?>
-                        </dl>
+                        </div>
 
-                        <div class="dashboard-workspace-summary-footer">
-                            <div class="dashboard-workspace-progress" style="--dashboard-progress: <?= e((string) $overviewWorkspaceCompletion) ?>%;">
-                                <span><?= e($overviewWorkspaceProgressLabel) ?></span>
-                                <div class="dashboard-progress-track" aria-hidden="true">
-                                    <span></span>
-                                </div>
-                            </div>
-                            <?php if (!empty($overviewWorkspaceSignals)): ?>
-                                <div class="dashboard-workspace-signals">
-                                    <?php foreach ($overviewWorkspaceSignals as $overviewWorkspaceSignal): ?>
-                                        <span><?= e($overviewWorkspaceSignal) ?></span>
-                                    <?php endforeach; ?>
-                                </div>
+                        <div class="dashboard-workspace-summary-actions">
+                            <?php if ($overviewWorkspaceNeedsSwitch): ?>
+                                <form method="post" class="dashboard-brief-action-form">
+                                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                    <input type="hidden" name="action" value="switch_workspace">
+                                    <input type="hidden" name="workspace_id" value="<?= e((string) $overviewWorkspaceSummaryId) ?>">
+                                    <input type="hidden" name="redirect_to" value="<?= e($overviewWorkspaceActionRedirect) ?>">
+                                    <button type="submit" class="dashboard-brief-action">Abrir</button>
+                                </form>
+                            <?php else: ?>
+                                <button type="button" class="dashboard-brief-action" data-dashboard-view-toggle data-view="tasks">Abrir</button>
                             <?php endif; ?>
-                            <div class="dashboard-workspace-summary-actions">
-                                <?php if ($overviewWorkspaceNeedsSwitch): ?>
-                                    <form method="post" class="dashboard-brief-action-form">
-                                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                                        <input type="hidden" name="action" value="switch_workspace">
-                                        <input type="hidden" name="workspace_id" value="<?= e((string) $overviewWorkspaceSummaryId) ?>">
-                                        <input type="hidden" name="redirect_to" value="<?= e($overviewWorkspaceActionRedirect) ?>">
-                                        <button type="submit" class="dashboard-brief-action">Abrir</button>
-                                    </form>
-                                <?php else: ?>
-                                    <button type="button" class="dashboard-brief-action" data-dashboard-view-toggle data-view="tasks">Abrir</button>
-                                <?php endif; ?>
-                            </div>
                         </div>
                     </li>
                 <?php endforeach; ?>

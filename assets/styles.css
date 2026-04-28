@@ -4042,6 +4042,105 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     }
 }
 
+.dashboard-brief-grid.dashboard-brief-grid-compact {
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+.dashboard-priority-card {
+    min-height: 0;
+}
+
+.dashboard-brief-head-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dashboard-priority-card .dashboard-brief-list {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.dashboard-priority-card .dashboard-brief-item {
+    min-height: 118px;
+}
+
+.dashboard-workspace-summary-card.is-compact {
+    padding: 14px 16px;
+}
+
+.dashboard-workspace-summary-list.is-compact {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+}
+
+.dashboard-workspace-summary-list.is-compact .dashboard-workspace-summary-item {
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, auto) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 68px;
+    padding: 10px 12px 10px 14px;
+    border-radius: 14px;
+}
+
+.dashboard-workspace-summary-list.is-compact .dashboard-workspace-summary-main {
+    min-width: 0;
+}
+
+.dashboard-workspace-summary-list.is-compact .dashboard-workspace-summary-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+}
+
+.dashboard-workspace-summary-list.is-compact .dashboard-workspace-summary-copy {
+    gap: 2px;
+}
+
+.dashboard-workspace-summary-list.is-compact .dashboard-workspace-summary-title {
+    justify-content: flex-start;
+}
+
+.dashboard-workspace-summary-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.dashboard-workspace-summary-pills span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(128, 150, 176, 0.18);
+    background: rgba(255, 255, 255, 0.72);
+    color: #60758f;
+    font-size: 0.74rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.dashboard-workspace-summary-list.is-compact .dashboard-brief-action {
+    min-height: 31px;
+    padding: 0 12px;
+    font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+    .dashboard-workspace-summary-list.is-compact .dashboard-workspace-summary-item {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .dashboard-workspace-summary-pills,
+    .dashboard-workspace-summary-actions {
+        justify-content: flex-start;
+    }
+}
+
 .overview-board-summary {
     justify-content: flex-end;
     gap: 8px;
