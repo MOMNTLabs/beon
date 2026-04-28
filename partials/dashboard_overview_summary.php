@@ -170,6 +170,7 @@ $appendOverviewTask = static function (array $taskItem, string $kicker, string $
     $workspace = $overviewWorkspaceForItem($taskItem);
     $workspaceName = trim((string) ($workspace['name'] ?? $taskItem['workspace_name'] ?? 'Workspace'));
     $groupName = trim((string) ($taskItem['group_name'] ?? ''));
+    $priorityKey = normalizeTaskPriority((string) ($taskItem['priority'] ?? 'medium'));
     $appendOverviewAttention([
         'key' => 'task:' . (string) ($taskItem['task_id'] ?? 0),
         'tone' => $tone,
@@ -383,7 +384,10 @@ if (empty($overviewAttentionItems)) {
                     $overviewAttentionToneClass = trim((string) ($overviewAttentionItem['tone'] ?? 'stable'));
                     $overviewAttentionMeta = trim((string) ($overviewAttentionItem['meta'] ?? ''));
                     $overviewAttentionDetail = trim((string) ($overviewAttentionItem['detail'] ?? ''));
-                    $overviewAttentionPriority = normalizeTaskPriority((string) ($overviewAttentionItem['priority'] ?? ''));
+                    $overviewAttentionPriorityRaw = trim((string) ($overviewAttentionItem['priority'] ?? ''));
+                    $overviewAttentionPriority = $overviewAttentionPriorityRaw !== ''
+                        ? normalizeTaskPriority($overviewAttentionPriorityRaw)
+                        : '';
                     $overviewAttentionWorkspace = is_array($overviewAttentionItem['workspace'] ?? null)
                         ? $overviewAttentionItem['workspace']
                         : [];
