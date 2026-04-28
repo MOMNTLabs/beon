@@ -500,6 +500,16 @@ $myOpenTasks = $currentUser ? countMyAssignedTasks($allTasks, (int) $currentUser
 $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
 
 $globalDashboardOverview = buildGlobalDashboardOverview($currentUser, $userWorkspaces);
+$overviewStats = $currentUser ? [
+    'total' => (int) ($globalDashboardOverview['user_task_total'] ?? 0),
+    'done' => (int) ($globalDashboardOverview['user_task_done_total'] ?? 0),
+    'open' => (int) ($globalDashboardOverview['user_open_task_total'] ?? 0),
+    'due_today' => (int) ($globalDashboardOverview['tasks_today_total'] ?? 0),
+    'urgent_today' => (int) ($globalDashboardOverview['urgent_tasks_today_total'] ?? 0),
+] : ['total' => 0, 'done' => 0, 'open' => 0, 'due_today' => 0, 'urgent_today' => 0];
+$overviewCompletionRate = $overviewStats['total'] > 0
+    ? (int) round(($overviewStats['done'] / $overviewStats['total']) * 100)
+    : 0;
 
 $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
 ?>

@@ -11,6 +11,10 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
         'tasks_tomorrow_total' => 0,
         'urgent_tasks_today_total' => 0,
         'priority_tasks_today_total' => 0,
+        'user_task_total' => 0,
+        'user_task_done_total' => 0,
+        'user_open_task_total' => 0,
+        'user_urgent_open_total' => 0,
         'due_soon_total' => 0,
         'due_today_total' => 0,
         'due_tomorrow_total' => 0,
@@ -84,15 +88,8 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
         $workspaceUrgentTasksTodayCount = 0;
         $workspacePriorityTasksTodayCount = 0;
         foreach ($workspaceTasks as $workspaceTask) {
-            $dueDate = dueDateForStorage((string) ($workspaceTask['due_date'] ?? ''));
-            if ($dueDate !== $overviewTodayIso && $dueDate !== $overviewTomorrowIso) {
-                continue;
-            }
-
             $statusKey = normalizeTaskStatus((string) ($workspaceTask['status'] ?? 'todo'), $workspaceOptionId);
-            if (taskStatusKind($statusKey, $workspaceOptionId) === 'done') {
-                continue;
-            }
+            $isDone = taskStatusKind($statusKey, $workspaceOptionId) === 'done';
 
             $taskAssigneeIds = is_array($workspaceTask['assignee_ids'] ?? null)
                 ? $workspaceTask['assignee_ids']
@@ -105,6 +102,22 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
             }
 
             $priorityKey = normalizeTaskPriority((string) ($workspaceTask['priority'] ?? 'medium'));
+            $globalDashboardOverview['user_task_total']++;
+            if ($isDone) {
+                $globalDashboardOverview['user_task_done_total']++;
+                continue;
+            }
+
+            $globalDashboardOverview['user_open_task_total']++;
+            if ($priorityKey === 'urgent') {
+                $globalDashboardOverview['user_urgent_open_total']++;
+            }
+
+            $dueDate = dueDateForStorage((string) ($workspaceTask['due_date'] ?? ''));
+            if ($dueDate !== $overviewTodayIso && $dueDate !== $overviewTomorrowIso) {
+                continue;
+            }
+
             $taskOverviewItem = [
                 'workspace_id' => $workspaceOptionId,
                 'workspace_name' => $workspaceOptionName,

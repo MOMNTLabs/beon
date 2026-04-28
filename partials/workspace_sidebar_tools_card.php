@@ -17,7 +17,7 @@ $availableToAddTools = is_array($workspaceSidebarConfig['available_to_add'] ?? n
     <h3>Ferramentas</h3>
 
     <?php if (!empty($canManageWorkspace)): ?>
-        <form method="post" class="workspace-settings-form workspace-sidebar-tools-form" data-sidebar-tools-form>
+        <form method="post" class="workspace-settings-form workspace-sidebar-tools-form" data-sidebar-tools-form data-sidebar-tools-autosave-add="1">
             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
             <input type="hidden" name="action" value="workspace_update_sidebar_tools">
 
@@ -36,7 +36,7 @@ $availableToAddTools = is_array($workspaceSidebarConfig['available_to_add'] ?? n
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="button" class="btn btn-mini btn-ghost" data-sidebar-tools-add-button>Adicionar</button>
+                    <button type="button" class="btn btn-mini btn-ghost" data-sidebar-tools-add-button>Adicionar ao sidebar</button>
                 </div>
             </label>
 
@@ -59,7 +59,7 @@ $availableToAddTools = is_array($workspaceSidebarConfig['available_to_add'] ?? n
                 Nenhuma ferramenta adicional no sidebar.
             </p>
 
-            <button type="submit" class="btn btn-mini">Salvar ferramentas</button>
+            <button type="submit" class="btn btn-mini">Salvar ordem das ferramentas</button>
 
             <template data-sidebar-tools-row-template>
                 <li class="workspace-sidebar-tool-item" data-sidebar-tool-key="">

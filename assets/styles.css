@@ -3410,9 +3410,9 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 
 .dashboard-brief-grid {
     display: grid;
-    grid-template-columns: minmax(320px, 0.94fr) minmax(0, 1.16fr);
-    gap: 14px;
-    align-items: start;
+    grid-template-columns: minmax(280px, 0.56fr) minmax(0, 1.44fr);
+    gap: 12px;
+    align-items: stretch;
 }
 
 .dashboard-brief-hero,
@@ -3434,8 +3434,9 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 
 .dashboard-brief-hero {
     display: grid;
-    gap: 14px;
-    padding: 22px;
+    align-content: start;
+    gap: 12px;
+    padding: 18px;
 }
 
 .dashboard-brief-hero::after {
@@ -3476,18 +3477,18 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 .dashboard-brief-hero h3 {
     margin: 0;
     font-family: var(--overview-display-font);
-    font-size: clamp(1.6rem, 1.9vw, 2.08rem);
-    line-height: 1.02;
+    font-size: 1.54rem;
+    line-height: 1.08;
     letter-spacing: -0.04em;
     color: #26456f;
 }
 
 .dashboard-brief-hero p {
     margin: 0;
-    max-width: 40ch;
+    max-width: 46ch;
     color: #587496;
-    font-size: 0.98rem;
-    line-height: 1.55;
+    font-size: 0.9rem;
+    line-height: 1.5;
 }
 
 .dashboard-brief-chips,
@@ -3539,8 +3540,8 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     min-height: 100%;
-    padding: 18px 18px 16px;
-    gap: 14px;
+    padding: 14px;
+    gap: 12px;
 }
 
 .dashboard-brief-list-head {
@@ -3567,7 +3568,8 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 
 .dashboard-brief-list {
     display: grid;
-    gap: 10px;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 8px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -3575,9 +3577,9 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 
 .dashboard-brief-item {
     display: grid;
-    gap: 7px;
-    padding: 14px 15px;
-    border-radius: 20px;
+    gap: 6px;
+    padding: 11px 12px;
+    border-radius: 16px;
     border: 1px solid rgba(128, 170, 214, 0.24);
     background: rgba(255, 255, 255, 0.74);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
@@ -3620,9 +3622,9 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 }
 
 .dashboard-brief-workspace-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
     border-color: rgba(128, 170, 214, 0.42);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.7),
@@ -3641,8 +3643,8 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 
 .dashboard-brief-item strong {
     color: #29456f;
-    font-size: 1rem;
-    line-height: 1.35;
+    font-size: 0.92rem;
+    line-height: 1.28;
 }
 
 .dashboard-brief-item-meta {
@@ -3677,6 +3679,10 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 
 @media (max-width: 1080px) {
     .dashboard-brief-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-brief-list {
         grid-template-columns: 1fr;
     }
 

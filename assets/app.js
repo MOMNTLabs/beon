@@ -6422,6 +6422,26 @@ window.addEventListener("DOMContentLoaded", () => {
     return rawTaskId > 0 ? rawTaskId : 0;
   };
 
+  const syncDashboardNavStats = (view) => {
+    const mode = view === "overview" ? "overview" : "workspace";
+    document.querySelectorAll("[data-dashboard-stat-label]").forEach((label) => {
+      if (!(label instanceof HTMLElement)) return;
+      const nextLabel =
+        mode === "overview" ? label.dataset.overviewLabel : label.dataset.workspaceLabel;
+      if (nextLabel) {
+        label.textContent = nextLabel;
+      }
+    });
+    document.querySelectorAll("[data-dashboard-stat-value]").forEach((value) => {
+      if (!(value instanceof HTMLElement)) return;
+      const nextValue =
+        mode === "overview" ? value.dataset.overviewValue : value.dataset.workspaceValue;
+      if (nextValue !== undefined) {
+        value.textContent = nextValue;
+      }
+    });
+  };
+
   const dashboardViewFromUrl = () => {
     const currentUrl = new URL(window.location.href);
     const rawView = String(currentUrl.searchParams.get("view") || "").trim();
@@ -6507,6 +6527,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (document.body instanceof HTMLBodyElement) {
       document.body.dataset.dashboardView = view;
     }
+    syncDashboardNavStats(view);
 
     if (updateUrl) {
       replaceDashboardStateUrl(view, { taskId });
@@ -11259,6 +11280,13 @@ window.addEventListener("DOMContentLoaded", () => {
         list.appendChild(nextRow);
       }
       syncWorkspaceSidebarToolsFormState(form);
+      if (form.dataset.sidebarToolsAutosaveAdd === "1") {
+        if (typeof form.requestSubmit === "function") {
+          form.requestSubmit();
+        } else {
+          form.submit();
+        }
+      }
       return;
     }
 

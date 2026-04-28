@@ -49,11 +49,17 @@ $overviewHeadline = 'Dashboard limpo por enquanto';
 $overviewNote = 'Os principais pontos de atenção vão aparecer aqui assim que houver movimento.';
 $overviewListTitle = 'Principais pontos';
 if ($overviewUrgentTasksTodayTotal > 0) {
-    $overviewHeadline = $overviewUrgentTasksTodayTotal === 1
-        ? 'Existe 1 urgência para olhar agora'
-        : 'Existem ' . $overviewUrgentTasksTodayTotal . ' urgências para olhar agora';
+    if ($overviewTasksTodayTotal > $overviewUrgentTasksTodayTotal) {
+        $overviewHeadline = $overviewUrgentTasksTodayTotal === 1
+            ? 'Existe 1 urgência entre ' . $overviewTasksTodayTotal . ' tarefas de hoje'
+            : 'Existem ' . $overviewUrgentTasksTodayTotal . ' urgências entre ' . $overviewTasksTodayTotal . ' tarefas de hoje';
+    } else {
+        $overviewHeadline = $overviewUrgentTasksTodayTotal === 1
+            ? 'Existe 1 urgência para olhar agora'
+            : 'Existem ' . $overviewUrgentTasksTodayTotal . ' urgências para olhar agora';
+    }
     $overviewNote = 'Comece pelo que precisa de decisão imediata e avance depois para o restante do dia.';
-    $overviewListTitle = 'Prioridade agora';
+    $overviewListTitle = 'Minha prioridade agora';
 } elseif ($overviewDueTodayTotal > 0) {
     $overviewHeadline = $overviewDueTodayTotal === 1
         ? 'Há 1 vencimento para hoje'
@@ -94,11 +100,11 @@ $overviewQuickStats = [];
 if ($overviewUrgentTasksTodayTotal > 0) {
     $overviewQuickStats[] = $overviewUrgentTasksTodayTotal . ' urgente(s)';
 }
+if ($overviewTasksTodayTotal > 0 && count($overviewQuickStats) < 3) {
+    $overviewQuickStats[] = $overviewTasksTodayTotal . ' tarefa(s) hoje';
+}
 if ($overviewDueTodayTotal > 0) {
     $overviewQuickStats[] = $overviewDueTodayTotal . ' vence(m) hoje';
-}
-if ($overviewTasksTodayTotal > 0 && $overviewUrgentTasksTodayTotal === 0) {
-    $overviewQuickStats[] = $overviewTasksTodayTotal . ' tarefa(s) hoje';
 }
 if ($overviewTasksTomorrowTotal > 0 && count($overviewQuickStats) < 3) {
     $overviewQuickStats[] = $overviewTasksTomorrowTotal . ' tarefa(s) amanhã';
@@ -145,7 +151,7 @@ $overviewOpenActions = array_slice($overviewOpenActions, 0, 3);
 $overviewAttentionItems = [];
 $overviewSeenAttentionKeys = [];
 $appendOverviewAttention = static function (array $item) use (&$overviewAttentionItems, &$overviewSeenAttentionKeys): void {
-    if (count($overviewAttentionItems) >= 4) {
+    if (count($overviewAttentionItems) >= 8) {
         return;
     }
 
@@ -221,6 +227,19 @@ foreach ($overviewTasksToday as $overviewTaskToday) {
     $appendOverviewTask($overviewTaskToday, 'Urgente hoje', 'critical');
 }
 
+foreach ($overviewTasksToday as $overviewTaskToday) {
+    $taskPriority = normalizeTaskPriority((string) ($overviewTaskToday['priority'] ?? 'medium'));
+    if ($taskPriority === 'urgent') {
+        continue;
+    }
+
+    $appendOverviewTask(
+        $overviewTaskToday,
+        'Para hoje',
+        $taskPriority === 'high' ? 'attention' : 'stable'
+    );
+}
+
 foreach ($overviewDueSoon as $overviewDueSoonItem) {
     if ((int) ($overviewDueSoonItem['days_until'] ?? -1) !== 0) {
         continue;
@@ -281,11 +300,12 @@ if (empty($overviewAttentionItems)) {
 
     foreach ($overviewTasksTomorrow as $overviewTaskTomorrow) {
         $taskPriority = normalizeTaskPriority((string) ($overviewTaskTomorrow['priority'] ?? 'medium'));
-        if ($taskPriority !== 'high' && $taskPriority !== 'urgent') {
-            continue;
-        }
 
-        $appendOverviewTask($overviewTaskTomorrow, 'Amanhã', 'attention');
+        $appendOverviewTask(
+            $overviewTaskTomorrow,
+            'Amanhã',
+            ($taskPriority === 'high' || $taskPriority === 'urgent') ? 'attention' : 'stable'
+        );
     }
 
 }

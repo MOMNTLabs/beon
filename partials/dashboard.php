@@ -165,26 +165,51 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
         </aside>
 
         <header class="top-nav dashboard-nav dashboard-content-nav">
-            <section class="stats-strip dashboard-stats dashboard-nav-stats" aria-label="Indicadores do workspace">
+            <section class="stats-strip dashboard-stats dashboard-nav-stats" aria-label="Indicadores do painel">
                 <div class="stat-cell">
-                    <span>Tarefas</span>
-                    <strong data-dashboard-stat-total><?= e((string) $stats['total']) ?></strong>
+                    <span data-dashboard-stat-label data-workspace-label="Tarefas" data-overview-label="Minhas tarefas">Tarefas</span>
+                    <strong
+                        data-dashboard-stat-total
+                        data-dashboard-stat-value
+                        data-workspace-value="<?= e((string) $stats['total']) ?>"
+                        data-overview-value="<?= e((string) ($overviewStats['total'] ?? 0)) ?>"
+                    ><?= e((string) $stats['total']) ?></strong>
                 </div>
                 <div class="stat-cell">
                     <span>Concluídas</span>
-                    <strong data-dashboard-stat-done><?= e((string) $stats['done']) ?> (<?= e((string) $completionRate) ?>%)</strong>
+                    <strong
+                        data-dashboard-stat-done
+                        data-dashboard-stat-value
+                        data-workspace-value="<?= e((string) $stats['done']) ?> (<?= e((string) $completionRate) ?>%)"
+                        data-overview-value="<?= e((string) ($overviewStats['done'] ?? 0)) ?> (<?= e((string) ($overviewCompletionRate ?? 0)) ?>%)"
+                    ><?= e((string) $stats['done']) ?> (<?= e((string) $completionRate) ?>%)</strong>
                 </div>
                 <div class="stat-cell">
-                    <span>Para hoje</span>
-                    <strong data-dashboard-stat-due-today><?= e((string) $stats['due_today']) ?></strong>
+                    <span data-dashboard-stat-label data-workspace-label="Para hoje" data-overview-label="Hoje">Para hoje</span>
+                    <strong
+                        data-dashboard-stat-due-today
+                        data-dashboard-stat-value
+                        data-workspace-value="<?= e((string) $stats['due_today']) ?>"
+                        data-overview-value="<?= e((string) ($overviewStats['due_today'] ?? 0)) ?>"
+                    ><?= e((string) $stats['due_today']) ?></strong>
                 </div>
                 <div class="stat-cell">
-                    <span>Urgentes</span>
-                    <strong data-dashboard-stat-urgent><?= e((string) $stats['urgent']) ?></strong>
+                    <span data-dashboard-stat-label data-workspace-label="Urgentes" data-overview-label="Urgentes hoje">Urgentes</span>
+                    <strong
+                        data-dashboard-stat-urgent
+                        data-dashboard-stat-value
+                        data-workspace-value="<?= e((string) $stats['urgent']) ?>"
+                        data-overview-value="<?= e((string) ($overviewStats['urgent_today'] ?? 0)) ?>"
+                    ><?= e((string) $stats['urgent']) ?></strong>
                 </div>
                 <div class="stat-cell">
-                    <span>Minhas abertas</span>
-                    <strong data-dashboard-stat-my-open><?= e((string) $myOpenTasks) ?></strong>
+                    <span data-dashboard-stat-label data-workspace-label="Minhas abertas" data-overview-label="Abertas">Minhas abertas</span>
+                    <strong
+                        data-dashboard-stat-my-open
+                        data-dashboard-stat-value
+                        data-workspace-value="<?= e((string) $myOpenTasks) ?>"
+                        data-overview-value="<?= e((string) ($overviewStats['open'] ?? 0)) ?>"
+                    ><?= e((string) $myOpenTasks) ?></strong>
                 </div>
             </section>
 
