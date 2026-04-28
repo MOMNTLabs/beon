@@ -177,6 +177,7 @@ $appendOverviewTask = static function (array $taskItem, string $kicker, string $
         'title' => trim((string) ($taskItem['title'] ?? 'Tarefa')),
         'meta' => $groupName,
         'detail' => trim((string) ($taskItem['priority_label'] ?? 'Media')),
+        'priority' => $priorityKey,
         'workspace' => $workspace,
         'workspace_name' => $workspaceName,
     ]);
@@ -313,7 +314,6 @@ if (empty($overviewAttentionItems)) {
 <div class="panel-header board-header overview-board-header dashboard-brief-head">
     <div>
         <h2>Dashboard</h2>
-        <p>Um resumo curto do que merece sua atenção primeiro.</p>
     </div>
 </div>
 
@@ -321,7 +321,6 @@ if (empty($overviewAttentionItems)) {
     <section class="dashboard-brief-hero is-<?= e($overviewExecutiveTone) ?>" aria-label="Resumo principal do dashboard">
         <span class="dashboard-brief-kicker"><?= $overviewHasImmediateAttention ? 'Agora' : 'Visão geral' ?></span>
         <h3><?= e($overviewHeadline) ?></h3>
-        <p><?= e($overviewNote) ?></p>
         <?php if (!empty($overviewQuickStats)): ?>
             <div class="dashboard-brief-chips" aria-label="Indicadores principais">
                 <?php foreach ($overviewQuickStats as $overviewQuickStat): ?>
@@ -384,6 +383,7 @@ if (empty($overviewAttentionItems)) {
                     $overviewAttentionToneClass = trim((string) ($overviewAttentionItem['tone'] ?? 'stable'));
                     $overviewAttentionMeta = trim((string) ($overviewAttentionItem['meta'] ?? ''));
                     $overviewAttentionDetail = trim((string) ($overviewAttentionItem['detail'] ?? ''));
+                    $overviewAttentionPriority = normalizeTaskPriority((string) ($overviewAttentionItem['priority'] ?? ''));
                     $overviewAttentionWorkspace = is_array($overviewAttentionItem['workspace'] ?? null)
                         ? $overviewAttentionItem['workspace']
                         : [];
@@ -401,7 +401,7 @@ if (empty($overviewAttentionItems)) {
                         <div class="dashboard-brief-item-top">
                             <span class="dashboard-brief-item-kicker"><?= e((string) ($overviewAttentionItem['kicker'] ?? 'Ponto importante')) ?></span>
                             <?php if ($overviewAttentionDetail !== ''): ?>
-                                <span class="dashboard-brief-item-detail"><?= e($overviewAttentionDetail) ?></span>
+                                <span class="dashboard-brief-item-detail<?= $overviewAttentionPriority !== '' ? ' priority-' . e($overviewAttentionPriority) : '' ?>"><?= e($overviewAttentionDetail) ?></span>
                             <?php endif; ?>
                         </div>
                         <div class="dashboard-brief-item-main">

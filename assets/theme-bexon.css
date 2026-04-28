@@ -1818,10 +1818,29 @@ body.is-dashboard .dashboard-brief-empty strong {
 
 body.is-dashboard .dashboard-brief-hero p,
 body.is-dashboard .dashboard-brief-list-head span,
-body.is-dashboard .dashboard-brief-item-detail,
 body.is-dashboard .dashboard-brief-item-meta,
 body.is-dashboard .dashboard-brief-empty p {
     color: var(--bexon-muted);
+}
+
+body.is-dashboard .dashboard-brief-item-detail {
+    color: var(--bexon-muted);
+}
+
+body.is-dashboard .dashboard-brief-item-detail.priority-low {
+    color: var(--state-priority-low-text);
+}
+
+body.is-dashboard .dashboard-brief-item-detail.priority-medium {
+    color: var(--state-priority-medium-text);
+}
+
+body.is-dashboard .dashboard-brief-item-detail.priority-high {
+    color: var(--state-priority-high-text);
+}
+
+body.is-dashboard .dashboard-brief-item-detail.priority-urgent {
+    color: var(--state-priority-urgent-text);
 }
 
 body.is-dashboard .dashboard-brief-chip {
