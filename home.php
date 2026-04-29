@@ -113,11 +113,17 @@ function syncSubscriptionFromStripeSession(PDO $pdo, int $userId, array $checkou
     }
 
     $rawPayload = json_encode($checkoutSession, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $sessionMetadata = is_array($checkoutSession['metadata'] ?? null) ? $checkoutSession['metadata'] : [];
+    $subscriptionMetadata = is_array($subscription['metadata'] ?? null) ? $subscription['metadata'] : [];
+    $planAttributes = billingPlanAttributesFromStripeMetadata(array_merge($sessionMetadata, $subscriptionMetadata));
 
     upsertUserSubscription($pdo, $userId, [
         'stripe_customer_id' => trim((string) ($checkoutSession['customer'] ?? '')),
         'stripe_subscription_id' => trim((string) ($subscription['id'] ?? '')),
         'stripe_checkout_session_id' => trim((string) ($checkoutSession['id'] ?? '')),
+        'plan_key' => $planAttributes['plan_key'] ?? '',
+        'billing_interval' => $planAttributes['billing_interval'] ?? '',
+        'max_users' => $planAttributes['max_users'] ?? 0,
         'subscription_status' => trim((string) ($subscription['status'] ?? 'inactive')) ?: 'inactive',
         'checkout_status' => trim((string) ($checkoutSession['status'] ?? '')),
         'trial_end' => stripeTimestampToIso($subscription['trial_end'] ?? null),
@@ -125,6 +131,285 @@ function syncSubscriptionFromStripeSession(PDO $pdo, int $userId, array $checkou
         'cancel_at' => stripeTimestampToIso($subscription['cancel_at'] ?? null),
         'raw_payload_json' => is_string($rawPayload) && $rawPayload !== '' ? $rawPayload : '{}',
     ]);
+}
+
+function billingPlanCheckoutPath(string $planKey, string $billingInterval = 'year'): string
+{
+    return appPath(
+        'home?action=checkout&plan='
+        . rawurlencode(normalizeBillingPlanKey($planKey))
+        . '&interval='
+        . rawurlencode(normalizeBillingInterval($billingInterval))
+    );
+}
+
+function billingPlanMailtoPath(array $plan): string
+{
+    $email = trim((string) ($plan['contact_email'] ?? 'suporte@bexon.com.br'));
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $email = 'suporte@bexon.com.br';
+    }
+
+    $subject = rawurlencode('Consulta Enterprise - Bexon');
+    $body = rawurlencode(
+        "Olá, equipe Bexon.\n\nTenho interesse no plano Enterprise para uma equipe com mais de 15 usuários.\n\nNome:\nEmpresa:\nQuantidade aproximada de usuários:\nMensagem:"
+    );
+
+    return 'mailto:' . $email . '?subject=' . $subject . '&body=' . $body;
+}
+
+function billingPlanActionPath(array $plan, string $billingInterval = 'year'): string
+{
+    if (($plan['checkout_enabled'] ?? true) === false || trim((string) ($plan['contact_email'] ?? '')) !== '') {
+        return billingPlanMailtoPath($plan);
+    }
+
+    return billingPlanCheckoutPath((string) ($plan['key'] ?? 'solo'), $billingInterval);
+}
+
+function billingMoneyLabel(int $amountCents, bool $compactWholeAmount = false): string
+{
+    $amountCents = max(0, $amountCents);
+    if ($compactWholeAmount && $amountCents % 100 === 0) {
+        return 'R$ ' . number_format($amountCents / 100, 0, ',', '.');
+    }
+
+    return 'R$ ' . number_format($amountCents / 100, 2, ',', '.');
+}
+
+function billingPriceParts(string $priceLabel): array
+{
+    $priceLabel = trim($priceLabel);
+    if (preg_match('/^R\$\s*(.+)$/u', $priceLabel, $matches)) {
+        return [
+            'currency' => 'R$',
+            'amount' => trim((string) ($matches[1] ?? '')),
+        ];
+    }
+
+    return [
+        'currency' => '',
+        'amount' => $priceLabel,
+    ];
+}
+
+function billingPlanPriceLabel(array $plan, string $billingInterval = 'year'): string
+{
+    $customPriceLabel = trim((string) ($plan['price_label'] ?? ''));
+    if ($customPriceLabel !== '') {
+        return $customPriceLabel;
+    }
+
+    $billingInterval = normalizeBillingInterval($billingInterval);
+    $priceCents = $billingInterval === 'year'
+        ? billingPlanAnnualMonthlyEquivalentCents($plan)
+        : billingPlanChargeCents($plan, 'month');
+
+    return billingMoneyLabel($priceCents);
+}
+
+function billingPlanPriceSuffix(array $plan): string
+{
+    return trim((string) ($plan['price_label'] ?? '')) !== '' ? '' : '/mês';
+}
+
+function billingPlanBillingNote(array $plan, string $billingInterval = 'year'): string
+{
+    if (trim((string) ($plan['price_label'] ?? '')) !== '') {
+        return '';
+    }
+
+    if (normalizeBillingInterval($billingInterval) === 'year') {
+        return 'cobrado anualmente ' . billingMoneyLabel(billingPlanChargeCents($plan, 'year'), true);
+    }
+
+    return 'cobrança mensal';
+}
+
+function billingPlanUsersLabel(array $plan): string
+{
+    $customUsersLabel = trim((string) ($plan['users_label'] ?? ''));
+    if ($customUsersLabel !== '') {
+        return $customUsersLabel;
+    }
+
+    $maxUsers = max(0, (int) ($plan['max_users'] ?? 0));
+    if ($maxUsers <= 1) {
+        return '1 usuário';
+    }
+
+    return 'Até ' . $maxUsers . ' usuários';
+}
+
+function billingPlanTrialNote(array $plan, string $billingInterval = 'year'): string
+{
+    $customTrialNote = trim((string) ($plan['trial_note'] ?? ''));
+    if ($customTrialNote !== '') {
+        return $customTrialNote;
+    }
+
+    if (normalizeBillingInterval($billingInterval) === 'year') {
+        return (string) ($plan['annual_savings_label'] ?? 'Economize no anual');
+    }
+
+    return '7 dias grátis para testar';
+}
+
+function stripePriceEnvKeyForPlan(string $planKey, string $billingInterval = 'year'): string
+{
+    $planEnvKey = strtoupper(normalizeBillingPlanKey($planKey));
+    return normalizeBillingInterval($billingInterval) === 'year'
+        ? 'STRIPE_' . $planEnvKey . '_ANNUAL_PRICE_ID'
+        : 'STRIPE_' . $planEnvKey . '_PRICE_ID';
+}
+
+function stripePriceEnvKeysForPlan(string $planKey, string $billingInterval = 'year'): array
+{
+    $planEnvKey = strtoupper(normalizeBillingPlanKey($planKey));
+    if (normalizeBillingInterval($billingInterval) === 'year') {
+        return [
+            'STRIPE_' . $planEnvKey . '_ANNUAL_PRICE_ID',
+            'STRIPE_' . $planEnvKey . '_YEARLY_PRICE_ID',
+        ];
+    }
+
+    return [
+        'STRIPE_' . $planEnvKey . '_MONTHLY_PRICE_ID',
+        'STRIPE_' . $planEnvKey . '_PRICE_ID',
+    ];
+}
+
+function configuredStripeBillingIdForPlan(string $planKey, string $billingInterval = 'year'): string
+{
+    $planKey = normalizeBillingPlanKey($planKey);
+    $billingInterval = normalizeBillingInterval($billingInterval);
+    foreach (stripePriceEnvKeysForPlan($planKey, $billingInterval) as $envKey) {
+        $planPriceId = trim((string) (envValue($envKey) ?? ''));
+        if ($planPriceId !== '') {
+            return $planPriceId;
+        }
+    }
+
+    if ($billingInterval === 'month' && $planKey === billingDefaultPlanKey()) {
+        $legacyPriceId = trim((string) (envValue('STRIPE_PRICE_ID') ?? ''));
+        if ($legacyPriceId !== '') {
+            return $legacyPriceId;
+        }
+    }
+
+    return trim((string) (envValue('STRIPE_PRODUCT_ID') ?? ''));
+}
+
+function stripePriceMatchesBillingPlan(array $price, array $plan, string $billingInterval = 'year'): bool
+{
+    $planKey = normalizeBillingPlanKey((string) ($plan['key'] ?? ''), null);
+    if ($planKey === '') {
+        return false;
+    }
+
+    $metadata = is_array($price['metadata'] ?? null) ? $price['metadata'] : [];
+    $metadataAttributes = billingPlanAttributesFromStripeMetadata($metadata);
+    $metadataPlanKey = (string) ($metadataAttributes['plan_key'] ?? '');
+    if ($metadataPlanKey === $planKey) {
+        $metadataInterval = (string) ($metadataAttributes['billing_interval'] ?? '');
+        if ($metadataInterval !== '' && $metadataInterval !== normalizeBillingInterval($billingInterval)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    $candidates = [
+        (string) ($price['lookup_key'] ?? ''),
+        (string) ($price['nickname'] ?? ''),
+    ];
+    foreach ($candidates as $candidate) {
+        if (normalizeBillingPlanKey($candidate, null) === $planKey) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function stripePriceIdFromProductForPlan(string $productId, array $plan, string $secretKey, string $billingInterval = 'year'): string
+{
+    $productId = trim($productId);
+    if ($productId === '' || !str_starts_with($productId, 'prod_')) {
+        return '';
+    }
+
+    $billingInterval = normalizeBillingInterval($billingInterval);
+    $prices = stripeRequestForm(
+        'GET',
+        'https://api.stripe.com/v1/prices',
+        [
+            'product' => $productId,
+            'active' => 'true',
+            'type' => 'recurring',
+            'limit' => 100,
+        ],
+        $secretKey
+    );
+
+    foreach ((array) ($prices['data'] ?? []) as $price) {
+        if (!is_array($price) || !stripePriceMatchesBillingPlan($price, $plan, $billingInterval)) {
+            continue;
+        }
+
+        $recurring = is_array($price['recurring'] ?? null) ? $price['recurring'] : [];
+        if (($recurring['interval'] ?? '') !== $billingInterval) {
+            continue;
+        }
+
+        $priceId = trim((string) ($price['id'] ?? ''));
+        if (str_starts_with($priceId, 'price_')) {
+            return $priceId;
+        }
+    }
+
+    return '';
+}
+
+function stripeLineItemForBillingPlan(array $plan, string $secretKey, string $billingInterval = 'year'): array
+{
+    $planKey = normalizeBillingPlanKey((string) ($plan['key'] ?? ''));
+    $billingInterval = normalizeBillingInterval($billingInterval);
+    $stripeBillingId = configuredStripeBillingIdForPlan($planKey, $billingInterval);
+    if ($stripeBillingId === '') {
+        throw new RuntimeException(sprintf(
+            'Preço Stripe não configurado para o plano %s. Defina %s ou STRIPE_PRODUCT_ID.',
+            (string) ($plan['name'] ?? $planKey),
+            stripePriceEnvKeyForPlan($planKey, $billingInterval)
+        ));
+    }
+
+    $lineItem = ['quantity' => 1];
+    if (str_starts_with($stripeBillingId, 'price_')) {
+        $lineItem['price'] = $stripeBillingId;
+        return $lineItem;
+    }
+
+    if (!str_starts_with($stripeBillingId, 'prod_')) {
+        throw new RuntimeException('ID Stripe inválido. Use price_... nas variáveis de plano ou prod_... em STRIPE_PRODUCT_ID.');
+    }
+
+    $resolvedPriceId = stripePriceIdFromProductForPlan($stripeBillingId, $plan, $secretKey, $billingInterval);
+    if ($resolvedPriceId !== '') {
+        $lineItem['price'] = $resolvedPriceId;
+        return $lineItem;
+    }
+
+    $lineItem['price_data'] = [
+        'currency' => 'brl',
+        'unit_amount' => billingPlanChargeCents($plan, $billingInterval),
+        'product' => $stripeBillingId,
+        'recurring' => [
+            'interval' => $billingInterval,
+        ],
+    ];
+
+    return $lineItem;
 }
 
 $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
@@ -141,13 +426,30 @@ $salesIllustrationVersion = is_file(__DIR__ . '/assets/sales-hero-illustration.s
     : '1';
 
 $pdo = db();
+$billingPlans = publicBillingPlanDefinitions();
+$checkoutBillingPlans = array_filter(
+    $billingPlans,
+    static fn (array $plan): bool => ($plan['checkout_enabled'] ?? true) !== false
+);
+$defaultPlanKey = billingDefaultPlanKey();
+$defaultPlanKey = isset($checkoutBillingPlans[$defaultPlanKey]) ? $defaultPlanKey : 'solo';
+$defaultBillingInterval = billingDefaultInterval();
+$rawRequestedPlanKey = normalizeBillingPlanKey((string) ($_GET['plan'] ?? $defaultPlanKey));
+$rawRequestedBillingInterval = normalizeBillingInterval((string) ($_GET['interval'] ?? $defaultBillingInterval));
+$requestedPlanKey = isset($checkoutBillingPlans[$rawRequestedPlanKey]) ? $rawRequestedPlanKey : $defaultPlanKey;
+$requestedBillingInterval = $rawRequestedBillingInterval;
+$selectedPlan = $checkoutBillingPlans[$requestedPlanKey] ?? $checkoutBillingPlans[$defaultPlanKey] ?? $checkoutBillingPlans['solo'];
+$recommendedCheckoutPath = billingPlanCheckoutPath('solo', $defaultBillingInterval);
 $checkoutAction = trim((string) ($_GET['action'] ?? ''));
-$stripeBillingId = trim((string) (envValue('STRIPE_PRICE_ID') ?? envValue('STRIPE_PRODUCT_ID') ?? ''));
-$checkoutPath = appPath('home?action=checkout');
 $authPath = appPath('?auth=login#login');
 $appEntryPath = $authPath;
 
 if ($checkoutAction === 'checkout') {
+    $requestedPublicPlan = $billingPlans[$rawRequestedPlanKey] ?? null;
+    if (is_array($requestedPublicPlan) && ($requestedPublicPlan['checkout_enabled'] ?? true) === false) {
+        redirectTo('home#planos');
+    }
+
     $checkoutUser = currentUser();
     if (!$checkoutUser) {
         $pendingCheckoutUserId = pendingCheckoutUserId();
@@ -155,7 +457,11 @@ if ($checkoutAction === 'checkout') {
     }
 
     if (!$checkoutUser) {
-        redirectTo('index.php?auth=login&next=' . urlencode('home?action=checkout') . '#login');
+        $checkoutNextPath = 'home?action=checkout&plan='
+            . rawurlencode($requestedPlanKey)
+            . '&interval='
+            . rawurlencode($requestedBillingInterval);
+        redirectTo('index.php?auth=login&next=' . urlencode($checkoutNextPath) . '#login');
     }
 
     $checkoutUserId = (int) ($checkoutUser['id'] ?? 0);
@@ -168,29 +474,13 @@ if ($checkoutAction === 'checkout') {
         if ($stripeSecretKey === '') {
             throw new RuntimeException('Checkout Stripe não configurado. Defina STRIPE_SECRET_KEY no ambiente.');
         }
-        if ($stripeBillingId === '') {
-            throw new RuntimeException('Identificador Stripe não configurado. Defina STRIPE_PRICE_ID (ou STRIPE_PRODUCT_ID) no ambiente.');
-        }
-
         $userId = $checkoutUserId;
         $successUrl = appEntryUrl() . appPath('home?action=checkout_success&session_id={CHECKOUT_SESSION_ID}');
         $cancelUrl = appEntryUrl() . appPath('home?checkout=cancelled');
+        $trialPeriodDays = billingTrialPeriodDays();
+        $planMetadata = billingPlanMetadata($selectedPlan, $requestedBillingInterval);
 
-        $lineItem = ['quantity' => 1];
-        if (str_starts_with($stripeBillingId, 'price_')) {
-            $lineItem['price'] = $stripeBillingId;
-        } elseif (str_starts_with($stripeBillingId, 'prod_')) {
-            $lineItem['price_data'] = [
-                'currency' => 'brl',
-                'unit_amount' => 1990,
-                'product' => $stripeBillingId,
-                'recurring' => [
-                    'interval' => 'month',
-                ],
-            ];
-        } else {
-            throw new RuntimeException('ID Stripe inválido. Use STRIPE_PRICE_ID (price_...) ou STRIPE_PRODUCT_ID (prod_...).');
-        }
+        $lineItem = stripeLineItemForBillingPlan($selectedPlan, $stripeSecretKey, $requestedBillingInterval);
 
         $checkoutPayload = [
             'mode' => 'subscription',
@@ -199,16 +489,18 @@ if ($checkoutAction === 'checkout') {
             'locale' => 'pt-BR',
             'line_items' => [$lineItem],
             'client_reference_id' => (string) $userId,
-            'metadata' => [
+            'metadata' => array_merge([
                 'bexon_user_id' => (string) $userId,
-            ],
+            ], $planMetadata),
             'subscription_data' => [
-                'trial_period_days' => 7,
-                'metadata' => [
+                'metadata' => array_merge([
                     'bexon_user_id' => (string) $userId,
-                ],
+                ], $planMetadata),
             ],
         ];
+        if ($trialPeriodDays > 0 && (int) ($selectedPlan['price_cents'] ?? 0) > 0) {
+            $checkoutPayload['subscription_data']['trial_period_days'] = $trialPeriodDays;
+        }
 
         if (!empty($checkoutUser['email'])) {
             $checkoutPayload['customer_email'] = (string) $checkoutUser['email'];
@@ -219,6 +511,9 @@ if ($checkoutAction === 'checkout') {
         upsertUserSubscription($pdo, $userId, [
             'stripe_customer_id' => trim((string) ($checkoutSession['customer'] ?? '')),
             'stripe_checkout_session_id' => trim((string) ($checkoutSession['id'] ?? '')),
+            'plan_key' => $planMetadata['bexon_plan'] ?? '',
+            'billing_interval' => $planMetadata['bexon_billing_interval'] ?? '',
+            'max_users' => (int) ($planMetadata['bexon_max_users'] ?? 0),
             'subscription_status' => 'inactive',
             'checkout_status' => 'pending_checkout',
             'raw_payload_json' => json_encode($checkoutSession, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}',
@@ -282,7 +577,7 @@ $checkoutNotice = null;
 if ($checkoutStatus === 'success') {
     $checkoutNotice = [
         'type' => 'success',
-        'message' => 'Checkout concluído. Seu teste grátis de 7 dias foi ativado.',
+        'message' => 'Checkout concluído. Seu plano Bexon foi ativado.',
     ];
 } elseif ($checkoutStatus === 'cancelled') {
     $checkoutNotice = [
@@ -292,7 +587,7 @@ if ($checkoutStatus === 'success') {
 } elseif ($checkoutStatus === 'required') {
     $checkoutNotice = [
         'type' => 'info',
-        'message' => 'Seu checkout ainda não foi concluído. Ative o teste grátis para liberar o acesso ao app.',
+        'message' => 'Seu checkout ainda não foi concluído. Escolha um plano para liberar o acesso ao app.',
     ];
 }
 
@@ -342,7 +637,7 @@ if ($checkoutNotice) {
                 </nav>
                 <div class="sales-header-actions">
                     <a href="<?= e($authPath) ?>" class="sales-btn sales-btn-ghost">Entrar</a>
-                    <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Come&ccedil;ar 7 dias gr&aacute;tis</a>
+                    <a href="<?= e($recommendedCheckoutPath) ?>" class="sales-btn sales-btn-primary">Testar 7 dias gr&aacute;tis</a>
                 </div>
             </div>
         </header>
@@ -357,13 +652,13 @@ if ($checkoutNotice) {
                             Menos troca de contexto, mais clareza para executar.
                         </p>
                         <div class="sales-hero-actions">
-                            <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Iniciar 7 dias gr&aacute;tis</a>
+                            <a href="<?= e($recommendedCheckoutPath) ?>" class="sales-btn sales-btn-primary">Testar 7 dias gr&aacute;tis</a>
                             <a href="<?= e($appEntryPath) ?>" class="sales-btn sales-btn-secondary">Ver demo no app</a>
                         </div>
                         <ul class="sales-trust-list">
-                            <li>7 dias gr&aacute;tis</li>
-                            <li>R$ 19,90/m&ecirc;s ap&oacute;s o teste</li>
-                            <li>Pessoal + neg&oacute;cio + equipe</li>
+                            <li>7 dias gr&aacute;tis em Solo, Team e Business</li>
+                            <li>Solo anual por R$ 16,40/m&ecirc;s</li>
+                            <li>Enterprise sob consulta para equipes maiores</li>
                         </ul>
                     </div>
 
@@ -476,7 +771,7 @@ if ($checkoutNotice) {
                         <article class="sales-step-card">
                             <span>01</span>
                             <h3>Comece em minutos</h3>
-                            <p>Ative seu teste gr&aacute;tis e crie seu fluxo inicial sem configura&ccedil;&otilde;es complexas.</p>
+                            <p>Escolha um plano e crie seu fluxo inicial sem configura&ccedil;&otilde;es complexas.</p>
                         </article>
                         <article class="sales-step-card">
                             <span>02</span>
@@ -495,22 +790,89 @@ if ($checkoutNotice) {
             <section id="planos" class="sales-section sales-topic sales-topic-soft">
                 <div class="sales-container">
                     <div class="sales-section-head sales-section-head-center">
-                        <span class="sales-eyebrow">Plano</span>
-                        <h2>Simplicidade total: 7 dias gr&aacute;tis e depois R$ 19,90 por m&ecirc;s.</h2>
+                        <span class="sales-eyebrow">Planos</span>
+                        <h2>Organize sua rotina com o plano ideal para voc&ecirc; ou sua equipe.</h2>
+                        <p>Teste gr&aacute;tis por 7 dias. Sem compromisso.</p>
                     </div>
-                    <div class="sales-pricing-grid is-single">
-                        <article class="sales-pricing-card is-highlight">
-                            <h3>Bexon Pro</h3>
-                            <p class="sales-price">R$ 19,90<span>/m&ecirc;s</span></p>
-                            <p class="sales-price-note">Voc&ecirc; s&oacute; paga ap&oacute;s o per&iacute;odo de teste gr&aacute;tis de 7 dias.</p>
-                            <ul>
-                                <li>Tarefas pessoais e profissionais no mesmo lugar</li>
-                                <li>Organiza&ccedil;&atilde;o simples para equipes</li>
-                                <li>Fluxo visual com status e prioridades</li>
-                                <li>Suporte cont&iacute;nuo sem custo extra</li>
-                            </ul>
-                            <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Ativar teste gr&aacute;tis</a>
-                        </article>
+                    <div class="sales-billing-toggle" data-billing-toggle data-default-billing-interval="<?= e($defaultBillingInterval) ?>" aria-label="Alternar cobrança">
+                        <button type="button" class="<?= $defaultBillingInterval === 'year' ? 'is-active' : '' ?>" data-billing-interval="year" aria-pressed="<?= $defaultBillingInterval === 'year' ? 'true' : 'false' ?>">
+                            Anual
+                            <span>Economize até 2 meses</span>
+                        </button>
+                        <button type="button" class="<?= $defaultBillingInterval === 'month' ? 'is-active' : '' ?>" data-billing-interval="month" aria-pressed="<?= $defaultBillingInterval === 'month' ? 'true' : 'false' ?>">
+                            Mensal
+                        </button>
+                    </div>
+                    <div class="sales-pricing-grid">
+                        <?php foreach ($billingPlans as $billingPlan): ?>
+                            <?php
+                            $billingPlanKey = (string) ($billingPlan['key'] ?? '');
+                            $isHighlightedPlan = $billingPlanKey === 'solo';
+                            $monthlyPriceLabel = billingPlanPriceLabel($billingPlan, 'month');
+                            $annualPriceLabel = billingPlanPriceLabel($billingPlan, 'year');
+                            $monthlyBillingNote = billingPlanBillingNote($billingPlan, 'month');
+                            $annualBillingNote = billingPlanBillingNote($billingPlan, 'year');
+                            $monthlyTrialNote = billingPlanTrialNote($billingPlan, 'month');
+                            $annualTrialNote = billingPlanTrialNote($billingPlan, 'year');
+                            $monthlyActionPath = billingPlanActionPath($billingPlan, 'month');
+                            $annualActionPath = billingPlanActionPath($billingPlan, 'year');
+                            $priceSuffix = billingPlanPriceSuffix($billingPlan);
+                            $initialPriceLabel = $defaultBillingInterval === 'month' ? $monthlyPriceLabel : $annualPriceLabel;
+                            $initialBillingNote = $defaultBillingInterval === 'month' ? $monthlyBillingNote : $annualBillingNote;
+                            $initialTrialNote = $defaultBillingInterval === 'month' ? $monthlyTrialNote : $annualTrialNote;
+                            $initialActionPath = $defaultBillingInterval === 'month' ? $monthlyActionPath : $annualActionPath;
+                            $initialPriceParts = billingPriceParts($initialPriceLabel);
+                            ?>
+                            <article
+                                class="sales-pricing-card<?= $isHighlightedPlan ? ' is-highlight' : '' ?>"
+                                data-plan-card
+                                data-price-month="<?= e($monthlyPriceLabel) ?>"
+                                data-price-year="<?= e($annualPriceLabel) ?>"
+                                data-suffix="<?= e($priceSuffix) ?>"
+                                data-note-month="<?= e($monthlyBillingNote) ?>"
+                                data-note-year="<?= e($annualBillingNote) ?>"
+                                data-trial-month="<?= e($monthlyTrialNote) ?>"
+                                data-trial-year="<?= e($annualTrialNote) ?>"
+                                data-action-month="<?= e($monthlyActionPath) ?>"
+                                data-action-year="<?= e($annualActionPath) ?>"
+                            >
+                                <div class="sales-pricing-card-head">
+                                    <h3><?= e((string) ($billingPlan['name'] ?? 'Plano')) ?></h3>
+                                    <?php if ($isHighlightedPlan): ?>
+                                        <span class="sales-plan-badge"><?= e((string) ($billingPlan['badge'] ?? billingPlanUsersLabel($billingPlan))) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="sales-plan-pricing">
+                                    <p class="sales-price<?= $priceSuffix === '' ? ' is-consult-price' : '' ?>">
+                                        <span data-plan-price-value>
+                                            <?php if ($initialPriceParts['currency'] !== ''): ?>
+                                                <span class="sales-price-currency"><?= e($initialPriceParts['currency']) ?></span>
+                                            <?php endif; ?>
+                                            <span class="sales-price-amount"><?= e($initialPriceParts['amount']) ?></span>
+                                        </span>
+                                        <?php if ($priceSuffix !== ''): ?>
+                                            <span data-plan-price-suffix><?= e($priceSuffix) ?></span>
+                                        <?php endif; ?>
+                                    </p>
+                                    <?php if ($initialBillingNote !== ''): ?>
+                                        <p class="sales-billing-note" data-plan-billing-note><?= e($initialBillingNote) ?></p>
+                                    <?php else: ?>
+                                        <p class="sales-billing-note" data-plan-billing-note hidden></p>
+                                    <?php endif; ?>
+                                    <p class="sales-trial-note" data-plan-trial-note><?= e($initialTrialNote) ?></p>
+                                </div>
+                                <p class="sales-price-note"><?= e((string) ($billingPlan['summary'] ?? '')) ?></p>
+                                <p class="sales-plan-limit"><?= e(billingPlanUsersLabel($billingPlan)) ?></p>
+                                <a href="<?= e($initialActionPath) ?>" class="sales-btn sales-btn-primary" data-plan-action>
+                                    <?= e((string) ($billingPlan['cta'] ?? 'Escolher plano')) ?>
+                                </a>
+                                <ul>
+                                    <?php foreach ((array) ($billingPlan['features'] ?? []) as $feature): ?>
+                                        <li><?= e((string) $feature) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </article>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </section>
@@ -519,9 +881,9 @@ if ($checkoutNotice) {
                 <div class="sales-container">
                     <div class="sales-cta-box">
                         <h2>Pronto para simplificar sua rotina pessoal, do neg&oacute;cio e da equipe?</h2>
-                        <p>Comece com 7 dias gr&aacute;tis e veja como organizar tudo pode ser mais leve no Bexon.</p>
+                        <p>Teste por 7 dias gr&aacute;tis ou fale com o suporte para montar um plano Enterprise.</p>
                         <div class="sales-hero-actions">
-                            <a href="<?= e($checkoutPath) ?>" class="sales-btn sales-btn-primary">Iniciar teste gr&aacute;tis</a>
+                            <a href="#planos" class="sales-btn sales-btn-primary">Escolher plano</a>
                             <a href="<?= e($appEntryPath) ?>" class="sales-btn sales-btn-ghost">Entrar no app</a>
                         </div>
                     </div>
@@ -561,6 +923,76 @@ if ($checkoutNotice) {
                     }
                 }, 5000);
             });
+
+            var billingToggle = document.querySelector('[data-billing-toggle]');
+            var billingButtons = billingToggle ? Array.from(billingToggle.querySelectorAll('[data-billing-interval]')) : [];
+            var planCards = Array.from(document.querySelectorAll('[data-plan-card]'));
+
+            function applyBillingInterval(interval) {
+                billingButtons.forEach(function (button) {
+                    var isActive = button.getAttribute('data-billing-interval') === interval;
+                    button.classList.toggle('is-active', isActive);
+                    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                });
+
+                planCards.forEach(function (card) {
+                    var price = card.querySelector('[data-plan-price-value]');
+                    var currency = price ? price.querySelector('.sales-price-currency') : null;
+                    var amount = price ? price.querySelector('.sales-price-amount') : null;
+                    var suffix = card.querySelector('[data-plan-price-suffix]');
+                    var billingNote = card.querySelector('[data-plan-billing-note]');
+                    var trialNote = card.querySelector('[data-plan-trial-note]');
+                    var action = card.querySelector('[data-plan-action]');
+                    var priceValue = card.getAttribute('data-price-' + interval) || '';
+                    var noteValue = card.getAttribute('data-note-' + interval) || '';
+                    var trialValue = card.getAttribute('data-trial-' + interval) || '';
+                    var actionValue = card.getAttribute('data-action-' + interval) || '';
+                    var priceMatch = priceValue.match(/^R\$\s*(.+)$/);
+
+                    if (price && amount) {
+                        if (priceMatch) {
+                            if (!currency) {
+                                currency = document.createElement('span');
+                                currency.className = 'sales-price-currency';
+                                price.insertBefore(currency, amount);
+                            }
+                            currency.textContent = 'R$';
+                            currency.hidden = false;
+                            amount.textContent = priceMatch[1];
+                        } else {
+                            if (currency) {
+                                currency.hidden = true;
+                            }
+                            amount.textContent = priceValue;
+                        }
+                    }
+
+                    if (suffix) {
+                        suffix.hidden = (card.getAttribute('data-suffix') || '') === '';
+                    }
+
+                    if (billingNote) {
+                        billingNote.textContent = noteValue;
+                        billingNote.hidden = noteValue === '';
+                    }
+
+                    if (trialNote) {
+                        trialNote.textContent = trialValue;
+                    }
+
+                    if (action && actionValue !== '') {
+                        action.setAttribute('href', actionValue);
+                    }
+                });
+            }
+
+            billingButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    applyBillingInterval(button.getAttribute('data-billing-interval') || 'year');
+                });
+            });
+
+            applyBillingInterval((billingToggle && billingToggle.getAttribute('data-default-billing-interval')) || 'year');
         });
     </script>
 </body>

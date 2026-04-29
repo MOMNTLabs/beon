@@ -220,6 +220,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Usuário inválido.');
                 }
 
+                enforceWorkspaceMemberLimit($workspaceId, $memberId);
                 upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'member');
 
                 $workspaceAddMemberMessage = 'Usuário adicionado ao workspace.';

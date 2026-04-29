@@ -113,20 +113,24 @@ switch ($eventType) {
     case 'checkout.session.completed':
     case 'checkout.session.async_payment_succeeded':
     case 'checkout.session.expired':
+        $sessionMetadata = is_array($object['metadata'] ?? null) ? $object['metadata'] : [];
         $subscription = $object['subscription'] ?? null;
         if (is_array($subscription)) {
+            $subscriptionMetadata = is_array($subscription['metadata'] ?? null) ? $subscription['metadata'] : [];
             $subscriptionId = (string) ($subscription['id'] ?? '');
             $subscriptionStatus = (string) ($subscription['status'] ?? 'inactive');
             $trialEnd = stripeTimestampToIso($subscription['trial_end'] ?? null);
             $currentPeriodEnd = stripeTimestampToIso($subscription['current_period_end'] ?? null);
             $cancelAt = stripeTimestampToIso($subscription['cancel_at'] ?? null);
         } else {
+            $subscriptionMetadata = [];
             $subscriptionId = is_string($subscription) ? $subscription : '';
             $subscriptionStatus = $eventType === 'checkout.session.completed' ? 'active' : 'inactive';
             $trialEnd = null;
             $currentPeriodEnd = null;
             $cancelAt = null;
         }
+        $planAttributes = billingPlanAttributesFromStripeMetadata(array_merge($sessionMetadata, $subscriptionMetadata));
 
         $checkoutStatus = $eventType === 'checkout.session.expired'
             ? 'expired'
@@ -136,6 +140,9 @@ switch ($eventType) {
             'stripe_customer_id' => trim((string) ($object['customer'] ?? '')),
             'stripe_subscription_id' => $subscriptionId,
             'stripe_checkout_session_id' => trim((string) ($object['id'] ?? '')),
+            'plan_key' => $planAttributes['plan_key'] ?? '',
+            'billing_interval' => $planAttributes['billing_interval'] ?? '',
+            'max_users' => $planAttributes['max_users'] ?? 0,
             'subscription_status' => $subscriptionStatus,
             'checkout_status' => $checkoutStatus,
             'trial_end' => $trialEnd,
@@ -152,10 +159,16 @@ switch ($eventType) {
         if ($eventType === 'customer.subscription.deleted') {
             $status = 'canceled';
         }
+        $planAttributes = billingPlanAttributesFromStripeMetadata(
+            is_array($object['metadata'] ?? null) ? $object['metadata'] : []
+        );
 
         upsertUserSubscription($pdo, $userId, [
             'stripe_customer_id' => trim((string) ($object['customer'] ?? '')),
             'stripe_subscription_id' => trim((string) ($object['id'] ?? '')),
+            'plan_key' => $planAttributes['plan_key'] ?? '',
+            'billing_interval' => $planAttributes['billing_interval'] ?? '',
+            'max_users' => $planAttributes['max_users'] ?? 0,
             'subscription_status' => $status,
             'checkout_status' => 'completed',
             'trial_end' => stripeTimestampToIso($object['trial_end'] ?? null),

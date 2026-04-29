@@ -420,6 +420,9 @@ function ensureBillingSchema(PDO $pdo): void
                 stripe_customer_id TEXT DEFAULT NULL,
                 stripe_subscription_id TEXT DEFAULT NULL,
                 stripe_checkout_session_id TEXT DEFAULT NULL,
+                plan_key TEXT NOT NULL DEFAULT \'\',
+                billing_interval TEXT NOT NULL DEFAULT \'\',
+                max_users INTEGER NOT NULL DEFAULT 0,
                 subscription_status TEXT NOT NULL DEFAULT \'inactive\',
                 checkout_status TEXT NOT NULL DEFAULT \'\',
                 trial_end TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL,
@@ -445,30 +448,377 @@ function ensureBillingSchema(PDO $pdo): void
              ON user_subscriptions(stripe_checkout_session_id)
              WHERE stripe_checkout_session_id IS NOT NULL'
         );
+    } else {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS user_subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL UNIQUE,
+                stripe_customer_id TEXT DEFAULT NULL,
+                stripe_subscription_id TEXT DEFAULT NULL,
+                stripe_checkout_session_id TEXT DEFAULT NULL,
+                plan_key TEXT NOT NULL DEFAULT \'\',
+                billing_interval TEXT NOT NULL DEFAULT \'\',
+                max_users INTEGER NOT NULL DEFAULT 0,
+                subscription_status TEXT NOT NULL DEFAULT \'inactive\',
+                checkout_status TEXT NOT NULL DEFAULT \'\',
+                trial_end TEXT DEFAULT NULL,
+                current_period_end TEXT DEFAULT NULL,
+                cancel_at TEXT DEFAULT NULL,
+                raw_payload_json TEXT NOT NULL DEFAULT \'{}\',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )'
+        );
+        $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_customer ON user_subscriptions(stripe_customer_id)');
+        $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_subscription ON user_subscriptions(stripe_subscription_id)');
+        $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_checkout_session ON user_subscriptions(stripe_checkout_session_id)');
+    }
+
+    if (!tableHasColumn($pdo, 'user_subscriptions', 'plan_key')) {
+        $pdo->exec("ALTER TABLE user_subscriptions ADD COLUMN plan_key TEXT NOT NULL DEFAULT ''");
+    }
+    if (!tableHasColumn($pdo, 'user_subscriptions', 'max_users')) {
+        $pdo->exec('ALTER TABLE user_subscriptions ADD COLUMN max_users INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!tableHasColumn($pdo, 'user_subscriptions', 'billing_interval')) {
+        $pdo->exec("ALTER TABLE user_subscriptions ADD COLUMN billing_interval TEXT NOT NULL DEFAULT ''");
+    }
+}
+
+function billingPlanDefinitions(): array
+{
+    return [
+        'free' => [
+            'key' => 'free',
+            'name' => 'Free',
+            'price_cents' => 0,
+            'max_users' => 1,
+            'public' => false,
+            'badge' => 'Grátis',
+            'summary' => 'Para começar sem custo e organizar uma rotina individual.',
+            'cta' => 'Começar grátis',
+            'features' => [
+                '1 usuário',
+                'Workspace pessoal',
+                'Tarefas, status e prioridades',
+            ],
+        ],
+        'solo' => [
+            'key' => 'solo',
+            'name' => 'Solo',
+            'price_cents' => 1990,
+            'monthly_price_cents' => 1990,
+            'annual_price_cents' => 19700,
+            'max_users' => 1,
+            'badge' => 'Mais popular',
+            'annual_savings_label' => 'Economize 2 meses',
+            'summary' => 'Para uso individual com mais foco na rotina pessoal e profissional.',
+            'cta' => 'Assinar Solo',
+            'features' => [
+                '1 usuário',
+                'Organização pessoal e profissional',
+                'Fluxo visual completo',
+            ],
+        ],
+        'team' => [
+            'key' => 'team',
+            'name' => 'Team',
+            'price_cents' => 4990,
+            'monthly_price_cents' => 4990,
+            'annual_price_cents' => 49700,
+            'max_users' => 5,
+            'badge' => 'Equipe',
+            'annual_savings_label' => 'Economize 2 meses',
+            'summary' => 'Para times pequenos que precisam delegar e acompanhar entregas.',
+            'cta' => 'Assinar Team',
+            'features' => [
+                'Até 5 usuários',
+                'Workspaces de equipe',
+                'Permissões por contexto',
+            ],
+        ],
+        'business' => [
+            'key' => 'business',
+            'name' => 'Business',
+            'price_cents' => 9990,
+            'monthly_price_cents' => 9990,
+            'annual_price_cents' => 99700,
+            'max_users' => 15,
+            'badge' => 'Negócio',
+            'annual_savings_label' => 'Economize 2 meses',
+            'summary' => 'Para operações com mais pessoas e rotinas compartilhadas.',
+            'cta' => 'Assinar Business',
+            'features' => [
+                'Até 15 usuários',
+                'Rotina operacional centralizada',
+                'Gestão de demandas com o time',
+            ],
+        ],
+        'enterprise' => [
+            'key' => 'enterprise',
+            'name' => 'Enterprise',
+            'price_cents' => 0,
+            'max_users' => 0,
+            'checkout_enabled' => false,
+            'contact_email' => 'suporte@bexon.com.br',
+            'price_label' => 'Sob consulta',
+            'users_label' => 'Mais de 15 usuários',
+            'trial_note' => 'Para equipes maiores e necessidades sob medida',
+            'badge' => 'Sob consulta',
+            'summary' => 'Para equipes maiores que precisam combinar usuários, suporte e implantação.',
+            'cta' => 'Falar com suporte',
+            'features' => [
+                'Mais de 15 usuários',
+                'Condições comerciais sob consulta',
+                'Apoio para implantação e expansão',
+            ],
+        ],
+    ];
+}
+
+function publicBillingPlanDefinitions(): array
+{
+    return array_filter(
+        billingPlanDefinitions(),
+        static fn (array $plan): bool => ($plan['public'] ?? true) !== false
+    );
+}
+
+function normalizeBillingPlanKey(string $planKey, ?string $fallback = 'solo'): string
+{
+    $normalized = trim(mb_strtolower($planKey));
+    $normalized = preg_replace('/[^a-z0-9_-]+/u', '-', $normalized) ?: '';
+    $normalized = trim($normalized, '-_');
+
+    $aliases = [
+        'gratis' => 'free',
+        'gratuito' => 'free',
+        'personal' => 'solo',
+        'pessoal' => 'solo',
+        'pro' => 'solo',
+        'equipe' => 'team',
+        'teams' => 'team',
+        'negocio' => 'business',
+        'businesses' => 'business',
+        'enterprise' => 'enterprise',
+        'empresa' => 'enterprise',
+        'corporativo' => 'enterprise',
+    ];
+    $normalized = $aliases[$normalized] ?? $normalized;
+
+    $plans = billingPlanDefinitions();
+    if (isset($plans[$normalized])) {
+        return $normalized;
+    }
+
+    if ($fallback === null) {
+        return '';
+    }
+
+    $fallback = trim(mb_strtolower($fallback));
+    return isset($plans[$fallback]) ? $fallback : 'solo';
+}
+
+function billingPlan(string $planKey): ?array
+{
+    $normalizedPlanKey = normalizeBillingPlanKey($planKey, null);
+    if ($normalizedPlanKey === '') {
+        return null;
+    }
+
+    $plans = billingPlanDefinitions();
+    return $plans[$normalizedPlanKey] ?? null;
+}
+
+function billingDefaultPlanKey(): string
+{
+    return normalizeBillingPlanKey((string) (envValue('APP_DEFAULT_BILLING_PLAN') ?? 'solo'));
+}
+
+function normalizeBillingInterval(string $interval, ?string $fallback = 'year'): string
+{
+    $normalized = trim(mb_strtolower($interval));
+    $normalized = preg_replace('/[^a-z0-9_-]+/u', '-', $normalized) ?: '';
+    $normalized = trim($normalized, '-_');
+
+    $aliases = [
+        'monthly' => 'month',
+        'mensal' => 'month',
+        'mes' => 'month',
+        'mês' => 'month',
+        'yearly' => 'year',
+        'annual' => 'year',
+        'anual' => 'year',
+        'ano' => 'year',
+    ];
+    $normalized = $aliases[$normalized] ?? $normalized;
+
+    if (in_array($normalized, ['month', 'year'], true)) {
+        return $normalized;
+    }
+
+    if ($fallback === null) {
+        return '';
+    }
+
+    return normalizeBillingInterval($fallback, 'year');
+}
+
+function billingDefaultInterval(): string
+{
+    return normalizeBillingInterval((string) (envValue('APP_DEFAULT_BILLING_INTERVAL') ?? 'year'));
+}
+
+function billingTrialPeriodDays(): int
+{
+    $rawTrialDays = trim((string) (envValue('STRIPE_TRIAL_PERIOD_DAYS') ?? envValue('APP_BILLING_TRIAL_DAYS') ?? '7'));
+    if ($rawTrialDays === '') {
+        return 7;
+    }
+
+    return max(0, (int) $rawTrialDays);
+}
+
+function billingPlanChargeCents(array $plan, string $billingInterval = 'year'): int
+{
+    $billingInterval = normalizeBillingInterval($billingInterval);
+    if ($billingInterval === 'year') {
+        return max(0, (int) ($plan['annual_price_cents'] ?? $plan['price_cents'] ?? 0));
+    }
+
+    return max(0, (int) ($plan['monthly_price_cents'] ?? $plan['price_cents'] ?? 0));
+}
+
+function billingPlanAnnualMonthlyEquivalentCents(array $plan): int
+{
+    $annualPriceCents = billingPlanChargeCents($plan, 'year');
+    if ($annualPriceCents <= 0) {
+        return 0;
+    }
+
+    return intdiv(intdiv($annualPriceCents, 12), 10) * 10;
+}
+
+function billingPlanMetadata(array $plan, string $billingInterval = 'year'): array
+{
+    $planKey = normalizeBillingPlanKey((string) ($plan['key'] ?? ''), null);
+    $billingInterval = normalizeBillingInterval($billingInterval);
+    $maxUsers = max(0, (int) ($plan['max_users'] ?? 0));
+
+    return [
+        'bexon_plan' => $planKey,
+        'plan' => $planKey,
+        'bexon_billing_interval' => $billingInterval,
+        'billing_interval' => $billingInterval,
+        'bexon_max_users' => (string) $maxUsers,
+        'max_users' => (string) $maxUsers,
+    ];
+}
+
+function billingPlanAttributesFromStripeMetadata(array $metadata): array
+{
+    $planKey = normalizeBillingPlanKey(
+        (string) ($metadata['bexon_plan'] ?? $metadata['plan'] ?? $metadata['plan_key'] ?? ''),
+        null
+    );
+    $billingInterval = normalizeBillingInterval(
+        (string) ($metadata['bexon_billing_interval'] ?? $metadata['billing_interval'] ?? $metadata['interval'] ?? ''),
+        null
+    );
+    $maxUsers = max(0, (int) ($metadata['bexon_max_users'] ?? $metadata['max_users'] ?? 0));
+
+    if ($maxUsers <= 0 && $planKey !== '') {
+        $plan = billingPlan($planKey);
+        $maxUsers = max(0, (int) ($plan['max_users'] ?? 0));
+    }
+
+    return [
+        'plan_key' => $planKey,
+        'billing_interval' => $billingInterval,
+        'max_users' => $maxUsers,
+    ];
+}
+
+function billingSubscriptionPlanKey(array $subscription): string
+{
+    return normalizeBillingPlanKey((string) ($subscription['plan_key'] ?? ''), null);
+}
+
+function billingSubscriptionMaxUsers(array $subscription): int
+{
+    $maxUsers = max(0, (int) ($subscription['max_users'] ?? 0));
+    if ($maxUsers > 0) {
+        return $maxUsers;
+    }
+
+    $planKey = billingSubscriptionPlanKey($subscription);
+    if ($planKey === '') {
+        return 0;
+    }
+
+    $plan = billingPlan($planKey);
+    return max(0, (int) ($plan['max_users'] ?? 0));
+}
+
+function workspaceBillingLimit(int $workspaceId): array
+{
+    $workspace = workspaceById($workspaceId);
+    $ownerUserId = (int) ($workspace['created_by'] ?? 0);
+    if ($ownerUserId <= 0) {
+        return [
+            'owner_user_id' => 0,
+            'plan_key' => '',
+            'plan_name' => '',
+            'max_users' => 0,
+            'member_count' => workspaceMembershipCount($workspaceId),
+            'limited' => false,
+        ];
+    }
+
+    $subscription = userSubscriptionByUserId($ownerUserId);
+    $planKey = $subscription ? billingSubscriptionPlanKey($subscription) : '';
+    $maxUsers = $subscription ? billingSubscriptionMaxUsers($subscription) : 0;
+    $plan = $planKey !== '' ? billingPlan($planKey) : null;
+
+    return [
+        'owner_user_id' => $ownerUserId,
+        'plan_key' => $planKey,
+        'plan_name' => (string) ($plan['name'] ?? ''),
+        'max_users' => $maxUsers,
+        'member_count' => workspaceMembershipCount($workspaceId),
+        'limited' => $maxUsers > 0 && userHasBillingAccess($ownerUserId),
+    ];
+}
+
+function enforceWorkspaceMemberLimit(int $workspaceId, int $memberUserId): void
+{
+    if ($workspaceId <= 0 || $memberUserId <= 0 || userHasWorkspaceAccess($memberUserId, $workspaceId)) {
         return;
     }
 
-    $pdo->exec(
-        'CREATE TABLE IF NOT EXISTS user_subscriptions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL UNIQUE,
-            stripe_customer_id TEXT DEFAULT NULL,
-            stripe_subscription_id TEXT DEFAULT NULL,
-            stripe_checkout_session_id TEXT DEFAULT NULL,
-            subscription_status TEXT NOT NULL DEFAULT \'inactive\',
-            checkout_status TEXT NOT NULL DEFAULT \'\',
-            trial_end TEXT DEFAULT NULL,
-            current_period_end TEXT DEFAULT NULL,
-            cancel_at TEXT DEFAULT NULL,
-            raw_payload_json TEXT NOT NULL DEFAULT \'{}\',
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )'
-    );
-    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_customer ON user_subscriptions(stripe_customer_id)');
-    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_subscription ON user_subscriptions(stripe_subscription_id)');
-    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_user_subscriptions_checkout_session ON user_subscriptions(stripe_checkout_session_id)');
+    $limit = workspaceBillingLimit($workspaceId);
+    if (empty($limit['limited'])) {
+        return;
+    }
+
+    $maxUsers = (int) ($limit['max_users'] ?? 0);
+    $memberCount = (int) ($limit['member_count'] ?? 0);
+    if ($maxUsers <= 0 || $memberCount < $maxUsers) {
+        return;
+    }
+
+    $planName = trim((string) ($limit['plan_name'] ?? ''));
+    if ($planName === '') {
+        $planName = 'atual';
+    }
+
+    throw new RuntimeException(sprintf(
+        'O plano %s permite até %d usuário%s neste workspace. Faça upgrade para adicionar mais usuários.',
+        $planName,
+        $maxUsers,
+        $maxUsers === 1 ? '' : 's'
+    ));
 }
 
 function appMetaGet(PDO $pdo, string $metaKey): ?string
@@ -4470,10 +4820,21 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
     $pdo = billingSchemaPdo($pdo);
     $existing = userSubscriptionByUserId($userId) ?? [];
     $now = nowIso();
+    $planKey = normalizeBillingPlanKey((string) ($attributes['plan_key'] ?? ($existing['plan_key'] ?? '')), null);
+    $billingInterval = normalizeBillingInterval((string) ($attributes['billing_interval'] ?? ($existing['billing_interval'] ?? '')), null);
+    $maxUsers = max(0, (int) ($attributes['max_users'] ?? ($existing['max_users'] ?? 0)));
+    if ($maxUsers <= 0 && $planKey !== '') {
+        $plan = billingPlan($planKey);
+        $maxUsers = max(0, (int) ($plan['max_users'] ?? 0));
+    }
+
     $data = [
         'stripe_customer_id' => trim((string) ($attributes['stripe_customer_id'] ?? ($existing['stripe_customer_id'] ?? ''))),
         'stripe_subscription_id' => trim((string) ($attributes['stripe_subscription_id'] ?? ($existing['stripe_subscription_id'] ?? ''))),
         'stripe_checkout_session_id' => trim((string) ($attributes['stripe_checkout_session_id'] ?? ($existing['stripe_checkout_session_id'] ?? ''))),
+        'plan_key' => $planKey,
+        'billing_interval' => $billingInterval,
+        'max_users' => $maxUsers,
         'subscription_status' => trim((string) ($attributes['subscription_status'] ?? ($existing['subscription_status'] ?? 'inactive'))),
         'checkout_status' => trim((string) ($attributes['checkout_status'] ?? ($existing['checkout_status'] ?? ''))),
         'trial_end' => $attributes['trial_end'] ?? ($existing['trial_end'] ?? null),
@@ -4497,6 +4858,9 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
                 stripe_customer_id,
                 stripe_subscription_id,
                 stripe_checkout_session_id,
+                plan_key,
+                billing_interval,
+                max_users,
                 subscription_status,
                 checkout_status,
                 trial_end,
@@ -4510,6 +4874,9 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
                 NULLIF(:stripe_customer_id, \'\'),
                 NULLIF(:stripe_subscription_id, \'\'),
                 NULLIF(:stripe_checkout_session_id, \'\'),
+                :plan_key,
+                :billing_interval,
+                :max_users,
                 :subscription_status,
                 :checkout_status,
                 :trial_end,
@@ -4524,6 +4891,9 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
                 stripe_customer_id = EXCLUDED.stripe_customer_id,
                 stripe_subscription_id = EXCLUDED.stripe_subscription_id,
                 stripe_checkout_session_id = EXCLUDED.stripe_checkout_session_id,
+                plan_key = EXCLUDED.plan_key,
+                billing_interval = EXCLUDED.billing_interval,
+                max_users = EXCLUDED.max_users,
                 subscription_status = EXCLUDED.subscription_status,
                 checkout_status = EXCLUDED.checkout_status,
                 trial_end = EXCLUDED.trial_end,
@@ -4539,6 +4909,9 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
                 stripe_customer_id,
                 stripe_subscription_id,
                 stripe_checkout_session_id,
+                plan_key,
+                billing_interval,
+                max_users,
                 subscription_status,
                 checkout_status,
                 trial_end,
@@ -4552,6 +4925,9 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
                 NULLIF(:stripe_customer_id, \'\'),
                 NULLIF(:stripe_subscription_id, \'\'),
                 NULLIF(:stripe_checkout_session_id, \'\'),
+                :plan_key,
+                :billing_interval,
+                :max_users,
                 :subscription_status,
                 :checkout_status,
                 :trial_end,
@@ -4565,6 +4941,9 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
                 stripe_customer_id = excluded.stripe_customer_id,
                 stripe_subscription_id = excluded.stripe_subscription_id,
                 stripe_checkout_session_id = excluded.stripe_checkout_session_id,
+                plan_key = excluded.plan_key,
+                billing_interval = excluded.billing_interval,
+                max_users = excluded.max_users,
                 subscription_status = excluded.subscription_status,
                 checkout_status = excluded.checkout_status,
                 trial_end = excluded.trial_end,
@@ -4580,6 +4959,9 @@ function upsertUserSubscription(PDO $pdo, int $userId, array $attributes): void
         ':stripe_customer_id' => $data['stripe_customer_id'],
         ':stripe_subscription_id' => $data['stripe_subscription_id'],
         ':stripe_checkout_session_id' => $data['stripe_checkout_session_id'],
+        ':plan_key' => $data['plan_key'],
+        ':billing_interval' => $data['billing_interval'],
+        ':max_users' => $data['max_users'],
         ':subscription_status' => $data['subscription_status'],
         ':checkout_status' => $data['checkout_status'],
         ':trial_end' => $data['trial_end'],

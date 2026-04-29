@@ -77,7 +77,10 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             if (envFlag('APP_ENFORCE_BILLING', false) && !userHasBillingAccess($userId)) {
                 logoutUser();
                 setPendingCheckoutUserId($userId);
-                redirectTo('home?action=checkout');
+                if (str_starts_with($nextPath, 'home?action=checkout')) {
+                    redirectTo($nextPath);
+                }
+                redirectTo('home?checkout=required#planos');
             }
 
             loginUser($userId, true);

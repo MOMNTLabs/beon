@@ -49,7 +49,21 @@
 
                 <section class="workspace-settings-card workspace-settings-users-card<?= empty($canManageWorkspace) ? ' is-full' : '' ?>">
                     <h3>Usuários do workspace</h3>
-                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace)): ?>
+                    <?php
+                    $workspaceBillingLimit = (!empty($currentWorkspaceId) && empty($isPersonalWorkspace))
+                        ? workspaceBillingLimit((int) $currentWorkspaceId)
+                        : [];
+                    $workspaceMemberLimitReached = !empty($workspaceBillingLimit['limited'])
+                        && (int) ($workspaceBillingLimit['max_users'] ?? 0) > 0
+                        && (int) ($workspaceBillingLimit['member_count'] ?? 0) >= (int) ($workspaceBillingLimit['max_users'] ?? 0);
+                    ?>
+                    <?php if (!empty($workspaceBillingLimit['limited'])): ?>
+                        <p class="workspace-settings-member-empty">
+                            Plano <?= e((string) ($workspaceBillingLimit['plan_name'] ?? 'atual')) ?>:
+                            <?= e((string) ($workspaceBillingLimit['member_count'] ?? 0)) ?>/<?= e((string) ($workspaceBillingLimit['max_users'] ?? 0)) ?> usuários.
+                        </p>
+                    <?php endif; ?>
+                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace) && empty($workspaceMemberLimitReached)): ?>
                         <form method="post" class="workspace-settings-form workspace-settings-member-form">
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                             <input type="hidden" name="action" value="workspace_add_member">
@@ -59,6 +73,8 @@
                             </label>
                             <button type="submit" class="btn btn-mini">Adicionar</button>
                         </form>
+                    <?php elseif (!empty($canManageWorkspace) && !empty($workspaceMemberLimitReached)): ?>
+                        <p class="workspace-settings-member-empty">Limite do plano atingido. Faça upgrade para adicionar mais usuários.</p>
                     <?php elseif (!empty($isPersonalWorkspace)): ?>
                         <p class="workspace-settings-member-empty">Workspace pessoal não permite adicionar usuários parceiros.</p>
                     <?php endif; ?>
