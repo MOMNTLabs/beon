@@ -172,23 +172,11 @@ body.is-sales-page {
     background:
         linear-gradient(90deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.76) 42%, rgba(255, 255, 255, 0.38) 66%, rgba(255, 255, 255, 0.08) 100%),
         radial-gradient(circle at 70% 56%, rgba(var(--color-accent-500-rgb), 0.12), transparent 24%),
-        radial-gradient(circle at 88% 34%, rgba(var(--color-accent-glow-rgb), 0.1), transparent 22%);
+        radial-gradient(circle at 86% 76%, rgba(var(--color-accent-glow-rgb), 0.1), transparent 22%);
 }
 
 .is-sales-page .sales-hero::after {
-    content: "";
-    position: absolute;
-    inset: -1% -2% 18% 45%;
-    pointer-events: none;
-    opacity: 0.94;
-    background-image:
-        var(--sales-hero-hexagon-pattern),
-        radial-gradient(circle at 78% 34%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 58%);
-    background-repeat: no-repeat, no-repeat;
-    background-position: right 8px top 4px, right 116px top 62px;
-    background-size: clamp(500px, 42vw, 720px) auto, 500px 500px;
-    -webkit-mask-image: radial-gradient(ellipse at 100% 0%, #000 0%, #000 36%, rgba(0, 0, 0, 0.62) 56%, rgba(0, 0, 0, 0.16) 72%, transparent 86%);
-    mask-image: radial-gradient(ellipse at 100% 0%, #000 0%, #000 36%, rgba(0, 0, 0, 0.62) 56%, rgba(0, 0, 0, 0.16) 72%, transparent 86%);
+    content: none;
 }
 
 .is-sales-page .sales-hero-grid {
@@ -199,10 +187,10 @@ body.is-sales-page {
     justify-items: center;
 }
 
-.is-sales-page .sales-hero-grid::before {
+.is-sales-page .sales-hero-grid::before,
+.is-sales-page .sales-hero-grid::after {
     content: "";
     position: absolute;
-    left: max(-18vw, -280px);
     bottom: -14px;
     width: clamp(460px, 38vw, 660px);
     aspect-ratio: 720 / 470;
@@ -214,11 +202,19 @@ body.is-sales-page {
     background-repeat: no-repeat, no-repeat;
     background-position: left bottom, left 44px bottom 28px;
     background-size: contain, 430px 430px;
-    transform: scale(-1, -1);
     transform-origin: center;
     z-index: 0;
-    -webkit-mask-image: radial-gradient(ellipse at 100% 0%, #000 0%, #000 34%, rgba(0, 0, 0, 0.5) 55%, rgba(0, 0, 0, 0.12) 72%, transparent 86%);
-    mask-image: radial-gradient(ellipse at 100% 0%, #000 0%, #000 34%, rgba(0, 0, 0, 0.5) 55%, rgba(0, 0, 0, 0.12) 72%, transparent 86%);
+    -webkit-mask-image: radial-gradient(ellipse at 0% 100%, #000 0%, #000 34%, rgba(0, 0, 0, 0.5) 55%, rgba(0, 0, 0, 0.12) 72%, transparent 86%);
+    mask-image: radial-gradient(ellipse at 0% 100%, #000 0%, #000 34%, rgba(0, 0, 0, 0.5) 55%, rgba(0, 0, 0, 0.12) 72%, transparent 86%);
+}
+
+.is-sales-page .sales-hero-grid::before {
+    left: max(-18vw, -280px);
+}
+
+.is-sales-page .sales-hero-grid::after {
+    right: max(-18vw, -280px);
+    transform: scaleX(-1);
 }
 
 .is-sales-page .sales-hero-grid > * {
@@ -1214,7 +1210,7 @@ body.is-sales-page {
     color: var(--color-ink-800);
     padding: 0 16px 0 12px;
     display: grid;
-    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-columns: 30px minmax(0, 1fr);
     align-items: center;
     gap: 12px;
     font-weight: 800;
@@ -1227,29 +1223,17 @@ body.is-sales-page {
 }
 
 .is-sales-page .sales-scenario-card-art {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    border: 1px solid rgba(var(--color-accent-700-rgb), 0.18);
-    background:
-        linear-gradient(160deg, rgba(var(--color-accent-200-rgb), 0.82), rgba(255, 255, 255, 0.94)),
-        #ffffff;
+    width: 30px;
+    height: 30px;
     display: grid;
     place-items: center;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     color: var(--color-accent-700);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.84),
-        0 8px 16px rgba(32, 36, 43, 0.08);
 }
 
 .is-sales-page .sales-scenario-card-art::before {
-    content: "";
-    position: absolute;
-    inset: 7px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.62);
+    content: none;
 }
 
 .is-sales-page .sales-scenario-card-art svg {
@@ -1361,18 +1345,7 @@ body.is-sales-page {
 }
 
 .is-sales-page .sales-topic-dark .sales-scenario-card-art {
-    border-color: rgba(var(--color-accent-400-rgb), 0.3);
-    background:
-        linear-gradient(160deg, rgba(var(--color-accent-500-rgb), 0.18), rgba(255, 255, 255, 0.08)),
-        rgba(255, 255, 255, 0.06);
     color: var(--color-accent-400);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.12),
-        0 8px 16px rgba(0, 0, 0, 0.2);
-}
-
-.is-sales-page .sales-topic-dark .sales-scenario-card-art::before {
-    background: rgba(255, 255, 255, 0.06);
 }
 
 .is-sales-page .sales-feature-grid {
@@ -1961,23 +1934,24 @@ body.is-sales-page {
             radial-gradient(circle at 84% 72%, rgba(var(--color-accent-glow-rgb), 0.1), transparent 24%);
     }
 
-    .is-sales-page .sales-hero::after {
-        inset: 0 -14% 12% 34%;
-        opacity: 0.76;
-        background-position: right -70px top 10px, right 0 top 84px;
-        background-size: clamp(380px, 66vw, 560px) auto, 330px 330px;
-    }
-
     .is-sales-page .sales-hero-grid {
         grid-template-columns: 1fr;
         gap: 22px;
     }
 
-    .is-sales-page .sales-hero-grid::before {
-        left: max(-24vw, -240px);
+    .is-sales-page .sales-hero-grid::before,
+    .is-sales-page .sales-hero-grid::after {
         bottom: 12px;
         width: clamp(330px, 50vw, 520px);
         opacity: 0.44;
+    }
+
+    .is-sales-page .sales-hero-grid::before {
+        left: max(-24vw, -240px);
+    }
+
+    .is-sales-page .sales-hero-grid::after {
+        right: max(-24vw, -240px);
     }
 
     .is-sales-page .sales-product-shell {
@@ -2055,18 +2029,19 @@ body.is-sales-page {
             radial-gradient(circle at 84% 68%, rgba(var(--color-accent-glow-rgb), 0.08), transparent 20%);
     }
 
-    .is-sales-page .sales-hero::after {
-        inset: 2% -34% 48% 48%;
-        opacity: 0.46;
-        background-position: right -66px top 22px, right -48px top 104px;
-        background-size: 290px auto, 210px 210px;
+    .is-sales-page .sales-hero-grid::before,
+    .is-sales-page .sales-hero-grid::after {
+        bottom: 18%;
+        width: 270px;
+        opacity: 0.24;
     }
 
     .is-sales-page .sales-hero-grid::before {
         left: max(-44vw, -210px);
-        bottom: 18%;
-        width: 270px;
-        opacity: 0.24;
+    }
+
+    .is-sales-page .sales-hero-grid::after {
+        right: max(-44vw, -210px);
     }
 
     .is-sales-page .sales-hero-copy h1 {
