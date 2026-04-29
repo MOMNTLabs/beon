@@ -421,10 +421,8 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
 $salesAssetVersion = is_file(__DIR__ . '/assets/home.css')
     ? (string) filemtime(__DIR__ . '/assets/home.css')
     : '1';
-$loadingAssetVersion = is_file(__DIR__ . '/assets/loading.js')
-    ? (string) filemtime(__DIR__ . '/assets/loading.js')
-    : '1';
 $complianceAssetVersion = assetVersion('assets/compliance.js');
+$heroAssetVersion = assetVersion('assets/home-hero-product.png');
 $pdo = db();
 $billingPlans = publicBillingPlanDefinitions();
 $checkoutBillingPlans = array_filter(
@@ -612,7 +610,6 @@ if ($checkoutNotice) {
     <link rel="stylesheet" href="<?= e(appPath('assets/theme-bexon.css?v=' . $themeBexonAssetVersion)) ?>">
     <link rel="stylesheet" href="<?= e(appPath('assets/home.css?v=' . $salesAssetVersion)) ?>">
     <script src="<?= e(appPath('assets/compliance.js?v=' . $complianceAssetVersion)) ?>" defer></script>
-    <script src="<?= e(appPath('assets/loading.js?v=' . $loadingAssetVersion)) ?>" defer></script>
 </head>
 <body class="is-sales-page">
     <?php if (!empty($salesFlashes)): ?>
@@ -662,123 +659,28 @@ if ($checkoutNotice) {
                             <a href="#uso" data-sales-jump-scenario="equipe">Equipe</a>
                             <a href="#uso" data-sales-jump-scenario="clientes">Clientes</a>
                         </div>
-                        <ul class="sales-trust-list">
-                            <li>7 dias gr&aacute;tis em Solo, Team e Business</li>
-                            <li>Solo anual por R$ 16,40/m&ecirc;s</li>
-                            <li>Enterprise sob consulta para equipes maiores</li>
-                        </ul>
                     </div>
 
-                    <div class="sales-product-showcase" aria-hidden="true">
-                        <div class="sales-product-shell">
-                            <aside class="sales-product-sidebar">
-                                <div class="sales-product-sidebar-brand">
-                                    <img src="<?= e(appPath('assets/Bexon - Logo Horizontal Negativa.png?v=1')) ?>" alt="" decoding="async">
-                                </div>
-                                <span class="sales-product-sidebar-line"></span>
-                                <span class="sales-product-home-dot"></span>
-                                <div class="sales-product-workspace">
-                                    <span>T</span>
-                                    <strong>Teste MCP Works...</strong>
-                                    <i></i>
-                                </div>
-                                <div class="sales-product-menu-item is-active">
-                                    <i></i>
-                                    <span>Lista de tarefas</span>
-                                </div>
-                                <span class="sales-product-add">+</span>
-                            </aside>
-                            <div class="sales-product-app">
-                                <div class="sales-product-topbar">
-                                    <div class="sales-product-stats">
-                                        <span><small>Tarefas</small><strong>8</strong></span>
-                                        <span><small>Conclu&iacute;das</small><strong>3 (38%)</strong></span>
-                                        <span><small>Para hoje</small><strong>4</strong></span>
-                                        <span><small>Urgentes</small><strong>1</strong></span>
-                                        <span><small>Minhas abertas</small><strong>5</strong></span>
-                                    </div>
-                                    <div class="sales-product-user">
-                                        <span>T</span>
-                                        <div>
-                                            <strong>Teste MCP</strong>
-                                            <small>teste@bexon.com.br</small>
-                                        </div>
-                                    </div>
-                                    <div class="sales-product-actions">
-                                        <span class="sales-product-icon-bubble sales-product-icon-bell"></span>
-                                        <span class="sales-product-icon-bubble sales-product-icon-gear"></span>
-                                        <span class="sales-product-exit">Sair</span>
-                                    </div>
-                                </div>
-                                <div class="sales-product-body">
-                                    <header class="sales-product-heading">
-                                        <div>
-                                            <h3>Lista de tarefas</h3>
-                                            <p>Organize prioridades, respons&aacute;veis e prazos em um fluxo claro.</p>
-                                        </div>
-                                        <div class="sales-product-summary">
-                                            <span>4 vis&iacute;veis</span>
-                                            <span>8 total</span>
-                                        </div>
-                                    </header>
-                                    <section class="sales-product-panel">
-                                        <div class="sales-product-panel-head">
-                                            <strong>Operacional</strong>
-                                            <span>4</span>
-                                        </div>
-                                        <div class="sales-task-row status-todo">
-                                            <span class="sales-task-status-dot"></span>
-                                            <strong>Revisar propostas</strong>
-                                            <span class="sales-task-stepper">
-                                                <i></i>
-                                                <span class="sales-task-status-pill"><b></b>A fazer</span>
-                                                <i></i>
-                                            </span>
-                                            <span class="sales-task-avatar">T</span>
-                                            <span class="sales-task-actions"><i></i><i></i><i></i><i></i><i></i><i></i></span>
-                                        </div>
-                                        <div class="sales-task-row status-progress">
-                                            <span class="sales-task-status-dot"></span>
-                                            <strong>Entrega do projeto</strong>
-                                            <span class="sales-task-stepper">
-                                                <i></i>
-                                                <span class="sales-task-status-pill"><b></b>Em andamento</span>
-                                                <i></i>
-                                            </span>
-                                            <span class="sales-task-avatar">M</span>
-                                            <span class="sales-task-actions"><i></i><i></i><i></i><i></i><i></i><i></i></span>
-                                        </div>
-                                        <div class="sales-task-row status-review">
-                                            <span class="sales-task-status-dot"></span>
-                                            <strong>Validar financeiro</strong>
-                                            <span class="sales-task-stepper">
-                                                <i></i>
-                                                <span class="sales-task-status-pill"><b></b>Revis&atilde;o</span>
-                                                <i></i>
-                                            </span>
-                                            <span class="sales-task-avatar">V</span>
-                                            <span class="sales-task-actions"><i></i><i></i><i></i><i></i><i></i><i></i></span>
-                                        </div>
-                                        <div class="sales-task-row status-done">
-                                            <span class="sales-task-status-dot"></span>
-                                            <strong>Atualizar clientes</strong>
-                                            <span class="sales-task-stepper">
-                                                <i></i>
-                                                <span class="sales-task-status-pill"><b></b>Conclu&iacute;do</span>
-                                                <i></i>
-                                            </span>
-                                            <span class="sales-task-avatar">C</span>
-                                            <span class="sales-task-actions"><i></i><i></i><i></i><i></i><i></i><i></i></span>
-                                        </div>
-                                    </section>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <figure class="sales-product-showcase">
+                        <img
+                            src="<?= e(appPath('assets/home-hero-product.png?v=' . $heroAssetVersion)) ?>"
+                            alt="Previa do dashboard do Bexon com tarefas, filtros e chamada de produtividade"
+                            width="2200"
+                            height="776"
+                            decoding="async"
+                            fetchpriority="high"
+                        >
+                    </figure>
+
+                    <ul class="sales-trust-list sales-hero-trust">
+                        <li>7 dias gr&aacute;tis em Solo, Team e Business</li>
+                        <li>Solo anual por R$ 16,40/m&ecirc;s</li>
+                        <li>Enterprise sob consulta para equipes maiores</li>
+                    </ul>
                 </div>
             </section>
 
-            <section id="uso" class="sales-section sales-topic sales-topic-soft">
+            <section id="uso" class="sales-section sales-topic sales-topic-dark">
                 <div class="sales-container">
                     <div class="sales-section-head sales-section-head-center">
                         <span class="sales-eyebrow">O que voc&ecirc; quer organizar?</span>
@@ -786,14 +688,13 @@ if ($checkoutNotice) {
                     </div>
                     <div class="sales-workflow-explorer" data-sales-explorer>
                         <div class="sales-explorer-tabs" role="tablist" aria-label="Contextos de uso do Bexon">
-                            <button type="button" class="is-active" role="tab" aria-selected="true" data-sales-scenario="pessoal" data-explorer-title="Priorize sua semana sem misturar tudo." data-explorer-text="Separe compromissos, pend&ecirc;ncias e tarefas pessoais sem perder o que tamb&eacute;m pertence ao trabalho." data-explorer-tasks="Revisar agenda da semana|Resolver pend&ecirc;ncias pessoais|Planejar foco de amanh&atilde;">Pessoal</button>
-                            <button type="button" role="tab" aria-selected="false" data-sales-scenario="negocio" data-explorer-title="Acompanhe a opera&ccedil;&atilde;o com uma vis&atilde;o clara." data-explorer-text="Centralize demandas do neg&oacute;cio, clientes e entregas para saber o que precisa sair hoje." data-explorer-tasks="Atualizar pipeline de clientes|Conferir entrega em andamento|Organizar fluxo financeiro">Neg&oacute;cio</button>
-                            <button type="button" role="tab" aria-selected="false" data-sales-scenario="equipe" data-explorer-title="Delegue sem perder o contexto." data-explorer-text="Distribua responsabilidades, acompanhe status e revise o trabalho do time sem excesso de reuni&otilde;es." data-explorer-tasks="Atribuir respons&aacute;veis|Revisar bloqueios do time|Acompanhar prazos da semana">Equipe</button>
-                            <button type="button" role="tab" aria-selected="false" data-sales-scenario="clientes" data-explorer-title="Mantenha clientes e pr&oacute;ximas a&ccedil;&otilde;es vis&iacute;veis." data-explorer-text="Transforme contatos, propostas e acompanhamentos em tarefas claras dentro da mesma rotina." data-explorer-tasks="Responder novo contato|Enviar proposta comercial|Agendar retorno com cliente">Clientes</button>
+                            <button type="button" class="is-active" role="tab" aria-selected="true" data-sales-scenario="pessoal" data-explorer-title="Priorize sua semana sem misturar tudo." data-explorer-text="Separe compromissos, pend&ecirc;ncias e tarefas pessoais sem perder o que tamb&eacute;m pertence ao trabalho." data-explorer-tasks="Revisar agenda da semana|Resolver pend&ecirc;ncias pessoais|Planejar foco de amanh&atilde;" data-explorer-icons="calendar-check|clipboard-list|target">Pessoal</button>
+                            <button type="button" role="tab" aria-selected="false" data-sales-scenario="negocio" data-explorer-title="Acompanhe a opera&ccedil;&atilde;o com uma vis&atilde;o clara." data-explorer-text="Centralize demandas do neg&oacute;cio, clientes e entregas para saber o que precisa sair hoje." data-explorer-tasks="Atualizar pipeline de clientes|Conferir entrega em andamento|Organizar fluxo financeiro" data-explorer-icons="kanban|package-check|wallet">Neg&oacute;cio</button>
+                            <button type="button" role="tab" aria-selected="false" data-sales-scenario="equipe" data-explorer-title="Delegue sem perder o contexto." data-explorer-text="Distribua responsabilidades, acompanhe status e revise o trabalho do time sem excesso de reuni&otilde;es." data-explorer-tasks="Atribuir respons&aacute;veis|Revisar bloqueios do time|Acompanhar prazos da semana" data-explorer-icons="user-check|alert-triangle|calendar-clock">Equipe</button>
+                            <button type="button" role="tab" aria-selected="false" data-sales-scenario="clientes" data-explorer-title="Mantenha clientes e pr&oacute;ximas a&ccedil;&otilde;es vis&iacute;veis." data-explorer-text="Transforme contatos, propostas e acompanhamentos em tarefas claras dentro da mesma rotina." data-explorer-tasks="Responder novo contato|Enviar proposta comercial|Agendar retorno com cliente" data-explorer-icons="message-plus|file-signature|phone-forwarded">Clientes</button>
                         </div>
                         <div class="sales-explorer-panel">
                             <div class="sales-explorer-copy">
-                                <span data-sales-scenario-label>Pessoal</span>
                                 <h3 data-sales-scenario-title>Priorize sua semana sem misturar tudo.</h3>
                                 <p data-sales-scenario-text>Separe compromissos, pend&ecirc;ncias e tarefas pessoais sem perder o que tamb&eacute;m pertence ao trabalho.</p>
                                 <ul data-sales-scenario-list>
@@ -805,12 +706,20 @@ if ($checkoutNotice) {
                             <div class="sales-scenario-preview" aria-hidden="true">
                                 <div class="sales-scenario-window">
                                     <div class="sales-scenario-header">
-                                        <span>Quadro Bexon</span>
-                                        <strong>Em foco</strong>
+                                        <span>Tarefas</span>
                                     </div>
-                                    <div class="sales-scenario-card is-active" data-sales-preview-card>Revisar agenda da semana</div>
-                                    <div class="sales-scenario-card" data-sales-preview-card>Resolver pend&ecirc;ncias pessoais</div>
-                                    <div class="sales-scenario-card" data-sales-preview-card>Planejar foco de amanh&atilde;</div>
+                                    <div class="sales-scenario-card is-active" data-sales-preview-card>
+                                        <span class="sales-scenario-card-art" data-sales-preview-card-icon aria-hidden="true"></span>
+                                        <span class="sales-scenario-card-label" data-sales-preview-card-label>Revisar agenda da semana</span>
+                                    </div>
+                                    <div class="sales-scenario-card" data-sales-preview-card>
+                                        <span class="sales-scenario-card-art" data-sales-preview-card-icon aria-hidden="true"></span>
+                                        <span class="sales-scenario-card-label" data-sales-preview-card-label>Resolver pend&ecirc;ncias pessoais</span>
+                                    </div>
+                                    <div class="sales-scenario-card" data-sales-preview-card>
+                                        <span class="sales-scenario-card-art" data-sales-preview-card-icon aria-hidden="true"></span>
+                                        <span class="sales-scenario-card-label" data-sales-preview-card-label>Planejar foco de amanh&atilde;</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -984,7 +893,7 @@ if ($checkoutNotice) {
                 </div>
             </section>
 
-            <section class="sales-section sales-final-cta sales-topic sales-topic-contrast">
+            <section class="sales-section sales-final-cta sales-topic sales-topic-dark">
                 <div class="sales-container">
                     <div class="sales-cta-box">
                         <h2>Pronto para simplificar sua rotina pessoal, do neg&oacute;cio e da equipe?</h2>
@@ -1045,24 +954,38 @@ if ($checkoutNotice) {
             if (explorer) {
                 var explorerTabs = Array.from(explorer.querySelectorAll('[data-sales-scenario]'));
                 var scenarioJumps = Array.from(document.querySelectorAll('[data-sales-jump-scenario]'));
-                var scenarioLabel = explorer.querySelector('[data-sales-scenario-label]');
                 var scenarioTitle = explorer.querySelector('[data-sales-scenario-title]');
                 var scenarioText = explorer.querySelector('[data-sales-scenario-text]');
                 var scenarioList = explorer.querySelector('[data-sales-scenario-list]');
                 var previewCards = Array.from(explorer.querySelectorAll('[data-sales-preview-card]'));
+                var taskIconSvgs = {
+                    'calendar-check': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M3 10h18"></path><path d="m8 15 2.2 2.2L16 12"></path></svg>',
+                    'clipboard-list': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4h6a2 2 0 0 1 2 2v1H7V6a2 2 0 0 1 2-2Z"></path><path d="M8 6H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"></path><path d="M9 12h6"></path><path d="M9 16h6"></path><path d="M6.5 12h.01"></path><path d="M6.5 16h.01"></path></svg>',
+                    'target': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path></svg>',
+                    'kanban': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="2"></rect><rect x="9.5" y="4" width="5" height="11" rx="2"></rect><rect x="16" y="4" width="5" height="14" rx="2"></rect><path d="M5.5 8h.01"></path><path d="M12 8h.01"></path><path d="M18.5 8h.01"></path></svg>',
+                    'package-check': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3.5 7.5 8.5 4.8 8.5-4.8"></path><path d="M12 22V12.3"></path><path d="M20.5 7.5v7.6a2 2 0 0 1-1 1.7L13 20.5a2 2 0 0 1-2 0l-6.5-3.7a2 2 0 0 1-1-1.7V7.5"></path><path d="m8 5 4-2 4 2 4.5 2.5-8.5 4.8-8.5-4.8L8 5Z"></path><path d="m15.5 16 1.2 1.2 2.3-2.7"></path></svg>',
+                    'wallet': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h15a2 2 0 0 1 2 2v10H5a2 2 0 0 1-2-2V8a1 1 0 0 1 1-1Z"></path><path d="M4 7l12-3 2 3"></path><path d="M16 12h5v4h-5a2 2 0 0 1 0-4Z"></path><path d="M18 14h.01"></path></svg>',
+                    'user-check': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="m16 11 2 2 4-5"></path></svg>',
+                    'alert-triangle': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10.4 4.3a2 2 0 0 1 3.2 0l8 13.2a2 2 0 0 1-1.6 3H4a2 2 0 0 1-1.6-3l8-13.2Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>',
+                    'calendar-clock': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M3 10h18"></path><circle cx="12" cy="15.5" r="3"></circle><path d="M12 14v1.7l1.2.8"></path></svg>',
+                    'message-plus': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.4-4.2A8 8 0 1 1 21 12Z"></path><path d="M9 12h6"></path><path d="M12 9v6"></path></svg>',
+                    'file-signature': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h5"></path><path d="M8 18c1.5-2 3-.6 4.5-2.3 1-.9 1.7-.7 2.5.3"></path></svg>',
+                    'phone-forwarded': '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.2 19.2 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"></path><path d="M14 3h7v7"></path><path d="m21 3-7 7"></path></svg>'
+                };
+
+                function taskIconSvg(iconName) {
+                    return taskIconSvgs[iconName] || taskIconSvgs['clipboard-list'];
+                }
 
                 function applyScenario(tab) {
                     var tasks = (tab.getAttribute('data-explorer-tasks') || '').split('|').filter(Boolean);
+                    var icons = (tab.getAttribute('data-explorer-icons') || '').split('|').filter(Boolean);
 
                     explorerTabs.forEach(function (button) {
                         var isActive = button === tab;
                         button.classList.toggle('is-active', isActive);
                         button.setAttribute('aria-selected', isActive ? 'true' : 'false');
                     });
-
-                    if (scenarioLabel) {
-                        scenarioLabel.textContent = tab.textContent.trim();
-                    }
 
                     if (scenarioTitle) {
                         scenarioTitle.textContent = tab.getAttribute('data-explorer-title') || '';
@@ -1082,7 +1005,14 @@ if ($checkoutNotice) {
                     }
 
                     previewCards.forEach(function (card, index) {
-                        card.textContent = tasks[index] || '';
+                        var icon = card.querySelector('[data-sales-preview-card-icon]');
+                        var label = card.querySelector('[data-sales-preview-card-label]');
+                        if (icon) {
+                            icon.innerHTML = taskIconSvg(icons[index]);
+                        }
+                        if (label) {
+                            label.textContent = tasks[index] || '';
+                        }
                         card.hidden = !tasks[index];
                     });
                 }
@@ -1104,6 +1034,13 @@ if ($checkoutNotice) {
                         }
                     });
                 });
+
+                var initialScenarioTab = explorerTabs.find(function (button) {
+                    return button.classList.contains('is-active');
+                }) || explorerTabs[0];
+                if (initialScenarioTab) {
+                    applyScenario(initialScenarioTab);
+                }
             }
 
             function applyBillingInterval(interval) {

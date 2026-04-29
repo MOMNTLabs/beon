@@ -3,6 +3,7 @@
   const SUBMIT_LABEL = "Processando...";
   const SHOW_DELAY_MS = 140;
   const HIDE_DELAY_MS = 180;
+  const PUBLIC_ROUTE_SLUGS = new Set(["home", "privacidade", "termos", "cookies", "dados", "vendas"]);
 
   let overlay = null;
   let labelNode = null;
@@ -171,6 +172,17 @@
     document.body?.classList.remove("is-app-loading");
   };
 
+  const routeSlugFromPathname = (pathname) => {
+    const normalizedPath = String(pathname || "").replace(/\/+$/, "");
+    if (!normalizedPath) return "";
+
+    const segments = normalizedPath.split("/").filter(Boolean);
+    const lastSegment = segments[segments.length - 1] || "";
+    return lastSegment.replace(/\.php$/i, "").toLowerCase();
+  };
+
+  const isPublicRouteDestination = (pathname) => PUBLIC_ROUTE_SLUGS.has(routeSlugFromPathname(pathname));
+
   const shouldIgnoreAnchor = (anchor) => {
     if (!(anchor instanceof HTMLAnchorElement)) return true;
     if (anchor.hasAttribute("download")) return true;
@@ -203,6 +215,7 @@
 
       if (sameDocument) return true;
       if (nextUrl.href === currentUrl.href) return true;
+      if (isPublicRouteDestination(nextUrl.pathname)) return true;
     } catch (_error) {
       return true;
     }

@@ -95,7 +95,7 @@
     gap: 16px;
     width: min(760px, calc(100vw - 36px));
     padding: 16px;
-    border: 1px solid rgba(149, 91, 63, 0.24);
+    border: 1px solid rgba(var(--color-accent-700-rgb), 0.24);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.98);
     color: var(--color-ink-800);
@@ -216,7 +216,7 @@ body.is-legal-page {
 
 .legal-document {
     padding: clamp(24px, 5vw, 52px);
-    border: 1px solid rgba(149, 91, 63, 0.14);
+    border: 1px solid rgba(var(--color-accent-700-rgb), 0.14);
     border-radius: 8px;
     background: var(--surface-card);
     box-shadow: 0 24px 70px rgba(32, 36, 43, 0.1);
@@ -278,7 +278,7 @@ body.is-legal-page {
     width: 100%;
     border-collapse: collapse;
     overflow: hidden;
-    border: 1px solid rgba(149, 91, 63, 0.14);
+    border: 1px solid rgba(var(--color-accent-700-rgb), 0.14);
     border-radius: 8px;
     font-size: 0.92rem;
 }
@@ -286,7 +286,7 @@ body.is-legal-page {
 .legal-table th,
 .legal-table td {
     padding: 12px;
-    border-bottom: 1px solid rgba(149, 91, 63, 0.12);
+    border-bottom: 1px solid rgba(var(--color-accent-700-rgb), 0.12);
     text-align: left;
     vertical-align: top;
 }
@@ -376,19 +376,19 @@ body.is-dashboard .account-privacy-links {
     --color-metal-200: #515b68;
     --color-metal-300: #3c444f;
     --color-metal-400: #2a313a;
-    --color-accent-200: #efd7cc;
-    --color-accent-200-rgb: 239, 215, 204;
-    --color-accent-400: #deb197;
-    --color-accent-400-rgb: 222, 177, 151;
-    --color-accent-500: #cf8d6a;
-    --color-accent-500-rgb: 207, 141, 106;
-    --color-accent-600: #bc744f;
-    --color-accent-600-rgb: 188, 116, 79;
-    --color-accent-700: #955b3f;
-    --color-accent-700-rgb: 149, 91, 63;
-    --color-accent-900: #5f3b2b;
-    --color-accent-glow: #dfb161;
-    --color-accent-glow-rgb: 223, 177, 97;
+    --color-accent-200: #ffe8bf;
+    --color-accent-200-rgb: 255, 232, 191;
+    --color-accent-400: #ffc861;
+    --color-accent-400-rgb: 255, 200, 97;
+    --color-accent-500: #ff9d0d;
+    --color-accent-500-rgb: 255, 157, 13;
+    --color-accent-600: #e88900;
+    --color-accent-600-rgb: 232, 137, 0;
+    --color-accent-700: #bf6900;
+    --color-accent-700-rgb: 191, 105, 0;
+    --color-accent-900: #7a4300;
+    --color-accent-glow: #ffd05c;
+    --color-accent-glow-rgb: 255, 208, 92;
     --color-danger-soft-100: #f8e1de;
     --color-danger-soft-200: #e7c0b7;
 
