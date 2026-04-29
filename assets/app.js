@@ -3615,6 +3615,14 @@ window.addEventListener("DOMContentLoaded", () => {
     return error;
   };
 
+  const runWithAppLoading = (work, options = {}) => {
+    const loader = window.BexonLoading;
+    if (!loader || typeof loader.withLoading !== "function") {
+      return Promise.resolve().then(work);
+    }
+    return loader.withLoading(work, options);
+  };
+
   const isTaskConflictError = (error) => {
     if (!(error instanceof Error)) return false;
     const status = Number.parseInt(String(error.status || "0"), 10) || 0;
@@ -3623,7 +3631,7 @@ window.addEventListener("DOMContentLoaded", () => {
     return status === 409 || code === "task_conflict";
   };
 
-  const postFormJson = async (form) => {
+  const postFormJson = async (form) => runWithAppLoading(async () => {
     const runAttempt = async () => {
       const response = await fetch(form.getAttribute("action") || window.location.href, {
         method: "POST",
@@ -3661,9 +3669,9 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     throw new Error(lastMessage);
-  };
+  }, { label: form?.getAttribute("data-loading-label") || "Salvando..." });
 
-  const postActionJson = async (action, payload = {}) => {
+  const postActionJson = async (action, payload = {}) => runWithAppLoading(async () => {
     const formData = new FormData();
     formData.append("action", String(action || "").trim());
     Object.entries(payload || {}).forEach(([key, value]) => {
@@ -3694,7 +3702,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     return data;
-  };
+  }, { label: "Carregando..." });
 
   const notificationWorkspaceId = Number.parseInt(
     String(document.body?.dataset?.workspaceId || "").trim() || "0",
@@ -4299,7 +4307,7 @@ window.addEventListener("DOMContentLoaded", () => {
     };
   };
 
-  const fetchPanelSnapshot = async (action, fallbackErrorMessage) => {
+  const fetchPanelSnapshot = async (action, fallbackErrorMessage) => runWithAppLoading(async () => {
     const params = new URLSearchParams(window.location.search || "");
     params.set("action", String(action || "").trim());
     const url = `${window.location.pathname}?${params.toString()}`;
@@ -4326,12 +4334,12 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     return data;
-  };
+  }, { label: "Atualizando..." });
 
   const fetchTaskPanelSnapshot = async () =>
     fetchPanelSnapshot("task_panel_snapshot", "Não foi possível atualizar tarefas.");
 
-  const fetchDashboardDocumentLegacy = async (fallbackErrorMessage) => {
+  const fetchDashboardDocumentLegacy = async (fallbackErrorMessage) => runWithAppLoading(async () => {
     const url = `${window.location.pathname}${window.location.search}`;
     const response = await fetch(url, {
       method: "GET",
@@ -4349,7 +4357,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const html = await response.text();
     const parser = new DOMParser();
     return parser.parseFromString(html, "text/html");
-  };
+  }, { label: "Atualizando..." });
 
   const refreshTasksSectionFromServer = async () => {
     let snapshotData = null;

@@ -448,6 +448,9 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
 $appAssetVersion = is_file(__DIR__ . '/assets/app.js')
     ? (string) filemtime(__DIR__ . '/assets/app.js')
     : '1';
+$loadingAssetVersion = is_file(__DIR__ . '/assets/loading.js')
+    ? (string) filemtime(__DIR__ . '/assets/loading.js')
+    : '1';
 $groupFilter = isset($_GET['group']) && trim((string) $_GET['group']) !== ''
     ? normalizeTaskGroupName((string) $_GET['group'])
     : null;
@@ -529,6 +532,7 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <link rel="stylesheet" href="assets/theme-bexon.css?v=<?= e($themeBexonAssetVersion) ?>">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js" defer></script>
+    <script src="assets/loading.js?v=<?= e($loadingAssetVersion) ?>" defer></script>
     <script src="assets/app.js?v=<?= e($appAssetVersion) ?>" defer></script>
 </head>
 <body

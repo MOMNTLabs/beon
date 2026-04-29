@@ -421,6 +421,9 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
 $salesAssetVersion = is_file(__DIR__ . '/assets/home.css')
     ? (string) filemtime(__DIR__ . '/assets/home.css')
     : '1';
+$loadingAssetVersion = is_file(__DIR__ . '/assets/loading.js')
+    ? (string) filemtime(__DIR__ . '/assets/loading.js')
+    : '1';
 $pdo = db();
 $billingPlans = publicBillingPlanDefinitions();
 $checkoutBillingPlans = array_filter(
@@ -607,6 +610,7 @@ if ($checkoutNotice) {
     <link rel="stylesheet" href="<?= e(appPath('assets/styles.css?v=' . $stylesAssetVersion)) ?>">
     <link rel="stylesheet" href="<?= e(appPath('assets/theme-bexon.css?v=' . $themeBexonAssetVersion)) ?>">
     <link rel="stylesheet" href="<?= e(appPath('assets/home.css?v=' . $salesAssetVersion)) ?>">
+    <script src="<?= e(appPath('assets/loading.js?v=' . $loadingAssetVersion)) ?>" defer></script>
 </head>
 <body class="is-sales-page">
     <?php if (!empty($salesFlashes)): ?>

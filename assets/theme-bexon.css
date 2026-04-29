@@ -15,6 +15,75 @@
  * - Finance, access manager and settings: section "Finance, access and settings"
  */
 
+/* Global loading feedback */
+.app-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(31, 34, 39, 0.34);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+}
+
+.app-loading-overlay.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.app-loading-panel {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    max-width: min(320px, 100%);
+    min-height: 52px;
+    padding: 14px 18px;
+    border: 1px solid rgba(var(--color-accent-400-rgb), 0.42);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 251, 0.98));
+    color: var(--color-ink-800);
+    box-shadow:
+        0 18px 48px rgba(32, 36, 43, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+.app-loading-spinner {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    border: 3px solid rgba(var(--color-accent-500-rgb), 0.24);
+    border-top-color: var(--color-accent-600);
+    border-radius: 999px;
+    animation: appLoadingSpin 760ms linear infinite;
+}
+
+.app-loading-copy {
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0;
+}
+
+@keyframes appLoadingSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-loading-overlay {
+        transition: none;
+    }
+
+    .app-loading-spinner {
+        animation: none;
+    }
+}
+
 /* Base tokens */
 :root {
     /* Palette
