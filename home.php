@@ -459,7 +459,7 @@ if ($checkoutAction === 'checkout') {
             . rawurlencode($requestedPlanKey)
             . '&interval='
             . rawurlencode($requestedBillingInterval);
-        redirectTo('index.php?auth=login&next=' . urlencode($checkoutNextPath) . '#login');
+        redirectTo('index.php?auth=register&next=' . urlencode($checkoutNextPath) . '#register');
     }
 
     $checkoutUserId = (int) ($checkoutUser['id'] ?? 0);
@@ -522,8 +522,6 @@ if ($checkoutAction === 'checkout') {
             throw new RuntimeException('A Stripe não retornou a URL do checkout.');
         }
 
-        getFlashes();
-        logoutUser();
         header('Location: ' . $checkoutUrl);
         exit;
     } catch (Throwable $e) {
@@ -551,19 +549,24 @@ if ($checkoutAction === 'checkout_success') {
             $stripeSecretKey
         );
 
+        $metadata = is_array($checkoutSession['metadata'] ?? null) ? $checkoutSession['metadata'] : [];
+        $checkoutUserId = (int) ($metadata['bexon_user_id'] ?? ($checkoutSession['client_reference_id'] ?? 0));
         $currentUser = currentUser();
-        $checkoutUserId = (int) ($currentUser['id'] ?? 0);
+        $currentUserId = (int) ($currentUser['id'] ?? 0);
         if ($checkoutUserId <= 0) {
-            $metadata = is_array($checkoutSession['metadata'] ?? null) ? $checkoutSession['metadata'] : [];
-            $checkoutUserId = (int) ($metadata['bexon_user_id'] ?? ($checkoutSession['client_reference_id'] ?? 0));
+            $checkoutUserId = $currentUserId;
+        }
+        if ($checkoutUserId > 0 && $currentUserId > 0 && $checkoutUserId !== $currentUserId) {
+            throw new RuntimeException('A sessão de checkout pertence a outra conta.');
         }
         if ($checkoutUserId <= 0) {
             throw new RuntimeException('Não foi possível identificar a conta do checkout.');
         }
 
         syncSubscriptionFromStripeSession($pdo, $checkoutUserId, $checkoutSession);
-        logoutUser();
-        redirectTo('home?checkout=success');
+        loginUser($checkoutUserId, true);
+        flash('success', 'Checkout concluído. Seu plano Bexon foi ativado.');
+        redirectTo('index.php');
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
         redirectTo('home');
