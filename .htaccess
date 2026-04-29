@@ -8,6 +8,10 @@ RewriteRule ^index\.php$ ./ [R=302,L,NC]
 RewriteRule ^home\.php$ home [R=302,L,NC]
 RewriteRule ^account-settings\.php$ account-settings [R=302,L,NC]
 RewriteRule ^workspace-settings\.php$ workspace-settings [R=302,L,NC]
+RewriteRule ^privacidade\.php$ privacidade [R=302,L,NC]
+RewriteRule ^termos\.php$ termos [R=302,L,NC]
+RewriteRule ^cookies\.php$ cookies [R=302,L,NC]
+RewriteRule ^dados\.php$ dados [R=302,L,NC]
 
 # Legacy sales routes
 RewriteRule ^vendas/?$ home [R=302,L,NC]

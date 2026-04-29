@@ -424,6 +424,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/home.css')
 $loadingAssetVersion = is_file(__DIR__ . '/assets/loading.js')
     ? (string) filemtime(__DIR__ . '/assets/loading.js')
     : '1';
+$complianceAssetVersion = assetVersion('assets/compliance.js');
 $pdo = db();
 $billingPlans = publicBillingPlanDefinitions();
 $checkoutBillingPlans = array_filter(
@@ -610,6 +611,7 @@ if ($checkoutNotice) {
     <link rel="stylesheet" href="<?= e(appPath('assets/styles.css?v=' . $stylesAssetVersion)) ?>">
     <link rel="stylesheet" href="<?= e(appPath('assets/theme-bexon.css?v=' . $themeBexonAssetVersion)) ?>">
     <link rel="stylesheet" href="<?= e(appPath('assets/home.css?v=' . $salesAssetVersion)) ?>">
+    <script src="<?= e(appPath('assets/compliance.js?v=' . $complianceAssetVersion)) ?>" defer></script>
     <script src="<?= e(appPath('assets/loading.js?v=' . $loadingAssetVersion)) ?>" defer></script>
 </head>
 <body class="is-sales-page">
@@ -965,6 +967,12 @@ if ($checkoutNotice) {
                                 <a href="<?= e($initialActionPath) ?>" class="sales-btn sales-btn-primary" data-plan-action>
                                     <?= e((string) ($billingPlan['cta'] ?? 'Escolher plano')) ?>
                                 </a>
+                                <p class="sales-plan-legal-note">
+                                    Ao contratar, voc&ecirc; concorda com os
+                                    <a href="<?= e(appPath('termos')) ?>">Termos</a>
+                                    e a
+                                    <a href="<?= e(appPath('privacidade')) ?>">Privacidade</a>.
+                                </p>
                                 <ul>
                                     <?php foreach ((array) ($billingPlan['features'] ?? []) as $feature): ?>
                                         <li><?= e((string) $feature) ?></li>
@@ -993,6 +1001,12 @@ if ($checkoutNotice) {
         <footer class="sales-footer">
             <div class="sales-container">
                 <small>&copy; <?= e(date('Y')) ?> <?= e(APP_NAME) ?>. Todos os direitos reservados.</small>
+                <nav class="sales-footer-links" aria-label="Links legais">
+                    <a href="<?= e(appPath('privacidade')) ?>">Privacidade</a>
+                    <a href="<?= e(appPath('termos')) ?>">Termos</a>
+                    <a href="<?= e(appPath('cookies')) ?>">Cookies</a>
+                    <a href="<?= e(appPath('dados')) ?>">Meus dados</a>
+                </nav>
             </div>
         </footer>
     </div>

@@ -78,6 +78,7 @@ $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
 $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
     ? (string) filemtime(__DIR__ . '/assets/theme-bexon.css')
     : '1';
+$complianceAssetVersion = assetVersion('assets/compliance.js');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -92,6 +93,7 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
     <link rel="stylesheet" href="assets/theme-bexon.css?v=<?= e($themeBexonAssetVersion) ?>">
+    <script src="assets/compliance.js?v=<?= e($complianceAssetVersion) ?>" defer></script>
 </head>
 <body class="is-dashboard is-workspace-settings">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
@@ -210,6 +212,18 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
                             </label>
                             <button type="submit" class="btn btn-mini">Atualizar senha</button>
                         </form>
+                    </section>
+
+                    <section class="workspace-settings-card account-privacy-card">
+                        <h3>Privacidade e dados</h3>
+                        <p class="workspace-settings-member-empty">
+                            Consulte suas opcoes de privacidade, direitos LGPD, termos e politica de cookies.
+                        </p>
+                        <div class="account-privacy-links">
+                            <a href="<?= e(appPath('dados')) ?>" class="btn btn-mini">Meus dados</a>
+                            <a href="<?= e(appPath('privacidade')) ?>" class="btn btn-mini btn-ghost">Privacidade</a>
+                            <a href="<?= e(appPath('termos')) ?>" class="btn btn-mini btn-ghost">Termos</a>
+                        </div>
                     </section>
                 </div>
 

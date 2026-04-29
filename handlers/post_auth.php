@@ -26,9 +26,13 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             $email = strtolower(trim((string) ($_POST['email'] ?? '')));
             $password = (string) ($_POST['password'] ?? '');
             $passwordConfirm = (string) ($_POST['password_confirm'] ?? '');
+            $acceptedTerms = isset($_POST['accept_terms']) && (string) $_POST['accept_terms'] === '1';
 
             if ($name === '' || $email === '' || $password === '') {
                 throw new RuntimeException('Preencha nome, e-mail e senha.');
+            }
+            if (!$acceptedTerms) {
+                throw new RuntimeException('Para criar a conta, aceite os Termos de Uso e a Politica de Privacidade.');
             }
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 throw new RuntimeException('Informe um e-mail válido.');

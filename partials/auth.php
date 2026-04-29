@@ -122,6 +122,16 @@
                     </span>
                 </label>
 
+                <label class="auth-legal-check">
+                    <input type="checkbox" name="accept_terms" value="1" required>
+                    <span>
+                        Li e aceito os
+                        <a href="<?= e(appPath('termos')) ?>" target="_blank" rel="noopener">Termos de Uso</a>
+                        e a
+                        <a href="<?= e(appPath('privacidade')) ?>" target="_blank" rel="noopener">Pol&iacute;tica de Privacidade</a>.
+                    </span>
+                </label>
+
                 <button class="btn btn-pill btn-accent btn-block" type="submit">Criar conta</button>
             </form>
 

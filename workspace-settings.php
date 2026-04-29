@@ -281,8 +281,9 @@ $isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
 $canManageWorkspaceMembers = $canManageWorkspace && !$isPersonalWorkspace;
 $workspaceMembers = workspaceMembersList($currentWorkspaceId);
 $flashes = getFlashes();
-$stylesAssetVersion = (string) (@filemtime(__DIR__ . '/assets/styles.css') ?: '103');
-$themeBexonAssetVersion = (string) (@filemtime(__DIR__ . '/assets/theme-bexon.css') ?: '1');
+$stylesAssetVersion = assetVersion('assets/styles.css', '103');
+$themeBexonAssetVersion = assetVersion('assets/theme-bexon.css');
+$complianceAssetVersion = assetVersion('assets/compliance.js');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -297,6 +298,7 @@ $themeBexonAssetVersion = (string) (@filemtime(__DIR__ . '/assets/theme-bexon.cs
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
     <link rel="stylesheet" href="assets/theme-bexon.css?v=<?= e($themeBexonAssetVersion) ?>">
+    <script src="assets/compliance.js?v=<?= e($complianceAssetVersion) ?>" defer></script>
 </head>
 <body class="is-dashboard is-workspace-settings" data-workspace-id="<?= e((string) $currentWorkspaceId) ?>">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>

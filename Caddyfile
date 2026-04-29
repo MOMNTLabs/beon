@@ -12,6 +12,10 @@
     redir /home.php /home 308
     redir /account-settings.php /account-settings 308
     redir /workspace-settings.php /workspace-settings 308
+    redir /privacidade.php /privacidade 308
+    redir /termos.php /termos 308
+    redir /cookies.php /cookies 308
+    redir /dados.php /dados 308
 
     @hasPhpFile file {path}.php
     rewrite @hasPhpFile {path}.php

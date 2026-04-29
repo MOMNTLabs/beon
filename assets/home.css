@@ -1668,12 +1668,43 @@ body.is-sales-page {
     min-height: 62px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 16px;
 }
 
 .is-sales-page .sales-footer small {
     color: #647c98;
     font-size: 0.82rem;
+}
+
+.is-sales-page .sales-footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.is-sales-page .sales-footer-links a,
+.is-sales-page .sales-plan-legal-note a {
+    color: #496b8a;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.is-sales-page .sales-footer-links a:hover,
+.is-sales-page .sales-footer-links a:focus-visible,
+.is-sales-page .sales-plan-legal-note a:hover,
+.is-sales-page .sales-plan-legal-note a:focus-visible {
+    color: #203a55;
+    text-decoration: underline;
+    outline: none;
+}
+
+.is-sales-page .sales-plan-legal-note {
+    margin: 10px 0 0;
+    color: #6d7d8c;
+    font-size: 0.76rem;
+    line-height: 1.4;
 }
 
 @media (max-width: 1024px) {
@@ -1702,6 +1733,18 @@ body.is-sales-page {
 
     .is-sales-page .sales-pricing-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .is-sales-page .sales-footer .sales-container {
+        align-items: flex-start;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .is-sales-page .sales-footer-links {
+        justify-content: flex-start;
     }
 }
 

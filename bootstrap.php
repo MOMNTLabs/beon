@@ -11,6 +11,8 @@ const REMEMBER_COOKIE_NAME = 'wf_remember';
 const REMEMBER_TOKEN_DAYS = 30;
 const PASSWORD_RESET_TOKEN_HOURS = 1;
 const PASSWORD_RESET_LOG_PATH = __DIR__ . '/storage/password-reset-mails.log';
+const VAULT_ENCRYPTION_KEY_PATH = __DIR__ . '/storage/vault.key';
+const VAULT_SECRET_PREFIX = 'enc:v1:';
 const LAST_WORKSPACE_COOKIE_NAME = 'wf_last_workspace';
 const LAST_WORKSPACE_COOKIE_DAYS = 365;
 const PENDING_CHECKOUT_SESSION_TTL_SECONDS = 1800;
@@ -131,6 +133,198 @@ function envFlag(string $key, bool $default = false): bool
     }
 
     return $default;
+}
+
+function assetVersion(string $relativePath, string $fallback = '1'): string
+{
+    $path = __DIR__ . '/' . ltrim($relativePath, '/\\');
+    return is_file($path) ? (string) filemtime($path) : $fallback;
+}
+
+function legalConfig(): array
+{
+    $supportEmail = trim((string) (envValue('LEGAL_SUPPORT_EMAIL') ?? envValue('MAIL_REPLY_TO') ?? 'suporte@bexon.com.br'));
+    if ($supportEmail === '') {
+        $supportEmail = 'suporte@bexon.com.br';
+    }
+
+    $privacyEmail = trim((string) (envValue('LEGAL_PRIVACY_EMAIL') ?? envValue('LEGAL_DPO_EMAIL') ?? $supportEmail));
+    if ($privacyEmail === '') {
+        $privacyEmail = $supportEmail;
+    }
+
+    $companyName = trim((string) envValue('LEGAL_COMPANY_NAME', ''));
+    $tradeName = trim((string) envValue('LEGAL_TRADE_NAME', APP_NAME));
+
+    return [
+        'company_name' => $companyName,
+        'trade_name' => $tradeName !== '' ? $tradeName : APP_NAME,
+        'cnpj' => trim((string) envValue('LEGAL_CNPJ', '')),
+        'address' => trim((string) envValue('LEGAL_ADDRESS', '')),
+        'support_email' => $supportEmail,
+        'privacy_email' => $privacyEmail,
+        'dpo_name' => trim((string) envValue('LEGAL_DPO_NAME', '')),
+        'updated_at' => trim((string) envValue('LEGAL_UPDATED_AT', '29/04/2026')),
+    ];
+}
+
+function legalValue(string $key, string $fallback = 'A definir'): string
+{
+    $config = legalConfig();
+    $value = trim((string) ($config[$key] ?? ''));
+    return $value !== '' ? $value : $fallback;
+}
+
+function legalMailto(string $subject): string
+{
+    $email = legalValue('privacy_email', legalValue('support_email', 'suporte@bexon.com.br'));
+    return 'mailto:' . rawurlencode($email) . '?subject=' . rawurlencode($subject);
+}
+
+function vaultSecretIsEncrypted(string $value): bool
+{
+    return str_starts_with($value, VAULT_SECRET_PREFIX);
+}
+
+function vaultEncryptionKey(): string
+{
+    static $key = null;
+    if (is_string($key) && strlen($key) === 32) {
+        return $key;
+    }
+
+    $configured = trim((string) (envValue('APP_VAULT_ENCRYPTION_KEY') ?? envValue('VAULT_ENCRYPTION_KEY') ?? ''));
+    if ($configured !== '') {
+        $decoded = null;
+        if (preg_match('/^[a-f0-9]{64}$/i', $configured)) {
+            $decoded = hex2bin($configured);
+        } else {
+            $base64Candidate = preg_replace('/^base64:/i', '', $configured);
+            $decodedCandidate = base64_decode((string) $base64Candidate, true);
+            if (is_string($decodedCandidate) && strlen($decodedCandidate) >= 32) {
+                $decoded = substr($decodedCandidate, 0, 32);
+            }
+        }
+
+        $key = is_string($decoded) && strlen($decoded) === 32
+            ? $decoded
+            : hash('sha256', $configured, true);
+        return $key;
+    }
+
+    ensureStorage();
+    if (is_file(VAULT_ENCRYPTION_KEY_PATH)) {
+        $stored = trim((string) file_get_contents(VAULT_ENCRYPTION_KEY_PATH));
+        $decoded = base64_decode($stored, true);
+        if (is_string($decoded) && strlen($decoded) === 32) {
+            $key = $decoded;
+            return $key;
+        }
+    }
+
+    $key = random_bytes(32);
+    file_put_contents(VAULT_ENCRYPTION_KEY_PATH, base64_encode($key), LOCK_EX);
+    @chmod(VAULT_ENCRYPTION_KEY_PATH, 0600);
+    return $key;
+}
+
+function vaultEncryptSecret(string $plainValue): string
+{
+    $plainValue = (string) $plainValue;
+    if ($plainValue === '' || vaultSecretIsEncrypted($plainValue)) {
+        return $plainValue;
+    }
+
+    if (!function_exists('openssl_encrypt')) {
+        throw new RuntimeException('OpenSSL e obrigatorio para proteger senhas do cofre.');
+    }
+
+    $nonce = random_bytes(12);
+    $tag = '';
+    $ciphertext = openssl_encrypt(
+        $plainValue,
+        'aes-256-gcm',
+        vaultEncryptionKey(),
+        OPENSSL_RAW_DATA,
+        $nonce,
+        $tag,
+        '',
+        16
+    );
+
+    if (!is_string($ciphertext) || $ciphertext === '' || strlen($tag) !== 16) {
+        throw new RuntimeException('Nao foi possivel proteger a senha do cofre.');
+    }
+
+    return VAULT_SECRET_PREFIX . base64_encode($nonce . $tag . $ciphertext);
+}
+
+function vaultDecryptSecret(string $storedValue): string
+{
+    $storedValue = (string) $storedValue;
+    if ($storedValue === '' || !vaultSecretIsEncrypted($storedValue)) {
+        return $storedValue;
+    }
+
+    if (!function_exists('openssl_decrypt')) {
+        throw new RuntimeException('OpenSSL e obrigatorio para ler senhas do cofre.');
+    }
+
+    $payload = base64_decode(substr($storedValue, strlen(VAULT_SECRET_PREFIX)), true);
+    if (!is_string($payload) || strlen($payload) <= 28) {
+        throw new RuntimeException('Senha do cofre esta em formato invalido.');
+    }
+
+    $nonce = substr($payload, 0, 12);
+    $tag = substr($payload, 12, 16);
+    $ciphertext = substr($payload, 28);
+
+    $plainValue = openssl_decrypt(
+        $ciphertext,
+        'aes-256-gcm',
+        vaultEncryptionKey(),
+        OPENSSL_RAW_DATA,
+        $nonce,
+        $tag
+    );
+
+    if (!is_string($plainValue)) {
+        throw new RuntimeException('Nao foi possivel descriptografar uma senha do cofre.');
+    }
+
+    return $plainValue;
+}
+
+function migratePlainVaultSecretsToEncrypted(PDO $pdo): void
+{
+    $rows = $pdo->query(
+        'SELECT id, password_value
+         FROM workspace_vault_entries
+         WHERE password_value IS NOT NULL
+           AND password_value <> \'\''
+    )->fetchAll();
+
+    if (!$rows) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_vault_entries
+         SET password_value = :password_value
+         WHERE id = :id'
+    );
+
+    foreach ($rows as $row) {
+        $storedValue = (string) ($row['password_value'] ?? '');
+        if ($storedValue === '' || vaultSecretIsEncrypted($storedValue)) {
+            continue;
+        }
+
+        $stmt->execute([
+            ':password_value' => vaultEncryptSecret($storedValue),
+            ':id' => (int) ($row['id'] ?? 0),
+        ]);
+    }
 }
 
 function shouldAutoRunMigrations(): bool
@@ -1538,6 +1732,8 @@ function ensureWorkspaceVaultSchema(PDO $pdo): void
             $workspaceId
         );
     }
+
+    migratePlainVaultSecretsToEncrypted($pdo);
 }
 
 function ensureWorkspaceDueSchema(PDO $pdo): void
@@ -5107,7 +5303,10 @@ function workspaceVaultEntriesList(?int $workspaceId = null): array
         $row['created_by'] = isset($row['created_by']) ? (int) $row['created_by'] : null;
         $row['label'] = normalizeVaultEntryLabel((string) ($row['label'] ?? ''));
         $row['login_value'] = normalizeVaultFieldValue((string) ($row['login_value'] ?? ''), 220);
-        $row['password_value'] = normalizeVaultFieldValue((string) ($row['password_value'] ?? ''), 220);
+        $row['password_value'] = normalizeVaultFieldValue(
+            vaultDecryptSecret((string) ($row['password_value'] ?? '')),
+            220
+        );
         $row['group_name'] = normalizeVaultGroupName((string) ($row['group_name'] ?? 'Geral'));
         $row['notes'] = trim((string) ($row['notes'] ?? ''));
     }
@@ -5322,6 +5521,7 @@ function createWorkspaceVaultEntry(
 
     $loginValue = normalizeVaultFieldValue($loginValue, 220);
     $passwordValue = normalizeVaultFieldValue($passwordValue, 220);
+    $storedPasswordValue = vaultEncryptSecret($passwordValue);
     $groupName = normalizeVaultGroupName($groupName);
     upsertVaultGroup($pdo, $groupName, $createdBy, $workspaceId);
 
@@ -5340,7 +5540,7 @@ function createWorkspaceVaultEntry(
         $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
         $stmt->bindValue(':label', $label, PDO::PARAM_STR);
         $stmt->bindValue(':login_value', $loginValue, PDO::PARAM_STR);
-        $stmt->bindValue(':password_value', $passwordValue, PDO::PARAM_STR);
+        $stmt->bindValue(':password_value', $storedPasswordValue, PDO::PARAM_STR);
         $stmt->bindValue(':group_name', $groupName, PDO::PARAM_STR);
         $stmt->bindValue(':notes', '', PDO::PARAM_STR);
         if ($createdBy !== null && $createdBy > 0) {
@@ -5365,7 +5565,7 @@ function createWorkspaceVaultEntry(
     $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
     $stmt->bindValue(':label', $label, PDO::PARAM_STR);
     $stmt->bindValue(':login_value', $loginValue, PDO::PARAM_STR);
-    $stmt->bindValue(':password_value', $passwordValue, PDO::PARAM_STR);
+    $stmt->bindValue(':password_value', $storedPasswordValue, PDO::PARAM_STR);
     $stmt->bindValue(':group_name', $groupName, PDO::PARAM_STR);
     $stmt->bindValue(':notes', '', PDO::PARAM_STR);
     if ($createdBy !== null && $createdBy > 0) {
@@ -5400,6 +5600,7 @@ function updateWorkspaceVaultEntry(
 
     $loginValue = normalizeVaultFieldValue($loginValue, 220);
     $passwordValue = normalizeVaultFieldValue($passwordValue, 220);
+    $storedPasswordValue = vaultEncryptSecret($passwordValue);
     $groupName = normalizeVaultGroupName($groupName);
     upsertVaultGroup($pdo, $groupName, null, $workspaceId);
 
@@ -5417,7 +5618,7 @@ function updateWorkspaceVaultEntry(
     $stmt->execute([
         ':label' => $label,
         ':login_value' => $loginValue,
-        ':password_value' => $passwordValue,
+        ':password_value' => $storedPasswordValue,
         ':group_name' => $groupName,
         ':notes' => '',
         ':updated_at' => nowIso(),
