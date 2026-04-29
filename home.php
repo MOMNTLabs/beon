@@ -421,10 +421,6 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
 $salesAssetVersion = is_file(__DIR__ . '/assets/home.css')
     ? (string) filemtime(__DIR__ . '/assets/home.css')
     : '1';
-$salesIllustrationVersion = is_file(__DIR__ . '/assets/sales-hero-illustration.svg')
-    ? (string) filemtime(__DIR__ . '/assets/sales-hero-illustration.svg')
-    : '1';
-
 $pdo = db();
 $billingPlans = publicBillingPlanDefinitions();
 $checkoutBillingPlans = array_filter(
@@ -646,14 +642,19 @@ if ($checkoutNotice) {
             <section class="sales-hero">
                 <div class="sales-container sales-hero-grid">
                     <div class="sales-hero-copy">
-                        <h1>Tarefas pessoais, do neg&oacute;cio e da equipe em um fluxo <span class="sales-title-accent">simples.</span></h1>
+                        <h1>Organize sua rotina, seu neg&oacute;cio e sua equipe em um s&oacute; fluxo.</h1>
                         <p>
-                            O Bexon une o que voc&ecirc; precisa fazer sozinho e com o time no mesmo lugar.
-                            Menos troca de contexto, mais clareza para executar.
+                            O Bexon centraliza tarefas, clientes, entregas e prioridades para voc&ecirc; trabalhar
+                            sozinho ou com o time sem perder clareza.
                         </p>
                         <div class="sales-hero-actions">
                             <a href="<?= e($recommendedCheckoutPath) ?>" class="sales-btn sales-btn-primary">Testar 7 dias gr&aacute;tis</a>
-                            <a href="<?= e($appEntryPath) ?>" class="sales-btn sales-btn-secondary">Ver demo no app</a>
+                        </div>
+                        <div class="sales-explore-pills" aria-label="Explorar formas de uso do Bexon">
+                            <a href="#uso" data-sales-jump-scenario="pessoal">Pessoal</a>
+                            <a href="#uso" data-sales-jump-scenario="negocio">Neg&oacute;cio</a>
+                            <a href="#uso" data-sales-jump-scenario="equipe">Equipe</a>
+                            <a href="#uso" data-sales-jump-scenario="clientes">Clientes</a>
                         </div>
                         <ul class="sales-trust-list">
                             <li>7 dias gr&aacute;tis em Solo, Team e Business</li>
@@ -662,57 +663,151 @@ if ($checkoutNotice) {
                         </ul>
                     </div>
 
-                    <div class="sales-hero-preview" aria-hidden="true">
-                        <img
-                            src="<?= e(appPath('assets/sales-hero-illustration.svg?v=' . $salesIllustrationVersion)) ?>"
-                            alt=""
-                            class="sales-preview-illustration"
-                            decoding="async"
-                        >
+                    <div class="sales-product-showcase" aria-hidden="true">
+                        <div class="sales-product-shell">
+                            <aside class="sales-product-sidebar">
+                                <div class="sales-product-sidebar-brand">
+                                    <img src="<?= e(appPath('assets/Bexon - Logo Horizontal Negativa.png?v=1')) ?>" alt="" decoding="async">
+                                </div>
+                                <span class="sales-product-sidebar-line"></span>
+                                <span class="sales-product-home-dot"></span>
+                                <div class="sales-product-workspace">
+                                    <span>T</span>
+                                    <strong>Teste MCP Works...</strong>
+                                    <i></i>
+                                </div>
+                                <div class="sales-product-menu-item is-active">
+                                    <i></i>
+                                    <span>Lista de tarefas</span>
+                                </div>
+                                <span class="sales-product-add">+</span>
+                            </aside>
+                            <div class="sales-product-app">
+                                <div class="sales-product-topbar">
+                                    <div class="sales-product-stats">
+                                        <span><small>Tarefas</small><strong>8</strong></span>
+                                        <span><small>Conclu&iacute;das</small><strong>3 (38%)</strong></span>
+                                        <span><small>Para hoje</small><strong>4</strong></span>
+                                        <span><small>Urgentes</small><strong>1</strong></span>
+                                        <span><small>Minhas abertas</small><strong>5</strong></span>
+                                    </div>
+                                    <div class="sales-product-user">
+                                        <span>T</span>
+                                        <div>
+                                            <strong>Teste MCP</strong>
+                                            <small>teste@bexon.com.br</small>
+                                        </div>
+                                    </div>
+                                    <div class="sales-product-actions">
+                                        <span class="sales-product-icon-bubble sales-product-icon-bell"></span>
+                                        <span class="sales-product-icon-bubble sales-product-icon-gear"></span>
+                                        <span class="sales-product-exit">Sair</span>
+                                    </div>
+                                </div>
+                                <div class="sales-product-body">
+                                    <header class="sales-product-heading">
+                                        <div>
+                                            <h3>Lista de tarefas</h3>
+                                            <p>Organize prioridades, respons&aacute;veis e prazos em um fluxo claro.</p>
+                                        </div>
+                                        <div class="sales-product-summary">
+                                            <span>4 vis&iacute;veis</span>
+                                            <span>8 total</span>
+                                        </div>
+                                    </header>
+                                    <section class="sales-product-panel">
+                                        <div class="sales-product-panel-head">
+                                            <strong>Operacional</strong>
+                                            <span>4</span>
+                                        </div>
+                                        <div class="sales-task-row status-todo">
+                                            <span class="sales-task-status-dot"></span>
+                                            <strong>Revisar propostas</strong>
+                                            <span class="sales-task-stepper">
+                                                <i></i>
+                                                <span class="sales-task-status-pill"><b></b>A fazer</span>
+                                                <i></i>
+                                            </span>
+                                            <span class="sales-task-avatar">T</span>
+                                            <span class="sales-task-actions"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                                        </div>
+                                        <div class="sales-task-row status-progress">
+                                            <span class="sales-task-status-dot"></span>
+                                            <strong>Entrega do projeto</strong>
+                                            <span class="sales-task-stepper">
+                                                <i></i>
+                                                <span class="sales-task-status-pill"><b></b>Em andamento</span>
+                                                <i></i>
+                                            </span>
+                                            <span class="sales-task-avatar">M</span>
+                                            <span class="sales-task-actions"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                                        </div>
+                                        <div class="sales-task-row status-review">
+                                            <span class="sales-task-status-dot"></span>
+                                            <strong>Validar financeiro</strong>
+                                            <span class="sales-task-stepper">
+                                                <i></i>
+                                                <span class="sales-task-status-pill"><b></b>Revis&atilde;o</span>
+                                                <i></i>
+                                            </span>
+                                            <span class="sales-task-avatar">V</span>
+                                            <span class="sales-task-actions"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                                        </div>
+                                        <div class="sales-task-row status-done">
+                                            <span class="sales-task-status-dot"></span>
+                                            <strong>Atualizar clientes</strong>
+                                            <span class="sales-task-stepper">
+                                                <i></i>
+                                                <span class="sales-task-status-pill"><b></b>Conclu&iacute;do</span>
+                                                <i></i>
+                                            </span>
+                                            <span class="sales-task-avatar">C</span>
+                                            <span class="sales-task-actions"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <section id="uso" class="sales-section sales-topic sales-topic-soft">
                 <div class="sales-container">
-                    <div class="sales-section-head sales-section-head-alt">
-                        <span class="sales-eyebrow">Feito para a rotina real</span>
-                        <h2>Do pessoal ao time, tudo organizado sem complicar.</h2>
+                    <div class="sales-section-head sales-section-head-center">
+                        <span class="sales-eyebrow">O que voc&ecirc; quer organizar?</span>
+                        <h2>Escolha o contexto e veja como o Bexon se adapta &agrave; sua rotina.</h2>
                     </div>
-                    <div class="sales-usecases-grid">
-                        <article class="sales-usecase-card">
-                            <span class="sales-usecase-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <path d="M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path>
-                                    <path d="M5 20a7 7 0 0 1 14 0"></path>
-                                </svg>
-                            </span>
-                            <h3>Pessoal</h3>
-                            <p>Organize tarefas do dia a dia, pend&ecirc;ncias e prioridades pessoais em minutos.</p>
-                        </article>
-                        <article class="sales-usecase-card">
-                            <span class="sales-usecase-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <rect x="3" y="6" width="18" height="13" rx="2"></rect>
-                                    <path d="M8 6V4h8v2"></path>
-                                    <path d="M3 11h18"></path>
-                                </svg>
-                            </span>
-                            <h3>Neg&oacute;cio</h3>
-                            <p>Centralize opera&ccedil;&otilde;es, clientes e demandas do neg&oacute;cio em um quadro claro.</p>
-                        </article>
-                        <article class="sales-usecase-card">
-                            <span class="sales-usecase-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <path d="M16 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
-                                    <path d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path>
-                                    <path d="M2 20a6 6 0 0 1 12 0"></path>
-                                    <path d="M13 20a5 5 0 0 1 9 0"></path>
-                                </svg>
-                            </span>
-                            <h3>Equipe</h3>
-                            <p>Delegue, acompanhe e revise tarefas da equipe sem perder a simplicidade.</p>
-                        </article>
+                    <div class="sales-workflow-explorer" data-sales-explorer>
+                        <div class="sales-explorer-tabs" role="tablist" aria-label="Contextos de uso do Bexon">
+                            <button type="button" class="is-active" role="tab" aria-selected="true" data-sales-scenario="pessoal" data-explorer-title="Priorize sua semana sem misturar tudo." data-explorer-text="Separe compromissos, pend&ecirc;ncias e tarefas pessoais sem perder o que tamb&eacute;m pertence ao trabalho." data-explorer-tasks="Revisar agenda da semana|Resolver pend&ecirc;ncias pessoais|Planejar foco de amanh&atilde;">Pessoal</button>
+                            <button type="button" role="tab" aria-selected="false" data-sales-scenario="negocio" data-explorer-title="Acompanhe a opera&ccedil;&atilde;o com uma vis&atilde;o clara." data-explorer-text="Centralize demandas do neg&oacute;cio, clientes e entregas para saber o que precisa sair hoje." data-explorer-tasks="Atualizar pipeline de clientes|Conferir entrega em andamento|Organizar fluxo financeiro">Neg&oacute;cio</button>
+                            <button type="button" role="tab" aria-selected="false" data-sales-scenario="equipe" data-explorer-title="Delegue sem perder o contexto." data-explorer-text="Distribua responsabilidades, acompanhe status e revise o trabalho do time sem excesso de reuni&otilde;es." data-explorer-tasks="Atribuir respons&aacute;veis|Revisar bloqueios do time|Acompanhar prazos da semana">Equipe</button>
+                            <button type="button" role="tab" aria-selected="false" data-sales-scenario="clientes" data-explorer-title="Mantenha clientes e pr&oacute;ximas a&ccedil;&otilde;es vis&iacute;veis." data-explorer-text="Transforme contatos, propostas e acompanhamentos em tarefas claras dentro da mesma rotina." data-explorer-tasks="Responder novo contato|Enviar proposta comercial|Agendar retorno com cliente">Clientes</button>
+                        </div>
+                        <div class="sales-explorer-panel">
+                            <div class="sales-explorer-copy">
+                                <span data-sales-scenario-label>Pessoal</span>
+                                <h3 data-sales-scenario-title>Priorize sua semana sem misturar tudo.</h3>
+                                <p data-sales-scenario-text>Separe compromissos, pend&ecirc;ncias e tarefas pessoais sem perder o que tamb&eacute;m pertence ao trabalho.</p>
+                                <ul data-sales-scenario-list>
+                                    <li>Revisar agenda da semana</li>
+                                    <li>Resolver pend&ecirc;ncias pessoais</li>
+                                    <li>Planejar foco de amanh&atilde;</li>
+                                </ul>
+                            </div>
+                            <div class="sales-scenario-preview" aria-hidden="true">
+                                <div class="sales-scenario-window">
+                                    <div class="sales-scenario-header">
+                                        <span>Quadro Bexon</span>
+                                        <strong>Em foco</strong>
+                                    </div>
+                                    <div class="sales-scenario-card is-active" data-sales-preview-card>Revisar agenda da semana</div>
+                                    <div class="sales-scenario-card" data-sales-preview-card>Resolver pend&ecirc;ncias pessoais</div>
+                                    <div class="sales-scenario-card" data-sales-preview-card>Planejar foco de amanh&atilde;</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -927,6 +1022,71 @@ if ($checkoutNotice) {
             var billingToggle = document.querySelector('[data-billing-toggle]');
             var billingButtons = billingToggle ? Array.from(billingToggle.querySelectorAll('[data-billing-interval]')) : [];
             var planCards = Array.from(document.querySelectorAll('[data-plan-card]'));
+            var explorer = document.querySelector('[data-sales-explorer]');
+
+            if (explorer) {
+                var explorerTabs = Array.from(explorer.querySelectorAll('[data-sales-scenario]'));
+                var scenarioJumps = Array.from(document.querySelectorAll('[data-sales-jump-scenario]'));
+                var scenarioLabel = explorer.querySelector('[data-sales-scenario-label]');
+                var scenarioTitle = explorer.querySelector('[data-sales-scenario-title]');
+                var scenarioText = explorer.querySelector('[data-sales-scenario-text]');
+                var scenarioList = explorer.querySelector('[data-sales-scenario-list]');
+                var previewCards = Array.from(explorer.querySelectorAll('[data-sales-preview-card]'));
+
+                function applyScenario(tab) {
+                    var tasks = (tab.getAttribute('data-explorer-tasks') || '').split('|').filter(Boolean);
+
+                    explorerTabs.forEach(function (button) {
+                        var isActive = button === tab;
+                        button.classList.toggle('is-active', isActive);
+                        button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                    });
+
+                    if (scenarioLabel) {
+                        scenarioLabel.textContent = tab.textContent.trim();
+                    }
+
+                    if (scenarioTitle) {
+                        scenarioTitle.textContent = tab.getAttribute('data-explorer-title') || '';
+                    }
+
+                    if (scenarioText) {
+                        scenarioText.textContent = tab.getAttribute('data-explorer-text') || '';
+                    }
+
+                    if (scenarioList) {
+                        scenarioList.replaceChildren();
+                        tasks.forEach(function (task) {
+                            var item = document.createElement('li');
+                            item.textContent = task;
+                            scenarioList.appendChild(item);
+                        });
+                    }
+
+                    previewCards.forEach(function (card, index) {
+                        card.textContent = tasks[index] || '';
+                        card.hidden = !tasks[index];
+                    });
+                }
+
+                explorerTabs.forEach(function (tab) {
+                    tab.addEventListener('click', function () {
+                        applyScenario(tab);
+                    });
+                });
+
+                scenarioJumps.forEach(function (link) {
+                    link.addEventListener('click', function () {
+                        var scenario = link.getAttribute('data-sales-jump-scenario') || '';
+                        var tab = explorerTabs.find(function (button) {
+                            return button.getAttribute('data-sales-scenario') === scenario;
+                        });
+                        if (tab) {
+                            applyScenario(tab);
+                        }
+                    });
+                });
+            }
 
             function applyBillingInterval(interval) {
                 billingButtons.forEach(function (button) {
