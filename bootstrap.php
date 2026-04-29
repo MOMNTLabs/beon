@@ -143,15 +143,9 @@ function assetVersion(string $relativePath, string $fallback = '1'): string
 
 function legalConfig(): array
 {
-    $supportEmail = trim((string) (envValue('LEGAL_SUPPORT_EMAIL') ?? envValue('MAIL_REPLY_TO') ?? 'suporte@bexon.com.br'));
-    if ($supportEmail === '') {
-        $supportEmail = 'suporte@bexon.com.br';
-    }
+    $supportEmail = legalContactEmail(envValue('LEGAL_SUPPORT_EMAIL') ?? envValue('MAIL_REPLY_TO'), 'suporte@bexon.com.br');
 
-    $privacyEmail = trim((string) (envValue('LEGAL_PRIVACY_EMAIL') ?? envValue('LEGAL_DPO_EMAIL') ?? $supportEmail));
-    if ($privacyEmail === '') {
-        $privacyEmail = $supportEmail;
-    }
+    $privacyEmail = legalContactEmail(envValue('LEGAL_PRIVACY_EMAIL') ?? envValue('LEGAL_DPO_EMAIL'), 'privacidade@bexon.com.br');
 
     $companyName = trim((string) envValue('LEGAL_COMPANY_NAME', ''));
     $tradeName = trim((string) envValue('LEGAL_TRADE_NAME', APP_NAME));
@@ -166,6 +160,16 @@ function legalConfig(): array
         'dpo_name' => trim((string) envValue('LEGAL_DPO_NAME', '')),
         'updated_at' => trim((string) envValue('LEGAL_UPDATED_AT', '29/04/2026')),
     ];
+}
+
+function legalContactEmail(?string $value, string $fallback = 'suporte@bexon.com.br'): string
+{
+    $email = trim((string) $value);
+    if ($email === '' || stripos($email, 'workform') !== false) {
+        return $fallback;
+    }
+
+    return $email;
 }
 
 function legalValue(string $key, string $fallback = 'A definir'): string
