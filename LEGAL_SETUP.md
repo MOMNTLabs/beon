@@ -11,10 +11,11 @@ LEGAL_TRADE_NAME="Bexon"
 LEGAL_CNPJ="00.000.000/0000-00"
 LEGAL_ADDRESS="Endereco completo da empresa"
 LEGAL_SUPPORT_EMAIL="suporte@bexon.com.br"
-LEGAL_PRIVACY_EMAIL="privacidade@bexon.com.br"
 LEGAL_DPO_NAME="Nome do encarregado ou area responsavel"
 LEGAL_UPDATED_AT="29/04/2026"
 ```
+
+O canal unico de contato exibido nas paginas publicas e `suporte@bexon.com.br`, inclusive para privacidade, LGPD e solicitacoes de dados.
 
 ## Chave do cofre de acessos
 

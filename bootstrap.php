@@ -143,9 +143,7 @@ function assetVersion(string $relativePath, string $fallback = '1'): string
 
 function legalConfig(): array
 {
-    $supportEmail = legalContactEmail(envValue('LEGAL_SUPPORT_EMAIL') ?? envValue('MAIL_REPLY_TO'), 'suporte@bexon.com.br');
-
-    $privacyEmail = legalContactEmail(envValue('LEGAL_PRIVACY_EMAIL') ?? envValue('LEGAL_DPO_EMAIL'), 'privacidade@bexon.com.br');
+    $supportEmail = legalContactEmail(envValue('LEGAL_SUPPORT_EMAIL') ?? envValue('MAIL_REPLY_TO'));
 
     $companyName = trim((string) envValue('LEGAL_COMPANY_NAME', ''));
     $tradeName = trim((string) envValue('LEGAL_TRADE_NAME', APP_NAME));
@@ -156,7 +154,7 @@ function legalConfig(): array
         'cnpj' => trim((string) envValue('LEGAL_CNPJ', '')),
         'address' => trim((string) envValue('LEGAL_ADDRESS', '')),
         'support_email' => $supportEmail,
-        'privacy_email' => $privacyEmail,
+        'privacy_email' => $supportEmail,
         'dpo_name' => trim((string) envValue('LEGAL_DPO_NAME', '')),
         'updated_at' => trim((string) envValue('LEGAL_UPDATED_AT', '29/04/2026')),
     ];
