@@ -1634,7 +1634,11 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                     data-password-value="<?= e($vaultPassword) ?>"
                                                     data-visible="false"
                                                 >
+                                                    <?php if ($vaultPasswordUnavailable): ?>
+                                                        <span class="vault-entry-value-text" data-vault-password-text>Indisponivel</span>
+                                                    <?php else: ?>
                                                     <span class="vault-entry-value-text" data-vault-password-text><?= $vaultPassword !== '' ? '••••••••' : '-' ?></span>
+                                                    <?php endif; ?>
                                                     <button
                                                         type="button"
                                                         class="vault-icon-button"
