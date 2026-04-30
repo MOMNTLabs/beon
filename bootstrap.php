@@ -48,10 +48,12 @@ function db(): PDO
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    if (dbDriverName($pdo) === 'sqlite') {
+    $driver = dbDriverName($pdo);
+    if ($driver === 'sqlite') {
         $pdo->exec('PRAGMA foreign_keys = ON;');
     }
-    if (shouldAutoRunMigrations()) {
+    // Local SQLite instances should self-heal schema drift during web requests.
+    if ($driver === 'sqlite' || shouldAutoRunMigrations()) {
         migrate($pdo);
     }
 
