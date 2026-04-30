@@ -2750,7 +2750,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const initializeDatePickerInput = (
     input,
-    { onValueChange = null, clickOpens = true } = {}
+    { onValueChange = null, clickOpens = true, useBrazilianDisplay = true } = {}
   ) => {
     if (!(input instanceof HTMLInputElement)) return;
     if (input.dataset.flatpickrBound === "1") return;
@@ -2761,6 +2761,9 @@ window.addEventListener("DOMContentLoaded", () => {
     const localePt = window.flatpickr?.l10ns?.pt;
     window.flatpickr(input, {
       dateFormat: "Y-m-d",
+      altInput: useBrazilianDisplay,
+      altFormat: "d/m/Y",
+      ariaDateFormat: "d/m/Y",
       allowInput: true,
       disableMobile: true,
       monthSelectorType: "static",
@@ -2794,6 +2797,7 @@ window.addEventListener("DOMContentLoaded", () => {
       initializeDatePickerInput(input, {
         onValueChange: isTaskRowDueDateInput ? syncDueDateDisplay : null,
         clickOpens: !isTaskRowDueDateInput,
+        useBrazilianDisplay: !isTaskRowDueDateInput,
       });
       if (isTaskRowDueDateInput) {
         syncDueDateDisplay(input);
