@@ -33,6 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirectTo('workspace-settings');
 
             case 'create_workspace':
+                if (!userCanCreateOwnedWorkspace((int) ($currentUser['id'] ?? 0))) {
+                    throw new RuntimeException('Sua conta precisa de um plano proprio para criar novos workspaces.');
+                }
+
                 $workspaceName = normalizeWorkspaceName((string) ($_POST['workspace_name'] ?? ''));
                 if ($workspaceName === '') {
                     throw new RuntimeException('Informe um nome para o workspace.');

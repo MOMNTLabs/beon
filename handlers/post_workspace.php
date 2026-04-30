@@ -38,6 +38,10 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
 
             case 'create_workspace':
                 $authUser = requireAuth();
+                if (!userCanCreateOwnedWorkspace((int) ($authUser['id'] ?? 0))) {
+                    throw new RuntimeException('Sua conta precisa de um plano proprio para criar novos workspaces.');
+                }
+
                 $workspaceName = normalizeWorkspaceName((string) ($_POST['workspace_name'] ?? ''));
                 if ($workspaceName === '') {
                     throw new RuntimeException('Informe um nome para o workspace.');
