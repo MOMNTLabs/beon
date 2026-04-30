@@ -958,6 +958,46 @@ function billingSubscriptionMaxUsers(array $subscription): int
     return max(0, (int) ($plan['max_users'] ?? 0));
 }
 
+function billingSubscriptionHasAccess(array $subscription, ?string $referenceTime = null): bool
+{
+    $status = strtolower(trim((string) ($subscription['subscription_status'] ?? '')));
+    if (in_array($status, ['active', 'trialing'], true)) {
+        return true;
+    }
+
+    $referenceTime = $referenceTime ?: nowIso();
+    $trialEnd = trim((string) ($subscription['trial_end'] ?? ''));
+    if ($trialEnd !== '' && $trialEnd >= $referenceTime) {
+        return true;
+    }
+
+    return false;
+}
+
+function billingSubscriptionSupportsWorkspaceSeats(array $subscription): bool
+{
+    $planKey = billingSubscriptionPlanKey($subscription);
+    if ($planKey === 'enterprise') {
+        return true;
+    }
+
+    return billingSubscriptionMaxUsers($subscription) > 1;
+}
+
+function userCanSponsorWorkspaceMembers(int $userId, ?string $referenceTime = null): bool
+{
+    if ($userId <= 0) {
+        return false;
+    }
+
+    $subscription = userSubscriptionByUserId($userId);
+    if (!$subscription || !billingSubscriptionHasAccess($subscription, $referenceTime)) {
+        return false;
+    }
+
+    return billingSubscriptionSupportsWorkspaceSeats($subscription);
+}
+
 function workspaceBillingLimit(int $workspaceId): array
 {
     $workspace = workspaceById($workspaceId);
@@ -969,6 +1009,7 @@ function workspaceBillingLimit(int $workspaceId): array
             'plan_name' => '',
             'max_users' => 0,
             'member_count' => workspaceMembershipCount($workspaceId),
+            'can_invite_members' => false,
             'limited' => false,
         ];
     }
@@ -977,6 +1018,7 @@ function workspaceBillingLimit(int $workspaceId): array
     $planKey = $subscription ? billingSubscriptionPlanKey($subscription) : '';
     $maxUsers = $subscription ? billingSubscriptionMaxUsers($subscription) : 0;
     $plan = $planKey !== '' ? billingPlan($planKey) : null;
+    $canInviteMembers = userCanSponsorWorkspaceMembers($ownerUserId);
 
     return [
         'owner_user_id' => $ownerUserId,
@@ -984,8 +1026,23 @@ function workspaceBillingLimit(int $workspaceId): array
         'plan_name' => (string) ($plan['name'] ?? ''),
         'max_users' => $maxUsers,
         'member_count' => workspaceMembershipCount($workspaceId),
-        'limited' => $maxUsers > 0 && userHasBillingAccess($ownerUserId),
+        'can_invite_members' => $canInviteMembers,
+        'limited' => $maxUsers > 0 && $canInviteMembers,
     ];
+}
+
+function ensureWorkspaceCanInviteMembers(int $workspaceId): void
+{
+    if ($workspaceId <= 0) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $limit = workspaceBillingLimit($workspaceId);
+    if (!empty($limit['can_invite_members'])) {
+        return;
+    }
+
+    throw new RuntimeException('Este workspace precisa de plano Team ou superior para convidar usuarios.');
 }
 
 function enforceWorkspaceMemberLimit(int $workspaceId, int $memberUserId): void
@@ -4031,6 +4088,7 @@ function createWorkspaceInvitation(PDO $pdo, int $workspaceId, int $invitedUserI
         throw new RuntimeException('Usuário já pertence a este workspace.');
     }
 
+    ensureWorkspaceCanInviteMembers($workspaceId);
     ensureWorkspaceInvitationSchema($pdo);
 
     $existingStmt = $pdo->prepare(
@@ -4130,6 +4188,7 @@ function acceptWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): in
         throw new RuntimeException('Workspace inválido.');
     }
 
+    ensureWorkspaceCanInviteMembers($workspaceId);
     enforceWorkspaceMemberLimit($workspaceId, $userId);
 
     $now = nowIso();
@@ -5581,18 +5640,66 @@ function userHasBillingAccess(int $userId, ?string $referenceTime = null): bool
         return false;
     }
 
-    $status = strtolower(trim((string) ($subscription['subscription_status'] ?? '')));
-    if (in_array($status, ['active', 'trialing'], true)) {
-        return true;
+    return billingSubscriptionHasAccess($subscription, $referenceTime);
+}
+
+function userHasSponsoredWorkspaceAccess(int $userId, ?string $referenceTime = null): bool
+{
+    if ($userId <= 0) {
+        return false;
     }
 
-    $referenceTime = $referenceTime ?: nowIso();
-    $trialEnd = trim((string) ($subscription['trial_end'] ?? ''));
-    if ($trialEnd !== '' && $trialEnd >= $referenceTime) {
-        return true;
+    $checkedOwnerIds = [];
+    foreach (workspacesForUser($userId) as $workspace) {
+        if (!empty($workspace['is_personal'])) {
+            continue;
+        }
+
+        $ownerUserId = (int) ($workspace['created_by'] ?? 0);
+        if ($ownerUserId <= 0 || $ownerUserId === $userId || isset($checkedOwnerIds[$ownerUserId])) {
+            continue;
+        }
+
+        $checkedOwnerIds[$ownerUserId] = true;
+        if (userCanSponsorWorkspaceMembers($ownerUserId, $referenceTime)) {
+            return true;
+        }
+    }
+
+    foreach (workspacePendingInvitationsForUser($userId) as $invitation) {
+        $workspaceId = (int) ($invitation['workspace_id'] ?? 0);
+        if ($workspaceId <= 0) {
+            continue;
+        }
+
+        $workspace = workspaceById($workspaceId);
+        if (!$workspace || !empty($workspace['is_personal'])) {
+            continue;
+        }
+
+        $ownerUserId = (int) ($workspace['created_by'] ?? 0);
+        if ($ownerUserId <= 0 || $ownerUserId === $userId || isset($checkedOwnerIds[$ownerUserId])) {
+            continue;
+        }
+
+        $checkedOwnerIds[$ownerUserId] = true;
+        if (userCanSponsorWorkspaceMembers($ownerUserId, $referenceTime)) {
+            return true;
+        }
     }
 
     return false;
+}
+
+function userHasAppAccess(int $userId, ?string $referenceTime = null): bool
+{
+    return userHasBillingAccess($userId, $referenceTime)
+        || userHasSponsoredWorkspaceAccess($userId, $referenceTime);
+}
+
+function userCanCreateOwnedWorkspace(int $userId, ?string $referenceTime = null): bool
+{
+    return userHasBillingAccess($userId, $referenceTime);
 }
 
 function billingGuestEmails(): array

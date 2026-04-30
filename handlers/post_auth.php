@@ -86,7 +86,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             }
 
             $userId = (int) $userRow['id'];
-            if (envFlag('APP_ENFORCE_BILLING', false) && !userHasBillingAccess($userId)) {
+            if (envFlag('APP_ENFORCE_BILLING', false) && !userHasAppAccess($userId)) {
                 logoutUser();
                 setPendingCheckoutUserId($userId);
                 if ($isCheckoutRedirect) {

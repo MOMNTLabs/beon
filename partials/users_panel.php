@@ -107,6 +107,7 @@
                     $workspaceBillingLimit = (!empty($currentWorkspaceId) && empty($isPersonalWorkspace))
                         ? workspaceBillingLimit((int) $currentWorkspaceId)
                         : [];
+                    $workspaceCanInviteMembers = !empty($workspaceBillingLimit['can_invite_members']);
                     $workspaceMemberLimitReached = !empty($workspaceBillingLimit['limited'])
                         && (int) ($workspaceBillingLimit['max_users'] ?? 0) > 0
                         && (int) ($workspaceBillingLimit['member_count'] ?? 0) >= (int) ($workspaceBillingLimit['max_users'] ?? 0);
@@ -117,7 +118,7 @@
                             <?= e((string) ($workspaceBillingLimit['member_count'] ?? 0)) ?>/<?= e((string) ($workspaceBillingLimit['max_users'] ?? 0)) ?> usuários.
                         </p>
                     <?php endif; ?>
-                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace) && empty($workspaceMemberLimitReached)): ?>
+                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace) && !empty($workspaceCanInviteMembers) && empty($workspaceMemberLimitReached)): ?>
                         <form method="post" class="workspace-settings-form workspace-settings-member-form">
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                             <input type="hidden" name="action" value="workspace_add_member">
@@ -127,6 +128,8 @@
                             </label>
                             <button type="submit" class="btn btn-mini">Enviar convite</button>
                         </form>
+                    <?php elseif (!empty($canManageWorkspace) && empty($isPersonalWorkspace) && empty($workspaceCanInviteMembers)): ?>
+                        <p class="workspace-settings-member-empty">Faca upgrade para Team ou superior para convidar usuarios.</p>
                     <?php elseif (!empty($canManageWorkspace) && !empty($workspaceMemberLimitReached)): ?>
                         <p class="workspace-settings-member-empty">Limite do plano atingido. Faça upgrade para convidar mais usuários.</p>
                     <?php elseif (!empty($isPersonalWorkspace)): ?>

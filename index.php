@@ -56,7 +56,7 @@ if (
     $entryUser
     && !$shouldBypassBillingGate
     && envFlag('APP_ENFORCE_BILLING', false)
-    && !userHasBillingAccess((int) ($entryUser['id'] ?? 0))
+    && !userHasAppAccess((int) ($entryUser['id'] ?? 0))
 ) {
     $pendingCheckoutUserId = (int) ($entryUser['id'] ?? 0);
     logoutUser();

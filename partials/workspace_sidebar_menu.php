@@ -13,6 +13,53 @@ $sidebarOptionalToolLabels = is_array($workspaceSidebarConfig['optional_labels']
     : workspaceSidebarOptionalToolLabels();
 $currentSidebarView = normalizeDashboardViewKey((string) ($_GET['view'] ?? ''));
 $sidebarToolAddRedirectPath = dashboardPath($currentSidebarView !== '' ? $currentSidebarView : 'overview');
+$sidebarPlanDefinitions = billingPlanDefinitions();
+$sidebarWorkspaceBillingLimit = !empty($currentWorkspaceId)
+    ? workspaceBillingLimit((int) $currentWorkspaceId)
+    : [];
+$sidebarWorkspacePlanKey = normalizeBillingPlanKey((string) ($sidebarWorkspaceBillingLimit['plan_key'] ?? ''), null);
+$currentSidebarUserId = (int) ($currentUser['id'] ?? 0);
+$sidebarUserSubscription = $currentSidebarUserId > 0 ? userSubscriptionByUserId($currentSidebarUserId) : null;
+$sidebarUserPlanKey = is_array($sidebarUserSubscription) ? billingSubscriptionPlanKey($sidebarUserSubscription) : '';
+$sidebarCurrentPlanKey = $sidebarWorkspacePlanKey !== ''
+    ? $sidebarWorkspacePlanKey
+    : ($sidebarUserPlanKey !== '' ? $sidebarUserPlanKey : 'free');
+$sidebarCurrentPlan = is_array($sidebarPlanDefinitions[$sidebarCurrentPlanKey] ?? null)
+    ? $sidebarPlanDefinitions[$sidebarCurrentPlanKey]
+    : (is_array($sidebarPlanDefinitions['free'] ?? null) ? $sidebarPlanDefinitions['free'] : ['key' => 'free', 'name' => 'Free']);
+$sidebarPlanName = trim((string) ($sidebarCurrentPlan['name'] ?? 'Plano'));
+$sidebarPlanBadge = trim((string) ($sidebarCurrentPlan['badge'] ?? ''));
+$sidebarPlanSummary = trim((string) ($sidebarCurrentPlan['summary'] ?? ''));
+$sidebarPlanMemberLimit = max(0, (int) ($sidebarWorkspaceBillingLimit['max_users'] ?? ($sidebarCurrentPlan['max_users'] ?? 0)));
+$sidebarPlanMemberCount = max(0, (int) ($sidebarWorkspaceBillingLimit['member_count'] ?? 0));
+$sidebarPlanCapacityLabel = '';
+if ($sidebarPlanMemberLimit > 0) {
+    $sidebarPlanCapacityLabel = $sidebarPlanMemberLimit === 1
+        ? '1 usuario'
+        : sprintf('Ate %d usuarios', $sidebarPlanMemberLimit);
+} else {
+    $sidebarPlanCapacityLabel = trim((string) ($sidebarCurrentPlan['users_label'] ?? ''));
+}
+$sidebarPlanUsageLabel = '';
+if ($sidebarPlanMemberLimit > 0 && $sidebarWorkspacePlanKey !== '' && empty($isPersonalWorkspace)) {
+    $sidebarPlanUsageLabel = sprintf(
+        '%d/%d em uso',
+        min($sidebarPlanMemberCount, $sidebarPlanMemberLimit),
+        $sidebarPlanMemberLimit
+    );
+}
+$sidebarUpgradeMap = [
+    'free' => 'solo',
+    'solo' => 'team',
+    'team' => 'business',
+];
+$sidebarUpgradePlanKey = $sidebarUpgradeMap[$sidebarCurrentPlanKey] ?? '';
+$sidebarUpgradePlan = $sidebarUpgradePlanKey !== '' && is_array($sidebarPlanDefinitions[$sidebarUpgradePlanKey] ?? null)
+    ? $sidebarPlanDefinitions[$sidebarUpgradePlanKey]
+    : null;
+$sidebarUpgradeName = trim((string) ($sidebarUpgradePlan['name'] ?? ''));
+$sidebarPlanContextLabel = 'Plano atual';
+$sidebarPlanToneClass = preg_replace('/[^a-z0-9_-]+/i', '', $sidebarCurrentPlanKey) ?: 'free';
 ?>
 
 <nav class="sidebar-view-menu" id="workspace-sidebar-menu" aria-label="Menu do workspace">
@@ -139,3 +186,38 @@ $sidebarToolAddRedirectPath = dashboardPath($currentSidebarView !== '' ? $curren
         </div>
     </details>
 <?php endif; ?>
+
+<section class="workspace-sidebar-plan-card workspace-sidebar-plan-card--<?= e($sidebarPlanToneClass) ?>" aria-label="Plano ativo">
+    <div class="workspace-sidebar-plan-top">
+        <div class="workspace-sidebar-plan-copy">
+            <span class="workspace-sidebar-plan-eyebrow"><?= e($sidebarPlanContextLabel) ?></span>
+            <strong class="workspace-sidebar-plan-name"><?= e($sidebarPlanName) ?></strong>
+        </div>
+        <?php if ($sidebarPlanBadge !== ''): ?>
+            <span class="workspace-sidebar-plan-badge"><?= e($sidebarPlanBadge) ?></span>
+        <?php endif; ?>
+    </div>
+
+    <?php if ($sidebarPlanSummary !== ''): ?>
+        <p class="workspace-sidebar-plan-summary"><?= e($sidebarPlanSummary) ?></p>
+    <?php endif; ?>
+
+    <?php if ($sidebarPlanCapacityLabel !== '' || $sidebarPlanUsageLabel !== ''): ?>
+        <div class="workspace-sidebar-plan-meta">
+            <?php if ($sidebarPlanCapacityLabel !== ''): ?>
+                <span class="workspace-sidebar-plan-chip"><?= e($sidebarPlanCapacityLabel) ?></span>
+            <?php endif; ?>
+            <?php if ($sidebarPlanUsageLabel !== ''): ?>
+                <span class="workspace-sidebar-plan-chip is-usage"><?= e($sidebarPlanUsageLabel) ?></span>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($sidebarUpgradeName !== ''): ?>
+        <div class="workspace-sidebar-plan-upgrade">
+            <a href="<?= e(appPath('home#planos')) ?>" class="workspace-sidebar-plan-button" target="_blank" rel="noopener">
+                Faça upgrade
+            </a>
+        </div>
+    <?php endif; ?>
+</section>
