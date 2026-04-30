@@ -212,9 +212,42 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Informe um e-mail valido.');
                 }
 
-                $memberStmt = $pdo->prepare('SELECT id, name FROM users WHERE email = :email LIMIT 1');
+                $memberStmt = $pdo->prepare('SELECT id, name, email FROM users WHERE LOWER(email) = :email LIMIT 1');
                 $memberStmt->execute([':email' => $memberEmail]);
                 $memberRow = $memberStmt->fetch();
+                if (!$memberRow) {
+                    $workspace = workspaceById($workspaceId);
+                    if (!$workspace) {
+                        throw new RuntimeException('Workspace ativo nao encontrado.');
+                    }
+
+                    $emailInvitation = createWorkspaceEmailInvitation($pdo, $workspaceId, $memberEmail, (int) $authUser['id']);
+                    $delivery = sendWorkspaceInvitationEmail(
+                        $memberEmail,
+                        (string) ($workspace['name'] ?? ''),
+                        trim((string) ($authUser['name'] ?? $authUser['email'] ?? '')),
+                        (string) ($emailInvitation['url'] ?? ''),
+                        (string) ($emailInvitation['expires_at'] ?? '')
+                    );
+
+                    $workspaceAddMemberMessage = 'Convite por e-mail enviado. A pessoa precisa entrar ou criar a conta para aceitar.';
+                    if (!empty($delivery['logged_to_file'])) {
+                        $workspaceAddMemberMessage .= ' Se o envio nao estiver configurado neste ambiente, confira o arquivo storage/workspace-invite-mails.log.';
+                    }
+
+                    if (requestExpectsJson()) {
+                        respondJson([
+                            'ok' => true,
+                            'message' => $workspaceAddMemberMessage,
+                            'invitation_type' => 'email_token',
+                            'email_invitation_id' => (int) ($emailInvitation['id'] ?? 0),
+                            'invited_user_email' => $memberEmail,
+                        ]);
+                    }
+
+                    flash('success', $workspaceAddMemberMessage);
+                    redirectTo('index.php#users');
+                }
                 if (!$memberRow) {
                     throw new RuntimeException('Usuário não encontrado. Cadastre a conta antes de convidar.');
                 }
@@ -313,6 +346,38 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 }
 
                 flash('success', $workspaceCancelInvitationMessage);
+                redirectTo('index.php#users');
+
+            case 'workspace_cancel_email_invitation':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal nao permite gerenciar usuarios.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem cancelar convites.');
+                }
+
+                $emailInvitationId = (int) ($_POST['email_invitation_id'] ?? 0);
+                if ($emailInvitationId <= 0) {
+                    throw new RuntimeException('Convite invalido.');
+                }
+
+                cancelWorkspaceEmailInvitation($pdo, $emailInvitationId, $workspaceId);
+
+                $workspaceCancelEmailInvitationMessage = 'Convite cancelado.';
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => $workspaceCancelEmailInvitationMessage,
+                        'email_invitation_id' => $emailInvitationId,
+                    ]);
+                }
+
+                flash('success', $workspaceCancelEmailInvitationMessage);
                 redirectTo('index.php#users');
 
             case 'workspace_promote_member':

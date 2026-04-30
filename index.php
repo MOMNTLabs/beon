@@ -34,7 +34,9 @@ $forceAuthScreen = false;
 $authInitialPanel = 'login';
 $passwordResetRequest = null;
 $authRedirectPath = safeRedirectPath((string) (($_GET['next'] ?? $_POST['next'] ?? '')), 'index.php');
-$authAllowsDirectRegister = str_starts_with($authRedirectPath, 'home?action=checkout');
+$workspaceInviteRequest = validWorkspaceEmailInvitationRequestFromPath($authRedirectPath);
+$authAllowsDirectRegister = str_starts_with($authRedirectPath, 'home?action=checkout')
+    || (!empty($workspaceInviteRequest) && (int) ($workspaceInviteRequest['existing_user_id'] ?? 0) <= 0);
 $requestedAuthPanel = trim((string) ($_GET['auth'] ?? ''));
 if (in_array($requestedAuthPanel, ['login', 'register', 'forgot-password', 'reset-password'], true)) {
     $authInitialPanel = $requestedAuthPanel === 'register' && !$authAllowsDirectRegister
@@ -51,6 +53,7 @@ $billingGateBypassActions = [
     'request_password_reset',
     'perform_password_reset',
     'reset_password',
+    'workspace_invite',
 ];
 $shouldBypassBillingGate = $forceAuthScreen || in_array($entryAction, $billingGateBypassActions, true);
 
@@ -96,6 +99,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $passwordResetRequest['selector'] = $selector;
         $passwordResetRequest['token'] = $token;
         $authInitialPanel = 'reset-password';
+        $forceAuthScreen = true;
+    }
+
+    if ($getAction === 'workspace_invite') {
+        $selector = trim((string) ($_GET['selector'] ?? ''));
+        $token = trim((string) ($_GET['token'] ?? ''));
+        if ($selector === '' || $token === '') {
+            flash('error', 'Link de convite invalido.');
+            redirectTo('?auth=login#login');
+        }
+
+        $workspaceInviteRequest = validWorkspaceEmailInvitationRequest($selector, $token);
+        if (!$workspaceInviteRequest) {
+            flash('error', 'Este link de convite e invalido ou expirou.');
+            redirectTo('?auth=login#login');
+        }
+
+        $workspaceInviteRequest['selector'] = $selector;
+        $workspaceInviteRequest['token'] = $token;
+        $workspaceInviteRequest['path'] = workspaceInvitePath($selector, $token, false);
+        $authRedirectPath = (string) $workspaceInviteRequest['path'];
+        $authAllowsDirectRegister = (int) ($workspaceInviteRequest['existing_user_id'] ?? 0) <= 0;
+
+        $invitedEmail = strtolower(trim((string) ($workspaceInviteRequest['invited_email'] ?? '')));
+        if ($entryUser) {
+            $entryUserEmail = strtolower(trim((string) ($entryUser['email'] ?? '')));
+            if ($invitedEmail === '' || $entryUserEmail !== $invitedEmail) {
+                logoutUser();
+                flash('error', 'Este convite foi enviado para ' . $invitedEmail . '. Entre com essa conta para continuar.');
+                redirectTo(authErrorRedirectPath('login', $authRedirectPath));
+            }
+
+            try {
+                $acceptedWorkspaceId = acceptWorkspaceEmailInvitation($pdo, $selector, $token, (int) ($entryUser['id'] ?? 0));
+                setActiveWorkspaceId($acceptedWorkspaceId);
+                flash('success', 'Convite aceito. Voce entrou no workspace.');
+                redirectTo(dashboardPath('users'));
+            } catch (Throwable $e) {
+                if (!userHasAppAccess((int) ($entryUser['id'] ?? 0))) {
+                    logoutUser();
+                }
+                flash('error', $e->getMessage());
+                redirectTo(authErrorRedirectPath($authAllowsDirectRegister ? 'register' : 'login', $authRedirectPath));
+            }
+        }
+
+        $authInitialPanel = $authAllowsDirectRegister ? 'register' : 'login';
         $forceAuthScreen = true;
     }
 
@@ -291,6 +341,9 @@ $users = ($currentUser && $currentWorkspaceId !== null) ? usersList($currentWork
 $workspaceMembers = ($currentUser && $currentWorkspaceId !== null) ? workspaceMembersList($currentWorkspaceId) : [];
 $workspacePendingInvitations = ($currentUser && $currentWorkspaceId !== null)
     ? workspacePendingInvitationsForWorkspace($currentWorkspaceId)
+    : [];
+$workspacePendingEmailInvitations = ($currentUser && $currentWorkspaceId !== null)
+    ? workspacePendingEmailInvitationsForWorkspace($currentWorkspaceId)
     : [];
 $currentUserWorkspaceInvitations = $currentUser
     ? workspacePendingInvitationsForUser((int) $currentUser['id'])

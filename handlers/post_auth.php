@@ -18,6 +18,8 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
 {
     $nextPath = safeRedirectPath((string) ($_POST['next'] ?? ''), 'index.php');
     $isCheckoutRedirect = str_starts_with($nextPath, 'home?action=checkout');
+    $workspaceInviteRequest = validWorkspaceEmailInvitationRequestFromPath($nextPath);
+    $isWorkspaceInviteRedirect = is_array($workspaceInviteRequest);
 
     switch ($action) {
         case 'register':
@@ -37,6 +39,12 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             }
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 throw new RuntimeException('Informe um e-mail válido.');
+            }
+            if ($isWorkspaceInviteRedirect) {
+                $invitedEmail = strtolower(trim((string) ($workspaceInviteRequest['invited_email'] ?? '')));
+                if ($invitedEmail === '' || $email !== $invitedEmail) {
+                    throw new RuntimeException('Use o e-mail do convite para criar a conta.');
+                }
             }
             if (mb_strlen($password) < 6) {
                 throw new RuntimeException('A senha deve ter pelo menos 6 caracteres.');
@@ -66,7 +74,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             }
 
             loginUser($newUserId, true);
-            flash('success', 'Conta criada com sucesso.');
+            flash('success', $isWorkspaceInviteRedirect ? 'Conta criada. Vamos concluir o convite.' : 'Conta criada com sucesso.');
             redirectTo($nextPath);
 
         case 'login':
@@ -77,6 +85,12 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             if ($email === '' || $password === '') {
                 throw new RuntimeException('Informe e-mail e senha.');
             }
+            if ($isWorkspaceInviteRedirect) {
+                $invitedEmail = strtolower(trim((string) ($workspaceInviteRequest['invited_email'] ?? '')));
+                if ($invitedEmail === '' || $email !== $invitedEmail) {
+                    throw new RuntimeException('Entre com o mesmo e-mail que recebeu o convite.');
+                }
+            }
 
             $stmt = $pdo->prepare('SELECT * FROM users WHERE email = :email LIMIT 1');
             $stmt->execute([':email' => $email]);
@@ -86,7 +100,9 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             }
 
             $userId = (int) $userRow['id'];
-            if (envFlag('APP_ENFORCE_BILLING', false) && !userHasAppAccess($userId)) {
+            $canBypassBillingGate = $isWorkspaceInviteRedirect
+                && strtolower(trim((string) ($workspaceInviteRequest['invited_email'] ?? ''))) === $email;
+            if (envFlag('APP_ENFORCE_BILLING', false) && !userHasAppAccess($userId) && !$canBypassBillingGate) {
                 logoutUser();
                 setPendingCheckoutUserId($userId);
                 if ($isCheckoutRedirect) {

@@ -16,6 +16,13 @@
             <h1 id="auth-title">Acesso ao workspace</h1>
         </div>
 
+        <?php if (!empty($workspaceInviteRequest)): ?>
+            <p class="auth-switch-line">
+                Convite para <?= e((string) ($workspaceInviteRequest['workspace_name'] ?? 'um workspace')) ?> com o e-mail
+                <?= e((string) ($workspaceInviteRequest['invited_email'] ?? '')) ?>.
+            </p>
+        <?php endif; ?>
+
         <?php if (!empty($flashes)): ?>
             <div class="flash-stack auth-card-flash-stack" aria-live="assertive">
                 <?php foreach ($flashes as $flash): ?>
@@ -77,9 +84,11 @@
                 <?php if (!empty($authAllowsDirectRegister)): ?>
                     Não tem conta?
                     <button type="button" class="auth-inline-link" data-auth-target="register">Criar conta</button>
+                <?php elseif (!empty($workspaceInviteRequest)): ?>
+                    Entre com o mesmo e-mail que recebeu o convite.
                 <?php else: ?>
-                    Ainda não escolheu um plano?
-                    <a href="<?= e(appPath('home#planos')) ?>" class="auth-inline-link">Ver planos</a>
+                    Ainda n&atilde;o tem conta?
+                    <a href="<?= e(appPath('home#planos')) ?>" class="auth-inline-link">Conhe&ccedil;a os planos</a>
                 <?php endif; ?>
             </p>
         </section>

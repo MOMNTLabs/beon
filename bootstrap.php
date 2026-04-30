@@ -11,6 +11,8 @@ const REMEMBER_COOKIE_NAME = 'wf_remember';
 const REMEMBER_TOKEN_DAYS = 30;
 const PASSWORD_RESET_TOKEN_HOURS = 1;
 const PASSWORD_RESET_LOG_PATH = __DIR__ . '/storage/password-reset-mails.log';
+const WORKSPACE_INVITATION_TOKEN_HOURS = 168;
+const WORKSPACE_INVITATION_LOG_PATH = __DIR__ . '/storage/workspace-invite-mails.log';
 const VAULT_ENCRYPTION_KEY_PATH = __DIR__ . '/storage/vault.key';
 const VAULT_SECRET_PREFIX = 'enc:v1:';
 const LAST_WORKSPACE_COOKIE_NAME = 'wf_last_workspace';
@@ -390,6 +392,7 @@ function migrate(PDO $pdo): void
     ensureAppMetaSchema($pdo);
     ensureWorkspaceSchema($pdo);
     ensureWorkspaceInvitationSchema($pdo);
+    ensureWorkspaceEmailInvitationSchema($pdo);
     ensureWorkspaceVaultSchema($pdo);
     ensureWorkspaceDueSchema($pdo);
     ensureWorkspaceInventorySchema($pdo);
@@ -1434,6 +1437,67 @@ function ensureWorkspaceInvitationSchema(PDO $pdo): void
     $pdo->exec(
         'CREATE INDEX IF NOT EXISTS idx_workspace_invitations_workspace_status
          ON workspace_invitations(workspace_id, status)'
+    );
+}
+
+function ensureWorkspaceEmailInvitationSchema(PDO $pdo): void
+{
+    $driver = dbDriverName($pdo);
+
+    if ($driver === 'pgsql') {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_email_invitations (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                invited_email VARCHAR(190) NOT NULL,
+                invited_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                selector VARCHAR(64) NOT NULL,
+                token_hash VARCHAR(64) NOT NULL,
+                status VARCHAR(32) NOT NULL DEFAULT \'pending\',
+                expires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                accepted_user_id BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                responded_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL
+            )'
+        );
+    } else {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_email_invitations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                invited_email TEXT NOT NULL,
+                invited_by INTEGER DEFAULT NULL,
+                selector TEXT NOT NULL,
+                token_hash TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT \'pending\',
+                expires_at TEXT NOT NULL,
+                accepted_user_id INTEGER DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                responded_at TEXT DEFAULT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (accepted_user_id) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+    }
+
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_email_invitations_workspace_email
+         ON workspace_email_invitations(workspace_id, invited_email)'
+    );
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_email_invitations_selector
+         ON workspace_email_invitations(selector)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_email_invitations_workspace_status
+         ON workspace_email_invitations(workspace_id, status)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_email_invitations_status_expires
+         ON workspace_email_invitations(status, expires_at)'
     );
 }
 
@@ -3333,6 +3397,53 @@ function passwordResetPath(string $selector, string $token, bool $absolute = fal
     return appEntryUrl() . '/?' . $query . '#reset-password';
 }
 
+function workspaceInvitePath(string $selector, string $token, bool $absolute = false): string
+{
+    $query = http_build_query([
+        'action' => 'workspace_invite',
+        'selector' => $selector,
+        'token' => $token,
+    ]);
+
+    $path = appPath('?' . $query);
+    if (!$absolute) {
+        return $path;
+    }
+
+    return appEntryUrl() . '/?' . $query;
+}
+
+function workspaceInviteParamsFromPath(string $path): ?array
+{
+    $path = trim($path);
+    if ($path === '') {
+        return null;
+    }
+
+    $parsed = parse_url($path);
+    if ($parsed === false) {
+        return null;
+    }
+
+    $queryParams = [];
+    parse_str((string) ($parsed['query'] ?? ''), $queryParams);
+    if (trim((string) ($queryParams['action'] ?? '')) !== 'workspace_invite') {
+        return null;
+    }
+
+    $selector = trim((string) ($queryParams['selector'] ?? ''));
+    $token = trim((string) ($queryParams['token'] ?? ''));
+    if ($selector === '' || $token === '') {
+        return null;
+    }
+
+    return [
+        'selector' => $selector,
+        'token' => $token,
+        'path' => workspaceInvitePath($selector, $token, false),
+    ];
+}
+
 function pruneExpiredPasswordResetTokens(): void
 {
     $stmt = db()->prepare(
@@ -3612,6 +3723,77 @@ function sendPasswordResetEmail(string $email, string $name, string $resetUrl, s
         'sent' => false,
         'logged_to_file' => true,
         'log_path' => PASSWORD_RESET_LOG_PATH,
+    ];
+}
+
+function sendWorkspaceInvitationEmail(
+    string $email,
+    string $workspaceName,
+    string $inviterName,
+    string $inviteUrl,
+    string $expiresAt
+): array {
+    $email = strtolower(trim($email));
+    $workspaceName = trim($workspaceName);
+    $inviterName = trim($inviterName);
+    if ($email === '') {
+        return ['sent' => false, 'logged_to_file' => false];
+    }
+
+    $subject = APP_NAME . ' | Convite para workspace';
+    $body = implode("\n", [
+        'Oi,',
+        '',
+        ($inviterName !== '' ? $inviterName : 'Um administrador')
+            . ' convidou voce para acessar o workspace '
+            . ($workspaceName !== '' ? '"' . $workspaceName . '"' : 'na ' . APP_NAME)
+            . '.',
+        'Use o link abaixo para entrar ou criar sua conta e aceitar o convite:',
+        $inviteUrl,
+        '',
+        'Este link expira em ' . $expiresAt . '.',
+        'Se voce nao esperava este convite, ignore esta mensagem.',
+    ]);
+
+    $configuredFromAddress = trim((string) envValue('MAIL_FROM_ADDRESS', ''));
+    $fromAddress = $configuredFromAddress !== '' ? $configuredFromAddress : 'no-reply@bexon.local';
+    $fromName = trim((string) envValue('MAIL_FROM_NAME', APP_NAME));
+    $resendResult = sendTextEmailViaResend($email, $subject, $body, $configuredFromAddress, $fromName);
+    if (!empty($resendResult['sent'])) {
+        return $resendResult;
+    }
+
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'From: ' . $fromName . ' <' . $fromAddress . '>',
+    ];
+
+    $sent = @mail($email, $subject, $body, implode("\r\n", $headers));
+    if ($sent) {
+        return ['sent' => true, 'logged_to_file' => false];
+    }
+
+    ensureStorage();
+    $logEntry = implode("\n", [
+        str_repeat('=', 72),
+        'Timestamp: ' . nowIso(),
+        'To: ' . $email,
+        'Subject: ' . $subject,
+        'Workspace: ' . $workspaceName,
+        'Expires At: ' . $expiresAt,
+        'Provider: ' . (string) ($resendResult['provider'] ?? 'mail'),
+        'Provider Error: ' . (string) ($resendResult['error'] ?? ($resendResult['response_body'] ?? '')),
+        '',
+        $body,
+        '',
+    ]);
+    file_put_contents(WORKSPACE_INVITATION_LOG_PATH, $logEntry, FILE_APPEND | LOCK_EX);
+
+    return [
+        'sent' => false,
+        'logged_to_file' => true,
+        'log_path' => WORKSPACE_INVITATION_LOG_PATH,
     ];
 }
 
@@ -4051,6 +4233,128 @@ function upsertWorkspaceMember(PDO $pdo, int $workspaceId, int $userId, string $
     invalidateWorkspaceRoleCache($workspaceId, $userId);
 }
 
+function pruneExpiredWorkspaceEmailInvitations(?PDO $pdo = null): void
+{
+    $pdo ??= db();
+    ensureWorkspaceEmailInvitationSchema($pdo);
+
+    $now = nowIso();
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_email_invitations
+         SET status = :expired_status,
+             updated_at = :updated_at,
+             responded_at = COALESCE(responded_at, :responded_at)
+         WHERE status = :pending_status
+           AND expires_at <= :expires_at'
+    );
+    $stmt->execute([
+        ':expired_status' => 'expired',
+        ':updated_at' => $now,
+        ':responded_at' => $now,
+        ':pending_status' => 'pending',
+        ':expires_at' => $now,
+    ]);
+}
+
+function workspaceEmailInvitationById(PDO $pdo, int $invitationId): ?array
+{
+    if ($invitationId <= 0) {
+        return null;
+    }
+
+    ensureWorkspaceEmailInvitationSchema($pdo);
+
+    $stmt = $pdo->prepare(
+        'SELECT *
+         FROM workspace_email_invitations
+         WHERE id = :id
+         LIMIT 1'
+    );
+    $stmt->execute([':id' => $invitationId]);
+    $row = $stmt->fetch();
+
+    return is_array($row) ? $row : null;
+}
+
+function validWorkspaceEmailInvitationRequest(string $selector, string $plainToken): ?array
+{
+    $selector = trim($selector);
+    $plainToken = trim($plainToken);
+    if (
+        $selector === ''
+        || $plainToken === ''
+        || !preg_match('/^[a-f0-9]+$/i', $selector)
+        || !preg_match('/^[a-f0-9]+$/i', $plainToken)
+    ) {
+        return null;
+    }
+
+    $pdo = db();
+    ensureWorkspaceEmailInvitationSchema($pdo);
+    ensureWorkspaceProfileSchema($pdo);
+    ensureUserProfileSchema($pdo);
+    pruneExpiredWorkspaceEmailInvitations($pdo);
+
+    $stmt = $pdo->prepare(
+        'SELECT
+             wei.*,
+             w.name AS workspace_name,
+             w.slug AS workspace_slug,
+             w.is_personal AS workspace_is_personal,
+             inviter.name AS invited_by_name,
+             inviter.email AS invited_by_email,
+             invited_user.id AS existing_user_id
+         FROM workspace_email_invitations wei
+         INNER JOIN workspaces w ON w.id = wei.workspace_id
+         LEFT JOIN users inviter ON inviter.id = wei.invited_by
+         LEFT JOIN users invited_user ON LOWER(invited_user.email) = wei.invited_email
+         WHERE wei.selector = :selector
+         LIMIT 1'
+    );
+    $stmt->execute([':selector' => $selector]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return null;
+    }
+
+    $expectedHash = (string) ($row['token_hash'] ?? '');
+    $actualHash = hash('sha256', $plainToken);
+    if (!hash_equals($expectedHash, $actualHash)) {
+        return null;
+    }
+
+    if ((string) ($row['status'] ?? '') !== 'pending') {
+        return null;
+    }
+
+    $row['workspace_is_personal'] = ((int) ($row['workspace_is_personal'] ?? 0)) === 1;
+    $row['existing_user_id'] = (int) ($row['existing_user_id'] ?? 0);
+
+    return $row;
+}
+
+function validWorkspaceEmailInvitationRequestFromPath(string $path): ?array
+{
+    $params = workspaceInviteParamsFromPath($path);
+    if (!$params) {
+        return null;
+    }
+
+    $request = validWorkspaceEmailInvitationRequest(
+        (string) ($params['selector'] ?? ''),
+        (string) ($params['token'] ?? '')
+    );
+    if (!$request) {
+        return null;
+    }
+
+    $request['selector'] = (string) ($params['selector'] ?? '');
+    $request['token'] = (string) ($params['token'] ?? '');
+    $request['path'] = (string) ($params['path'] ?? '');
+
+    return $request;
+}
+
 function workspaceInvitationById(PDO $pdo, int $invitationId): ?array
 {
     if ($invitationId <= 0) {
@@ -4169,6 +4473,147 @@ function createWorkspaceInvitation(PDO $pdo, int $workspaceId, int $invitedUserI
     return (int) $pdo->lastInsertId();
 }
 
+function createWorkspaceEmailInvitation(PDO $pdo, int $workspaceId, string $invitedEmail, int $invitedBy): array
+{
+    $invitedEmail = strtolower(trim($invitedEmail));
+    if ($workspaceId <= 0 || $invitedBy <= 0 || $invitedEmail === '') {
+        throw new RuntimeException('Convite invalido.');
+    }
+    if (!filter_var($invitedEmail, FILTER_VALIDATE_EMAIL)) {
+        throw new RuntimeException('Informe um e-mail valido.');
+    }
+
+    $workspace = workspaceById($workspaceId);
+    if (!$workspace) {
+        throw new RuntimeException('Workspace nao encontrado.');
+    }
+    if (!empty($workspace['is_personal'])) {
+        throw new RuntimeException('Workspace pessoal nao permite convidar usuarios.');
+    }
+
+    $existingUserStmt = $pdo->prepare('SELECT id FROM users WHERE LOWER(email) = :email LIMIT 1');
+    $existingUserStmt->execute([':email' => $invitedEmail]);
+    $existingUserId = (int) $existingUserStmt->fetchColumn();
+    if ($existingUserId > 0 && userHasWorkspaceAccess($existingUserId, $workspaceId)) {
+        throw new RuntimeException('Usuario ja pertence a este workspace.');
+    }
+
+    ensureWorkspaceCanInviteMembers($workspaceId);
+    ensureWorkspaceEmailInvitationSchema($pdo);
+    pruneExpiredWorkspaceEmailInvitations($pdo);
+
+    $selector = bin2hex(random_bytes(9));
+    $token = bin2hex(random_bytes(32));
+    $tokenHash = hash('sha256', $token);
+    $expiresAt = (new DateTimeImmutable('+' . WORKSPACE_INVITATION_TOKEN_HOURS . ' hour'))->format('Y-m-d H:i:s');
+    $now = nowIso();
+
+    $existingStmt = $pdo->prepare(
+        'SELECT id
+         FROM workspace_email_invitations
+         WHERE workspace_id = :workspace_id
+           AND invited_email = :invited_email
+         LIMIT 1'
+    );
+    $existingStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':invited_email' => $invitedEmail,
+    ]);
+    $existingId = (int) $existingStmt->fetchColumn();
+
+    if ($existingId > 0) {
+        $updateStmt = $pdo->prepare(
+            'UPDATE workspace_email_invitations
+             SET invited_by = :invited_by,
+                 selector = :selector,
+                 token_hash = :token_hash,
+                 status = :status,
+                 expires_at = :expires_at,
+                 accepted_user_id = NULL,
+                 created_at = :created_at,
+                 updated_at = :updated_at,
+                 responded_at = NULL
+             WHERE id = :id'
+        );
+        $updateStmt->execute([
+            ':invited_by' => $invitedBy,
+            ':selector' => $selector,
+            ':token_hash' => $tokenHash,
+            ':status' => 'pending',
+            ':expires_at' => $expiresAt,
+            ':created_at' => $now,
+            ':updated_at' => $now,
+            ':id' => $existingId,
+        ]);
+
+        return [
+            'id' => $existingId,
+            'selector' => $selector,
+            'token' => $token,
+            'expires_at' => $expiresAt,
+            'path' => workspaceInvitePath($selector, $token, false),
+            'url' => workspaceInvitePath($selector, $token, true),
+            'invited_email' => $invitedEmail,
+        ];
+    }
+
+    $insertSql = 'INSERT INTO workspace_email_invitations (
+            workspace_id,
+            invited_email,
+            invited_by,
+            selector,
+            token_hash,
+            status,
+            expires_at,
+            accepted_user_id,
+            created_at,
+            updated_at,
+            responded_at
+         ) VALUES (
+            :workspace_id,
+            :invited_email,
+            :invited_by,
+            :selector,
+            :token_hash,
+            :status,
+            :expires_at,
+            NULL,
+            :created_at,
+            :updated_at,
+            NULL
+         )';
+    if (dbDriverName($pdo) === 'pgsql') {
+        $insertSql .= ' RETURNING id';
+    }
+
+    $insertStmt = $pdo->prepare($insertSql);
+    $insertStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':invited_email' => $invitedEmail,
+        ':invited_by' => $invitedBy,
+        ':selector' => $selector,
+        ':token_hash' => $tokenHash,
+        ':status' => 'pending',
+        ':expires_at' => $expiresAt,
+        ':created_at' => $now,
+        ':updated_at' => $now,
+    ]);
+
+    $invitationId = dbDriverName($pdo) === 'pgsql'
+        ? (int) $insertStmt->fetchColumn()
+        : (int) $pdo->lastInsertId();
+
+    return [
+        'id' => $invitationId,
+        'selector' => $selector,
+        'token' => $token,
+        'expires_at' => $expiresAt,
+        'path' => workspaceInvitePath($selector, $token, false),
+        'url' => workspaceInvitePath($selector, $token, true),
+        'invited_email' => $invitedEmail,
+    ];
+}
+
 function acceptWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): int
 {
     if ($invitationId <= 0 || $userId <= 0) {
@@ -4220,6 +4665,77 @@ function acceptWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): in
 
         if ($stmt->rowCount() <= 0) {
             throw new RuntimeException('Este convite não está mais pendente.');
+        }
+
+        if ($startedTransaction) {
+            $pdo->commit();
+        }
+    } catch (Throwable $e) {
+        if ($startedTransaction && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+
+    return $workspaceId;
+}
+
+function acceptWorkspaceEmailInvitation(PDO $pdo, string $selector, string $plainToken, int $userId): int
+{
+    if ($userId <= 0) {
+        throw new RuntimeException('Convite invalido.');
+    }
+
+    $invitation = validWorkspaceEmailInvitationRequest($selector, $plainToken);
+    if (!$invitation) {
+        throw new RuntimeException('Este link de convite e invalido ou expirou.');
+    }
+
+    $user = userById($userId);
+    $userEmail = strtolower(trim((string) ($user['email'] ?? '')));
+    $invitedEmail = strtolower(trim((string) ($invitation['invited_email'] ?? '')));
+    if ($userEmail === '' || $userEmail !== $invitedEmail) {
+        throw new RuntimeException('Este convite foi enviado para outro e-mail.');
+    }
+
+    $workspaceId = (int) ($invitation['workspace_id'] ?? 0);
+    if ($workspaceId <= 0 || !empty($invitation['workspace_is_personal'])) {
+        throw new RuntimeException('Workspace invalido.');
+    }
+
+    $now = nowIso();
+    $startedTransaction = !$pdo->inTransaction();
+    if ($startedTransaction) {
+        $pdo->beginTransaction();
+    }
+
+    try {
+        if (!userHasWorkspaceAccess($userId, $workspaceId)) {
+            ensureWorkspaceCanInviteMembers($workspaceId);
+            enforceWorkspaceMemberLimit($workspaceId, $userId);
+            upsertWorkspaceMember($pdo, $workspaceId, $userId, 'member');
+        }
+
+        $stmt = $pdo->prepare(
+            'UPDATE workspace_email_invitations
+             SET status = :status,
+                 accepted_user_id = :accepted_user_id,
+                 updated_at = :updated_at,
+                 responded_at = :responded_at
+             WHERE id = :id
+               AND status = :pending_status'
+        );
+        $stmt->execute([
+            ':status' => 'accepted',
+            ':accepted_user_id' => $userId,
+            ':updated_at' => $now,
+            ':responded_at' => $now,
+            ':id' => (int) ($invitation['id'] ?? 0),
+            ':pending_status' => 'pending',
+        ]);
+
+        if ($stmt->rowCount() <= 0) {
+            throw new RuntimeException('Este convite nao esta mais pendente.');
         }
 
         if ($startedTransaction) {
@@ -4311,6 +4827,45 @@ function cancelWorkspaceInvitation(PDO $pdo, int $invitationId, int $workspaceId
 
     if ($stmt->rowCount() <= 0) {
         throw new RuntimeException('Este convite não está mais pendente.');
+    }
+}
+
+function cancelWorkspaceEmailInvitation(PDO $pdo, int $invitationId, int $workspaceId): void
+{
+    if ($invitationId <= 0 || $workspaceId <= 0) {
+        throw new RuntimeException('Convite invalido.');
+    }
+
+    pruneExpiredWorkspaceEmailInvitations($pdo);
+    $invitation = workspaceEmailInvitationById($pdo, $invitationId);
+    if (!$invitation || (int) ($invitation['workspace_id'] ?? 0) !== $workspaceId) {
+        throw new RuntimeException('Convite nao encontrado.');
+    }
+    if ((string) ($invitation['status'] ?? '') !== 'pending') {
+        throw new RuntimeException('Este convite nao esta mais pendente.');
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_email_invitations
+         SET status = :status,
+             updated_at = :updated_at,
+             responded_at = :responded_at
+         WHERE id = :id
+           AND workspace_id = :workspace_id
+           AND status = :pending_status'
+    );
+    $now = nowIso();
+    $stmt->execute([
+        ':status' => 'cancelled',
+        ':updated_at' => $now,
+        ':responded_at' => $now,
+        ':id' => $invitationId,
+        ':workspace_id' => $workspaceId,
+        ':pending_status' => 'pending',
+    ]);
+
+    if ($stmt->rowCount() <= 0) {
+        throw new RuntimeException('Este convite nao esta mais pendente.');
     }
 }
 
@@ -5154,6 +5709,41 @@ function workspacePendingInvitationsForWorkspace(int $workspaceId): array
                   AND wm.user_id = wi.invited_user_id
            )
          ORDER BY wi.created_at DESC, wi.id DESC'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':status' => 'pending',
+    ]);
+
+    return $stmt->fetchAll();
+}
+
+function workspacePendingEmailInvitationsForWorkspace(int $workspaceId): array
+{
+    if ($workspaceId <= 0) {
+        return [];
+    }
+
+    $pdo = db();
+    ensureWorkspaceEmailInvitationSchema($pdo);
+    ensureUserProfileSchema($pdo);
+    pruneExpiredWorkspaceEmailInvitations($pdo);
+
+    $stmt = $pdo->prepare(
+        'SELECT
+             wei.id,
+             wei.workspace_id,
+             wei.invited_email,
+             wei.invited_by,
+             wei.created_at,
+             wei.expires_at,
+             inviter.name AS invited_by_name,
+             inviter.email AS invited_by_email
+         FROM workspace_email_invitations wei
+         LEFT JOIN users inviter ON inviter.id = wei.invited_by
+         WHERE wei.workspace_id = :workspace_id
+           AND wei.status = :status
+         ORDER BY wei.created_at DESC, wei.id DESC'
     );
     $stmt->execute([
         ':workspace_id' => $workspaceId,

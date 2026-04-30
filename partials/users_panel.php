@@ -173,6 +173,42 @@
                         </ul>
                     <?php endif; ?>
 
+                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace) && count($workspacePendingEmailInvitations) > 0): ?>
+                        <p class="workspace-settings-member-empty">Convites aguardando cadastro: a pessoa precisa entrar pelo link enviado por e-mail.</p>
+                        <ul class="workspace-settings-members" aria-label="Convites por e-mail pendentes do workspace">
+                            <?php foreach ($workspacePendingEmailInvitations as $workspaceEmailInvitation): ?>
+                                <?php
+                                $emailInvitationId = (int) ($workspaceEmailInvitation['id'] ?? 0);
+                                $invitedEmail = trim((string) ($workspaceEmailInvitation['invited_email'] ?? ''));
+                                $invitedByName = trim((string) ($workspaceEmailInvitation['invited_by_name'] ?? ''));
+                                $invitedByEmail = trim((string) ($workspaceEmailInvitation['invited_by_email'] ?? ''));
+                                $inviterLabel = $invitedByName !== '' ? $invitedByName : $invitedByEmail;
+                                $workspaceEmailInviteAvatar = [
+                                    'name' => $invitedEmail !== '' ? $invitedEmail : 'Convidado',
+                                ];
+                                ?>
+                                <li class="workspace-settings-member-item">
+                                    <?= renderUserAvatar($workspaceEmailInviteAvatar, 'avatar small') ?>
+                                    <div class="workspace-settings-member-meta">
+                                        <strong><?= e($invitedEmail !== '' ? $invitedEmail : 'Convidado') ?></strong>
+                                        <span>Aguardando cadastro</span>
+                                        <?php if ($inviterLabel !== ''): ?>
+                                            <span>Enviado por <?= e($inviterLabel) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="workspace-settings-member-actions">
+                                        <form method="post" class="workspace-settings-member-remove">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                            <input type="hidden" name="action" value="workspace_cancel_email_invitation">
+                                            <input type="hidden" name="email_invitation_id" value="<?= e((string) $emailInvitationId) ?>">
+                                            <button type="submit" class="btn btn-mini btn-ghost">Cancelar convite</button>
+                                        </form>
+                                    </div>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+
                     <?php
                     $workspaceMembersCount = is_array($workspaceMembers) ? count($workspaceMembers) : 0;
                     $workspaceMembersPreview = is_array($workspaceMembers) ? array_slice($workspaceMembers, 0, 3) : [];
