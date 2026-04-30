@@ -459,7 +459,7 @@ if ($checkoutAction === 'checkout') {
             . rawurlencode($requestedPlanKey)
             . '&interval='
             . rawurlencode($requestedBillingInterval);
-        redirectTo('index.php?auth=register&next=' . urlencode($checkoutNextPath) . '#register');
+        redirectTo('index.php?auth=login&next=' . urlencode($checkoutNextPath) . '#login');
     }
 
     $checkoutUserId = (int) ($checkoutUser['id'] ?? 0);
@@ -581,10 +581,12 @@ if ($checkoutStatus === 'success') {
         'message' => 'Checkout concluído. Seu plano Bexon foi ativado.',
     ];
 } elseif ($checkoutStatus === 'cancelled') {
+    clearPendingCheckoutUserId();
     $checkoutNotice = [
         'type' => 'info',
         'message' => 'Checkout cancelado. Você pode tentar novamente quando quiser.',
     ];
+    $checkoutNotice['message'] = 'Checkout cancelado. Para continuar depois, faca login ou crie outra conta e escolha um plano novamente.';
 } elseif ($checkoutStatus === 'required') {
     $checkoutNotice = [
         'type' => 'info',

@@ -17,6 +17,7 @@ function authErrorRedirectPath(string $panel, string $nextPath): string
 function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnError): bool
 {
     $nextPath = safeRedirectPath((string) ($_POST['next'] ?? ''), 'index.php');
+    $isCheckoutRedirect = str_starts_with($nextPath, 'home?action=checkout');
 
     switch ($action) {
         case 'register':
@@ -57,6 +58,13 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
                 password_hash($password, PASSWORD_DEFAULT),
                 nowIso()
             );
+
+            if ($isCheckoutRedirect) {
+                setPendingCheckoutUserId($newUserId);
+                flash('success', 'Conta criada com sucesso. Conclua o checkout para liberar o acesso ao app.');
+                redirectTo($nextPath);
+            }
+
             loginUser($newUserId, true);
             flash('success', 'Conta criada com sucesso.');
             redirectTo($nextPath);
@@ -81,7 +89,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             if (envFlag('APP_ENFORCE_BILLING', false) && !userHasBillingAccess($userId)) {
                 logoutUser();
                 setPendingCheckoutUserId($userId);
-                if (str_starts_with($nextPath, 'home?action=checkout')) {
+                if ($isCheckoutRedirect) {
                     redirectTo($nextPath);
                 }
                 redirectTo('home?checkout=required#planos');
