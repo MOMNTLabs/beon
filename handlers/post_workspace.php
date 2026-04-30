@@ -200,7 +200,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
                 }
                 if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
-                    throw new RuntimeException('Somente administradores podem adicionar usuários ao workspace.');
+                    throw new RuntimeException('Somente administradores podem convidar usuários ao workspace.');
                 }
 
                 $memberEmail = strtolower(trim((string) ($_POST['member_email'] ?? '')));
@@ -212,7 +212,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 $memberStmt->execute([':email' => $memberEmail]);
                 $memberRow = $memberStmt->fetch();
                 if (!$memberRow) {
-                    throw new RuntimeException('Usuário não encontrado. Cadastre a conta antes de adicionar.');
+                    throw new RuntimeException('Usuário não encontrado. Cadastre a conta antes de convidar.');
                 }
 
                 $memberId = (int) ($memberRow['id'] ?? 0);
@@ -220,21 +220,95 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Usuário inválido.');
                 }
 
-                enforceWorkspaceMemberLimit($workspaceId, $memberId);
-                upsertWorkspaceMember($pdo, $workspaceId, $memberId, 'member');
+                $invitationId = createWorkspaceInvitation($pdo, $workspaceId, $memberId, (int) $authUser['id']);
 
-                $workspaceAddMemberMessage = 'Usuário adicionado ao workspace.';
+                $workspaceAddMemberMessage = 'Convite enviado. O usuário precisa aceitar para entrar no workspace.';
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,
                         'message' => $workspaceAddMemberMessage,
-                        'member_id' => $memberId,
-                        'member_email' => $memberEmail,
-                        'member_role' => 'member',
+                        'invitation_id' => $invitationId,
+                        'invited_user_id' => $memberId,
+                        'invited_user_email' => $memberEmail,
                     ]);
                 }
 
                 flash('success', $workspaceAddMemberMessage);
+                redirectTo('index.php#users');
+
+            case 'workspace_accept_invitation':
+                $authUser = requireAuth();
+                $invitationId = (int) ($_POST['invitation_id'] ?? 0);
+                if ($invitationId <= 0) {
+                    throw new RuntimeException('Convite inválido.');
+                }
+
+                $acceptedWorkspaceId = acceptWorkspaceInvitation($pdo, $invitationId, (int) $authUser['id']);
+                setActiveWorkspaceId($acceptedWorkspaceId);
+
+                $workspaceAcceptInvitationMessage = 'Convite aceito. Você entrou no workspace.';
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => $workspaceAcceptInvitationMessage,
+                        'workspace_id' => $acceptedWorkspaceId,
+                    ]);
+                }
+
+                flash('success', $workspaceAcceptInvitationMessage);
+                redirectTo('index.php#users');
+
+            case 'workspace_decline_invitation':
+                $authUser = requireAuth();
+                $invitationId = (int) ($_POST['invitation_id'] ?? 0);
+                if ($invitationId <= 0) {
+                    throw new RuntimeException('Convite inválido.');
+                }
+
+                $declinedWorkspaceId = declineWorkspaceInvitation($pdo, $invitationId, (int) $authUser['id']);
+
+                $workspaceDeclineInvitationMessage = 'Convite recusado.';
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => $workspaceDeclineInvitationMessage,
+                        'workspace_id' => $declinedWorkspaceId,
+                    ]);
+                }
+
+                flash('success', $workspaceDeclineInvitationMessage);
+                redirectTo('index.php#users');
+
+            case 'workspace_cancel_invitation':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo não encontrado.');
+                }
+                if (workspaceIsPersonal($workspaceId)) {
+                    throw new RuntimeException('Workspace pessoal não permite gerenciar usuários.');
+                }
+                if (!userCanManageWorkspace((int) $authUser['id'], $workspaceId)) {
+                    throw new RuntimeException('Somente administradores podem cancelar convites.');
+                }
+
+                $invitationId = (int) ($_POST['invitation_id'] ?? 0);
+                if ($invitationId <= 0) {
+                    throw new RuntimeException('Convite inválido.');
+                }
+
+                cancelWorkspaceInvitation($pdo, $invitationId, $workspaceId);
+
+                $workspaceCancelInvitationMessage = 'Convite cancelado.';
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => $workspaceCancelInvitationMessage,
+                        'invitation_id' => $invitationId,
+                    ]);
+                }
+
+                flash('success', $workspaceCancelInvitationMessage);
                 redirectTo('index.php#users');
 
             case 'workspace_promote_member':
@@ -364,6 +438,9 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
         'workspace_add_sidebar_tool',
         'workspace_add_member',
         'add_workspace_member',
+        'workspace_accept_invitation',
+        'workspace_decline_invitation',
+        'workspace_cancel_invitation',
         'workspace_promote_member',
         'workspace_demote_member',
         'workspace_remove_member',

@@ -286,6 +286,12 @@ $reviewTaskStatusKey = $statusConfig['review_status_key'] ?? null;
 $priorityOptions = taskPriorities();
 $users = ($currentUser && $currentWorkspaceId !== null) ? usersList($currentWorkspaceId) : [];
 $workspaceMembers = ($currentUser && $currentWorkspaceId !== null) ? workspaceMembersList($currentWorkspaceId) : [];
+$workspacePendingInvitations = ($currentUser && $currentWorkspaceId !== null)
+    ? workspacePendingInvitationsForWorkspace($currentWorkspaceId)
+    : [];
+$currentUserWorkspaceInvitations = $currentUser
+    ? workspacePendingInvitationsForUser((int) $currentUser['id'])
+    : [];
 $canManageWorkspace = ($currentUser && $currentWorkspaceId !== null)
     ? userCanManageWorkspace((int) $currentUser['id'], $currentWorkspaceId)
     : false;

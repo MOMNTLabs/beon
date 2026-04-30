@@ -213,6 +213,8 @@ function respondUsersPanelSnapshot(): void
     $currentWorkspaceId = $workspaceId;
     $userWorkspaces = workspacesForUser((int) ($currentUser['id'] ?? 0));
     $workspaceMembers = workspaceMembersList($workspaceId);
+    $workspacePendingInvitations = workspacePendingInvitationsForWorkspace($workspaceId);
+    $currentUserWorkspaceInvitations = workspacePendingInvitationsForUser((int) ($currentUser['id'] ?? 0));
     $workspaceTaskStatusConfig = taskStatusConfig($workspaceId, $currentWorkspace);
     $workspaceSidebarConfig = workspaceSidebarToolsConfig($workspaceId, $currentWorkspace);
     $isPersonalWorkspace = !empty($currentWorkspace['is_personal']);

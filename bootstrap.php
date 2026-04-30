@@ -389,6 +389,7 @@ function migrate(PDO $pdo): void
     ensureUserProfileSchema($pdo);
     ensureAppMetaSchema($pdo);
     ensureWorkspaceSchema($pdo);
+    ensureWorkspaceInvitationSchema($pdo);
     ensureWorkspaceVaultSchema($pdo);
     ensureWorkspaceDueSchema($pdo);
     ensureWorkspaceInventorySchema($pdo);
@@ -1328,6 +1329,55 @@ function ensureWorkspaceSchema(PDO $pdo): void
             ':workspace_id' => $workspaceId,
         ]);
     }
+}
+
+function ensureWorkspaceInvitationSchema(PDO $pdo): void
+{
+    $driver = dbDriverName($pdo);
+
+    if ($driver === 'pgsql') {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_invitations (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                invited_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                invited_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                status VARCHAR(32) NOT NULL DEFAULT \'pending\',
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                responded_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NULL
+            )'
+        );
+    } else {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_invitations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                invited_user_id INTEGER NOT NULL,
+                invited_by INTEGER DEFAULT NULL,
+                status TEXT NOT NULL DEFAULT \'pending\',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                responded_at TEXT DEFAULT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (invited_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+    }
+
+    $pdo->exec(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_invitations_workspace_user
+         ON workspace_invitations(workspace_id, invited_user_id)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_invitations_user_status
+         ON workspace_invitations(invited_user_id, status)'
+    );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_invitations_workspace_status
+         ON workspace_invitations(workspace_id, status)'
+    );
 }
 
 function ensureTaskExtendedSchema(PDO $pdo): void
@@ -3944,6 +3994,267 @@ function upsertWorkspaceMember(PDO $pdo, int $workspaceId, int $userId, string $
     invalidateWorkspaceRoleCache($workspaceId, $userId);
 }
 
+function workspaceInvitationById(PDO $pdo, int $invitationId): ?array
+{
+    if ($invitationId <= 0) {
+        return null;
+    }
+
+    ensureWorkspaceInvitationSchema($pdo);
+
+    $stmt = $pdo->prepare(
+        'SELECT *
+         FROM workspace_invitations
+         WHERE id = :id
+         LIMIT 1'
+    );
+    $stmt->execute([':id' => $invitationId]);
+    $row = $stmt->fetch();
+
+    return is_array($row) ? $row : null;
+}
+
+function createWorkspaceInvitation(PDO $pdo, int $workspaceId, int $invitedUserId, int $invitedBy): int
+{
+    if ($workspaceId <= 0 || $invitedUserId <= 0 || $invitedBy <= 0) {
+        throw new RuntimeException('Convite inválido.');
+    }
+
+    $workspace = workspaceById($workspaceId);
+    if (!$workspace) {
+        throw new RuntimeException('Workspace não encontrado.');
+    }
+    if (!empty($workspace['is_personal'])) {
+        throw new RuntimeException('Workspace pessoal não permite convidar usuários.');
+    }
+    if (userHasWorkspaceAccess($invitedUserId, $workspaceId)) {
+        throw new RuntimeException('Usuário já pertence a este workspace.');
+    }
+
+    ensureWorkspaceInvitationSchema($pdo);
+
+    $existingStmt = $pdo->prepare(
+        'SELECT id, status
+         FROM workspace_invitations
+         WHERE workspace_id = :workspace_id
+           AND invited_user_id = :invited_user_id
+         LIMIT 1'
+    );
+    $existingStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':invited_user_id' => $invitedUserId,
+    ]);
+    $existing = $existingStmt->fetch();
+
+    if ($existing && (string) ($existing['status'] ?? '') === 'pending') {
+        throw new RuntimeException('Convite já enviado para este usuário.');
+    }
+
+    $now = nowIso();
+    if ($existing) {
+        $invitationId = (int) ($existing['id'] ?? 0);
+        $updateStmt = $pdo->prepare(
+            'UPDATE workspace_invitations
+             SET invited_by = :invited_by,
+                 status = :status,
+                 created_at = :created_at,
+                 updated_at = :updated_at,
+                 responded_at = NULL
+             WHERE id = :id'
+        );
+        $updateStmt->execute([
+            ':invited_by' => $invitedBy,
+            ':status' => 'pending',
+            ':created_at' => $now,
+            ':updated_at' => $now,
+            ':id' => $invitationId,
+        ]);
+
+        return $invitationId;
+    }
+
+    $insertSql = 'INSERT INTO workspace_invitations (
+            workspace_id,
+            invited_user_id,
+            invited_by,
+            status,
+            created_at,
+            updated_at,
+            responded_at
+         ) VALUES (
+            :workspace_id,
+            :invited_user_id,
+            :invited_by,
+            :status,
+            :created_at,
+            :updated_at,
+            NULL
+         )';
+    if (dbDriverName($pdo) === 'pgsql') {
+        $insertSql .= ' RETURNING id';
+    }
+
+    $insertStmt = $pdo->prepare($insertSql);
+    $insertStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':invited_user_id' => $invitedUserId,
+        ':invited_by' => $invitedBy,
+        ':status' => 'pending',
+        ':created_at' => $now,
+        ':updated_at' => $now,
+    ]);
+
+    if (dbDriverName($pdo) === 'pgsql') {
+        return (int) $insertStmt->fetchColumn();
+    }
+
+    return (int) $pdo->lastInsertId();
+}
+
+function acceptWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): int
+{
+    if ($invitationId <= 0 || $userId <= 0) {
+        throw new RuntimeException('Convite inválido.');
+    }
+
+    $invitation = workspaceInvitationById($pdo, $invitationId);
+    if (!$invitation || (int) ($invitation['invited_user_id'] ?? 0) !== $userId) {
+        throw new RuntimeException('Convite não encontrado.');
+    }
+    if ((string) ($invitation['status'] ?? '') !== 'pending') {
+        throw new RuntimeException('Este convite não está mais pendente.');
+    }
+
+    $workspaceId = (int) ($invitation['workspace_id'] ?? 0);
+    if ($workspaceId <= 0 || workspaceIsPersonal($workspaceId)) {
+        throw new RuntimeException('Workspace inválido.');
+    }
+
+    enforceWorkspaceMemberLimit($workspaceId, $userId);
+
+    $now = nowIso();
+    $startedTransaction = !$pdo->inTransaction();
+    if ($startedTransaction) {
+        $pdo->beginTransaction();
+    }
+
+    try {
+        upsertWorkspaceMember($pdo, $workspaceId, $userId, 'member');
+
+        $stmt = $pdo->prepare(
+            'UPDATE workspace_invitations
+             SET status = :status,
+                 updated_at = :updated_at,
+                 responded_at = :responded_at
+             WHERE id = :id
+               AND invited_user_id = :invited_user_id
+               AND status = :pending_status'
+        );
+        $stmt->execute([
+            ':status' => 'accepted',
+            ':updated_at' => $now,
+            ':responded_at' => $now,
+            ':id' => $invitationId,
+            ':invited_user_id' => $userId,
+            ':pending_status' => 'pending',
+        ]);
+
+        if ($stmt->rowCount() <= 0) {
+            throw new RuntimeException('Este convite não está mais pendente.');
+        }
+
+        if ($startedTransaction) {
+            $pdo->commit();
+        }
+    } catch (Throwable $e) {
+        if ($startedTransaction && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
+    }
+
+    return $workspaceId;
+}
+
+function declineWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): int
+{
+    if ($invitationId <= 0 || $userId <= 0) {
+        throw new RuntimeException('Convite inválido.');
+    }
+
+    $invitation = workspaceInvitationById($pdo, $invitationId);
+    if (!$invitation || (int) ($invitation['invited_user_id'] ?? 0) !== $userId) {
+        throw new RuntimeException('Convite não encontrado.');
+    }
+    if ((string) ($invitation['status'] ?? '') !== 'pending') {
+        throw new RuntimeException('Este convite não está mais pendente.');
+    }
+
+    $workspaceId = (int) ($invitation['workspace_id'] ?? 0);
+    $now = nowIso();
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_invitations
+         SET status = :status,
+             updated_at = :updated_at,
+             responded_at = :responded_at
+         WHERE id = :id
+           AND invited_user_id = :invited_user_id
+           AND status = :pending_status'
+    );
+    $stmt->execute([
+        ':status' => 'declined',
+        ':updated_at' => $now,
+        ':responded_at' => $now,
+        ':id' => $invitationId,
+        ':invited_user_id' => $userId,
+        ':pending_status' => 'pending',
+    ]);
+
+    if ($stmt->rowCount() <= 0) {
+        throw new RuntimeException('Este convite não está mais pendente.');
+    }
+
+    return $workspaceId;
+}
+
+function cancelWorkspaceInvitation(PDO $pdo, int $invitationId, int $workspaceId): void
+{
+    if ($invitationId <= 0 || $workspaceId <= 0) {
+        throw new RuntimeException('Convite inválido.');
+    }
+
+    $invitation = workspaceInvitationById($pdo, $invitationId);
+    if (!$invitation || (int) ($invitation['workspace_id'] ?? 0) !== $workspaceId) {
+        throw new RuntimeException('Convite não encontrado.');
+    }
+    if ((string) ($invitation['status'] ?? '') !== 'pending') {
+        throw new RuntimeException('Este convite não está mais pendente.');
+    }
+
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_invitations
+         SET status = :status,
+             updated_at = :updated_at,
+             responded_at = :responded_at
+         WHERE id = :id
+           AND workspace_id = :workspace_id
+           AND status = :pending_status'
+    );
+    $now = nowIso();
+    $stmt->execute([
+        ':status' => 'cancelled',
+        ':updated_at' => $now,
+        ':responded_at' => $now,
+        ':id' => $invitationId,
+        ':workspace_id' => $workspaceId,
+        ':pending_status' => 'pending',
+    ]);
+
+    if ($stmt->rowCount() <= 0) {
+        throw new RuntimeException('Este convite não está mais pendente.');
+    }
+}
+
 function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $isPersonal = false): int
 {
     $createdBy = (int) $createdBy;
@@ -4748,6 +5059,94 @@ function workspaceMembersList(int $workspaceId): array
     unset($member);
 
     return $members;
+}
+
+function workspacePendingInvitationsForWorkspace(int $workspaceId): array
+{
+    if ($workspaceId <= 0) {
+        return [];
+    }
+
+    $pdo = db();
+    ensureWorkspaceInvitationSchema($pdo);
+    ensureUserProfileSchema($pdo);
+
+    $stmt = $pdo->prepare(
+        'SELECT
+             wi.id,
+             wi.workspace_id,
+             wi.invited_user_id,
+             wi.invited_by,
+             wi.created_at,
+             u.name,
+             u.email,
+             u.avatar_data_url,
+             inviter.name AS invited_by_name,
+             inviter.email AS invited_by_email
+         FROM workspace_invitations wi
+         INNER JOIN users u ON u.id = wi.invited_user_id
+         LEFT JOIN users inviter ON inviter.id = wi.invited_by
+         WHERE wi.workspace_id = :workspace_id
+           AND wi.status = :status
+           AND NOT EXISTS (
+                SELECT 1
+                FROM workspace_members wm
+                WHERE wm.workspace_id = wi.workspace_id
+                  AND wm.user_id = wi.invited_user_id
+           )
+         ORDER BY wi.created_at DESC, wi.id DESC'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':status' => 'pending',
+    ]);
+
+    return $stmt->fetchAll();
+}
+
+function workspacePendingInvitationsForUser(int $userId): array
+{
+    if ($userId <= 0) {
+        return [];
+    }
+
+    $pdo = db();
+    ensureWorkspaceInvitationSchema($pdo);
+    ensureUserProfileSchema($pdo);
+
+    $stmt = $pdo->prepare(
+        'SELECT
+             wi.id,
+             wi.workspace_id,
+             wi.invited_user_id,
+             wi.invited_by,
+             wi.created_at,
+             w.name AS workspace_name,
+             w.slug AS workspace_slug,
+             w.avatar_data_url AS workspace_avatar_data_url,
+             w.is_personal AS workspace_is_personal,
+             inviter.name AS invited_by_name,
+             inviter.email AS invited_by_email
+         FROM workspace_invitations wi
+         INNER JOIN workspaces w ON w.id = wi.workspace_id
+         LEFT JOIN users inviter ON inviter.id = wi.invited_by
+         WHERE wi.invited_user_id = :user_id
+           AND wi.status = :status
+           AND w.is_personal = 0
+           AND NOT EXISTS (
+                SELECT 1
+                FROM workspace_members wm
+                WHERE wm.workspace_id = wi.workspace_id
+                  AND wm.user_id = wi.invited_user_id
+           )
+         ORDER BY wi.created_at DESC, wi.id DESC'
+    );
+    $stmt->execute([
+        ':user_id' => $userId,
+        ':status' => 'pending',
+    ]);
+
+    return $stmt->fetchAll();
 }
 
 function setActiveWorkspaceId(?int $workspaceId): void

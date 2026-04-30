@@ -11,6 +11,14 @@
             </div>
 
             <div class="workspace-settings-grid users-settings-grid">
+                <?php
+                $currentUserWorkspaceInvitations = is_array($currentUserWorkspaceInvitations ?? null)
+                    ? $currentUserWorkspaceInvitations
+                    : [];
+                $workspacePendingInvitations = is_array($workspacePendingInvitations ?? null)
+                    ? $workspacePendingInvitations
+                    : [];
+                ?>
                 <?php if (!empty($canManageWorkspace)): ?>
                     <section class="workspace-settings-card">
                         <h3>Dados do workspace</h3>
@@ -47,6 +55,52 @@
                     </section>
                 <?php endif; ?>
 
+                <?php if (count($currentUserWorkspaceInvitations) > 0): ?>
+                    <section class="workspace-settings-card workspace-settings-invitations-card">
+                        <h3>Convites para você</h3>
+                        <ul class="workspace-settings-members" aria-label="Convites de workspace pendentes">
+                            <?php foreach ($currentUserWorkspaceInvitations as $workspaceInvitation): ?>
+                                <?php
+                                $invitationId = (int) ($workspaceInvitation['id'] ?? 0);
+                                $invitedWorkspaceName = trim((string) ($workspaceInvitation['workspace_name'] ?? 'Workspace'));
+                                $invitedWorkspace = [
+                                    'name' => $invitedWorkspaceName,
+                                    'avatar_data_url' => (string) ($workspaceInvitation['workspace_avatar_data_url'] ?? ''),
+                                    'is_personal' => ((int) ($workspaceInvitation['workspace_is_personal'] ?? 0)) === 1,
+                                ];
+                                $invitedByName = trim((string) ($workspaceInvitation['invited_by_name'] ?? ''));
+                                $invitedByEmail = trim((string) ($workspaceInvitation['invited_by_email'] ?? ''));
+                                $inviterLabel = $invitedByName !== '' ? $invitedByName : $invitedByEmail;
+                                ?>
+                                <li class="workspace-settings-member-item">
+                                    <?= renderWorkspaceAvatar($invitedWorkspace, 'avatar small') ?>
+                                    <div class="workspace-settings-member-meta">
+                                        <strong><?= e($invitedWorkspaceName) ?></strong>
+                                        <span>Convite pendente</span>
+                                        <?php if ($inviterLabel !== ''): ?>
+                                            <span>Enviado por <?= e($inviterLabel) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="workspace-settings-member-actions">
+                                        <form method="post" class="workspace-settings-member-remove">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                            <input type="hidden" name="action" value="workspace_accept_invitation">
+                                            <input type="hidden" name="invitation_id" value="<?= e((string) $invitationId) ?>">
+                                            <button type="submit" class="btn btn-mini">Aceitar</button>
+                                        </form>
+                                        <form method="post" class="workspace-settings-member-remove">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                            <input type="hidden" name="action" value="workspace_decline_invitation">
+                                            <input type="hidden" name="invitation_id" value="<?= e((string) $invitationId) ?>">
+                                            <button type="submit" class="btn btn-mini btn-ghost">Recusar</button>
+                                        </form>
+                                    </div>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </section>
+                <?php endif; ?>
+
                 <section class="workspace-settings-card workspace-settings-users-card<?= empty($canManageWorkspace) ? ' is-full' : '' ?>">
                     <h3>Usuários do workspace</h3>
                     <?php
@@ -68,15 +122,52 @@
                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                             <input type="hidden" name="action" value="workspace_add_member">
                             <label>
-                                <span>Adicionar usuário por e-mail</span>
+                                <span>Convidar usuário por e-mail</span>
                                 <input type="email" name="member_email" placeholder="usuário@empresa.com" required>
                             </label>
-                            <button type="submit" class="btn btn-mini">Adicionar</button>
+                            <button type="submit" class="btn btn-mini">Enviar convite</button>
                         </form>
                     <?php elseif (!empty($canManageWorkspace) && !empty($workspaceMemberLimitReached)): ?>
-                        <p class="workspace-settings-member-empty">Limite do plano atingido. Faça upgrade para adicionar mais usuários.</p>
+                        <p class="workspace-settings-member-empty">Limite do plano atingido. Faça upgrade para convidar mais usuários.</p>
                     <?php elseif (!empty($isPersonalWorkspace)): ?>
-                        <p class="workspace-settings-member-empty">Workspace pessoal não permite adicionar usuários parceiros.</p>
+                        <p class="workspace-settings-member-empty">Workspace pessoal não permite convidar usuários parceiros.</p>
+                    <?php endif; ?>
+
+                    <?php if (!empty($canManageWorkspace) && empty($isPersonalWorkspace) && count($workspacePendingInvitations) > 0): ?>
+                        <p class="workspace-settings-member-empty">Convites pendentes: o usuário só entra no workspace depois de aceitar.</p>
+                        <ul class="workspace-settings-members" aria-label="Convites pendentes do workspace">
+                            <?php foreach ($workspacePendingInvitations as $workspaceInvitation): ?>
+                                <?php
+                                $invitationId = (int) ($workspaceInvitation['id'] ?? 0);
+                                $invitedUserName = trim((string) ($workspaceInvitation['name'] ?? 'Usuário'));
+                                $invitedUserEmail = trim((string) ($workspaceInvitation['email'] ?? ''));
+                                $invitedByName = trim((string) ($workspaceInvitation['invited_by_name'] ?? ''));
+                                $invitedByEmail = trim((string) ($workspaceInvitation['invited_by_email'] ?? ''));
+                                $inviterLabel = $invitedByName !== '' ? $invitedByName : $invitedByEmail;
+                                ?>
+                                <li class="workspace-settings-member-item">
+                                    <?= renderUserAvatar($workspaceInvitation, 'avatar small') ?>
+                                    <div class="workspace-settings-member-meta">
+                                        <strong><?= e($invitedUserName) ?></strong>
+                                        <span>Pendente</span>
+                                        <?php if ($invitedUserEmail !== ''): ?>
+                                            <span><?= e($invitedUserEmail) ?></span>
+                                        <?php endif; ?>
+                                        <?php if ($inviterLabel !== ''): ?>
+                                            <span>Enviado por <?= e($inviterLabel) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="workspace-settings-member-actions">
+                                        <form method="post" class="workspace-settings-member-remove">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                            <input type="hidden" name="action" value="workspace_cancel_invitation">
+                                            <input type="hidden" name="invitation_id" value="<?= e((string) $invitationId) ?>">
+                                            <button type="submit" class="btn btn-mini btn-ghost">Cancelar convite</button>
+                                        </form>
+                                    </div>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
                     <?php endif; ?>
 
                     <?php
