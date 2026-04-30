@@ -9,7 +9,7 @@ document.addEventListener("click", (event) => {
 });
 
 window.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll("[data-flash]").forEach((flash) => {
+  document.querySelectorAll("[data-flash]:not([data-flash-persist])").forEach((flash) => {
     window.setTimeout(() => {
       if (flash.isConnected) flash.remove();
     }, 5000);

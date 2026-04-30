@@ -16,6 +16,22 @@
             <h1 id="auth-title">Acesso ao workspace</h1>
         </div>
 
+        <?php if (!empty($flashes)): ?>
+            <div class="flash-stack auth-card-flash-stack" aria-live="assertive">
+                <?php foreach ($flashes as $flash): ?>
+                    <div
+                        class="flash auth-card-flash flash-<?= e((string) ($flash['type'] ?? 'info')) ?>"
+                        data-flash
+                        data-flash-persist
+                        role="alert"
+                    >
+                        <span><?= e((string) ($flash['message'] ?? '')) ?></span>
+                        <button type="button" class="flash-close" data-flash-close aria-label="Fechar">&times;</button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
         <section
             class="auth-pane is-active"
             id="auth-panel-login"
@@ -58,17 +74,23 @@
             </p>
 
             <p class="auth-switch-line">
-                Não tem conta?
-                <button type="button" class="auth-inline-link" data-auth-target="register">Criar conta</button>
+                <?php if (!empty($authAllowsDirectRegister)): ?>
+                    Não tem conta?
+                    <button type="button" class="auth-inline-link" data-auth-target="register">Criar conta</button>
+                <?php else: ?>
+                    Ainda não escolheu um plano?
+                    <a href="<?= e(appPath('home#planos')) ?>" class="auth-inline-link">Ver planos</a>
+                <?php endif; ?>
             </p>
         </section>
 
-        <section
-            class="auth-pane"
-            id="auth-panel-register"
-            data-auth-panel="register"
-            hidden
-        >
+        <?php if (!empty($authAllowsDirectRegister)): ?>
+            <section
+                class="auth-pane"
+                id="auth-panel-register"
+                data-auth-panel="register"
+                hidden
+            >
             <form method="post" class="form-stack auth-form">
                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                 <input type="hidden" name="action" value="register">
@@ -139,7 +161,8 @@
                 Já tem conta?
                 <button type="button" class="auth-inline-link" data-auth-target="login">Entrar</button>
             </p>
-        </section>
+            </section>
+        <?php endif; ?>
 
         <section
             class="auth-pane"

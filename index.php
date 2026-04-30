@@ -34,9 +34,12 @@ $forceAuthScreen = false;
 $authInitialPanel = 'login';
 $passwordResetRequest = null;
 $authRedirectPath = safeRedirectPath((string) (($_GET['next'] ?? $_POST['next'] ?? '')), 'index.php');
+$authAllowsDirectRegister = str_starts_with($authRedirectPath, 'home?action=checkout');
 $requestedAuthPanel = trim((string) ($_GET['auth'] ?? ''));
 if (in_array($requestedAuthPanel, ['login', 'register', 'forgot-password', 'reset-password'], true)) {
-    $authInitialPanel = $requestedAuthPanel;
+    $authInitialPanel = $requestedAuthPanel === 'register' && !$authAllowsDirectRegister
+        ? 'login'
+        : $requestedAuthPanel;
     $forceAuthScreen = true;
 }
 
@@ -555,7 +558,7 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <div class="grain" aria-hidden="true"></div>
 
     <div class="app-shell">
-        <?php if ($flashes): ?>
+        <?php if ($flashes && !$renderAuthScreen): ?>
             <div class="flash-stack" aria-live="polite">
                 <?php foreach ($flashes as $flash): ?>
                     <div class="flash flash-<?= e((string) ($flash['type'] ?? 'info')) ?>" data-flash>
