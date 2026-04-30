@@ -9094,20 +9094,29 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 .create-task-modal .task-detail-edit-description-wrap,
 .task-detail-modal .task-detail-edit-description-wrap {
     display: grid;
-    gap: 8px;
+    gap: 0;
     min-height: 0;
     height: auto;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .create-task-modal .task-detail-edit-description-toolbar,
 .task-detail-modal .task-detail-edit-description-toolbar {
-    position: sticky;
-    top: 8px;
-    align-self: start;
+    position: relative;
+    top: auto;
+    align-self: stretch;
     flex-wrap: wrap;
     z-index: 6;
-    width: fit-content;
-    max-width: calc(100% - 2px);
+    width: 100%;
+    max-width: 100%;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
 }
 
 .create-task-modal .task-detail-edit-description-toolbar button,
@@ -9120,6 +9129,14 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 .task-detail-modal .task-detail-edit-description-editor {
     min-height: 180px;
     height: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.create-task-modal .task-detail-edit-description-editor:focus,
+.task-detail-modal .task-detail-edit-description-editor:focus {
+    background: transparent;
 }
 
 .create-task-modal [data-create-task-description] {
@@ -14068,6 +14085,25 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.assignee-picker-menu {
+    --assignee-option-text-color: var(--wf-dropdown-item-text);
+    --assignee-option-text-hover-color: var(--wf-dropdown-item-text);
+    --assignee-option-text-active-color: var(--wf-dropdown-item-active-text);
+}
+
+.assignee-picker-menu .assignee-option .assignee-option-text {
+    color: var(--assignee-option-text-color);
+}
+
+.assignee-picker-menu .assignee-option:hover .assignee-option-text,
+.assignee-picker-menu .assignee-option:focus-within .assignee-option-text {
+    color: var(--assignee-option-text-hover-color);
+}
+
+.assignee-picker-menu .assignee-option:has(input:checked) .assignee-option-text {
+    color: var(--assignee-option-text-active-color);
 }
 
 .row-assignee-picker > summary .assignee-summary-avatar,

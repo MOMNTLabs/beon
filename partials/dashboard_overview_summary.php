@@ -8,8 +8,10 @@ $overviewPriorityTasksTodayTotal = (int) ($globalDashboardOverview['priority_tas
 $overviewDueTodayTotal = (int) ($globalDashboardOverview['due_today_total'] ?? 0);
 $overviewAttentionWorkspaceTotal = (int) ($globalDashboardOverview['attention_workspace_total'] ?? 0);
 $overviewCriticalWorkspaceTotal = (int) ($globalDashboardOverview['critical_workspace_total'] ?? 0);
+$overviewOpenTaskTotal = (int) ($globalDashboardOverview['user_open_task_total'] ?? 0);
 $overviewTasksToday = array_values((array) ($globalDashboardOverview['tasks_today'] ?? []));
 $overviewTasksTomorrow = array_values((array) ($globalDashboardOverview['tasks_tomorrow'] ?? []));
+$overviewOpenTasks = array_values((array) ($globalDashboardOverview['open_tasks'] ?? []));
 $overviewDueSoon = array_values((array) ($globalDashboardOverview['due_soon'] ?? []));
 $overviewLowStock = array_values((array) ($globalDashboardOverview['low_stock'] ?? []));
 $overviewWorkspaceSummaries = array_values((array) ($globalDashboardOverview['workspace_summaries'] ?? []));
@@ -37,6 +39,7 @@ $overviewWorkspaceForItem = static function (array $item) use ($overviewWorkspac
 $overviewPrimaryTasksWorkspaceId = (int) (
     $overviewTasksToday[0]['workspace_id']
     ?? $overviewTasksTomorrow[0]['workspace_id']
+    ?? $overviewOpenTasks[0]['workspace_id']
     ?? 0
 );
 $overviewPrimaryDueWorkspaceId = (int) ($overviewDueSoon[0]['workspace_id'] ?? 0);
@@ -80,9 +83,16 @@ if ($overviewLowStockTotal > 0) {
         'workspace_id' => $overviewPrimaryInventoryWorkspaceId,
     ];
 }
+if ($overviewOpenTaskTotal > 0 && $overviewTasksTodayTotal === 0 && $overviewTasksTomorrowTotal === 0) {
+    $overviewOpenActions[] = [
+        'view' => 'tasks',
+        'label' => 'Ver tarefas',
+        'workspace_id' => $overviewPrimaryTasksWorkspaceId,
+    ];
+}
 $overviewPrimaryAction = $overviewOpenActions[0] ?? null;
 
-$overviewAttentionLimit = 6;
+$overviewAttentionLimit = 4;
 $overviewAttentionItems = [];
 $overviewSeenAttentionKeys = [];
 $appendOverviewAttention = static function (array $item) use (&$overviewAttentionItems, &$overviewSeenAttentionKeys): void {
@@ -241,6 +251,25 @@ if (empty($overviewAttentionItems)) {
     }
 }
 
+if (count($overviewAttentionItems) < $overviewAttentionLimit) {
+    foreach ($overviewOpenTasks as $overviewOpenTask) {
+        if (count($overviewAttentionItems) >= $overviewAttentionLimit) {
+            break;
+        }
+
+        $openTaskPriority = normalizeTaskPriority((string) ($overviewOpenTask['priority'] ?? 'medium'));
+        $openTaskDueLabel = trim((string) ($overviewOpenTask['due_date_display'] ?? ''));
+        $openTaskKicker = $openTaskDueLabel !== '' && mb_strtolower($openTaskDueLabel) !== 'sem prazo'
+            ? $openTaskDueLabel
+            : 'Em aberto';
+        $appendOverviewTask(
+            $overviewOpenTask,
+            $openTaskKicker,
+            ($openTaskPriority === 'high' || $openTaskPriority === 'urgent') ? 'attention' : 'stable'
+        );
+    }
+}
+
 $overviewAttentionItems = array_slice($overviewAttentionItems, 0, $overviewAttentionLimit);
 
 $overviewWorkspaceTitle = ($overviewCriticalWorkspaceTotal + $overviewAttentionWorkspaceTotal) > 0
@@ -258,7 +287,7 @@ $overviewWorkspaceTitle = ($overviewCriticalWorkspaceTotal + $overviewAttentionW
         <div class="dashboard-brief-list-head">
             <div>
                 <h3><?= e($overviewListTitle) ?></h3>
-                <small>Até 6 itens, ordenados por urgência e prazo.</small>
+                <small>Até 4 itens, priorizando urgência, prazo e o que segue em aberto.</small>
             </div>
             <div class="dashboard-brief-head-actions">
                 <?php if (!empty($overviewAttentionItems)): ?>

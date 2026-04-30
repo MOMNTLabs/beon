@@ -65,7 +65,11 @@ $newWorkspaceStatusColorLabel = (string) ($workspaceStatusColorPalette[$newWorks
                         data-workspace-status-color-input
                         data-workspace-status-color-kind="<?= e($statusKind) ?>"
                     >
-                    <span class="workspace-status-tone workspace-status-tone-<?= e($statusKind) ?>" aria-hidden="true"></span>
+                    <span
+                        class="workspace-status-tone workspace-status-tone-<?= e($statusKind) ?>"
+                        aria-hidden="true"
+                        data-workspace-status-tone
+                    ></span>
                     <input
                         type="text"
                         name="status_labels[]"
@@ -92,6 +96,7 @@ $newWorkspaceStatusColorLabel = (string) ($workspaceStatusColorPalette[$newWorks
                             <span
                                 class="workspace-status-color-trigger-swatch"
                                 aria-hidden="true"
+                                data-workspace-status-color-current-swatch
                                 style="--workspace-status-option-color: <?= e($statusColor) ?>;"
                             ></span>
                             <span class="workspace-status-color-trigger-label" data-workspace-status-color-current-label>
@@ -206,6 +211,7 @@ $newWorkspaceStatusColorLabel = (string) ($workspaceStatusColorPalette[$newWorks
                             <span
                                 class="workspace-status-color-trigger-swatch"
                                 aria-hidden="true"
+                                data-workspace-status-color-current-swatch
                                 style="--workspace-status-option-color: <?= e($newWorkspaceStatusColor) ?>;"
                             ></span>
                             <span class="workspace-status-color-trigger-label" data-workspace-status-color-current-label>

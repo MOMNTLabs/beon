@@ -776,7 +776,15 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(control instanceof HTMLElement)) return;
     const normalizedColor = String(color || "").trim().toUpperCase();
     const safeColor = normalizedColor || "#6EA5E9";
+    const vars = getStatusStyleVars(safeColor, "in_progress");
     control.style.setProperty("--workspace-status-selected-color", safeColor);
+
+    const currentSwatch = control.querySelector("[data-workspace-status-color-current-swatch]");
+    if (currentSwatch instanceof HTMLElement) {
+      currentSwatch.style.setProperty("--workspace-status-option-color", vars.color);
+      currentSwatch.style.backgroundColor = vars.color;
+      currentSwatch.style.boxShadow = "0 0 0 2px rgba(255, 255, 255, 0.86)";
+    }
 
     const currentLabel = control.querySelector("[data-workspace-status-color-current-label]");
     if (currentLabel instanceof HTMLElement) {
@@ -809,6 +817,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const syncWorkspaceStatusRowColor = (input) => {
     if (!isWorkspaceStatusColorInput(input)) return;
+    const scope = input.closest("[data-workspace-status-row], [data-workspace-status-create-row]");
     const row = input.closest("[data-workspace-status-row]");
     const statusKind =
       row instanceof HTMLElement
@@ -818,13 +827,23 @@ window.addEventListener("DOMContentLoaded", () => {
     const color = normalizeStatusColorValue(input.value, statusKind);
     input.value = color;
 
-    const colorControl = input.closest("[data-workspace-status-color-control]");
+    const colorControl =
+      input.closest("[data-workspace-status-color-control]") ||
+      (scope instanceof HTMLElement
+        ? scope.querySelector("[data-workspace-status-color-control]")
+        : null);
     if (colorControl instanceof HTMLElement) {
       syncWorkspaceStatusColorControlState(colorControl, color);
     }
 
     if (row instanceof HTMLElement) {
       applyStatusStyleVars(row, color, statusKind);
+      const tone = row.querySelector("[data-workspace-status-tone]");
+      if (tone instanceof HTMLElement) {
+        const vars = getStatusStyleVars(color, statusKind);
+        tone.style.backgroundColor = vars.color;
+        tone.style.boxShadow = `0 0 0 3px rgba(${vars.rgb}, 0.14)`;
+      }
 
       const hiddenInput = row.querySelector("[data-workspace-status-color-hidden]");
       if (hiddenInput instanceof HTMLInputElement) {
@@ -5707,10 +5726,10 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const form = target.closest("[data-task-autosave-form]");
-    if (!form) return;
+    if (!(form instanceof HTMLFormElement)) return;
 
     if (target.matches('.row-assignee-picker input[type="checkbox"]')) {
-      form.dataset.assigneeDirty = "1";
+      scheduleTaskAutosave(form, 120);
       return;
     }
 
@@ -5730,24 +5749,30 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.querySelectorAll(".row-assignee-picker").forEach((picker) => {
-    picker.addEventListener("toggle", () => {
-      if (picker.open) return;
-      const form = picker.closest("[data-task-autosave-form]");
-      if (!form || form.dataset.assigneeDirty !== "1") return;
-      delete form.dataset.assigneeDirty;
-      scheduleTaskAutosave(form, 120);
-    });
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const form = target.closest("[data-task-autosave-form]");
+    if (!(form instanceof HTMLFormElement)) return;
+
+    if (target.matches('input[type="text"], textarea')) {
+      scheduleTaskAutosave(form, 420);
+    }
+  });
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.matches("[data-task-autosave-form]")) {
+      return;
+    }
+    event.preventDefault();
+    submitTaskAutosave(form);
   });
 
   document.querySelectorAll("[data-task-autosave-form]").forEach((form) => {
     syncTaskOverdueBadge(form);
     syncTaskRevisionBadge(form);
     syncTaskRowSubtasksFromField(form);
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      submitTaskAutosave(form);
-    });
   });
 
   document.querySelectorAll("[data-group-rename-form]").forEach((form) => {

@@ -31,6 +31,7 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
         'balance_month_movement_display' => dueAmountLabelFromSignedCents(0),
         'tasks_today' => [],
         'tasks_tomorrow' => [],
+        'open_tasks' => [],
         'due_soon' => [],
         'low_stock' => [],
         'workspace_summaries' => [],
@@ -120,9 +121,7 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
             }
 
             $dueDate = dueDateForStorage((string) ($workspaceTask['due_date'] ?? ''));
-            if ($dueDate !== $overviewTodayIso && $dueDate !== $overviewTomorrowIso) {
-                continue;
-            }
+            $duePresentation = taskDueDatePresentation($dueDate);
 
             $taskOverviewItem = [
                 'workspace_id' => $workspaceOptionId,
@@ -132,7 +131,16 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
                 'group_name' => normalizeTaskGroupName((string) ($workspaceTask['group_name'] ?? 'Geral')),
                 'priority' => $priorityKey,
                 'priority_label' => $priorityLabels[$priorityKey] ?? 'Media',
+                'due_date' => $dueDate,
+                'due_date_display' => (string) ($duePresentation['display'] ?? ''),
+                'due_date_title' => (string) ($duePresentation['title'] ?? ''),
             ];
+
+            $globalDashboardOverview['open_tasks'][] = $taskOverviewItem;
+
+            if ($dueDate !== $overviewTodayIso && $dueDate !== $overviewTomorrowIso) {
+                continue;
+            }
 
             if ($dueDate === $overviewTodayIso) {
                 if ($priorityKey === 'urgent') {
@@ -431,6 +439,33 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
         }
     );
 
+    usort(
+        $globalDashboardOverview['open_tasks'],
+        static function (array $a, array $b) use ($priorityOrder): int {
+            $priorityA = $priorityOrder[normalizeTaskPriority((string) ($a['priority'] ?? 'medium'))] ?? 99;
+            $priorityB = $priorityOrder[normalizeTaskPriority((string) ($b['priority'] ?? 'medium'))] ?? 99;
+            if ($priorityA !== $priorityB) {
+                return $priorityA <=> $priorityB;
+            }
+
+            $dueA = dueDateForStorage((string) ($a['due_date'] ?? '')) ?? '9999-12-31';
+            $dueB = dueDateForStorage((string) ($b['due_date'] ?? '')) ?? '9999-12-31';
+            if ($dueA !== $dueB) {
+                return strcmp($dueA, $dueB);
+            }
+
+            $workspaceCompare = strcasecmp(
+                (string) ($a['workspace_name'] ?? ''),
+                (string) ($b['workspace_name'] ?? '')
+            );
+            if ($workspaceCompare !== 0) {
+                return $workspaceCompare;
+            }
+
+            return strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? ''));
+        }
+    );
+
     $globalDashboardOverview['tasks_today_total'] = count($globalDashboardOverview['tasks_today']);
     $globalDashboardOverview['tasks_tomorrow_total'] = count($globalDashboardOverview['tasks_tomorrow']);
     $globalDashboardOverview['urgent_tasks_today_total'] = count(array_filter(
@@ -500,6 +535,7 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
 
     $globalDashboardOverview['tasks_today'] = array_slice($globalDashboardOverview['tasks_today'], 0, 8);
     $globalDashboardOverview['tasks_tomorrow'] = array_slice($globalDashboardOverview['tasks_tomorrow'], 0, 8);
+    $globalDashboardOverview['open_tasks'] = array_slice($globalDashboardOverview['open_tasks'], 0, 16);
     $globalDashboardOverview['due_soon'] = array_slice($globalDashboardOverview['due_soon'], 0, 8);
     $globalDashboardOverview['low_stock'] = array_slice($globalDashboardOverview['low_stock'], 0, 8);
 
