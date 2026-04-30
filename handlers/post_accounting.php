@@ -5,7 +5,30 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
 {
     switch ($action) {
             case 'set_accounting_opening_balance':
-                throw new RuntimeException('O saldo atual e calculado automaticamente pelo fechamento do mes anterior.');
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                }
+
+                $periodKey = normalizeAccountingPeriodKey((string) ($_POST['period_key'] ?? ''));
+                setWorkspaceAccountingOpeningBalance(
+                    $pdo,
+                    $workspaceId,
+                    $periodKey,
+                    $_POST['opening_balance_value'] ?? null,
+                    (int) ($authUser['id'] ?? 0)
+                );
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => 'Saldo inicial atualizado.',
+                    ]);
+                }
+
+                flash('success', 'Saldo inicial atualizado.');
+                redirectTo(accountingRedirectPathFromRequest());
 
             case 'create_accounting_entry':
                 $authUser = requireAuth();
@@ -18,22 +41,36 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $entryType = normalizeAccountingEntryType((string) ($_POST['entry_type'] ?? 'expense'));
                 $isSettled = array_key_exists('is_settled', $_POST) ? 1 : 0;
                 $isInstallment = $entryType === 'expense' && ((string) ($_POST['is_installment'] ?? '0')) === '1' ? 1 : 0;
+                $isMonthlyDue = $entryType === 'expense' && ((string) ($_POST['is_monthly_due'] ?? '0')) === '1' ? 1 : 0;
 
-                createWorkspaceAccountingEntry(
-                    $pdo,
-                    $workspaceId,
-                    $periodKey,
-                    $entryType,
-                    (string) ($_POST['label'] ?? ''),
-                    $_POST['amount_value'] ?? null,
-                    $isSettled,
-                    (int) ($authUser['id'] ?? 0),
-                    $isInstallment,
-                    accountingInstallmentProgressFromRequest($_POST),
-                    $_POST['total_amount_value'] ?? null,
-                    $_POST['installment_number'] ?? null,
-                    $_POST['installment_total'] ?? null
-                );
+                if ($isMonthlyDue === 1) {
+                    createWorkspaceAccountingMonthlyDue(
+                        $pdo,
+                        $workspaceId,
+                        $periodKey,
+                        (string) ($_POST['label'] ?? ''),
+                        $_POST['amount_value'] ?? null,
+                        $isSettled,
+                        (int) ($authUser['id'] ?? 0),
+                        $_POST['monthly_day'] ?? null
+                    );
+                } else {
+                    createWorkspaceAccountingEntry(
+                        $pdo,
+                        $workspaceId,
+                        $periodKey,
+                        $entryType,
+                        (string) ($_POST['label'] ?? ''),
+                        $_POST['amount_value'] ?? null,
+                        $isSettled,
+                        (int) ($authUser['id'] ?? 0),
+                        $isInstallment,
+                        accountingInstallmentProgressFromRequest($_POST),
+                        $_POST['total_amount_value'] ?? null,
+                        $_POST['installment_number'] ?? null,
+                        $_POST['installment_total'] ?? null
+                    );
+                }
 
                 if (requestExpectsJson()) {
                     respondJson([
@@ -73,7 +110,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $isSettled = array_key_exists('is_settled', $_POST) ? 1 : 0;
                 $entryType = normalizeAccountingEntryType((string) ($entryRow['entry_type'] ?? 'expense'));
                 $isInstallment = $entryType === 'expense' && ((string) ($_POST['is_installment'] ?? '0')) === '1' ? 1 : 0;
-                updateWorkspaceAccountingEntry(
+                updateWorkspaceAccountingEntryWithCarrySync(
                     $pdo,
                     $workspaceId,
                     $entryId,
@@ -84,7 +121,8 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                     accountingInstallmentProgressFromRequest($_POST),
                     $_POST['total_amount_value'] ?? null,
                     $_POST['installment_number'] ?? null,
-                    $_POST['installment_total'] ?? null
+                    $_POST['installment_total'] ?? null,
+                    $_POST['monthly_day'] ?? null
                 );
 
                 if (requestExpectsJson()) {
@@ -121,7 +159,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Registro não encontrado.');
                 }
 
-                deleteWorkspaceAccountingEntry($pdo, $workspaceId, $entryId);
+                deleteWorkspaceAccountingEntryWithCarrySync($pdo, $workspaceId, $entryId);
 
                 if (requestExpectsJson()) {
                     respondJson([

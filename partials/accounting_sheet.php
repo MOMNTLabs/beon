@@ -26,6 +26,10 @@
                                         ? ('Parcela ' . $accountingEntryInstallmentProgress)
                                         : 'Parcela';
                                     $accountingEntryIsCarried = ((int) ($accountingEntry['is_carried'] ?? 0)) === 1;
+                                    $accountingEntrySourceDueId = (int) ($accountingEntry['source_due_entry_id'] ?? 0);
+                                    $accountingEntryIsMonthlyDue = $accountingEntrySourceDueId > 0;
+                                    $accountingEntryMonthlyDay = normalizeDueMonthlyDay($accountingEntry['source_due_monthly_day'] ?? null);
+                                    $accountingEntryDueDateDisplay = (string) ($accountingEntry['due_date_display'] ?? '');
                                     ?>
                                     <div class="accounting-entry-row">
                                         <form method="post" class="accounting-entry-form" data-accounting-form>
@@ -42,7 +46,18 @@
                                                 placeholder="Nome da conta"
                                                 required
                                             >
-                                            <?php if ($accountingEntryIsInstallment): ?>
+                                            <?php if ($accountingEntryIsMonthlyDue && $accountingEntryMonthlyDay !== null): ?>
+                                                <label class="accounting-entry-badge is-monthly accounting-entry-badge-inline accounting-entry-badge-select">
+                                                    <span>Mensal</span>
+                                                    <select name="monthly_day" class="accounting-entry-badge-select-control" aria-label="Dia do vencimento mensal">
+                                                        <?php for ($monthlyDayOption = 1; $monthlyDayOption <= 31; $monthlyDayOption++): ?>
+                                                            <option value="<?= e((string) $monthlyDayOption) ?>" <?= $monthlyDayOption === $accountingEntryMonthlyDay ? 'selected' : '' ?>>
+                                                                <?= e(str_pad((string) $monthlyDayOption, 2, '0', STR_PAD_LEFT)) ?>
+                                                            </option>
+                                                        <?php endfor; ?>
+                                                    </select>
+                                                </label>
+                                            <?php elseif ($accountingEntryIsInstallment): ?>
                                                 <button
                                                     type="button"
                                                     class="accounting-entry-badge is-installment accounting-entry-badge-inline"
@@ -67,7 +82,10 @@
                                                     <input type="checkbox" name="is_settled" value="1" <?= $accountingEntryIsSettled ? 'checked' : '' ?>>
                                                     <span>Pago</span>
                                                 </label>
-                                                <?php if ($accountingEntryIsCarried && !$accountingEntryIsSettled): ?>
+                                                <?php if ($accountingEntryDueDateDisplay !== ''): ?>
+                                                    <span class="accounting-entry-badge is-due-date">Vence <?= e($accountingEntryDueDateDisplay) ?></span>
+                                                <?php endif; ?>
+                                                <?php if ($accountingEntryIsCarried && !$accountingEntryIsSettled && !$accountingEntryIsInstallment): ?>
                                                     <span class="accounting-entry-badge is-pending">Pendente</span>
                                                 <?php endif; ?>
                                             </div>
@@ -86,6 +104,10 @@
                                                 name="total_amount_value"
                                                 value="<?= e($accountingEntryTotalAmountInput) ?>"
                                             >
+                                            <input type="hidden" name="is_monthly_due" value="<?= $accountingEntryIsMonthlyDue ? '1' : '0' ?>">
+                                            <?php if (!$accountingEntryIsMonthlyDue): ?>
+                                                <input type="hidden" name="monthly_day" value="">
+                                            <?php endif; ?>
                                         </form>
                                         <form method="post" class="accounting-entry-delete-form">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
@@ -139,6 +161,15 @@
                                             >
                                             <span>Parcelado</span>
                                         </label>
+                                        <label class="accounting-check accounting-check-monthly">
+                                            <input
+                                                type="checkbox"
+                                                name="is_monthly_due"
+                                                value="1"
+                                                data-accounting-monthly-toggle
+                                            >
+                                            <span>Conta mensal</span>
+                                        </label>
                                         <div class="accounting-installment-fields" data-accounting-installment-fields hidden>
                                             <div class="accounting-installment-progress-picker">
                                                 <select
@@ -177,6 +208,22 @@
                                                 data-accounting-installment-total-amount
                                                 disabled
                                             >
+                                        </div>
+                                        <div class="accounting-monthly-fields" data-accounting-monthly-fields hidden>
+                                            <span class="accounting-entry-inline-label">Vence no dia</span>
+                                            <select
+                                                name="monthly_day"
+                                                class="accounting-installment-select accounting-monthly-day-select"
+                                                aria-label="Dia do vencimento mensal"
+                                                data-accounting-monthly-day
+                                                disabled
+                                            >
+                                                <?php for ($monthlyDayOption = 1; $monthlyDayOption <= 31; $monthlyDayOption++): ?>
+                                                    <option value="<?= e((string) $monthlyDayOption) ?>" <?= $monthlyDayOption === 1 ? 'selected' : '' ?>>
+                                                        <?= e(str_pad((string) $monthlyDayOption, 2, '0', STR_PAD_LEFT)) ?>
+                                                    </option>
+                                                <?php endfor; ?>
+                                            </select>
                                         </div>
                                     </div>
                                     <div class="accounting-create-actions">
@@ -357,13 +404,31 @@
                 </div>
 
                 <section class="accounting-balance-card">
+                    <form method="post" class="accounting-opening-balance-form" data-accounting-form>
+                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                        <input type="hidden" name="action" value="set_accounting_opening_balance">
+                        <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
+                        <label class="accounting-opening-balance-field">
+                            <span>Saldo inicial</span>
+                            <input
+                                type="text"
+                                name="opening_balance_value"
+                                value="<?= e((string) ($accountingSummary['opening_balance_display'] ?? 'R$ 0,00')) ?>"
+                                class="accounting-input accounting-input-amount"
+                                placeholder="0,00"
+                                data-accounting-allow-negative="1"
+                                required
+                            >
+                        </label>
+                        <button type="submit" class="btn btn-mini">Salvar saldo</button>
+                    </form>
                     <dl class="accounting-balance-values">
                         <div>
                             <dt>Saldo atual</dt>
                             <dd><?= e((string) ($accountingSummary['current_balance_display'] ?? 'R$ 0,00')) ?></dd>
                         </div>
                         <div class="is-final">
-                            <dt>Saldo final</dt>
+                            <dt>Saldo projetado</dt>
                             <dd><?= e((string) ($accountingSummary['final_balance_display'] ?? 'R$ 0,00')) ?></dd>
                         </div>
                     </dl>

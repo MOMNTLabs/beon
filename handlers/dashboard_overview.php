@@ -252,8 +252,8 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
             $overviewAccountingPeriod
         );
         $workspaceAccountingSummary = accountingSummary($workspaceAccountingEntries, $workspaceAccountingOpeningBalance);
+        $workspaceMonthMovementCents = (int) ($workspaceAccountingSummary['month_movement_cents'] ?? 0);
         $workspaceCurrentBalanceCents = (int) ($workspaceAccountingSummary['current_balance_cents'] ?? 0);
-        $workspaceFinalBalanceCents = (int) ($workspaceAccountingSummary['final_balance_cents'] ?? 0);
 
         $globalDashboardOverview['tasks_today'] = array_merge(
             $globalDashboardOverview['tasks_today'],
@@ -271,8 +271,8 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
             $globalDashboardOverview['low_stock'],
             $workspaceLowStockEntries
         );
-        $globalDashboardOverview['balance_month_movement_cents'] += $workspaceCurrentBalanceCents;
-        $globalDashboardOverview['balance_total_cents'] += $workspaceFinalBalanceCents;
+        $globalDashboardOverview['balance_month_movement_cents'] += $workspaceMonthMovementCents;
+        $globalDashboardOverview['balance_total_cents'] += $workspaceCurrentBalanceCents;
 
         $workspaceAttentionScore = ($workspaceUrgentTasksTodayCount * 4)
             + ($workspaceDueTodayCount * 4)
@@ -325,10 +325,10 @@ function buildGlobalDashboardOverview(?array $currentUser, array $userWorkspaces
             'attention_tone' => $workspaceAttentionTone,
             'attention_label' => $workspaceAttentionLabel,
             'attention_note' => $workspaceAttentionNote,
-            'month_movement_cents' => $workspaceCurrentBalanceCents,
-            'month_movement_display' => dueAmountLabelFromSignedCents($workspaceCurrentBalanceCents),
-            'balance_total_cents' => $workspaceFinalBalanceCents,
-            'balance_total_display' => dueAmountLabelFromSignedCents($workspaceFinalBalanceCents),
+            'month_movement_cents' => $workspaceMonthMovementCents,
+            'month_movement_display' => dueAmountLabelFromSignedCents($workspaceMonthMovementCents),
+            'balance_total_cents' => $workspaceCurrentBalanceCents,
+            'balance_total_display' => dueAmountLabelFromSignedCents($workspaceCurrentBalanceCents),
         ];
     }
 

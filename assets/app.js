@@ -5112,11 +5112,16 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const parseAccountingCurrencyToCents = (value) => {
+  const parseAccountingCurrencyToCents = (value, { allowNegative = false } = {}) => {
     const rawValue = String(value || "").trim();
     if (!rawValue) return null;
 
     let normalized = rawValue.replace(/R\$\s*/gi, "").replace(/\s+/g, "");
+    let isNegative = false;
+    if (normalized.startsWith("-") || normalized.startsWith("+")) {
+      isNegative = normalized.startsWith("-");
+      normalized = normalized.slice(1);
+    }
     if (normalized.includes(",")) {
       if (normalized.includes(".")) {
         normalized = normalized.replace(/\./g, "");
@@ -5131,16 +5136,21 @@ window.addEventListener("DOMContentLoaded", () => {
     const [integerPart = "0", decimalPartRaw = ""] = normalized.split(".", 2);
     const decimalPart = `${decimalPartRaw}00`.slice(0, 2);
     const cents = Number.parseInt(integerPart, 10) * 100 + Number.parseInt(decimalPart, 10);
-    return Number.isFinite(cents) && cents >= 0 ? cents : null;
+    if (!Number.isFinite(cents) || cents < 0) return null;
+    if (isNegative && !allowNegative) return null;
+    return isNegative ? -cents : cents;
   };
 
-  const formatAccountingCentsToInputValue = (value) => {
+  const formatAccountingCentsToInputValue = (value, { allowNegative = false } = {}) => {
     const parsed = Number.parseInt(String(value || "").trim(), 10);
-    if (!Number.isFinite(parsed) || parsed < 0) return "";
-    return `R$ ${new Intl.NumberFormat("pt-BR", {
+    if (!Number.isFinite(parsed)) return "";
+    if (parsed < 0 && !allowNegative) return "";
+
+    const absoluteValue = Math.abs(parsed);
+    return `${parsed < 0 ? "-R$ " : "R$ "}${new Intl.NumberFormat("pt-BR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(parsed / 100)}`;
+    }).format(absoluteValue / 100)}`;
   };
 
   const normalizeAccountingCurrencyInputField = (field) => {
@@ -5148,9 +5158,10 @@ window.addEventListener("DOMContentLoaded", () => {
     const rawValue = String(field.value || "").trim();
     if (!rawValue) return;
 
-    const cents = parseAccountingCurrencyToCents(rawValue);
+    const allowNegative = field.dataset.accountingAllowNegative === "1";
+    const cents = parseAccountingCurrencyToCents(rawValue, { allowNegative });
     if (cents === null) return;
-    field.value = formatAccountingCentsToInputValue(cents);
+    field.value = formatAccountingCentsToInputValue(cents, { allowNegative });
   };
 
   const calculateAccountingInstallmentAmountCents = (
@@ -5178,6 +5189,9 @@ window.addEventListener("DOMContentLoaded", () => {
     const installmentTotalCountField = form.querySelector("[data-accounting-installment-total-count]");
     const totalAmountField = form.querySelector("[data-accounting-installment-total-amount]");
     const primaryAmountField = form.querySelector("[data-accounting-primary-amount]");
+    const monthlyToggle = form.querySelector("[data-accounting-monthly-toggle]");
+    const monthlyFields = form.querySelector("[data-accounting-monthly-fields]");
+    const monthlyDayField = form.querySelector("[data-accounting-monthly-day]");
 
     if (!(installmentToggle instanceof HTMLInputElement)) return;
     if (!(installmentFields instanceof HTMLElement)) return;
@@ -5187,6 +5201,14 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(totalAmountField instanceof HTMLInputElement)) return;
     if (!(primaryAmountField instanceof HTMLInputElement)) return;
 
+    const isMonthlyDue = monthlyToggle instanceof HTMLInputElement && monthlyToggle.checked;
+    if (monthlyToggle instanceof HTMLInputElement) {
+      installmentToggle.disabled = isMonthlyDue;
+      if (isMonthlyDue) {
+        installmentToggle.checked = false;
+      }
+    }
+
     const isInstallment = installmentToggle.checked;
     installmentFields.hidden = !isInstallment;
     installmentProgressField.disabled = !isInstallment;
@@ -5195,6 +5217,22 @@ window.addEventListener("DOMContentLoaded", () => {
     totalAmountField.disabled = !isInstallment;
     totalAmountField.required = isInstallment;
     primaryAmountField.readOnly = isInstallment;
+    if (monthlyFields instanceof HTMLElement) {
+      monthlyFields.hidden = !isMonthlyDue;
+    }
+    if (monthlyDayField instanceof HTMLSelectElement) {
+      monthlyDayField.disabled = !isMonthlyDue;
+      monthlyDayField.required = isMonthlyDue;
+      if (isMonthlyDue && !String(monthlyDayField.value || "").trim()) {
+        monthlyDayField.value = String(new Date().getDate());
+      }
+    }
+    if (monthlyToggle instanceof HTMLInputElement) {
+      monthlyToggle.disabled = isInstallment;
+      if (isInstallment) {
+        monthlyToggle.checked = false;
+      }
+    }
 
     let installmentTotal = Number.parseInt(installmentTotalCountField.value, 10);
     if (!Number.isFinite(installmentTotal) || installmentTotal < 2) {
@@ -5332,7 +5370,7 @@ window.addEventListener("DOMContentLoaded", () => {
       return await submitAccountingActionForm(form, {
         ...options,
         showSuccess: false,
-        refresh: false,
+        refresh: true,
       });
     } finally {
       if (form.isConnected && form.dataset.accountingPending === "1") {
@@ -12793,7 +12831,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (
       accountingEntryForm instanceof HTMLFormElement &&
       isAccountingEntryField &&
-      ["label", "amount_value", "is_settled"].includes(target.name)
+      ["label", "amount_value", "is_settled", "monthly_day"].includes(target.name)
     ) {
       syncAccountingInstallmentForm(accountingEntryForm);
       scheduleAccountingAutosave(accountingEntryForm, target instanceof HTMLInputElement && target.type === "checkbox" ? 120 : 240, {
@@ -12808,8 +12846,20 @@ window.addEventListener("DOMContentLoaded", () => {
     if (
       accountingCreateForm instanceof HTMLFormElement &&
       isAccountingCreateField &&
-      ["is_installment", "installment_number", "installment_total", "total_amount_value", "amount_value"].includes(target.name)
+      ["is_installment", "is_monthly_due", "installment_number", "installment_total", "total_amount_value", "amount_value", "monthly_day"].includes(target.name)
     ) {
+      if (target.name === "is_installment" && target instanceof HTMLInputElement && target.checked) {
+        const monthlyToggle = accountingCreateForm.querySelector("[data-accounting-monthly-toggle]");
+        if (monthlyToggle instanceof HTMLInputElement) {
+          monthlyToggle.checked = false;
+        }
+      }
+      if (target.name === "is_monthly_due" && target instanceof HTMLInputElement && target.checked) {
+        const installmentToggle = accountingCreateForm.querySelector("[data-accounting-installment-toggle]");
+        if (installmentToggle instanceof HTMLInputElement) {
+          installmentToggle.checked = false;
+        }
+      }
       syncAccountingInstallmentForm(accountingCreateForm);
       return;
     }
@@ -12848,14 +12898,14 @@ window.addEventListener("DOMContentLoaded", () => {
     const target = getEventTargetElement(event);
     if (!(target instanceof HTMLInputElement)) return;
 
-    if (["amount_value", "total_amount_value"].includes(target.name)) {
+    if (["amount_value", "total_amount_value", "opening_balance_value"].includes(target.name)) {
       normalizeAccountingCurrencyInputField(target);
     }
 
     const accountingEntryForm = target.closest(".accounting-entry-form");
     if (
       accountingEntryForm instanceof HTMLFormElement &&
-      ["label", "amount_value"].includes(target.name)
+      ["label", "amount_value", "monthly_day"].includes(target.name)
     ) {
       syncAccountingInstallmentForm(accountingEntryForm);
       scheduleAccountingAutosave(accountingEntryForm, 160, {
@@ -12960,13 +13010,30 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if (form.matches(".accounting-opening-balance-form")) {
+      event.preventDefault();
+      const openingBalanceField = form.querySelector('input[name="opening_balance_value"]');
+      if (openingBalanceField instanceof HTMLInputElement) {
+        normalizeAccountingCurrencyInputField(openingBalanceField);
+      }
+      if (typeof form.reportValidity === "function" && !form.reportValidity()) {
+        return;
+      }
+      void submitAccountingActionForm(form, {
+        successMessage: "Saldo inicial atualizado.",
+        fallbackError: "Falha ao atualizar saldo inicial.",
+        refresh: true,
+      }).catch(() => {});
+      return;
+    }
+
   });
 
   document.querySelectorAll("[data-accounting-form]").forEach((form) => {
     if (!(form instanceof HTMLFormElement)) return;
     syncAccountingInstallmentForm(form);
     form
-      .querySelectorAll('input[name="amount_value"], input[name="total_amount_value"]')
+      .querySelectorAll('input[name="amount_value"], input[name="total_amount_value"], input[name="opening_balance_value"]')
       .forEach((field) => {
         if (field instanceof HTMLInputElement) {
           normalizeAccountingCurrencyInputField(field);

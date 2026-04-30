@@ -287,7 +287,6 @@ $overviewWorkspaceTitle = ($overviewCriticalWorkspaceTotal + $overviewAttentionW
         <div class="dashboard-brief-list-head">
             <div>
                 <h3><?= e($overviewListTitle) ?></h3>
-                <small>Até 4 itens, priorizando urgência, prazo e o que segue em aberto.</small>
             </div>
             <div class="dashboard-brief-head-actions">
                 <?php if (!empty($overviewAttentionItems)): ?>

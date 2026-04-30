@@ -12388,6 +12388,17 @@ select option:checked,
     flex-wrap: wrap;
 }
 
+.accounting-monthly-fields {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.accounting-monthly-fields[hidden] {
+    display: none !important;
+}
+
 .accounting-installment-fields {
     display: flex;
     align-items: center;
@@ -12400,6 +12411,10 @@ select option:checked,
 }
 
 .accounting-check-installment {
+    justify-content: flex-start;
+}
+
+.accounting-check-monthly {
     justify-content: flex-start;
 }
 
@@ -12526,11 +12541,43 @@ select option:checked,
     color: #4a4a8c;
 }
 
+.accounting-entry-badge.is-monthly {
+    border-color: rgba(84, 146, 109, 0.48);
+    background: rgba(125, 197, 152, 0.16);
+    color: #2f6a46;
+}
+
+.accounting-entry-badge.is-due-date {
+    border-color: rgba(61, 120, 187, 0.42);
+    background: rgba(121, 181, 241, 0.12);
+    color: #2f5d8f;
+}
+
 .accounting-entry-badge[data-accounting-entry-edit] {
     cursor: pointer;
     font-family: inherit;
     line-height: 1;
     appearance: none;
+}
+
+.accounting-entry-badge-select {
+    gap: 6px;
+    padding-right: 6px;
+}
+
+.accounting-entry-badge-select-control {
+    min-height: 22px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0 2px;
+}
+
+.accounting-entry-badge-select-control:focus {
+    outline: none;
 }
 
 .accounting-entry-badge.is-installment[data-accounting-entry-edit]:hover,
@@ -12621,6 +12668,29 @@ select option:checked,
     border: 1px solid rgba(133, 178, 225, 0.72);
     background: #f3f8ff;
     padding: 10px;
+}
+
+.accounting-opening-balance-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: end;
+    margin-bottom: 10px;
+}
+
+.accounting-opening-balance-field {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.accounting-opening-balance-field > span {
+    color: #617893;
+    font-size: 0.8rem;
+}
+
+.accounting-opening-balance-form .accounting-input {
+    width: 100%;
 }
 
 .accounting-balance-values {
@@ -12727,6 +12797,10 @@ select option:checked,
     }
 
     .accounting-balance-values {
+        grid-template-columns: 1fr;
+    }
+
+    .accounting-opening-balance-form {
         grid-template-columns: 1fr;
     }
 }
@@ -13124,6 +13198,11 @@ select option:checked,
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-balance-values dd {
         font-size: 0.92rem;
+    }
+
+    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-form {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px;
     }
 
     .is-dashboard .tasklist-layout > .tasklist-wrap,
