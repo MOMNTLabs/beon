@@ -5305,10 +5305,20 @@ function workspaceVaultEntriesList(?int $workspaceId = null): array
         $row['created_by'] = isset($row['created_by']) ? (int) $row['created_by'] : null;
         $row['label'] = normalizeVaultEntryLabel((string) ($row['label'] ?? ''));
         $row['login_value'] = normalizeVaultFieldValue((string) ($row['login_value'] ?? ''), 220);
-        $row['password_value'] = normalizeVaultFieldValue(
-            vaultDecryptSecret((string) ($row['password_value'] ?? '')),
-            220
-        );
+        $row['password_unavailable'] = 0;
+        try {
+            $passwordValue = vaultDecryptSecret((string) ($row['password_value'] ?? ''));
+        } catch (Throwable $e) {
+            error_log(sprintf(
+                'Vault secret decrypt failed for entry %d in workspace %d: %s',
+                (int) ($row['id'] ?? 0),
+                (int) ($row['workspace_id'] ?? 0),
+                $e->getMessage()
+            ));
+            $passwordValue = '';
+            $row['password_unavailable'] = 1;
+        }
+        $row['password_value'] = normalizeVaultFieldValue($passwordValue, 220);
         $row['group_name'] = normalizeVaultGroupName((string) ($row['group_name'] ?? 'Geral'));
         $row['notes'] = trim((string) ($row['notes'] ?? ''));
     }
@@ -5589,7 +5599,8 @@ function updateWorkspaceVaultEntry(
     string $label,
     string $loginValue,
     string $passwordValue,
-    string $groupName = 'Geral'
+    string $groupName = 'Geral',
+    bool $preserveStoredPasswordWhenBlank = false
 ): void {
     if ($workspaceId <= 0 || $entryId <= 0) {
         throw new RuntimeException('Registro inválido.');
@@ -5602,7 +5613,24 @@ function updateWorkspaceVaultEntry(
 
     $loginValue = normalizeVaultFieldValue($loginValue, 220);
     $passwordValue = normalizeVaultFieldValue($passwordValue, 220);
-    $storedPasswordValue = vaultEncryptSecret($passwordValue);
+    $storedPasswordValue = null;
+    if ($preserveStoredPasswordWhenBlank && $passwordValue === '') {
+        $currentPasswordStmt = $pdo->prepare(
+            'SELECT password_value
+             FROM workspace_vault_entries
+             WHERE id = :id
+               AND workspace_id = :workspace_id
+             LIMIT 1'
+        );
+        $currentPasswordStmt->execute([
+            ':id' => $entryId,
+            ':workspace_id' => $workspaceId,
+        ]);
+        $storedPasswordValue = (string) ($currentPasswordStmt->fetchColumn() ?: '');
+    }
+    if ($storedPasswordValue === null) {
+        $storedPasswordValue = vaultEncryptSecret($passwordValue);
+    }
     $groupName = normalizeVaultGroupName($groupName);
     upsertVaultGroup($pdo, $groupName, null, $workspaceId);
 

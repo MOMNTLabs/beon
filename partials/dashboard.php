@@ -1578,6 +1578,8 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     $vaultLabel = (string) ($vaultEntry['label'] ?? '');
                                     $vaultLogin = (string) ($vaultEntry['login_value'] ?? '');
                                     $vaultPassword = (string) ($vaultEntry['password_value'] ?? '');
+                                    $vaultPasswordUnavailable = !empty($vaultEntry['password_unavailable']);
+                                    $vaultCanUsePassword = !$vaultPasswordUnavailable && $vaultPassword !== '';
                                     $vaultGroupValue = (string) ($vaultEntry['group_name'] ?? $vaultGroupName);
                                     ?>
                                     <article
@@ -1587,6 +1589,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         data-entry-label="<?= e($vaultLabel) ?>"
                                         data-entry-login="<?= e($vaultLogin) ?>"
                                         data-entry-password="<?= e($vaultPassword) ?>"
+                                        data-entry-password-unavailable="<?= $vaultPasswordUnavailable ? '1' : '0' ?>"
                                         data-entry-group="<?= e($vaultGroupValue) ?>"
                                     >
                                         <form method="post" class="vault-entry-name-form" data-vault-entry-name-form>
@@ -1637,7 +1640,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                         class="vault-icon-button"
                                                         data-vault-toggle-password
                                                         aria-label="Mostrar senha"
-                                                        <?= $vaultPassword === '' ? 'disabled' : '' ?>
+                                                        <?= !$vaultCanUsePassword ? 'disabled' : '' ?>
                                                     >
                                                         <svg viewBox="0 0 24 24" aria-hidden="true">
                                                             <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path>
@@ -1649,7 +1652,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                         class="vault-icon-button"
                                                         data-vault-copy="<?= e($vaultPassword) ?>"
                                                         aria-label="Copiar senha"
-                                                        <?= $vaultPassword === '' ? 'disabled' : '' ?>
+                                                        <?= !$vaultCanUsePassword ? 'disabled' : '' ?>
                                                     >
                                                         <svg viewBox="0 0 24 24" aria-hidden="true">
                                                             <rect x="9" y="9" width="10" height="10" rx="2"></rect>
@@ -3214,6 +3217,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
             <input type="hidden" name="action" value="update_vault_entry">
             <input type="hidden" name="entry_id" value="" data-vault-entry-edit-id>
+            <input type="hidden" name="password_unavailable" value="0" data-vault-entry-edit-password-unavailable>
 
             <label>
                 <span>Grupo</span>

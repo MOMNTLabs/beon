@@ -322,7 +322,8 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                     (string) ($_POST['label'] ?? ''),
                     (string) ($_POST['login_value'] ?? ''),
                     (string) ($_POST['password_value'] ?? ''),
-                    $groupName
+                    $groupName,
+                    ((string) ($_POST['password_unavailable'] ?? '0')) === '1'
                 );
 
                 if (requestExpectsJson()) {
@@ -388,4 +389,3 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
         'delete_vault_entry',
     ], true);
 }
-

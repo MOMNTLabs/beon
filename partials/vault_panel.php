@@ -133,6 +133,8 @@
                                     $vaultLabel = (string) ($vaultEntry['label'] ?? '');
                                     $vaultLogin = (string) ($vaultEntry['login_value'] ?? '');
                                     $vaultPassword = (string) ($vaultEntry['password_value'] ?? '');
+                                    $vaultPasswordUnavailable = !empty($vaultEntry['password_unavailable']);
+                                    $vaultCanUsePassword = !$vaultPasswordUnavailable && $vaultPassword !== '';
                                     $vaultGroupValue = (string) ($vaultEntry['group_name'] ?? $vaultGroupName);
                                     ?>
                                     <article
@@ -142,6 +144,7 @@
                                         data-entry-label="<?= e($vaultLabel) ?>"
                                         data-entry-login="<?= e($vaultLogin) ?>"
                                         data-entry-password="<?= e($vaultPassword) ?>"
+                                        data-entry-password-unavailable="<?= $vaultPasswordUnavailable ? '1' : '0' ?>"
                                         data-entry-group="<?= e($vaultGroupValue) ?>"
                                     >
                                         <form method="post" class="vault-entry-name-form" data-vault-entry-name-form>
@@ -186,13 +189,13 @@
                                                     data-password-value="<?= e($vaultPassword) ?>"
                                                     data-visible="false"
                                                 >
-                                                    <span class="vault-entry-value-text" data-vault-password-text><?= $vaultPassword !== '' ? '********' : '-' ?></span>
+                                                    <span class="vault-entry-value-text" data-vault-password-text><?= $vaultPasswordUnavailable ? 'Indisponivel' : ($vaultCanUsePassword ? '********' : '-') ?></span>
                                                     <button
                                                         type="button"
                                                         class="vault-icon-button"
                                                         data-vault-toggle-password
                                                         aria-label="Mostrar senha"
-                                                        <?= $vaultPassword === '' ? 'disabled' : '' ?>
+                                                        <?= !$vaultCanUsePassword ? 'disabled' : '' ?>
                                                     >
                                                         <svg viewBox="0 0 24 24" aria-hidden="true">
                                                             <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path>
@@ -204,7 +207,7 @@
                                                         class="vault-icon-button"
                                                         data-vault-copy="<?= e($vaultPassword) ?>"
                                                         aria-label="Copiar senha"
-                                                        <?= $vaultPassword === '' ? 'disabled' : '' ?>
+                                                        <?= !$vaultCanUsePassword ? 'disabled' : '' ?>
                                                     >
                                                         <svg viewBox="0 0 24 24" aria-hidden="true">
                                                             <rect x="9" y="9" width="10" height="10" rx="2"></rect>

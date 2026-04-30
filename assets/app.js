@@ -6728,6 +6728,9 @@ window.addEventListener("DOMContentLoaded", () => {
   const vaultEntryEditLabelField = document.querySelector("[data-vault-entry-edit-label]");
   const vaultEntryEditLoginField = document.querySelector("[data-vault-entry-edit-login]");
   const vaultEntryEditPasswordField = document.querySelector("[data-vault-entry-edit-password]");
+  const vaultEntryEditPasswordUnavailableField = document.querySelector(
+    "[data-vault-entry-edit-password-unavailable]"
+  );
   const dueGroupModal = document.querySelector("[data-due-group-modal]");
   const dueGroupForm = document.querySelector("[data-due-group-form]");
   const dueGroupNameInput = document.querySelector("[data-due-group-name-input]");
@@ -10709,6 +10712,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const label = labelInput instanceof HTMLInputElement ? labelInput.value : (entryRow.dataset.entryLabel || "");
     const login = entryRow.dataset.entryLogin || "";
     const password = entryRow.dataset.entryPassword || "";
+    const passwordUnavailable = entryRow.dataset.entryPasswordUnavailable === "1";
     const groupName = entryRow.dataset.entryGroup || "";
 
     if (!(vaultEntryEditIdField instanceof HTMLInputElement)) return;
@@ -10722,6 +10726,12 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     if (vaultEntryEditPasswordField instanceof HTMLInputElement) {
       vaultEntryEditPasswordField.value = password;
+      vaultEntryEditPasswordField.placeholder = passwordUnavailable
+        ? "Informe uma nova senha para substituir"
+        : "";
+    }
+    if (vaultEntryEditPasswordUnavailableField instanceof HTMLInputElement) {
+      vaultEntryEditPasswordUnavailableField.value = passwordUnavailable ? "1" : "0";
     }
     if (vaultEntryEditGroupField instanceof HTMLSelectElement) {
       setVaultGroupSelectValue(vaultEntryEditGroupField, groupName);
