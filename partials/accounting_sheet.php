@@ -1,6 +1,6 @@
             <div class="accounting-sheet">
                 <div class="accounting-columns">
-                    <section class="accounting-card">
+                    <section class="accounting-card is-expense-card">
                         <header class="accounting-card-head">
                             <div class="accounting-card-head-text">
                                 <h3>Contas</h3>
@@ -246,7 +246,7 @@
                         </div>
                     </section>
 
-                    <section class="accounting-card">
+                    <section class="accounting-card is-income-card">
                         <header class="accounting-card-head">
                             <div class="accounting-card-head-text">
                                 <h3>Entradas</h3>
