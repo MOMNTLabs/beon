@@ -2776,7 +2776,7 @@ function tableHasColumn(PDO $pdo, string $table, string $column): bool
         $stmt = $pdo->prepare(
             'SELECT 1
              FROM information_schema.columns
-             WHERE table_schema = current_schema()
+             WHERE table_schema = ANY(current_schemas(false))
                AND table_name = :table
                AND column_name = :column
              LIMIT 1'
@@ -2799,6 +2799,72 @@ function tableHasColumn(PDO $pdo, string $table, string $column): bool
     }
 
     return false;
+}
+
+function workspaceAccountingSchemaCapabilities(PDO $pdo): array
+{
+    static $cache = [];
+
+    $cacheKey = spl_object_id($pdo);
+    if (isset($cache[$cacheKey])) {
+        return $cache[$cacheKey];
+    }
+
+    $capabilities = [
+        'source_due_entry_id' => tableHasColumn($pdo, 'workspace_accounting_entries', 'source_due_entry_id'),
+        'carry_source_entry_id' => tableHasColumn($pdo, 'workspace_accounting_entries', 'carry_source_entry_id'),
+    ];
+
+    if (!$capabilities['source_due_entry_id'] || !$capabilities['carry_source_entry_id']) {
+        try {
+            if (!$capabilities['source_due_entry_id']) {
+                if (dbDriverName($pdo) === 'pgsql') {
+                    $pdo->exec(
+                        'ALTER TABLE workspace_accounting_entries
+                         ADD COLUMN IF NOT EXISTS source_due_entry_id BIGINT DEFAULT NULL'
+                    );
+                } else {
+                    $pdo->exec(
+                        'ALTER TABLE workspace_accounting_entries
+                         ADD COLUMN source_due_entry_id INTEGER DEFAULT NULL'
+                    );
+                }
+            }
+
+            if (!$capabilities['carry_source_entry_id']) {
+                if (dbDriverName($pdo) === 'pgsql') {
+                    $pdo->exec(
+                        'ALTER TABLE workspace_accounting_entries
+                         ADD COLUMN IF NOT EXISTS carry_source_entry_id BIGINT DEFAULT NULL'
+                    );
+                } else {
+                    $pdo->exec(
+                        'ALTER TABLE workspace_accounting_entries
+                         ADD COLUMN carry_source_entry_id INTEGER DEFAULT NULL'
+                    );
+                }
+            }
+        } catch (Throwable $_) {
+            // Keep accounting readable even when web requests cannot run DDL in production.
+        }
+
+        $capabilities['source_due_entry_id'] = tableHasColumn($pdo, 'workspace_accounting_entries', 'source_due_entry_id');
+        $capabilities['carry_source_entry_id'] = tableHasColumn($pdo, 'workspace_accounting_entries', 'carry_source_entry_id');
+    }
+
+    $cache[$cacheKey] = $capabilities;
+
+    return $cache[$cacheKey];
+}
+
+function workspaceAccountingHasDueSourceColumn(PDO $pdo): bool
+{
+    return !empty(workspaceAccountingSchemaCapabilities($pdo)['source_due_entry_id']);
+}
+
+function workspaceAccountingHasCarrySourceColumn(PDO $pdo): bool
+{
+    return !empty(workspaceAccountingSchemaCapabilities($pdo)['carry_source_entry_id']);
 }
 
 function pgConstraintExists(PDO $pdo, string $constraintName): bool
@@ -8751,6 +8817,22 @@ function workspaceAccountingEntriesListRaw(
 
     $periodKey = normalizeAccountingPeriodKey($periodKey);
     $entryType = $entryType !== null ? normalizeAccountingEntryType($entryType) : null;
+    $accountingSchema = workspaceAccountingSchemaCapabilities($pdo);
+    $sourceDueEntrySelect = !empty($accountingSchema['source_due_entry_id'])
+        ? 'ae.source_due_entry_id'
+        : 'NULL AS source_due_entry_id';
+    $carrySourceEntrySelect = !empty($accountingSchema['carry_source_entry_id'])
+        ? 'ae.carry_source_entry_id'
+        : 'NULL AS carry_source_entry_id';
+    $sourceDueRecurrenceSelect = !empty($accountingSchema['source_due_entry_id'])
+        ? 'de.recurrence_type AS source_due_recurrence_type'
+        : 'NULL AS source_due_recurrence_type';
+    $sourceDueMonthlyDaySelect = !empty($accountingSchema['source_due_entry_id'])
+        ? 'de.monthly_day AS source_due_monthly_day'
+        : 'NULL AS source_due_monthly_day';
+    $sourceDueJoin = !empty($accountingSchema['source_due_entry_id'])
+        ? ' LEFT JOIN workspace_due_entries de ON de.id = ae.source_due_entry_id'
+        : '';
 
     $sql =
         'SELECT ae.id,
@@ -8765,17 +8847,16 @@ function workspaceAccountingEntriesListRaw(
                 ae.installment_total,
                 ae.is_settled,
                 ae.due_date,
-                ae.source_due_entry_id,
-                ae.carry_source_entry_id,
+                ' . $sourceDueEntrySelect . ',
+                ' . $carrySourceEntrySelect . ',
                 ae.sort_order,
                 ae.created_by,
                 ae.created_at,
                 ae.updated_at,
-                de.recurrence_type AS source_due_recurrence_type,
-                de.monthly_day AS source_due_monthly_day,
+                ' . $sourceDueRecurrenceSelect . ',
+                ' . $sourceDueMonthlyDaySelect . ',
                 u.name AS created_by_name
-         FROM workspace_accounting_entries ae
-         LEFT JOIN workspace_due_entries de ON de.id = ae.source_due_entry_id
+         FROM workspace_accounting_entries ae' . $sourceDueJoin . '
          LEFT JOIN users u ON u.id = ae.created_by
          WHERE ae.workspace_id = :workspace_id
            AND ae.period_key = :period_key';
@@ -8808,14 +8889,47 @@ function workspaceAccountingEntryById(PDO $pdo, int $workspaceId, int $entryId):
         return null;
     }
 
+    $accountingSchema = workspaceAccountingSchemaCapabilities($pdo);
+    $sourceDueEntrySelect = !empty($accountingSchema['source_due_entry_id'])
+        ? 'ae.source_due_entry_id'
+        : 'NULL AS source_due_entry_id';
+    $carrySourceEntrySelect = !empty($accountingSchema['carry_source_entry_id'])
+        ? 'ae.carry_source_entry_id'
+        : 'NULL AS carry_source_entry_id';
+    $sourceDueRecurrenceSelect = !empty($accountingSchema['source_due_entry_id'])
+        ? 'de.recurrence_type AS source_due_recurrence_type'
+        : 'NULL AS source_due_recurrence_type';
+    $sourceDueMonthlyDaySelect = !empty($accountingSchema['source_due_entry_id'])
+        ? 'de.monthly_day AS source_due_monthly_day'
+        : 'NULL AS source_due_monthly_day';
+    $sourceDueJoin = !empty($accountingSchema['source_due_entry_id'])
+        ? ' LEFT JOIN workspace_due_entries de ON de.id = ae.source_due_entry_id'
+        : '';
+
     $stmt = $pdo->prepare(
-        'SELECT ae.*,
-                de.recurrence_type AS source_due_recurrence_type,
-                de.monthly_day AS source_due_monthly_day
-         FROM workspace_accounting_entries ae
-         LEFT JOIN workspace_due_entries de ON de.id = ae.source_due_entry_id
+        'SELECT ae.id,
+                ae.workspace_id,
+                ae.period_key,
+                ae.entry_type,
+                ae.label,
+                ae.amount_cents,
+                ae.total_amount_cents,
+                ae.is_installment,
+                ae.installment_number,
+                ae.installment_total,
+                ae.is_settled,
+                ae.due_date,
+                ' . $sourceDueEntrySelect . ',
+                ' . $carrySourceEntrySelect . ',
+                ae.sort_order,
+                ae.created_by,
+                ae.created_at,
+                ae.updated_at,
+                ' . $sourceDueRecurrenceSelect . ',
+                ' . $sourceDueMonthlyDaySelect . '
+         FROM workspace_accounting_entries ae' . $sourceDueJoin . '
          WHERE ae.workspace_id = :workspace_id
-           AND ae.id = :id
+            AND ae.id = :id
          LIMIT 1'
     );
     $stmt->execute([
@@ -8914,7 +9028,7 @@ function workspaceAccountingDueLinkedEntryForPeriod(
     int $dueEntryId,
     string $periodKey
 ): ?array {
-    if ($workspaceId <= 0 || $dueEntryId <= 0) {
+    if ($workspaceId <= 0 || $dueEntryId <= 0 || !workspaceAccountingHasDueSourceColumn($pdo)) {
         return null;
     }
 
@@ -8957,7 +9071,7 @@ function workspaceAccountingLatestDueLinkedPeriodKey(
     int $dueEntryId,
     ?string $fromPeriodKey = null
 ): ?string {
-    if ($workspaceId <= 0 || $dueEntryId <= 0) {
+    if ($workspaceId <= 0 || $dueEntryId <= 0 || !workspaceAccountingHasDueSourceColumn($pdo)) {
         return null;
     }
 
@@ -9203,6 +9317,10 @@ function workspaceAccountingEnsureMonthlyDueEntry(
     string $periodKey,
     ?int $forceSettled = null
 ): ?array {
+    if (!workspaceAccountingHasDueSourceColumn($pdo)) {
+        return null;
+    }
+
     $payload = workspaceAccountingBuildDueLinkedPayload($dueEntry, $periodKey);
     if ($payload === null) {
         return null;
@@ -9226,7 +9344,7 @@ function workspaceAccountingEnsureMonthlyDueEntry(
 
 function workspaceAccountingEnsurePeriodMonthlyDueEntries(PDO $pdo, int $workspaceId, string $periodKey): void
 {
-    if ($workspaceId <= 0) {
+    if ($workspaceId <= 0 || !workspaceAccountingHasDueSourceColumn($pdo)) {
         return;
     }
 
@@ -9281,7 +9399,7 @@ function workspaceAccountingDetachDueLinkedEntriesBeforePeriod(
     int $dueEntryId,
     string $periodKey
 ): void {
-    if ($workspaceId <= 0 || $dueEntryId <= 0) {
+    if ($workspaceId <= 0 || $dueEntryId <= 0 || !workspaceAccountingHasDueSourceColumn($pdo)) {
         return;
     }
 
@@ -9307,7 +9425,7 @@ function workspaceAccountingDeleteDueLinkedEntriesFromPeriod(
     int $dueEntryId,
     string $periodKey
 ): void {
-    if ($workspaceId <= 0 || $dueEntryId <= 0) {
+    if ($workspaceId <= 0 || $dueEntryId <= 0 || !workspaceAccountingHasDueSourceColumn($pdo)) {
         return;
     }
 
@@ -9557,7 +9675,7 @@ function workspaceAccountingNextCarryEntryPayload(array $sourceEntry, string $ta
 
 function workspaceAccountingDirectCarryEntries(PDO $pdo, int $workspaceId, int $sourceEntryId, string $periodKey): array
 {
-    if ($workspaceId <= 0 || $sourceEntryId <= 0) {
+    if ($workspaceId <= 0 || $sourceEntryId <= 0 || !workspaceAccountingHasCarrySourceColumn($pdo)) {
         return [];
     }
 
@@ -9644,7 +9762,7 @@ function workspaceAccountingUpdateCarriedEntry(PDO $pdo, int $workspaceId, int $
 
 function workspaceAccountingDescendantEntries(PDO $pdo, int $workspaceId, int $entryId): array
 {
-    if ($workspaceId <= 0 || $entryId <= 0) {
+    if ($workspaceId <= 0 || $entryId <= 0 || !workspaceAccountingHasCarrySourceColumn($pdo)) {
         return [];
     }
 
@@ -9740,6 +9858,10 @@ function workspaceAccountingLatestDescendantPeriodKey(array $descendants): ?stri
 
 function workspaceAccountingSyncCarryEntryForSource(PDO $pdo, array $sourceEntry, string $targetPeriodKey): ?array
 {
+    if (!workspaceAccountingHasCarrySourceColumn($pdo)) {
+        return null;
+    }
+
     $sourceEntry = workspaceAccountingNormalizeEntryRow(
         $sourceEntry,
         normalizeAccountingPeriodKey((string) ($sourceEntry['period_key'] ?? ''))
@@ -9787,7 +9909,7 @@ function workspaceAccountingSyncCarryEntryForSource(PDO $pdo, array $sourceEntry
 
 function workspaceAccountingSyncFutureChain(PDO $pdo, array $sourceEntry, ?string $limitPeriodKey = null): void
 {
-    if ($limitPeriodKey === null || trim($limitPeriodKey) === '') {
+    if ($limitPeriodKey === null || trim($limitPeriodKey) === '' || !workspaceAccountingHasCarrySourceColumn($pdo)) {
         return;
     }
 
