@@ -3,6 +3,16 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+if (requestShouldRedirectToConfiguredAppHost()) {
+    header('Location: ' . appUrl(currentRequestQuerySuffix()));
+    exit;
+}
+
+if (requestShouldServePublicHomeFromIndex()) {
+    require __DIR__ . '/home.php';
+    return;
+}
+
 $pdo = db();
 if (
     PHP_SAPI !== 'cli' &&
@@ -68,7 +78,7 @@ if (
     logoutUser();
     setPendingCheckoutUserId($pendingCheckoutUserId);
     getFlashes();
-    redirectTo('home?checkout=required#planos');
+    redirectTo(siteUrl('home?checkout=required#planos'));
 }
 if (
     $_SERVER['REQUEST_METHOD'] === 'GET'
@@ -76,7 +86,7 @@ if (
     && !$forceAuthScreen
     && $entryAction === ''
 ) {
-    redirectTo('home');
+    redirectTo(siteUrl('home'));
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -87,13 +97,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $token = trim((string) ($_GET['token'] ?? ''));
         if ($selector === '' || $token === '') {
             flash('error', 'Link de redefinição inválido.');
-            redirectTo('?auth=forgot-password#forgot-password');
+            redirectTo(appUrl('?auth=forgot-password#forgot-password'));
         }
 
         $passwordResetRequest = validPasswordResetRequest($selector, $token);
         if (!$passwordResetRequest) {
             flash('error', 'Este link de redefinição e inválido ou expirou.');
-            redirectTo('?auth=forgot-password#forgot-password');
+            redirectTo(appUrl('?auth=forgot-password#forgot-password'));
         }
 
         $passwordResetRequest['selector'] = $selector;
@@ -107,13 +117,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $token = trim((string) ($_GET['token'] ?? ''));
         if ($selector === '' || $token === '') {
             flash('error', 'Link de convite invalido.');
-            redirectTo('?auth=login#login');
+            redirectTo(appUrl('?auth=login#login'));
         }
 
         $workspaceInviteRequest = validWorkspaceEmailInvitationRequest($selector, $token);
         if (!$workspaceInviteRequest) {
             flash('error', 'Este link de convite e invalido ou expirou.');
-            redirectTo('?auth=login#login');
+            redirectTo(appUrl('?auth=login#login'));
         }
 
         $workspaceInviteRequest['selector'] = $selector;

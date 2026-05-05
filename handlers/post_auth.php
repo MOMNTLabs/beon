@@ -11,7 +11,7 @@ function authErrorRedirectPath(string $panel, string $nextPath): string
         $query['next'] = $nextPath;
     }
 
-    return 'index.php?' . http_build_query($query) . '#' . $panel;
+    return appUrl('?' . http_build_query($query) . '#' . $panel);
 }
 
 function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnError): bool
@@ -108,7 +108,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
                 if ($isCheckoutRedirect) {
                     redirectTo($nextPath);
                 }
-                redirectTo('home?checkout=required#planos');
+                redirectTo(siteUrl('home?checkout=required#planos'));
             }
 
             loginUser($userId, true);
@@ -118,10 +118,10 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
         case 'logout':
             logoutUser();
             flash('success', 'Sessão encerrada.');
-            redirectTo('home');
+            redirectTo(siteUrl('home'));
 
         case 'request_password_reset':
-            $redirectPathOnError = 'index.php?auth=forgot-password#forgot-password';
+            $redirectPathOnError = appUrl('?auth=forgot-password#forgot-password');
             $email = strtolower(trim((string) ($_POST['email'] ?? '')));
             if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 throw new RuntimeException('Informe um e-mail valido.');
@@ -148,14 +148,14 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             }
 
             flash('success', $requestPasswordResetMessage);
-            redirectTo('index.php?auth=login#login');
+            redirectTo(appUrl('?auth=login#login'));
 
         case 'perform_password_reset':
             $selector = trim((string) ($_POST['selector'] ?? ''));
             $token = trim((string) ($_POST['token'] ?? ''));
             $redirectPathOnError = ($selector !== '' && $token !== '')
-                ? passwordResetPath($selector, $token, false)
-                : 'index.php?auth=forgot-password#forgot-password';
+                ? passwordResetPath($selector, $token, true)
+                : appUrl('?auth=forgot-password#forgot-password');
 
             $newPassword = (string) ($_POST['new_password'] ?? '');
             $newPasswordConfirm = (string) ($_POST['new_password_confirm'] ?? '');
@@ -201,7 +201,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             }
 
             flash('success', 'Senha redefinida com sucesso. Entre com a nova senha.');
-            redirectTo('index.php?auth=login#login');
+            redirectTo(appUrl('?auth=login#login'));
     }
 
     return in_array($action, [

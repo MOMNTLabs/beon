@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+if (configuredAppUrl() !== '' && !requestTargetsConfiguredAppHost()) {
+    header('Location: ' . appUrl('account-settings'));
+    exit;
+}
+
 $pdo = db();
 $currentUser = requireAuth();
 
@@ -220,9 +225,9 @@ $complianceAssetVersion = assetVersion('assets/compliance.js');
                             Consulte suas opcoes de privacidade, direitos LGPD, termos e politica de cookies.
                         </p>
                         <div class="account-privacy-links">
-                            <a href="<?= e(appPath('dados')) ?>" class="btn btn-mini">Meus dados</a>
-                            <a href="<?= e(appPath('privacidade')) ?>" class="btn btn-mini btn-ghost">Privacidade</a>
-                            <a href="<?= e(appPath('termos')) ?>" class="btn btn-mini btn-ghost">Termos</a>
+                            <a href="<?= e(siteUrl('dados')) ?>" class="btn btn-mini">Meus dados</a>
+                            <a href="<?= e(siteUrl('privacidade')) ?>" class="btn btn-mini btn-ghost">Privacidade</a>
+                            <a href="<?= e(siteUrl('termos')) ?>" class="btn btn-mini btn-ghost">Termos</a>
                         </div>
                     </section>
                 </div>

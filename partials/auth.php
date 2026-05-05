@@ -88,7 +88,7 @@
                     Entre com o mesmo e-mail que recebeu o convite.
                 <?php else: ?>
                     Ainda n&atilde;o tem conta?
-                    <a href="<?= e(appPath('home#planos')) ?>" class="auth-inline-link">Conhe&ccedil;a os planos</a>
+                    <a href="<?= e(siteUrl('home#planos')) ?>" class="auth-inline-link">Conhe&ccedil;a os planos</a>
                 <?php endif; ?>
             </p>
         </section>
@@ -157,9 +157,9 @@
                     <input type="checkbox" name="accept_terms" value="1" required>
                     <span>
                         Li e aceito os
-                        <a href="<?= e(appPath('termos')) ?>" target="_blank" rel="noopener">Termos de Uso</a>
+                        <a href="<?= e(siteUrl('termos')) ?>" target="_blank" rel="noopener">Termos de Uso</a>
                         e a
-                        <a href="<?= e(appPath('privacidade')) ?>" target="_blank" rel="noopener">Pol&iacute;tica de Privacidade</a>.
+                        <a href="<?= e(siteUrl('privacidade')) ?>" target="_blank" rel="noopener">Pol&iacute;tica de Privacidade</a>.
                     </span>
                 </label>
 

@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+if (configuredSiteUrl() !== '' && requestTargetsConfiguredAppHost()) {
+    header('Location: ' . siteUrl('termos'));
+    exit;
+}
+
 $legal = legalConfig();
 $stylesAssetVersion = assetVersion('assets/styles.css', '103');
 $themeBexonAssetVersion = assetVersion('assets/theme-bexon.css');
@@ -23,14 +28,14 @@ $complianceAssetVersion = assetVersion('assets/compliance.js');
 <body class="is-legal-page">
     <main class="legal-page-shell">
         <header class="legal-page-header">
-            <a href="<?= e(appPath('home')) ?>" class="legal-brand" aria-label="<?= e(APP_NAME) ?>">
+            <a href="<?= e(sitePath('home')) ?>" class="legal-brand" aria-label="<?= e(APP_NAME) ?>">
                 <img src="<?= e(appPath('assets/Bexon - Logo Horizontal.png?v=1')) ?>" alt="<?= e(APP_NAME) ?>">
             </a>
             <nav class="legal-nav" aria-label="Documentos legais">
-                <a href="<?= e(appPath('privacidade')) ?>">Privacidade</a>
-                <a href="<?= e(appPath('termos')) ?>" aria-current="page">Termos</a>
-                <a href="<?= e(appPath('cookies')) ?>">Cookies</a>
-                <a href="<?= e(appPath('dados')) ?>">Meus dados</a>
+                <a href="<?= e(sitePath('privacidade')) ?>">Privacidade</a>
+                <a href="<?= e(sitePath('termos')) ?>" aria-current="page">Termos</a>
+                <a href="<?= e(sitePath('cookies')) ?>">Cookies</a>
+                <a href="<?= e(sitePath('dados')) ?>">Meus dados</a>
             </nav>
         </header>
 
@@ -86,7 +91,7 @@ $complianceAssetVersion = assetVersion('assets/compliance.js');
 
             <section>
                 <h2>10. Privacidade</h2>
-                <p>O tratamento de dados pessoais segue a <a href="<?= e(appPath('privacidade')) ?>">Pol&iacute;tica de Privacidade</a> e a <a href="<?= e(appPath('cookies')) ?>">Pol&iacute;tica de Cookies</a>.</p>
+                <p>O tratamento de dados pessoais segue a <a href="<?= e(sitePath('privacidade')) ?>">Pol&iacute;tica de Privacidade</a> e a <a href="<?= e(sitePath('cookies')) ?>">Pol&iacute;tica de Cookies</a>.</p>
             </section>
 
             <section>

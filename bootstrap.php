@@ -1,6 +1,102 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('BEXON_BOOTSTRAPPED')) {
+    define('BEXON_BOOTSTRAPPED', true);
+}
+
+function bootstrapRawEnvValue(string $key, ?string $default = null): ?string
+{
+    $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+    if ($value === false || $value === null || $value === '') {
+        return $default;
+    }
+
+    return (string) $value;
+}
+
+function bootstrapRequestIsHttps(): bool
+{
+    if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
+        return true;
+    }
+
+    if ((string) ($_SERVER['SERVER_PORT'] ?? '') === '443') {
+        return true;
+    }
+
+    $forwardedProto = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    return $forwardedProto === 'https';
+}
+
+function bootstrapRequestHostName(): string
+{
+    $host = trim((string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+    $host = preg_replace('/:\d+$/', '', $host) ?? $host;
+    return strtolower($host);
+}
+
+function bootstrapUrlHostName(string $url): string
+{
+    $host = trim((string) (parse_url($url, PHP_URL_HOST) ?? ''));
+    if ($host === '') {
+        return '';
+    }
+
+    $host = preg_replace('/:\d+$/', '', $host) ?? $host;
+    return strtolower($host);
+}
+
+function bootstrapRootCookieDomainCandidate(): string
+{
+    $configuredDomain = trim((string) bootstrapRawEnvValue('COOKIE_DOMAIN', ''));
+    if ($configuredDomain !== '') {
+        return ltrim(strtolower($configuredDomain), '.');
+    }
+
+    $siteHost = bootstrapUrlHostName((string) bootstrapRawEnvValue('SITE_URL', ''));
+    if ($siteHost !== '') {
+        return $siteHost;
+    }
+
+    $appHost = bootstrapUrlHostName((string) bootstrapRawEnvValue('APP_URL', ''));
+    if ($appHost === '') {
+        return '';
+    }
+
+    if (str_starts_with($appHost, 'app.') && substr_count($appHost, '.') >= 2) {
+        return substr($appHost, 4);
+    }
+
+    return $appHost;
+}
+
+function bootstrapConfiguredCookieDomain(): string
+{
+    $currentHost = bootstrapRequestHostName();
+    $rootDomain = bootstrapRootCookieDomainCandidate();
+    if ($rootDomain === '') {
+        return '';
+    }
+
+    if (
+        $currentHost === $rootDomain
+        || str_ends_with($currentHost, '.' . $rootDomain)
+    ) {
+        return $rootDomain;
+    }
+
+    return '';
+}
+
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => bootstrapConfiguredCookieDomain(),
+    'secure' => bootstrapRequestIsHttps(),
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 session_start();
 
 date_default_timezone_set('America/Sao_Paulo');
@@ -3038,7 +3134,7 @@ function setRememberCookie(string $selector, string $token, int $expiresTs): voi
     setcookie(REMEMBER_COOKIE_NAME, $cookieValue, [
         'expires' => $expiresTs,
         'path' => '/',
-        'domain' => '',
+        'domain' => bootstrapConfiguredCookieDomain(),
         'secure' => requestIsHttps(),
         'httponly' => true,
         'samesite' => 'Lax',
@@ -3051,7 +3147,7 @@ function clearRememberCookie(): void
     setcookie(REMEMBER_COOKIE_NAME, '', [
         'expires' => time() - 3600,
         'path' => '/',
-        'domain' => '',
+        'domain' => bootstrapConfiguredCookieDomain(),
         'secure' => requestIsHttps(),
         'httponly' => true,
         'samesite' => 'Lax',
@@ -3072,7 +3168,7 @@ function setLastWorkspaceCookie(int $userId, ?int $workspaceId): void
     setcookie(LAST_WORKSPACE_COOKIE_NAME, $cookieValue, [
         'expires' => $expiresTs,
         'path' => '/',
-        'domain' => '',
+        'domain' => bootstrapConfiguredCookieDomain(),
         'secure' => requestIsHttps(),
         'httponly' => true,
         'samesite' => 'Lax',
@@ -3085,7 +3181,7 @@ function clearLastWorkspaceCookie(): void
     setcookie(LAST_WORKSPACE_COOKIE_NAME, '', [
         'expires' => time() - 3600,
         'path' => '/',
-        'domain' => '',
+        'domain' => bootstrapConfiguredCookieDomain(),
         'secure' => requestIsHttps(),
         'httponly' => true,
         'samesite' => 'Lax',
@@ -3227,17 +3323,8 @@ function deleteRememberTokensForUser(int $userId): void
     $stmt->execute([':user_id' => $userId]);
 }
 
-function appBasePath(): string
+function currentScriptBasePath(): string
 {
-    $configuredAppUrl = trim((string) envValue('APP_URL', ''));
-    if ($configuredAppUrl !== '') {
-        $configuredPath = (string) (parse_url($configuredAppUrl, PHP_URL_PATH) ?? '');
-        $configuredPath = preg_replace('~/index\.php/?$~i', '', $configuredPath) ?? $configuredPath;
-        $configuredPath = '/' . ltrim($configuredPath, '/');
-        $configuredPath = rtrim($configuredPath, '/');
-        return $configuredPath === '/' ? '' : $configuredPath;
-    }
-
     $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
     $scriptDirectory = str_replace('\\', '/', dirname($scriptName));
     $scriptDirectory = rtrim($scriptDirectory, '/');
@@ -3246,6 +3333,147 @@ function appBasePath(): string
     }
 
     return $scriptDirectory;
+}
+
+function requestHostName(): string
+{
+    return bootstrapRequestHostName();
+}
+
+function requestAuthority(): string
+{
+    return trim((string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+}
+
+function normalizedUrlBase(string $url): string
+{
+    $url = trim($url);
+    if ($url === '') {
+        return '';
+    }
+
+    $parts = parse_url($url);
+    if ($parts === false) {
+        return '';
+    }
+
+    $host = trim((string) ($parts['host'] ?? ''));
+    if ($host === '') {
+        return '';
+    }
+
+    $scheme = strtolower(trim((string) ($parts['scheme'] ?? (requestIsHttps() ? 'https' : 'http'))));
+    $port = isset($parts['port']) ? ':' . (int) $parts['port'] : '';
+    $path = (string) ($parts['path'] ?? '');
+    $path = preg_replace('~/index\.php/?$~i', '', $path) ?? $path;
+    $path = '/' . ltrim($path, '/');
+    $path = rtrim($path, '/');
+    $path = $path === '/' ? '' : $path;
+
+    return $scheme . '://' . strtolower($host) . $port . $path;
+}
+
+function urlBasePath(string $url): string
+{
+    $normalizedUrl = normalizedUrlBase($url);
+    if ($normalizedUrl === '') {
+        return '';
+    }
+
+    $path = (string) (parse_url($normalizedUrl, PHP_URL_PATH) ?? '');
+    $path = '/' . ltrim($path, '/');
+    $path = rtrim($path, '/');
+    return $path === '/' ? '' : $path;
+}
+
+function urlOrigin(string $url): string
+{
+    $normalizedUrl = normalizedUrlBase($url);
+    if ($normalizedUrl === '') {
+        return '';
+    }
+
+    $parts = parse_url($normalizedUrl);
+    if ($parts === false) {
+        return '';
+    }
+
+    $scheme = strtolower(trim((string) ($parts['scheme'] ?? 'http')));
+    $host = strtolower(trim((string) ($parts['host'] ?? '')));
+    if ($host === '') {
+        return '';
+    }
+
+    $port = isset($parts['port']) ? ':' . (int) $parts['port'] : '';
+    return $scheme . '://' . $host . $port;
+}
+
+function requestHostMatchesUrlHost(string $url): bool
+{
+    $urlHost = bootstrapUrlHostName($url);
+    if ($urlHost === '') {
+        return false;
+    }
+
+    return requestHostName() === $urlHost;
+}
+
+function configuredAppUrl(): string
+{
+    return normalizedUrlBase((string) envValue('APP_URL', ''));
+}
+
+function configuredSiteUrl(): string
+{
+    $siteUrl = normalizedUrlBase((string) envValue('SITE_URL', ''));
+    if ($siteUrl !== '') {
+        return $siteUrl;
+    }
+
+    $appUrl = configuredAppUrl();
+    if ($appUrl === '') {
+        return '';
+    }
+
+    $parts = parse_url($appUrl);
+    if ($parts === false) {
+        return '';
+    }
+
+    $host = strtolower(trim((string) ($parts['host'] ?? '')));
+    if ($host === '' || !str_starts_with($host, 'app.') || substr_count($host, '.') < 2) {
+        return '';
+    }
+
+    $scheme = strtolower(trim((string) ($parts['scheme'] ?? 'https')));
+    $port = isset($parts['port']) ? ':' . (int) $parts['port'] : '';
+    return $scheme . '://' . substr($host, 4) . $port;
+}
+
+function appBasePath(): string
+{
+    $configuredAppUrl = configuredAppUrl();
+    if (
+        $configuredAppUrl !== ''
+        && (PHP_SAPI === 'cli' || requestHostMatchesUrlHost($configuredAppUrl))
+    ) {
+        return urlBasePath($configuredAppUrl);
+    }
+
+    return currentScriptBasePath();
+}
+
+function siteBasePath(): string
+{
+    $configuredSiteUrl = configuredSiteUrl();
+    if (
+        $configuredSiteUrl !== ''
+        && (PHP_SAPI === 'cli' || requestHostMatchesUrlHost($configuredSiteUrl))
+    ) {
+        return urlBasePath($configuredSiteUrl);
+    }
+
+    return currentScriptBasePath();
 }
 
 function normalizeDashboardViewKey(string $view): string
@@ -3374,10 +3602,38 @@ function taskDetailPath(int $taskId, array $params = []): string
     return dashboardPath('tasks', $params);
 }
 
-function appPath(string $path = ''): string
+function canonicalizeSiteRelativePath(string $path): string
 {
     $trimmedPath = trim($path);
-    $basePath = appBasePath();
+    if ($trimmedPath === '') {
+        return '';
+    }
+
+    if (preg_match('~^/?([a-z0-9-]+)\.php(?=$|[?#])~i', $trimmedPath, $matches)) {
+        $matchedScript = strtolower((string) ($matches[1] ?? ''));
+        $matchedScript = $matchedScript === 'vendas' ? 'home' : $matchedScript;
+        $suffix = (string) substr($trimmedPath, strlen((string) ($matches[0] ?? '')));
+        if (in_array($matchedScript, ['home', 'index'], true)) {
+            $trimmedPath = $suffix;
+        } elseif ($suffix === '' || $suffix[0] === '?' || $suffix[0] === '#') {
+            $trimmedPath = $matchedScript . $suffix;
+        } else {
+            $trimmedPath = $matchedScript . '/' . ltrim($suffix, '/');
+        }
+    }
+
+    if (preg_match('~^/?(?:home|vendas)(?=$|[/?#])~i', $trimmedPath, $matches)) {
+        $prefix = (string) ($matches[0] ?? '');
+        $suffix = (string) substr($trimmedPath, strlen($prefix));
+        $trimmedPath = $suffix;
+    }
+
+    return $trimmedPath;
+}
+
+function buildAppPathFromBase(string $path, string $basePath): string
+{
+    $trimmedPath = trim($path);
     $baseRoot = $basePath !== '' ? $basePath . '/' : '/';
 
     if ($trimmedPath === '') {
@@ -3435,17 +3691,156 @@ function appPath(string $path = ''): string
     return ($basePath !== '' ? $basePath . '/' : '/') . ltrim($trimmedPath, '/');
 }
 
+function buildSitePathFromBase(string $path, string $basePath): string
+{
+    $trimmedPath = canonicalizeSiteRelativePath($path);
+    $baseRoot = $basePath !== '' ? $basePath . '/' : '/';
+
+    if ($trimmedPath === '') {
+        return $baseRoot;
+    }
+
+    if (preg_match('~^[a-z][a-z0-9+.-]*:~i', $trimmedPath) || str_starts_with($trimmedPath, '//')) {
+        return $trimmedPath;
+    }
+
+    if ($trimmedPath[0] === '?' || $trimmedPath[0] === '#') {
+        return $baseRoot . ltrim($trimmedPath, '/');
+    }
+
+    if ($trimmedPath[0] === '/') {
+        if (
+            $basePath === ''
+            || $trimmedPath === $basePath
+            || str_starts_with($trimmedPath, $basePath . '/')
+            || str_starts_with($trimmedPath, $basePath . '?')
+            || str_starts_with($trimmedPath, $basePath . '#')
+        ) {
+            return $trimmedPath;
+        }
+
+        return ($basePath !== '' ? $basePath : '') . $trimmedPath;
+    }
+
+    return ($basePath !== '' ? $basePath . '/' : '/') . ltrim($trimmedPath, '/');
+}
+
+function appPath(string $path = ''): string
+{
+    return buildAppPathFromBase($path, appBasePath());
+}
+
+function sitePath(string $path = ''): string
+{
+    return buildSitePathFromBase($path, siteBasePath());
+}
+
 function appEntryUrl(): string
 {
-    $configuredAppUrl = trim((string) envValue('APP_URL', ''));
+    $configuredAppUrl = configuredAppUrl();
     if ($configuredAppUrl !== '') {
-        return rtrim(preg_replace('~/index\.php/?$~i', '', $configuredAppUrl) ?? $configuredAppUrl, '/');
+        return $configuredAppUrl;
     }
 
     $scheme = requestIsHttps() ? 'https' : 'http';
-    $host = trim((string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+    $host = requestAuthority();
     return $scheme . '://' . $host . appBasePath();
 }
+
+function siteEntryUrl(): string
+{
+    $configuredSiteUrl = configuredSiteUrl();
+    if ($configuredSiteUrl !== '') {
+        return $configuredSiteUrl;
+    }
+
+    $scheme = requestIsHttps() ? 'https' : 'http';
+    $host = requestAuthority();
+    return $scheme . '://' . $host . siteBasePath();
+}
+
+function appUrl(string $path = ''): string
+{
+    $configuredAppUrl = configuredAppUrl();
+    $origin = urlOrigin($configuredAppUrl !== '' ? $configuredAppUrl : appEntryUrl());
+    $relativePath = buildAppPathFromBase(
+        $path,
+        $configuredAppUrl !== '' ? urlBasePath($configuredAppUrl) : appBasePath()
+    );
+    if ($origin === '') {
+        return $relativePath;
+    }
+
+    return $origin . $relativePath;
+}
+
+function siteUrl(string $path = ''): string
+{
+    $configuredSiteUrl = configuredSiteUrl();
+    $origin = urlOrigin($configuredSiteUrl !== '' ? $configuredSiteUrl : siteEntryUrl());
+    $relativePath = buildSitePathFromBase(
+        $path,
+        $configuredSiteUrl !== '' ? urlBasePath($configuredSiteUrl) : siteBasePath()
+    );
+    if ($origin === '') {
+        return $relativePath;
+    }
+
+    return $origin . $relativePath;
+}
+
+function requestUriPath(): string
+{
+    $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+    $path = (string) (parse_url($requestUri, PHP_URL_PATH) ?? '/');
+    return $path === '' ? '/' : $path;
+}
+
+function currentRequestQuerySuffix(): string
+{
+    $query = trim((string) ($_SERVER['QUERY_STRING'] ?? ''));
+    return $query !== '' ? '?' . $query : '';
+}
+
+function requestTargetsConfiguredAppHost(): bool
+{
+    $configuredAppUrl = configuredAppUrl();
+    return $configuredAppUrl !== '' && requestHostMatchesUrlHost($configuredAppUrl);
+}
+
+function requestWantsAppShell(): bool
+{
+    foreach (['auth', 'next', 'view', 'task', 'group', 'created_by', 'assignee', 'accounting_period'] as $key) {
+        if (array_key_exists($key, $_GET) && trim((string) ($_GET[$key] ?? '')) !== '') {
+            return true;
+        }
+    }
+
+    $action = trim((string) ($_GET['action'] ?? ''));
+    if ($action === '') {
+        return false;
+    }
+
+    return !in_array($action, ['checkout', 'checkout_success'], true);
+}
+
+function requestShouldRedirectToConfiguredAppHost(): bool
+{
+    if (configuredAppUrl() === '' || requestTargetsConfiguredAppHost()) {
+        return false;
+    }
+
+    $requestPath = strtolower(requestUriPath());
+    return basename($requestPath) === 'index.php' || requestWantsAppShell();
+}
+
+function requestShouldServePublicHomeFromIndex(): bool
+{
+    return configuredAppUrl() !== ''
+        && !requestTargetsConfiguredAppHost()
+        && !requestShouldRedirectToConfiguredAppHost();
+}
+
 function safeRedirectPath(?string $path, string $fallback = 'index.php'): string
 {
     $rawPath = trim((string) $path);
@@ -6432,7 +6827,7 @@ function requireAuth(): array
     $user = currentUser();
     if (!$user) {
         flash('error', 'Faça login para continuar.');
-        redirectTo('index.php');
+        redirectTo(appUrl('?auth=login#login'));
     }
 
     return $user;

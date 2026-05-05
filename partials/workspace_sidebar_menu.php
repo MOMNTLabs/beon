@@ -196,7 +196,7 @@ $sidebarPlanToneClass = preg_replace('/[^a-z0-9_-]+/i', '', $sidebarCurrentPlanK
 
     <?php if ($sidebarUpgradeName !== ''): ?>
         <div class="workspace-sidebar-plan-upgrade">
-            <a href="<?= e(appPath('home#planos')) ?>" class="workspace-sidebar-plan-button" target="_blank" rel="noopener">
+            <a href="<?= e(siteUrl('home#planos')) ?>" class="workspace-sidebar-plan-button" target="_blank" rel="noopener">
                 Faça upgrade
             </a>
         </div>

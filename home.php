@@ -1,7 +1,14 @@
 <?php
 declare(strict_types=1);
 
-require __DIR__ . '/bootstrap.php';
+if (!defined('BEXON_BOOTSTRAPPED')) {
+    require __DIR__ . '/bootstrap.php';
+}
+
+if (configuredSiteUrl() !== '' && requestTargetsConfiguredAppHost()) {
+    header('Location: ' . siteUrl('home' . currentRequestQuerySuffix()));
+    exit;
+}
 
 function stripeRequestForm(string $method, string $url, array $payload, string $secretKey): array
 {
@@ -135,7 +142,7 @@ function syncSubscriptionFromStripeSession(PDO $pdo, int $userId, array $checkou
 
 function billingPlanCheckoutPath(string $planKey, string $billingInterval = 'year'): string
 {
-    return appPath(
+    return sitePath(
         'home?action=checkout&plan='
         . rawurlencode(normalizeBillingPlanKey($planKey))
         . '&interval='
@@ -439,13 +446,13 @@ $requestedBillingInterval = $rawRequestedBillingInterval;
 $selectedPlan = $checkoutBillingPlans[$requestedPlanKey] ?? $checkoutBillingPlans[$defaultPlanKey] ?? $checkoutBillingPlans['solo'];
 $recommendedCheckoutPath = billingPlanCheckoutPath('solo', $defaultBillingInterval);
 $checkoutAction = trim((string) ($_GET['action'] ?? ''));
-$authPath = appPath('?auth=login#login');
+$authPath = appUrl('?auth=login#login');
 $appEntryPath = $authPath;
 
 if ($checkoutAction === 'checkout') {
     $requestedPublicPlan = $billingPlans[$rawRequestedPlanKey] ?? null;
     if (is_array($requestedPublicPlan) && ($requestedPublicPlan['checkout_enabled'] ?? true) === false) {
-        redirectTo('home#planos');
+        redirectTo(siteUrl('home#planos'));
     }
 
     $checkoutUser = currentUser();
@@ -459,12 +466,12 @@ if ($checkoutAction === 'checkout') {
             . rawurlencode($requestedPlanKey)
             . '&interval='
             . rawurlencode($requestedBillingInterval);
-        redirectTo('index.php?auth=login&next=' . urlencode($checkoutNextPath) . '#login');
+        redirectTo(appUrl('?auth=login&next=' . urlencode($checkoutNextPath) . '#login'));
     }
 
     $checkoutUserId = (int) ($checkoutUser['id'] ?? 0);
     if ($checkoutUserId > 0 && userHasBillingAccess($checkoutUserId)) {
-        redirectTo('index.php');
+        redirectTo(appUrl());
     }
 
     try {
@@ -473,8 +480,8 @@ if ($checkoutAction === 'checkout') {
             throw new RuntimeException('Checkout Stripe não configurado. Defina STRIPE_SECRET_KEY no ambiente.');
         }
         $userId = $checkoutUserId;
-        $successUrl = appEntryUrl() . appPath('home?action=checkout_success&session_id={CHECKOUT_SESSION_ID}');
-        $cancelUrl = appEntryUrl() . appPath('home?checkout=cancelled');
+        $successUrl = siteUrl('home?action=checkout_success&session_id={CHECKOUT_SESSION_ID}');
+        $cancelUrl = siteUrl('home?checkout=cancelled');
         $trialPeriodDays = billingTrialPeriodDays();
         $planMetadata = billingPlanMetadata($selectedPlan, $requestedBillingInterval);
 
@@ -526,7 +533,7 @@ if ($checkoutAction === 'checkout') {
         exit;
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
-        redirectTo('home');
+        redirectTo(siteUrl('home'));
     }
 }
 
@@ -566,10 +573,10 @@ if ($checkoutAction === 'checkout_success') {
         syncSubscriptionFromStripeSession($pdo, $checkoutUserId, $checkoutSession);
         loginUser($checkoutUserId, true);
         flash('success', 'Checkout concluído. Seu plano Bexon foi ativado.');
-        redirectTo('index.php');
+        redirectTo(appUrl());
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
-        redirectTo('home');
+        redirectTo(siteUrl('home'));
     }
 }
 
@@ -630,7 +637,7 @@ if ($checkoutNotice) {
     <div class="sales-page" id="top">
         <header class="sales-header">
             <div class="sales-container sales-header-inner">
-                <a href="<?= e(appPath('home')) ?>" class="sales-brand" aria-label="<?= e(APP_NAME) ?>">
+                <a href="<?= e(sitePath('home')) ?>" class="sales-brand" aria-label="<?= e(APP_NAME) ?>">
                     <img src="<?= e(appPath('assets/Bexon - Logo Horizontal.png?v=1')) ?>" alt="<?= e(APP_NAME) ?>">
                 </a>
                 <div class="sales-mobile-header-actions">
@@ -898,9 +905,9 @@ if ($checkoutNotice) {
                                 </a>
                                 <p class="sales-plan-legal-note">
                                     Ao contratar, voc&ecirc; concorda com os
-                                    <a href="<?= e(appPath('termos')) ?>">Termos</a>
+                                    <a href="<?= e(sitePath('termos')) ?>">Termos</a>
                                     e a
-                                    <a href="<?= e(appPath('privacidade')) ?>">Privacidade</a>.
+                                    <a href="<?= e(sitePath('privacidade')) ?>">Privacidade</a>.
                                 </p>
                                 <ul>
                                     <?php foreach ((array) ($billingPlan['features'] ?? []) as $feature): ?>
@@ -931,10 +938,10 @@ if ($checkoutNotice) {
             <div class="sales-container">
                 <small>&copy; <?= e(date('Y')) ?> <?= e(APP_NAME) ?>. Todos os direitos reservados.</small>
                 <nav class="sales-footer-links" aria-label="Links legais">
-                    <a href="<?= e(appPath('privacidade')) ?>">Privacidade</a>
-                    <a href="<?= e(appPath('termos')) ?>">Termos</a>
-                    <a href="<?= e(appPath('cookies')) ?>">Cookies</a>
-                    <a href="<?= e(appPath('dados')) ?>">Meus dados</a>
+                    <a href="<?= e(sitePath('privacidade')) ?>">Privacidade</a>
+                    <a href="<?= e(sitePath('termos')) ?>">Termos</a>
+                    <a href="<?= e(sitePath('cookies')) ?>">Cookies</a>
+                    <a href="<?= e(sitePath('dados')) ?>">Meus dados</a>
                 </nav>
             </div>
         </footer>

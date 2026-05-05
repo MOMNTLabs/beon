@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+if (configuredAppUrl() !== '' && !requestTargetsConfiguredAppHost()) {
+    header('Location: ' . appUrl('workspace-settings'));
+    exit;
+}
+
 $pdo = db();
 $currentUser = requireAuth();
 $currentWorkspaceId = activeWorkspaceId($currentUser);

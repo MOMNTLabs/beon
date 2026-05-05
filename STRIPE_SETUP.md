@@ -15,7 +15,9 @@
   - Se nao encontrar metadata compativel, cria `price_data` inline com os valores configurados no app.
 - O plano Enterprise nao usa checkout Stripe: o botao abre um e-mail para `suporte@bexon.com.br`.
 - `STRIPE_WEBHOOK_SECRET`: segredo da assinatura do endpoint webhook (`whsec_...`).
-- `APP_URL`: URL publica da aplicacao (ex.: `https://seu-app.up.railway.app`).
+- `APP_URL`: URL publica da aplicacao (ex.: `https://app.bexon.com.br`).
+- `SITE_URL`: URL publica do site/landing page (ex.: `https://bexon.com.br`).
+- `COOKIE_DOMAIN`: dominio compartilhado entre site e app para sessao/remember-cookie (ex.: `bexon.com.br`).
 
 ## Variaveis opcionais
 
@@ -52,21 +54,23 @@ O plano Free nao fica publico na home. Para liberar acesso gratuito, adicione o 
 4. Salve os `price_...` nas variaveis `STRIPE_SOLO_PRICE_ID`, `STRIPE_SOLO_ANNUAL_PRICE_ID`, `STRIPE_TEAM_PRICE_ID`, `STRIPE_TEAM_ANNUAL_PRICE_ID`, `STRIPE_BUSINESS_PRICE_ID` e `STRIPE_BUSINESS_ANNUAL_PRICE_ID`.
    - Alternativa: configure apenas `STRIPE_PRODUCT_ID` e mantenha os metadados dos Prices corretos.
    - Enterprise nao precisa de Price na Stripe; o contato comercial acontece por e-mail.
-5. Configure `APP_URL` com o dominio de producao real.
-6. Publique o endpoint webhook em:
+5. Configure `APP_URL` com o subdominio real da aplicacao.
+6. Configure `SITE_URL` com o dominio publico principal.
+7. Configure `COOKIE_DOMAIN` com o dominio raiz compartilhado entre os dois hosts.
+8. Publique o endpoint webhook em:
    - `POST {APP_URL}/stripe-webhook`
-7. Na Stripe, registre os eventos:
+9. Na Stripe, registre os eventos:
    - `checkout.session.completed`
    - `checkout.session.async_payment_succeeded`
    - `checkout.session.expired`
    - `customer.subscription.created`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
-8. Copie o segredo webhook (`whsec_...`) para `STRIPE_WEBHOOK_SECRET`.
+10. Copie o segredo webhook (`whsec_...`) para `STRIPE_WEBHOOK_SECRET`.
 
 ## Teste local
 
-1. Defina variaveis locais (`STRIPE_SECRET_KEY`, os `STRIPE_*_PRICE_ID` ou `STRIPE_PRODUCT_ID`, `STRIPE_WEBHOOK_SECRET`, `APP_URL`).
+1. Defina variaveis locais (`STRIPE_SECRET_KEY`, os `STRIPE_*_PRICE_ID` ou `STRIPE_PRODUCT_ID`, `STRIPE_WEBHOOK_SECRET`, `APP_URL`, `SITE_URL`, `COOKIE_DOMAIN` se estiver simulando subdominios).
 2. Rode migracao:
    - `php scripts/migrate.php`
 3. Inicie app localmente.
@@ -91,11 +95,13 @@ No Railway, configure no servico web:
 - `STRIPE_PRODUCT_ID` (opcional, como fallback)
 - `STRIPE_WEBHOOK_SECRET`
 - `APP_URL`
+- `SITE_URL`
+- `COOKIE_DOMAIN`
 - `APP_ENFORCE_BILLING` (opcional)
 - `APP_BILLING_GUEST_EMAILS` (opcional, para convidados gratuitos)
 
 Depois, faca deploy e valide:
 
-- Usuario deslogado vai para `index.php?auth=login&next=home?action=checkout&plan=...#login` ao escolher um plano.
-- Retorno da Stripe cai em `home?action=checkout_success&session_id=...`.
+- Usuario deslogado vai do site em `bexon.com.br` para `app.bexon.com.br/?auth=login&next=home?action=checkout&plan=...#login` ao escolher um plano.
+- Retorno da Stripe cai no site em `home?action=checkout_success&session_id=...` e volta para o app quando necessario.
 - Webhook em `/stripe-webhook` recebe e sincroniza status de assinatura.
