@@ -465,34 +465,81 @@ if ($currentUser && $currentWorkspaceId !== null) {
 $inventoryGroups = $inventoryGroupsAll;
 $inventoryGroupsWithAccess = $inventoryGroupsAll;
 
+$dashboardLoadErrorMessages = [];
+$appendDashboardLoadError = static function (string $message, Throwable $e) use (
+    &$flashes,
+    &$dashboardLoadErrorMessages,
+    $currentUser,
+    $currentWorkspaceId
+): void {
+    $normalizedMessage = trim($message);
+    if ($normalizedMessage !== '' && !in_array($normalizedMessage, $dashboardLoadErrorMessages, true)) {
+        $dashboardLoadErrorMessages[] = $normalizedMessage;
+        $flashes[] = [
+            'type' => 'error',
+            'message' => $normalizedMessage,
+        ];
+    }
+
+    error_log(sprintf(
+        'Dashboard load error [user=%d workspace=%s host=%s uri=%s]: %s',
+        (int) ($currentUser['id'] ?? 0),
+        $currentWorkspaceId !== null ? (string) $currentWorkspaceId : 'none',
+        (string) ($_SERVER['HTTP_HOST'] ?? 'unknown'),
+        (string) ($_SERVER['REQUEST_URI'] ?? '/'),
+        $e->getMessage()
+    ));
+};
+
 $vaultVisibleKeys = [];
 foreach ($vaultGroups as $vaultGroupName) {
     $vaultVisibleKeys[mb_strtolower(normalizeVaultGroupName($vaultGroupName))] = true;
 }
-$vaultEntries = ($currentUser && $currentWorkspaceId !== null) ? workspaceVaultEntriesList($currentWorkspaceId) : [];
-$vaultEntries = array_values(array_filter(
-    $vaultEntries,
-    static function (array $entry) use ($vaultVisibleKeys): bool {
-        $groupKey = mb_strtolower(normalizeVaultGroupName((string) ($entry['group_name'] ?? 'Geral')));
-        return isset($vaultVisibleKeys[$groupKey]);
+$vaultEntries = [];
+if ($currentUser && $currentWorkspaceId !== null) {
+    try {
+        $vaultEntries = workspaceVaultEntriesList($currentWorkspaceId);
+        $vaultEntries = array_values(array_filter(
+            $vaultEntries,
+            static function (array $entry) use ($vaultVisibleKeys): bool {
+                $groupKey = mb_strtolower(normalizeVaultGroupName((string) ($entry['group_name'] ?? 'Geral')));
+                return isset($vaultVisibleKeys[$groupKey]);
+            }
+        ));
+    } catch (Throwable $e) {
+        $appendDashboardLoadError('Nao foi possivel carregar o cofre deste workspace.', $e);
     }
-));
+}
 $vaultEntriesByGroup = $currentUser ? vaultEntriesByGroup($vaultEntries, $vaultGroups) : [];
 
 $dueVisibleKeys = [];
 foreach ($dueGroups as $dueGroupName) {
     $dueVisibleKeys[mb_strtolower(normalizeDueGroupName($dueGroupName))] = true;
 }
-$dueEntries = ($currentUser && $currentWorkspaceId !== null) ? workspaceDueEntriesList($currentWorkspaceId) : [];
-$dueEntries = array_values(array_filter(
-    $dueEntries,
-    static function (array $entry) use ($dueVisibleKeys): bool {
-        $groupKey = mb_strtolower(normalizeDueGroupName((string) ($entry['group_name'] ?? 'Geral')));
-        return isset($dueVisibleKeys[$groupKey]);
+$dueEntries = [];
+if ($currentUser && $currentWorkspaceId !== null) {
+    try {
+        $dueEntries = workspaceDueEntriesList($currentWorkspaceId);
+        $dueEntries = array_values(array_filter(
+            $dueEntries,
+            static function (array $entry) use ($dueVisibleKeys): bool {
+                $groupKey = mb_strtolower(normalizeDueGroupName((string) ($entry['group_name'] ?? 'Geral')));
+                return isset($dueVisibleKeys[$groupKey]);
+            }
+        ));
+    } catch (Throwable $e) {
+        $appendDashboardLoadError('Nao foi possivel carregar os vencimentos deste workspace.', $e);
     }
-));
+}
 $dueEntriesByGroup = $currentUser ? dueEntriesByGroup($dueEntries, $dueGroups) : [];
-$inventoryEntries = ($currentUser && $currentWorkspaceId !== null) ? workspaceInventoryEntriesList($currentWorkspaceId) : [];
+$inventoryEntries = [];
+if ($currentUser && $currentWorkspaceId !== null) {
+    try {
+        $inventoryEntries = workspaceInventoryEntriesList($currentWorkspaceId);
+    } catch (Throwable $e) {
+        $appendDashboardLoadError('Nao foi possivel carregar o estoque deste workspace.', $e);
+    }
+}
 $inventoryEntriesByGroup = $currentUser ? inventoryEntriesByGroup($inventoryEntries, $inventoryGroups) : [];
 $accountingPeriod = normalizeAccountingPeriodKey((string) ($_GET['accounting_period'] ?? ''));
 $accountingPeriodLabel = accountingMonthLabel($accountingPeriod);
@@ -501,15 +548,25 @@ $accountingPreviousPeriod = $accountingPeriodDate->modify('-1 month')->format('Y
 $accountingNextPeriod = $accountingPeriodDate->modify('+1 month')->format('Y-m');
 $accountingPreviousPeriodPath = accountingRedirectPathFromRequest(['accounting_period' => $accountingPreviousPeriod], []);
 $accountingNextPeriodPath = accountingRedirectPathFromRequest(['accounting_period' => $accountingNextPeriod], []);
-$accountingEntries = ($currentUser && $currentWorkspaceId !== null)
-    ? workspaceAccountingEntriesList($currentWorkspaceId, $accountingPeriod)
-    : [];
+$accountingEntries = [];
+if ($currentUser && $currentWorkspaceId !== null) {
+    try {
+        $accountingEntries = workspaceAccountingEntriesList($currentWorkspaceId, $accountingPeriod);
+    } catch (Throwable $e) {
+        $appendDashboardLoadError('Nao foi possivel carregar a contabilidade deste workspace.', $e);
+    }
+}
 $accountingEntriesByType = workspaceAccountingEntriesByType($accountingEntries);
 $accountingExpenseEntries = $accountingEntriesByType['expense'] ?? [];
 $accountingIncomeEntries = $accountingEntriesByType['income'] ?? [];
-$accountingOpeningBalanceCents = ($currentUser && $currentWorkspaceId !== null)
-    ? workspaceAccountingOpeningBalanceCents($currentWorkspaceId, $accountingPeriod)
-    : 0;
+$accountingOpeningBalanceCents = 0;
+if ($currentUser && $currentWorkspaceId !== null) {
+    try {
+        $accountingOpeningBalanceCents = workspaceAccountingOpeningBalanceCents($currentWorkspaceId, $accountingPeriod);
+    } catch (Throwable $e) {
+        $appendDashboardLoadError('Nao foi possivel carregar o saldo inicial da contabilidade.', $e);
+    }
+}
 $accountingSummary = accountingSummary($accountingEntries, $accountingOpeningBalanceCents);
 $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
     ? (string) filemtime(__DIR__ . '/assets/styles.css')
@@ -551,15 +608,8 @@ $taskVisibleKeys = [];
 foreach ($taskGroups as $taskGroupName) {
     $taskVisibleKeys[mb_strtolower(normalizeTaskGroupName($taskGroupName))] = true;
 }
-$allTasks = ($currentUser && $currentWorkspaceId !== null) ? allTasks($currentWorkspaceId) : [];
-$allTasks = array_values(array_filter(
-    $allTasks,
-    static function (array $task) use ($taskVisibleKeys): bool {
-        $groupKey = mb_strtolower(normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral')));
-        return isset($taskVisibleKeys[$groupKey]);
-    }
-));
-$tasks = $currentUser ? filterTasks($allTasks, $groupFilter, $creatorFilterId, $assigneeFilterId) : [];
+$allTasks = [];
+$tasks = [];
 $showEmptyGroups = $currentUser
     && $groupFilter === null
     && $creatorFilterId === null
@@ -571,11 +621,37 @@ if ($showEmptyGroups) {
     $groupingSource = [$groupFilter];
 }
 $tasksGroupedByGroup = $currentUser ? tasksByGroup($tasks, $groupingSource) : [];
-$stats = $currentUser ? dashboardStats($allTasks) : ['total' => 0, 'done' => 0, 'due_today' => 0, 'urgent' => 0];
-$myOpenTasks = $currentUser ? countMyAssignedTasks($allTasks, (int) $currentUser['id']) : 0;
-$completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
+$stats = ['total' => 0, 'done' => 0, 'due_today' => 0, 'urgent' => 0];
+$myOpenTasks = 0;
+$completionRate = 0;
+if ($currentUser && $currentWorkspaceId !== null) {
+    try {
+        $allTasks = allTasks($currentWorkspaceId);
+        $allTasks = array_values(array_filter(
+            $allTasks,
+            static function (array $task) use ($taskVisibleKeys): bool {
+                $groupKey = mb_strtolower(normalizeTaskGroupName((string) ($task['group_name'] ?? 'Geral')));
+                return isset($taskVisibleKeys[$groupKey]);
+            }
+        ));
+        $tasks = filterTasks($allTasks, $groupFilter, $creatorFilterId, $assigneeFilterId);
+        $tasksGroupedByGroup = tasksByGroup($tasks, $groupingSource);
+        $stats = dashboardStats($allTasks);
+        $myOpenTasks = countMyAssignedTasks($allTasks, (int) $currentUser['id']);
+        $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
+    } catch (Throwable $e) {
+        $appendDashboardLoadError('Nao foi possivel carregar as tarefas deste workspace.', $e);
+    }
+}
 
-$globalDashboardOverview = buildGlobalDashboardOverview($currentUser, $userWorkspaces);
+$globalDashboardOverview = buildGlobalDashboardOverview(null, []);
+if ($currentUser) {
+    try {
+        $globalDashboardOverview = buildGlobalDashboardOverview($currentUser, $userWorkspaces);
+    } catch (Throwable $e) {
+        $appendDashboardLoadError('Nao foi possivel carregar o dashboard geral agora.', $e);
+    }
+}
 $overviewStats = $currentUser ? [
     'total' => (int) ($globalDashboardOverview['user_task_total'] ?? 0),
     'done' => (int) ($globalDashboardOverview['user_task_done_total'] ?? 0),

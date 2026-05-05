@@ -3890,7 +3890,35 @@ function safeRedirectPath(?string $path, string $fallback = 'index.php'): string
         return $fallback;
     }
 
-    return $normalizedPath;
+    $parsedPath = parse_url($normalizedPath);
+    if ($parsedPath === false) {
+        return $normalizedPath;
+    }
+
+    $fragment = trim((string) ($parsedPath['fragment'] ?? ''));
+    if (!in_array($fragment, ['login', 'register', 'forgot-password', 'reset-password'], true)) {
+        return $normalizedPath;
+    }
+
+    $queryParams = [];
+    if (isset($parsedPath['query']) && trim((string) $parsedPath['query']) !== '') {
+        parse_str((string) $parsedPath['query'], $queryParams);
+    }
+
+    $authPanel = trim((string) ($queryParams['auth'] ?? ''));
+    $action = trim((string) ($queryParams['action'] ?? ''));
+    $shouldKeepFragment = $authPanel !== '' || in_array($action, ['reset_password', 'workspace_invite'], true);
+    if ($shouldKeepFragment) {
+        return $normalizedPath;
+    }
+
+    $rebuiltPath = (string) ($parsedPath['path'] ?? '');
+    $queryString = http_build_query($queryParams);
+    if ($queryString !== '') {
+        $rebuiltPath .= '?' . $queryString;
+    }
+
+    return $rebuiltPath !== '' ? $rebuiltPath : $fallback;
 }
 
 function stripeTimestampToIso($value): ?string

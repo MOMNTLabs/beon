@@ -32,6 +32,7 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
 $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfig['meta_by_key'] : [];
 $workspaceSwitchView = normalizeDashboardViewKey((string) ($_GET['view'] ?? 'overview'));
 $workspaceSwitchRedirectPath = dashboardPath($workspaceSwitchView !== '' ? $workspaceSwitchView : 'overview');
+$serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchView : 'overview';
 ?>
 <script
     type="application/json"
@@ -280,7 +281,7 @@ $workspaceSwitchRedirectPath = dashboardPath($workspaceSwitchView !== '' ? $work
             </div>
         </header>
 
-        <section class="overview-wrap panel" id="overview" data-dashboard-view-panel="overview">
+        <section class="overview-wrap panel" id="overview" data-dashboard-view-panel="overview"<?= $serverSelectedDashboardView !== 'overview' ? ' hidden' : '' ?>>
             <?php if (false): ?>
             <?php
             $overviewExecutiveTone = (string) ($globalDashboardOverview['executive_status_tone'] ?? 'stable');
@@ -769,7 +770,7 @@ $workspaceSwitchRedirectPath = dashboardPath($workspaceSwitchView !== '' ? $work
             <?php endif; ?>
         </section>
 
-        <section class="tasklist-wrap panel" id="tasks" data-dashboard-view-panel="tasks" hidden>
+        <section class="tasklist-wrap panel" id="tasks" data-dashboard-view-panel="tasks"<?= $serverSelectedDashboardView !== 'tasks' ? ' hidden' : '' ?>>
             <div class="panel-header board-header">
                 <div>
                     <h2>Lista de tarefas</h2>
@@ -1450,7 +1451,7 @@ $workspaceSwitchRedirectPath = dashboardPath($workspaceSwitchView !== '' ? $work
             </div>
         </section>
 
-        <section class="vault-wrap panel" id="vault" data-dashboard-view-panel="vault" hidden>
+        <section class="vault-wrap panel" id="vault" data-dashboard-view-panel="vault"<?= $serverSelectedDashboardView !== 'vault' ? ' hidden' : '' ?>>
             <div class="panel-header board-header vault-header">
                 <div>
                     <h2>Gerenciador de acessos</h2>
@@ -1714,7 +1715,7 @@ $workspaceSwitchRedirectPath = dashboardPath($workspaceSwitchView !== '' ? $work
         </section>
 
 
-        <section class="inventory-wrap panel" id="inventory" data-dashboard-view-panel="inventory" hidden>
+        <section class="inventory-wrap panel" id="inventory" data-dashboard-view-panel="inventory"<?= $serverSelectedDashboardView !== 'inventory' ? ' hidden' : '' ?>>
             <div class="panel-header board-header due-header">
                 <div>
                     <h2>Estoque</h2>
@@ -1937,7 +1938,7 @@ $workspaceSwitchRedirectPath = dashboardPath($workspaceSwitchView !== '' ? $work
             </div>
         </section>
 
-        <section class="accounting-wrap panel" id="accounting" data-dashboard-view-panel="accounting" hidden>
+        <section class="accounting-wrap panel" id="accounting" data-dashboard-view-panel="accounting"<?= $serverSelectedDashboardView !== 'accounting' ? ' hidden' : '' ?>>
             <div class="panel-header board-header accounting-header">
                 <div>
                     <h2>Contabilidade</h2>

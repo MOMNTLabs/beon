@@ -1,4 +1,4 @@
-        <section class="users-wrap panel" id="users" data-dashboard-view-panel="users" hidden>
+        <section class="users-wrap panel" id="users" data-dashboard-view-panel="users"<?= ($serverSelectedDashboardView ?? 'overview') !== 'users' ? ' hidden' : '' ?>>
             <div class="panel-header board-header users-board-header">
                 <div>
                     <h2>Configurações do workspace</h2>
