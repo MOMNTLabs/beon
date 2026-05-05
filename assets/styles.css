@@ -2843,12 +2843,89 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+body.is-dashboard.is-account-settings {
+    min-height: 100dvh;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+body.is-dashboard.is-account-settings .app-shell {
+    width: min(1480px, calc(100% - clamp(40px, 6vw, 112px)));
+    min-height: 100dvh;
+    height: auto;
+    gap: clamp(14px, 2vw, 24px);
+    padding: clamp(18px, 2.4vw, 34px) 0 clamp(44px, 6vw, 80px);
+}
+
+body.is-dashboard.is-account-settings .dashboard-nav {
+    position: sticky;
+    top: clamp(12px, 1.5vw, 20px);
+    z-index: 80;
+}
+
+body.is-dashboard.is-account-settings .workspace-settings-page {
+    margin-top: 0;
+    min-height: 0;
+}
+
+body.is-dashboard.is-account-settings .workspace-settings-panel {
+    border-radius: clamp(22px, 2vw, 30px);
+    gap: clamp(18px, 2.2vw, 28px);
+    padding: clamp(22px, 2.4vw, 36px);
+}
+
+body.is-dashboard.is-account-settings .workspace-settings-header {
+    display: grid;
+    gap: 8px;
+    padding-inline: 2px;
+}
+
+body.is-dashboard.is-account-settings .workspace-settings-header h2 {
+    font-size: clamp(1.45rem, 1.1rem + 1.1vw, 2.05rem);
+    letter-spacing: -0.04em;
+}
+
+body.is-dashboard.is-account-settings .workspace-settings-header p {
+    max-width: 780px;
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+
+body.is-dashboard.is-account-settings .account-settings-grid {
+    align-items: stretch;
+    gap: clamp(16px, 2vw, 24px);
+}
+
+body.is-dashboard.is-account-settings .workspace-settings-card {
+    border-radius: 20px;
+    gap: 14px;
+    padding: clamp(16px, 1.6vw, 24px);
+}
+
+body.is-dashboard.is-account-settings .account-privacy-card {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    column-gap: 18px;
+}
+
+body.is-dashboard.is-account-settings .account-privacy-card h3 {
+    grid-column: 1 / -1;
+}
+
 .account-workspaces-card {
     margin-top: 2px;
 }
 
 .account-workspaces-card .workspace-settings-members {
     gap: 10px;
+    max-height: min(42vh, 430px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 8px;
+    margin-right: -8px;
 }
 
 .account-workspace-item {
@@ -7259,6 +7336,7 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 .vault-groups-list,
 .due-groups-list,
 .inventory-groups-list,
+.account-workspaces-card .workspace-settings-members,
 .users-wrap .workspace-settings-members,
 .assignee-picker-menu,
 .modal-card > .modal-form,
@@ -7272,6 +7350,7 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 .vault-groups-list::-webkit-scrollbar,
 .due-groups-list::-webkit-scrollbar,
 .inventory-groups-list::-webkit-scrollbar,
+.account-workspaces-card .workspace-settings-members::-webkit-scrollbar,
 .users-wrap .workspace-settings-members::-webkit-scrollbar,
 .assignee-picker-menu::-webkit-scrollbar,
 .modal-card > .modal-form::-webkit-scrollbar,
@@ -7285,6 +7364,7 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 .vault-groups-list::-webkit-scrollbar-track,
 .due-groups-list::-webkit-scrollbar-track,
 .inventory-groups-list::-webkit-scrollbar-track,
+.account-workspaces-card .workspace-settings-members::-webkit-scrollbar-track,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-track,
 .assignee-picker-menu::-webkit-scrollbar-track,
 .modal-card > .modal-form::-webkit-scrollbar-track,
@@ -7298,6 +7378,7 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 .vault-groups-list::-webkit-scrollbar-thumb,
 .due-groups-list::-webkit-scrollbar-thumb,
 .inventory-groups-list::-webkit-scrollbar-thumb,
+.account-workspaces-card .workspace-settings-members::-webkit-scrollbar-thumb,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb,
 .assignee-picker-menu::-webkit-scrollbar-thumb,
 .modal-card > .modal-form::-webkit-scrollbar-thumb,
@@ -7313,6 +7394,7 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 .vault-groups-list::-webkit-scrollbar-thumb:hover,
 .due-groups-list::-webkit-scrollbar-thumb:hover,
 .inventory-groups-list::-webkit-scrollbar-thumb:hover,
+.account-workspaces-card .workspace-settings-members::-webkit-scrollbar-thumb:hover,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb:hover,
 .assignee-picker-menu::-webkit-scrollbar-thumb:hover,
 .modal-card > .modal-form::-webkit-scrollbar-thumb:hover,
@@ -9485,6 +9567,25 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 }
 
 @media (max-width: 900px) {
+    body.is-dashboard.is-account-settings .app-shell {
+        width: min(100% - 28px, 760px);
+        padding-top: 14px;
+        padding-bottom: 42px;
+    }
+
+    body.is-dashboard.is-account-settings .dashboard-nav {
+        top: 10px;
+    }
+
+    body.is-dashboard.is-account-settings .account-privacy-card {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    body.is-dashboard.is-account-settings .account-workspaces-card .workspace-settings-members {
+        max-height: min(52vh, 480px);
+    }
+
     .top-nav {
         grid-template-columns: 1fr;
         border-radius: 20px;
@@ -9648,6 +9749,28 @@ body.is-dashboard.dashboard-sidebar-open .workspace-mobile-menu-button {
 }
 
 @media (max-width: 640px) {
+    body.is-dashboard.is-account-settings .app-shell {
+        width: calc(100% - 18px);
+        padding-top: 10px;
+        padding-bottom: 34px;
+    }
+
+    body.is-dashboard.is-account-settings .workspace-settings-panel {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    body.is-dashboard.is-account-settings .workspace-settings-card {
+        padding: 14px;
+    }
+
+    body.is-dashboard.is-account-settings .account-workspaces-card .workspace-settings-members {
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+        margin-right: 0;
+    }
+
     .app-shell {
         width: min(1400px, calc(100% - 18px));
         padding-top: 10px;

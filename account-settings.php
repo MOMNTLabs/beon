@@ -100,7 +100,7 @@ $complianceAssetVersion = assetVersion('assets/compliance.js');
     <link rel="stylesheet" href="assets/theme-bexon.css?v=<?= e($themeBexonAssetVersion) ?>">
     <script src="assets/compliance.js?v=<?= e($complianceAssetVersion) ?>" defer></script>
 </head>
-<body class="is-dashboard is-workspace-settings">
+<body class="is-dashboard is-workspace-settings is-account-settings">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
     <div class="bg-layer bg-layer-two" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
