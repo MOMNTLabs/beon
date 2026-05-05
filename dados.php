@@ -70,7 +70,7 @@ $complianceAssetVersion = assetVersion('assets/compliance.js');
             <section>
                 <h2>Configura&ccedil;&otilde;es da conta</h2>
                 <p>Usu&aacute;rios logados tamb&eacute;m podem atualizar nome, foto, senha e participa&ccedil;&atilde;o em workspaces na &aacute;rea de configura&ccedil;&otilde;es da conta.</p>
-                <p><a class="legal-action legal-action-secondary" href="<?= e(appPath('account-settings')) ?>">Abrir configura&ccedil;&otilde;es da conta</a></p>
+                <p><a class="legal-action legal-action-secondary" href="<?= e(appUrl('account-settings')) ?>">Abrir configura&ccedil;&otilde;es da conta</a></p>
             </section>
         </article>
     </main>
