@@ -119,6 +119,14 @@ if (
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $getAction = trim((string) ($_GET['action'] ?? ''));
 
+    if ($getAction === 'user_avatar') {
+        respondUserAvatarImage();
+    }
+
+    if ($getAction === 'workspace_avatar') {
+        respondWorkspaceAvatarImage();
+    }
+
     if ($getAction === 'reset_password') {
         $selector = trim((string) ($_GET['selector'] ?? ''));
         $token = trim((string) ($_GET['token'] ?? ''));

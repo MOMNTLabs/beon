@@ -563,7 +563,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                                     name="assigned_to[]"
                                                                     value="<?= e((string) $user['id']) ?>"
                                                                     data-assignee-name="<?= e((string) $user['name']) ?>"
-                                                                    data-assignee-avatar="<?= e(userAvatarDataUrl($user)) ?>"
+                                                                    data-assignee-avatar="<?= e(userAvatarImageSrc($user)) ?>"
                                                                     data-assignee-initial="<?= e(userDisplayInitial((string) $user['name'])) ?>"
                                                                     <?= in_array((int) $user['id'], $task['assignee_ids'] ?? [], true) ? 'checked' : '' ?>
                                                                 >

@@ -5679,9 +5679,98 @@ function normalizeUserAvatarDataUrl(?string $value): string
     return $normalized;
 }
 
+function avatarDataUrlCacheKey(string $dataUrl): string
+{
+    return substr(sha1($dataUrl), 0, 12);
+}
+
+function avatarDataUrlParts(string $dataUrl): ?array
+{
+    $normalized = normalizeUserAvatarDataUrl($dataUrl);
+    if ($normalized === '') {
+        return null;
+    }
+
+    if (!preg_match('#^data:(image/(?:png|jpe?g|webp|gif));base64,([a-z0-9+/=]+)$#i', $normalized, $matches)) {
+        return null;
+    }
+
+    $bytes = base64_decode((string) $matches[2], true);
+    if (!is_string($bytes) || $bytes === '') {
+        return null;
+    }
+
+    return [
+        'mime' => strtolower((string) $matches[1]),
+        'bytes' => $bytes,
+        'etag' => '"' . sha1($bytes) . '"',
+    ];
+}
+
+function outputAvatarDataUrl(string $dataUrl): void
+{
+    $parts = avatarDataUrlParts($dataUrl);
+    if ($parts === null) {
+        http_response_code(404);
+        exit;
+    }
+
+    $etag = (string) $parts['etag'];
+    $ifNoneMatch = trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? ''));
+    if ($ifNoneMatch === $etag) {
+        http_response_code(304);
+        header('ETag: ' . $etag);
+        header('Cache-Control: private, max-age=604800');
+        exit;
+    }
+
+    $bytes = (string) $parts['bytes'];
+    header('Content-Type: ' . (string) $parts['mime']);
+    header('Content-Length: ' . strlen($bytes));
+    header('Cache-Control: private, max-age=604800');
+    header('ETag: ' . $etag);
+    echo $bytes;
+    exit;
+}
+
+function avatarImageSrcFromDataUrl(string $dataUrl, string $action, int $subjectId): string
+{
+    $avatarDataUrl = normalizeUserAvatarDataUrl($dataUrl);
+    if ($avatarDataUrl === '') {
+        return '';
+    }
+
+    if ($subjectId > 0) {
+        return appPath('?action=' . rawurlencode($action) . '&id=' . $subjectId . '&v=' . avatarDataUrlCacheKey($avatarDataUrl));
+    }
+
+    return strlen($avatarDataUrl) <= 32768 ? $avatarDataUrl : '';
+}
+
+function userAvatarSubjectId(array $user): int
+{
+    foreach (['avatar_user_id', 'user_id', 'invited_user_id'] as $key) {
+        $value = (int) ($user[$key] ?? 0);
+        if ($value > 0) {
+            return $value;
+        }
+    }
+
+    if (array_key_exists('id', $user) && !array_key_exists('workspace_id', $user)) {
+        return (int) ($user['id'] ?? 0);
+    }
+
+    return 0;
+}
+
 function userAvatarDataUrl(array $user): string
 {
     return normalizeUserAvatarDataUrl((string) ($user['avatar_data_url'] ?? ''));
+}
+
+function userAvatarImageSrc(array $user): string
+{
+    return avatarImageSrcFromDataUrl(userAvatarDataUrl($user), 'user_avatar', userAvatarSubjectId($user));
 }
 
 function userDisplayInitial(?string $name): string
@@ -5698,17 +5787,17 @@ function renderUserAvatar(array $user, string $class = 'avatar', bool $ariaHidde
 {
     $tag = in_array($tag, ['div', 'span'], true) ? $tag : 'div';
     $class = trim($class);
-    $avatarDataUrl = userAvatarDataUrl($user);
+    $avatarSrc = userAvatarImageSrc($user);
     $name = trim((string) ($user['name'] ?? 'Usuário'));
-    $attributes = $class !== '' ? ' class="' . e($class . ($avatarDataUrl !== '' ? ' has-image' : '')) . '"' : '';
+    $attributes = $class !== '' ? ' class="' . e($class . ($avatarSrc !== '' ? ' has-image' : '')) . '"' : '';
     $attributes .= $ariaHidden ? ' aria-hidden="true"' : ' aria-label="' . e($name !== '' ? $name : 'Usuário') . '"';
 
-    if ($avatarDataUrl !== '') {
+    if ($avatarSrc !== '') {
         return sprintf(
             '<%1$s%2$s><img src="%3$s" alt="" loading="lazy"></%1$s>',
             $tag,
             $attributes,
-            e($avatarDataUrl)
+            e($avatarSrc)
         );
     }
 
@@ -5777,6 +5866,27 @@ function workspaceAvatarDataUrl(array $workspace): string
     return normalizeWorkspaceAvatarDataUrl((string) ($workspace['avatar_data_url'] ?? ''));
 }
 
+function workspaceAvatarSubjectId(array $workspace): int
+{
+    foreach (['avatar_workspace_id', 'workspace_id', 'id'] as $key) {
+        $value = (int) ($workspace[$key] ?? 0);
+        if ($value > 0) {
+            return $value;
+        }
+    }
+
+    return 0;
+}
+
+function workspaceAvatarImageSrc(array $workspace): string
+{
+    return avatarImageSrcFromDataUrl(
+        workspaceAvatarDataUrl($workspace),
+        'workspace_avatar',
+        workspaceAvatarSubjectId($workspace)
+    );
+}
+
 function workspaceDisplayInitial(?string $name): string
 {
     $normalized = normalizeWorkspaceName((string) $name);
@@ -5795,7 +5905,7 @@ function renderWorkspaceAvatar(
 ): string {
     $tag = in_array($tag, ['div', 'span'], true) ? $tag : 'div';
     $class = trim($class);
-    $avatarDataUrl = workspaceAvatarDataUrl($workspace);
+    $avatarSrc = workspaceAvatarImageSrc($workspace);
     $name = trim((string) ($workspace['name'] ?? 'Workspace'));
     $isPersonalWorkspace = !empty($workspace['is_personal']);
     $classNames = trim(
@@ -5803,17 +5913,17 @@ function renderWorkspaceAvatar(
         . ($isPersonalWorkspace ? ' workspace-avatar-personal' : '')
         . ' '
         . $class
-        . ($avatarDataUrl !== '' ? ' has-image' : '')
+        . ($avatarSrc !== '' ? ' has-image' : '')
     );
     $attributes = $classNames !== '' ? ' class="' . e($classNames) . '"' : '';
     $attributes .= $ariaHidden ? ' aria-hidden="true"' : ' aria-label="' . e($name !== '' ? $name : 'Workspace') . '"';
 
-    if ($avatarDataUrl !== '') {
+    if ($avatarSrc !== '') {
         return sprintf(
             '<%1$s%2$s><img src="%3$s" alt="" loading="lazy"></%1$s>',
             $tag,
             $attributes,
-            e($avatarDataUrl)
+            e($avatarSrc)
         );
     }
 
@@ -5823,6 +5933,44 @@ function renderWorkspaceAvatar(
         $attributes,
         e(workspaceDisplayInitial($name))
     );
+}
+
+function respondUserAvatarImage(): void
+{
+    $currentUser = currentUser();
+    $userId = (int) ($_GET['id'] ?? 0);
+    if (!$currentUser || $userId <= 0) {
+        http_response_code(404);
+        exit;
+    }
+
+    ensureUserProfileSchema(db());
+    $stmt = db()->prepare('SELECT avatar_data_url FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $userId]);
+    outputAvatarDataUrl((string) $stmt->fetchColumn());
+}
+
+function respondWorkspaceAvatarImage(): void
+{
+    $currentUser = currentUser();
+    $workspaceId = (int) ($_GET['id'] ?? 0);
+    if (!$currentUser || $workspaceId <= 0) {
+        http_response_code(404);
+        exit;
+    }
+
+    if (workspaceRoleForUser((int) ($currentUser['id'] ?? 0), $workspaceId) === null) {
+        http_response_code(404);
+        exit;
+    }
+
+    $workspace = workspaceById($workspaceId);
+    if (!$workspace) {
+        http_response_code(404);
+        exit;
+    }
+
+    outputAvatarDataUrl(workspaceAvatarDataUrl($workspace));
 }
 
 function uploadedWorkspaceAvatarDataUrl(array $file): string
