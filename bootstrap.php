@@ -3830,15 +3830,43 @@ function requestShouldRedirectToConfiguredAppHost(): bool
         return false;
     }
 
+    $configuredSiteHost = bootstrapUrlHostName(configuredSiteUrl());
+    $configuredAppHost = bootstrapUrlHostName(configuredAppUrl());
+    if (
+        $configuredSiteHost !== ''
+        && $configuredAppHost !== ''
+        && $configuredSiteHost === $configuredAppHost
+    ) {
+        return false;
+    }
+
     $requestPath = strtolower(requestUriPath());
     return basename($requestPath) === 'index.php' || requestWantsAppShell();
 }
 
 function requestShouldServePublicHomeFromIndex(): bool
 {
-    return configuredAppUrl() !== ''
-        && !requestTargetsConfiguredAppHost()
-        && !requestShouldRedirectToConfiguredAppHost();
+    if (requestWantsAppShell()) {
+        return false;
+    }
+
+    $requestPath = strtolower(requestUriPath());
+    $isIndexRequest = $requestPath === '/' || basename($requestPath) === 'index.php';
+    if (!$isIndexRequest) {
+        return false;
+    }
+
+    $configuredSiteHost = bootstrapUrlHostName(configuredSiteUrl());
+    $configuredAppHost = bootstrapUrlHostName(configuredAppUrl());
+    $hasSeparateHosts = $configuredSiteHost !== ''
+        && $configuredAppHost !== ''
+        && $configuredSiteHost !== $configuredAppHost;
+
+    if ($hasSeparateHosts && requestTargetsConfiguredAppHost()) {
+        return false;
+    }
+
+    return true;
 }
 
 function safeRedirectPath(?string $path, string $fallback = 'index.php'): string
