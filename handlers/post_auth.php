@@ -75,7 +75,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
 
             loginUser($newUserId, true);
             flash('success', $isWorkspaceInviteRedirect ? 'Conta criada. Vamos concluir o convite.' : 'Conta criada com sucesso.');
-            redirectTo($nextPath);
+            redirectToAppClearingInheritedFragment($nextPath);
 
         case 'login':
             $redirectPathOnError = authErrorRedirectPath('login', $nextPath);
@@ -113,7 +113,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
 
             loginUser($userId, true);
             flash('success', 'Login realizado.');
-            redirectTo($nextPath);
+            redirectToAppClearingInheritedFragment($nextPath);
 
         case 'logout':
             logoutUser();

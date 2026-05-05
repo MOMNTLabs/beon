@@ -4369,6 +4369,17 @@ function redirectTo(string $path = 'index.php'): void
     exit;
 }
 
+function redirectToAppClearingInheritedFragment(string $path = 'index.php'): void
+{
+    $location = appPath($path);
+    if (parse_url($location, PHP_URL_FRAGMENT) === null) {
+        $location .= '#app';
+    }
+
+    header('Location: ' . $location);
+    exit;
+}
+
 function flash(string $type, string $message): void
 {
     $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
