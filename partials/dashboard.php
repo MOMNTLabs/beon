@@ -30,6 +30,8 @@ foreach ($taskTitleTagOptions as $taskTitleTagOptionValue) {
     $taskTitleTagColorsPayload[(string) $taskTitleTagOptionValue] = $taskTitleTagColorValue;
 }
 $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfig['meta_by_key'] : [];
+$workspaceSwitchView = normalizeDashboardViewKey((string) ($_GET['view'] ?? 'overview'));
+$workspaceSwitchRedirectPath = dashboardPath($workspaceSwitchView !== '' ? $workspaceSwitchView : 'overview');
 ?>
 <script
     type="application/json"
@@ -117,6 +119,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                 <input type="hidden" name="action" value="switch_workspace">
                                                 <input type="hidden" name="workspace_id" value="<?= e((string) $workspaceOptionId) ?>">
+                                                <input type="hidden" name="redirect_to" value="<?= e($workspaceSwitchRedirectPath) ?>">
                                                 <button type="submit" class="workspace-sidebar-picker-option" title="<?= e($workspaceOptionName) ?>">
                                                     <?= renderWorkspaceAvatar($workspaceOption, 'avatar small workspace-sidebar-picker-avatar', true, 'span') ?>
                                                     <span class="workspace-sidebar-picker-item-text" title="<?= e($workspaceOptionName) ?>"><?= e($workspaceOptionName) ?></span>
@@ -714,6 +717,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                 <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                                 <input type="hidden" name="action" value="switch_workspace">
                                                 <input type="hidden" name="workspace_id" value="<?= e((string) $workspaceSummaryId) ?>">
+                                                <input type="hidden" name="redirect_to" value="<?= e($workspaceSwitchRedirectPath) ?>">
                                                 <button type="submit" class="overview-workspace-open">Abrir</button>
                                             </form>
                                         <?php endif; ?>

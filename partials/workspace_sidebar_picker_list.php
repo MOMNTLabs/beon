@@ -1,3 +1,7 @@
+<?php
+$workspaceSwitchView = normalizeDashboardViewKey((string) ($_GET['view'] ?? 'overview'));
+$workspaceSwitchRedirectPath = dashboardPath($workspaceSwitchView !== '' ? $workspaceSwitchView : 'overview');
+?>
 <?php foreach ($userWorkspaces as $workspaceOption): ?>
     <?php
     $workspaceOptionId = (int) ($workspaceOption['id'] ?? 0);
@@ -14,6 +18,7 @@
             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
             <input type="hidden" name="action" value="switch_workspace">
             <input type="hidden" name="workspace_id" value="<?= e((string) $workspaceOptionId) ?>">
+            <input type="hidden" name="redirect_to" value="<?= e($workspaceSwitchRedirectPath) ?>">
             <button type="submit" class="workspace-sidebar-picker-option" title="<?= e($workspaceOptionName) ?>">
                 <?= renderWorkspaceAvatar($workspaceOption, 'avatar small workspace-sidebar-picker-avatar', true, 'span') ?>
                 <span class="workspace-sidebar-picker-item-text" title="<?= e($workspaceOptionName) ?>"><?= e($workspaceOptionName) ?></span>

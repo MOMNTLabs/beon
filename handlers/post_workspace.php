@@ -28,9 +28,12 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                 }
 
                 setActiveWorkspaceId($workspaceId);
-                $redirectPath = appPath(trim((string) ($_POST['redirect_to'] ?? '')));
+                $requestedRedirectPath = trim((string) ($_POST['redirect_to'] ?? ''));
+                $redirectPath = $requestedRedirectPath !== ''
+                    ? appPath($requestedRedirectPath)
+                    : dashboardPath('tasks');
                 if (!in_array($redirectPath, $allowedSwitchWorkspaceRedirects, true)) {
-                    $redirectPath = appPath('#tasks');
+                    $redirectPath = dashboardPath('tasks');
                 }
                 redirectTo($redirectPath);
 
