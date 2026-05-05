@@ -25,7 +25,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                     ]);
                 }
                 flash('success', 'Grupo de vencimentos criado.');
-                redirectTo('index.php#dues');
+                redirectTo('index.php#accounting');
 
             case 'rename_due_group':
                 $authUser = requireAuth();
@@ -107,7 +107,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 }
 
                 flash('success', 'Grupo de vencimentos renomeado.');
-                redirectTo('index.php#dues');
+                redirectTo('index.php#accounting');
 
             case 'delete_due_group':
                 $authUser = requireAuth();
@@ -177,7 +177,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                         ? sprintf('Grupo de vencimentos removido. %d item(ns) excluido(s).', $deletedEntriesCount)
                         : 'Grupo de vencimentos removido.'
                 );
-                redirectTo('index.php#dues');
+                redirectTo('index.php#accounting');
 
             case 'update_due_group_permissions':
                 $authUser = requireAuth();
@@ -209,7 +209,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 }
 
                 flash('success', 'Permissoes do grupo de vencimentos atualizadas.');
-                redirectTo('index.php#dues');
+                redirectTo('index.php#accounting');
 
             case 'create_due_entry':
                 $authUser = requireAuth();
@@ -246,7 +246,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 }
 
                 flash('success', 'Vencimento criado.');
-                redirectTo('index.php#dues');
+                redirectTo('index.php#accounting');
 
             case 'update_due_entry':
                 $authUser = requireAuth();
@@ -302,7 +302,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 }
 
                 flash('success', 'Vencimento atualizado.');
-                redirectTo('index.php#dues');
+                redirectTo('index.php#accounting');
 
             case 'delete_due_entry':
                 $authUser = requireAuth();
@@ -342,7 +342,7 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                 }
 
                 flash('success', 'Vencimento removido.');
-                redirectTo('index.php#dues');
+                redirectTo('index.php#accounting');
     }
 
     return in_array($action, [

@@ -3198,7 +3198,11 @@ function appBasePath(): string
 function normalizeDashboardViewKey(string $view): string
 {
     $normalized = strtolower(trim($view));
-    return in_array($normalized, ['overview', 'tasks', 'vault', 'dues', 'inventory', 'accounting', 'users'], true)
+    if ($normalized === 'dues') {
+        return 'accounting';
+    }
+
+    return in_array($normalized, ['overview', 'tasks', 'vault', 'inventory', 'accounting', 'users'], true)
         ? $normalized
         : '';
 }
@@ -11230,7 +11234,6 @@ function workspaceSidebarOptionalToolLabels(): array
 {
     return [
         'vault' => 'Gerenciador de acessos',
-        'dues' => 'Vencimentos',
         'inventory' => 'Estoque',
         'accounting' => 'Contabilidade',
     ];
@@ -11239,6 +11242,10 @@ function workspaceSidebarOptionalToolLabels(): array
 function normalizeWorkspaceSidebarToolKey(string $value): string
 {
     $normalized = trim(strtolower($value));
+    if ($normalized === 'dues') {
+        $normalized = 'accounting';
+    }
+
     return array_key_exists($normalized, workspaceSidebarOptionalToolLabels()) ? $normalized : '';
 }
 

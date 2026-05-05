@@ -633,6 +633,21 @@ if ($checkoutNotice) {
                 <a href="<?= e(appPath('home')) ?>" class="sales-brand" aria-label="<?= e(APP_NAME) ?>">
                     <img src="<?= e(appPath('assets/Bexon - Logo Horizontal.png?v=1')) ?>" alt="<?= e(APP_NAME) ?>">
                 </a>
+                <div class="sales-mobile-header-actions">
+                    <a href="<?= e($authPath) ?>" class="sales-btn sales-btn-primary sales-mobile-login">Entrar</a>
+                    <details class="sales-mobile-nav" data-sales-mobile-nav>
+                        <summary class="sales-mobile-nav-toggle" aria-label="Abrir menu principal" title="Abrir menu principal">
+                            <span class="sales-mobile-nav-toggle-label" aria-hidden="true"></span>
+                            <span class="sales-mobile-nav-toggle-icon" aria-hidden="true"></span>
+                        </summary>
+                        <div class="sales-mobile-nav-panel">
+                            <a href="#recursos" data-sales-mobile-menu-link>Recursos</a>
+                            <a href="#uso" data-sales-mobile-menu-link>Para quem</a>
+                            <a href="#fluxo" data-sales-mobile-menu-link>Como funciona</a>
+                            <a href="#planos" data-sales-mobile-menu-link>Planos</a>
+                        </div>
+                    </details>
+                </div>
                 <nav class="sales-nav" aria-label="Navega&ccedil;&atilde;o principal">
                     <a href="#recursos">Recursos</a>
                     <a href="#uso">Para quem</a>
@@ -950,6 +965,21 @@ if ($checkoutNotice) {
                     }
                 }, 5000);
             });
+
+            var mobileNav = document.querySelector('[data-sales-mobile-nav]');
+            if (mobileNav) {
+                mobileNav.querySelectorAll('[data-sales-mobile-menu-link]').forEach(function (link) {
+                    link.addEventListener('click', function () {
+                        mobileNav.removeAttribute('open');
+                    });
+                });
+
+                window.addEventListener('resize', function () {
+                    if (window.innerWidth > 760) {
+                        mobileNav.removeAttribute('open');
+                    }
+                });
+            }
 
             var billingToggle = document.querySelector('[data-billing-toggle]');
             var billingButtons = billingToggle ? Array.from(billingToggle.querySelectorAll('[data-billing-interval]')) : [];

@@ -71,8 +71,8 @@ if ($overviewTasksTomorrowTotal > 0 && $overviewTasksTodayTotal === 0) {
 }
 if ($overviewDueSoonTotal > 0) {
     $overviewOpenActions[] = [
-        'view' => 'dues',
-        'label' => 'Ver vencimentos',
+        'view' => 'accounting',
+        'label' => 'Ver contabilidade',
         'workspace_id' => $overviewPrimaryDueWorkspaceId,
     ];
 }

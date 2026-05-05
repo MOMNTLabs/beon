@@ -4872,13 +4872,16 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const workspaceSidebarToolLabels = {
     vault: "Gerenciador de acessos",
-    dues: "Vencimentos",
     inventory: "Estoque",
     accounting: "Contabilidade",
   };
 
   const normalizeWorkspaceSidebarToolCandidate = (value) => {
-    const normalized = String(value || "").trim().toLowerCase();
+    let normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "dues") {
+      normalized = "accounting";
+    }
+
     return Object.prototype.hasOwnProperty.call(workspaceSidebarToolLabels, normalized)
       ? normalized
       : "";
@@ -6441,11 +6444,14 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const normalizeDashboardViewCandidate = (value) => {
-    const normalized = String(value || "").trim().toLowerCase();
+    let normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "dues") {
+      normalized = "accounting";
+    }
+
     return normalized === "overview" ||
       normalized === "tasks" ||
       normalized === "vault" ||
-      normalized === "dues" ||
       normalized === "inventory" ||
       normalized === "accounting" ||
       normalized === "users"

@@ -100,25 +100,6 @@ $sidebarPlanToneClass = preg_replace('/[^a-z0-9_-]+/i', '', $sidebarCurrentPlanK
                 </span>
                 <span class="sidebar-view-toggle-label">Gerenciador de acessos</span>
             </button>
-        <?php elseif ($sidebarToolView === 'dues'): ?>
-            <button
-                type="button"
-                class="sidebar-view-toggle"
-                data-dashboard-view-toggle
-                data-view="dues"
-                aria-pressed="false"
-            >
-                <span class="sidebar-view-toggle-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false">
-                        <rect x="4" y="5" width="16" height="15" rx="2"></rect>
-                        <path d="M8 3v4"></path>
-                        <path d="M16 3v4"></path>
-                        <path d="M4 9h16"></path>
-                        <path d="M8 13h3"></path>
-                    </svg>
-                </span>
-                <span class="sidebar-view-toggle-label">Vencimentos</span>
-            </button>
         <?php elseif ($sidebarToolView === 'inventory'): ?>
             <button
                 type="button"
