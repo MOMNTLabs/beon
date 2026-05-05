@@ -3602,6 +3602,11 @@ function taskDetailPath(int $taskId, array $params = []): string
     return dashboardPath('tasks', $params);
 }
 
+function appDefaultAfterLoginPath(): string
+{
+    return dashboardPath('tasks');
+}
+
 function canonicalizeSiteRelativePath(string $path): string
 {
     $trimmedPath = trim($path);

@@ -43,7 +43,7 @@ require_once __DIR__ . '/handlers/dashboard_overview.php';
 $forceAuthScreen = false;
 $authInitialPanel = 'login';
 $passwordResetRequest = null;
-$authRedirectPath = safeRedirectPath((string) (($_GET['next'] ?? $_POST['next'] ?? '')), 'index.php');
+$authRedirectPath = safeRedirectPath((string) (($_GET['next'] ?? $_POST['next'] ?? '')), appDefaultAfterLoginPath());
 $workspaceInviteRequest = validWorkspaceEmailInvitationRequestFromPath($authRedirectPath);
 $authAllowsDirectRegister = str_starts_with($authRedirectPath, 'home?action=checkout')
     || (!empty($workspaceInviteRequest) && (int) ($workspaceInviteRequest['existing_user_id'] ?? 0) <= 0);

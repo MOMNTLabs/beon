@@ -446,7 +446,7 @@ $requestedBillingInterval = $rawRequestedBillingInterval;
 $selectedPlan = $checkoutBillingPlans[$requestedPlanKey] ?? $checkoutBillingPlans[$defaultPlanKey] ?? $checkoutBillingPlans['solo'];
 $recommendedCheckoutPath = billingPlanCheckoutPath('solo', $defaultBillingInterval);
 $checkoutAction = trim((string) ($_GET['action'] ?? ''));
-$authPath = appUrl('?auth=login#login');
+$authPath = appUrl('?auth=login&next=' . urlencode(appDefaultAfterLoginPath()) . '#login');
 $appEntryPath = $authPath;
 
 if ($checkoutAction === 'checkout') {

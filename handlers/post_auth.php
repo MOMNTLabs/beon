@@ -16,7 +16,7 @@ function authErrorRedirectPath(string $panel, string $nextPath): string
 
 function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnError): bool
 {
-    $nextPath = safeRedirectPath((string) ($_POST['next'] ?? ''), 'index.php');
+    $nextPath = safeRedirectPath((string) ($_POST['next'] ?? ''), appDefaultAfterLoginPath());
     $isCheckoutRedirect = str_starts_with($nextPath, 'home?action=checkout');
     $workspaceInviteRequest = validWorkspaceEmailInvitationRequestFromPath($nextPath);
     $isWorkspaceInviteRedirect = is_array($workspaceInviteRequest);
