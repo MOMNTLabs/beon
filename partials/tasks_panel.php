@@ -177,7 +177,48 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                     </div>
                 </label>
 
+                <?php
+                $taskUndoState = isset($currentWorkspaceId) && (int) $currentWorkspaceId > 0
+                    ? taskUndoState((int) $currentWorkspaceId)
+                    : ['can_undo' => false, 'can_redo' => false, 'undo_label' => '', 'redo_label' => ''];
+                $canUndoTaskAction = !empty($taskUndoState['can_undo']);
+                $canRedoTaskAction = !empty($taskUndoState['can_redo']);
+                $undoTaskLabel = trim((string) ($taskUndoState['undo_label'] ?? ''));
+                $redoTaskLabel = trim((string) ($taskUndoState['redo_label'] ?? ''));
+                ?>
                 <div class="task-filters-create">
+                    <div class="task-history-controls" data-task-history-controls>
+                        <button
+                            type="submit"
+                            form="task-history-undo-form"
+                            class="icon-gear-button task-history-button"
+                            data-task-history-button="undo"
+                            aria-label="<?= e($undoTaskLabel !== '' ? 'Desfazer: ' . $undoTaskLabel : 'Desfazer') ?>"
+                            title="<?= e($undoTaskLabel !== '' ? 'Desfazer: ' . $undoTaskLabel : 'Nada para desfazer') ?>"
+                            <?= $canUndoTaskAction ? '' : 'disabled' ?>
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M9 7 4 12l5 5"></path>
+                                <path d="M5 12h8a6 6 0 0 1 6 6v1"></path>
+                            </svg>
+                            <span>Desfazer</span>
+                        </button>
+                        <button
+                            type="submit"
+                            form="task-history-redo-form"
+                            class="icon-gear-button task-history-button"
+                            data-task-history-button="redo"
+                            aria-label="<?= e($redoTaskLabel !== '' ? 'Refazer: ' . $redoTaskLabel : 'Refazer') ?>"
+                            title="<?= e($redoTaskLabel !== '' ? 'Refazer: ' . $redoTaskLabel : 'Nada para refazer') ?>"
+                            <?= $canRedoTaskAction ? '' : 'disabled' ?>
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m15 7 5 5-5 5"></path>
+                                <path d="M19 12h-8a6 6 0 0 0-6 6v1"></path>
+                            </svg>
+                            <span>Refazer</span>
+                        </button>
+                    </div>
                     <button
                         type="button"
                         class="icon-gear-button task-filters-reorder-groups"
@@ -206,6 +247,15 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                         </button>
                     <?php endif; ?>
                 </div>
+            </form>
+
+            <form method="post" id="task-history-undo-form" class="task-history-form" data-task-history-form data-task-history-action="undo" data-loading-label="Desfazendo...">
+                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                <input type="hidden" name="action" value="task_undo">
+            </form>
+            <form method="post" id="task-history-redo-form" class="task-history-form" data-task-history-form data-task-history-action="redo" data-loading-label="Refazendo...">
+                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                <input type="hidden" name="action" value="task_redo">
             </form>
 
             <datalist id="task-group-options">

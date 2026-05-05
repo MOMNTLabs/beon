@@ -132,6 +132,7 @@ function respondTaskPanelSnapshot(): void
         'tasks_panel_html' => $tasksPanelHtml,
         'create_task_group_options_html' => renderCreateTaskGroupOptionsHtml($taskGroupsWithAccess),
         'has_task_group_access' => !empty($taskGroupsWithAccess),
+        'undo_state' => taskUndoState($currentWorkspaceId),
         'summary' => [
             'total' => (int) $stats['total'],
             'done' => (int) $stats['done'],

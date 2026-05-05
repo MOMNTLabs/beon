@@ -3727,6 +3727,41 @@ window.addEventListener("DOMContentLoaded", () => {
     return data;
   }, { label: "Carregando..." });
 
+  const syncTaskHistoryControls = (state = null) => {
+    const controls = document.querySelector("[data-task-history-controls]");
+    if (!(controls instanceof HTMLElement)) return;
+
+    const normalizedState = state && typeof state === "object" ? state : {};
+    const configs = [
+      {
+        action: "undo",
+        canKey: "can_undo",
+        labelKey: "undo_label",
+        fallbackTitle: "Nada para desfazer",
+        activePrefix: "Desfazer: ",
+      },
+      {
+        action: "redo",
+        canKey: "can_redo",
+        labelKey: "redo_label",
+        fallbackTitle: "Nada para refazer",
+        activePrefix: "Refazer: ",
+      },
+    ];
+
+    configs.forEach((config) => {
+      const button = controls.querySelector(`[data-task-history-button="${config.action}"]`);
+      if (!(button instanceof HTMLButtonElement)) return;
+
+      const canRun = normalizedState[config.canKey] === true;
+      const label = String(normalizedState[config.labelKey] || "").trim();
+      const title = canRun && label ? `${config.activePrefix}${label}` : config.fallbackTitle;
+      button.disabled = !canRun;
+      button.title = title;
+      button.setAttribute("aria-label", canRun && label ? title : config.action === "undo" ? "Desfazer" : "Refazer");
+    });
+  };
+
   const notificationWorkspaceId = Number.parseInt(
     String(document.body?.dataset?.workspaceId || "").trim() || "0",
     10
@@ -4421,6 +4456,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (summary) {
         renderDashboardSummary(summary);
       }
+    }
+    if (snapshotData && snapshotData.undo_state && typeof snapshotData.undo_state === "object") {
+      syncTaskHistoryControls(snapshotData.undo_state);
     }
 
     if (createTaskGroupInput instanceof HTMLSelectElement) {
@@ -5588,6 +5626,7 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       refreshTaskUpdatedAtMeta(form, task.updated_at_label || "");
       renderDashboardSummary(data.dashboard);
+      syncTaskHistoryControls(data.undo_state);
       if (taskDetailContext && taskDetailContext.form === form && taskDetailModal && !taskDetailModal.hidden) {
         populateTaskDetailModalFromRow(taskDetailContext);
         void hydrateTaskDetailPayloadFromServer(taskDetailContext, { force: true }).catch(() => {});
@@ -10183,6 +10222,58 @@ window.addEventListener("DOMContentLoaded", () => {
     syncBodyModalLock();
   };
 
+  const submitTaskHistoryForm = async (historyForm) => {
+    if (!(historyForm instanceof HTMLFormElement)) return;
+    if (historyForm.dataset.submitting === "1") return;
+
+    const action = String(historyForm.dataset.taskHistoryAction || "").trim();
+    const controls = document.querySelector("[data-task-history-controls]");
+    const button =
+      controls instanceof HTMLElement
+        ? controls.querySelector(`[data-task-history-button="${action}"]`)
+        : null;
+    if (button instanceof HTMLButtonElement && button.disabled) return;
+
+    historyForm.dataset.submitting = "1";
+    if (button instanceof HTMLButtonElement) {
+      button.disabled = true;
+      button.classList.add("is-loading");
+      button.setAttribute("aria-busy", "true");
+    }
+
+    try {
+      const data = await postFormJson(historyForm);
+      syncTaskHistoryControls(data.undo_state);
+      if (taskDetailModal instanceof HTMLElement && !taskDetailModal.hidden) {
+        closeTaskDetailModal();
+      }
+      await refreshTasksSectionFromServer();
+      renderDashboardSummary(data.dashboard);
+      showClientFlash("success", data.message || (action === "redo" ? "Acao refeita." : "Acao desfeita."));
+    } catch (error) {
+      showClientFlash(
+        "error",
+        error instanceof Error ? error.message : "Nao foi possivel aplicar esta acao."
+      );
+    } finally {
+      delete historyForm.dataset.submitting;
+      if (button instanceof HTMLButtonElement) {
+        button.classList.remove("is-loading");
+        button.removeAttribute("aria-busy");
+      }
+    }
+  };
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.matches("[data-task-history-form]")) {
+      return;
+    }
+
+    event.preventDefault();
+    void submitTaskHistoryForm(form);
+  });
+
   const submitDeleteTask = async (deleteForm) => {
     if (!(deleteForm instanceof HTMLFormElement)) return;
     if (deleteForm.dataset.submitting === "1") return;
@@ -10210,6 +10301,7 @@ window.addEventListener("DOMContentLoaded", () => {
       refreshTaskGroupSection(groupSection);
       adjustBoardSummaryCounts({ visible: -1, total: -1 });
       renderDashboardSummary(data.dashboard);
+      syncTaskHistoryControls(data.undo_state);
       if (typeof syncTaskGroupInputs === "function") {
         syncTaskGroupInputs();
       }

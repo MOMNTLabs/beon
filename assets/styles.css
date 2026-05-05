@@ -6197,6 +6197,43 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     letter-spacing: 0.01em;
 }
 
+.task-history-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.task-history-form {
+    display: contents;
+}
+
+.task-history-button {
+    width: auto;
+    height: 34px;
+    min-width: 34px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.task-history-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+    filter: grayscale(0.35);
+    box-shadow: none;
+}
+
+.task-history-button:disabled:hover {
+    transform: none;
+}
+
+.task-history-button span {
+    line-height: 1;
+}
+
 .task-filters-reorder-groups {
     width: 34px;
     height: 34px;
@@ -13396,6 +13433,17 @@ select option:checked,
         height: 30px;
         padding: 0 9px;
         font-size: 0.72rem;
+    }
+
+    .task-history-button {
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
+        padding: 0;
+    }
+
+    .task-history-button span {
+        display: none;
     }
 
     .task-filters-reorder-groups {

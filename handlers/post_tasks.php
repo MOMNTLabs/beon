@@ -4,6 +4,34 @@ declare(strict_types=1);
 function handleTaskPostAction(PDO $pdo, string $action): bool
 {
     switch ($action) {
+            case 'task_undo':
+            case 'task_redo':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                }
+
+                $result = taskUndoApply(
+                    $pdo,
+                    $workspaceId,
+                    (int) $authUser['id'],
+                    $action === 'task_redo'
+                );
+                $message = (string) ($result['message'] ?? 'Acao aplicada.');
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => $message,
+                        'undo_state' => taskUndoState($workspaceId),
+                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id'], $workspaceId),
+                    ]);
+                }
+
+                flash('success', $message);
+                redirectTo(tasksRedirectPathFromRequest());
+
             case 'create_task':
             case 'update_task':
                 $authUser = requireAuth();
@@ -171,6 +199,16 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                                 $now
                             );
                         }
+
+                        taskUndoPushOperation(
+                            $workspaceId,
+                            taskUndoBuildOperation(
+                                'create',
+                                $createdTaskId,
+                                null,
+                                taskUndoTaskSnapshot($pdo, $workspaceId, $createdTaskId)
+                            )
+                        );
                     }
                     flash('success', 'Tarefa criada.');
                     redirectTo(tasksRedirectPathFromRequest());
@@ -203,6 +241,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Você não possui acesso ao grupo de destino.');
                 }
                 upsertTaskGroup($pdo, $groupName, $actorUserId, $workspaceId);
+                $undoBeforeTask = taskUndoTaskSnapshot($pdo, $workspaceId, $taskId);
 
                 if ($referenceLinks === null) {
                     $referenceLinks = decodeReferenceUrlList($existingTaskRow['reference_links_json'] ?? null);
@@ -495,6 +534,16 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     }
                 }
 
+                taskUndoPushOperation(
+                    $workspaceId,
+                    taskUndoBuildOperation(
+                        'update',
+                        $taskId,
+                        $undoBeforeTask,
+                        taskUndoTaskSnapshot($pdo, $workspaceId, $taskId)
+                    )
+                );
+
                 $includeHistory = !empty($_POST['include_history']);
                 $shouldResolveHistory = $includeHistory || $description !== $existingDescription;
                 $taskHistory = [];
@@ -537,6 +586,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                         'ok' => true,
                         'task' => $taskPayload,
                         'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id'], $workspaceId),
+                        'undo_state' => taskUndoState($workspaceId),
                     ]);
                 }
                 if (!$isAutosave) {
@@ -895,6 +945,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     throw new RuntimeException('Você não possui acesso para atualizar esta tarefa.');
                 }
 
+                $undoBeforeTask = taskUndoTaskSnapshot($pdo, $workspaceId, $taskId);
                 $existingStatus = normalizeTaskStatus((string) ($existingTaskRow['status'] ?? 'todo'), $workspaceId);
                 $existingOverdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
                 $existingOverdueSinceDate = dueDateForStorage((string) ($existingTaskRow['overdue_since_date'] ?? ''));
@@ -949,12 +1000,23 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     );
                 }
 
+                taskUndoPushOperation(
+                    $workspaceId,
+                    taskUndoBuildOperation(
+                        'update',
+                        $taskId,
+                        $undoBeforeTask,
+                        taskUndoTaskSnapshot($pdo, $workspaceId, $taskId)
+                    )
+                );
+
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,
                         'task_id' => $taskId,
                         'status' => $status,
                         'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id'], $workspaceId),
+                        'undo_state' => taskUndoState($workspaceId),
                     ]);
                 }
                 flash('success', 'Status atualizado.');
@@ -1058,6 +1120,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 if (!userCanAccessTaskGroup((int) $authUser['id'], $workspaceId, $taskGroupName)) {
                     throw new RuntimeException('Você não possui acesso para remover esta tarefa.');
                 }
+                $undoBeforeTask = taskUndoTaskSnapshot($pdo, $workspaceId, $taskId);
                 $stmt = $pdo->prepare(
                     'DELETE FROM tasks
                      WHERE id = :id
@@ -1067,11 +1130,16 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     ':id' => $taskId,
                     ':workspace_id' => $workspaceId,
                 ]);
+                taskUndoPushOperation(
+                    $workspaceId,
+                    taskUndoBuildOperation('delete', $taskId, $undoBeforeTask, null)
+                );
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,
                         'task_id' => $taskId,
                         'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id'], $workspaceId),
+                        'undo_state' => taskUndoState($workspaceId),
                     ]);
                 }
                 flash('success', 'Tarefa removida.');
@@ -1080,6 +1148,8 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
     }
 
     return in_array($action, [
+        'task_undo',
+        'task_redo',
         'create_task',
         'update_task',
         'add_task_title_tag_option',

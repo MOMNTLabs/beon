@@ -14493,6 +14493,440 @@ function taskGroupsList(?int $workspaceId = null): array
     return array_values($values);
 }
 
+function taskUndoMaxDepth(): int
+{
+    return 20;
+}
+
+function taskUndoStorageKey(int $workspaceId): string
+{
+    return 'task_undo_state:' . max(0, $workspaceId);
+}
+
+function taskUndoColumns(): array
+{
+    return [
+        'id',
+        'workspace_id',
+        'title',
+        'title_tag',
+        'description',
+        'status',
+        'priority',
+        'due_date',
+        'overdue_flag',
+        'overdue_since_date',
+        'created_by',
+        'assigned_to',
+        'assignee_ids_json',
+        'reference_links_json',
+        'reference_images_json',
+        'subtasks_json',
+        'subtasks_dependency_enabled',
+        'group_name',
+        'created_at',
+        'updated_at',
+    ];
+}
+
+function taskUndoComparableColumns(): array
+{
+    return [
+        'title',
+        'title_tag',
+        'description',
+        'status',
+        'priority',
+        'due_date',
+        'overdue_flag',
+        'overdue_since_date',
+        'assigned_to',
+        'assignee_ids_json',
+        'reference_links_json',
+        'reference_images_json',
+        'subtasks_json',
+        'subtasks_dependency_enabled',
+        'group_name',
+    ];
+}
+
+function taskUndoTaskSnapshot(PDO $pdo, int $workspaceId, int $taskId): ?array
+{
+    if ($workspaceId <= 0 || $taskId <= 0) {
+        return null;
+    }
+
+    $columns = implode(', ', taskUndoColumns());
+    $stmt = $pdo->prepare(
+        'SELECT ' . $columns . '
+         FROM tasks
+         WHERE id = :id
+           AND workspace_id = :workspace_id
+         LIMIT 1'
+    );
+    $stmt->execute([
+        ':id' => $taskId,
+        ':workspace_id' => $workspaceId,
+    ]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return null;
+    }
+
+    $snapshot = [];
+    foreach (taskUndoColumns() as $column) {
+        $snapshot[$column] = $row[$column] ?? null;
+    }
+
+    return $snapshot;
+}
+
+function taskUndoSessionState(int $workspaceId): array
+{
+    $key = taskUndoStorageKey($workspaceId);
+    if (!isset($_SESSION[$key]) || !is_array($_SESSION[$key])) {
+        $_SESSION[$key] = [
+            'undo' => [],
+            'redo' => [],
+        ];
+    }
+
+    foreach (['undo', 'redo'] as $stackName) {
+        if (!isset($_SESSION[$key][$stackName]) || !is_array($_SESSION[$key][$stackName])) {
+            $_SESSION[$key][$stackName] = [];
+        }
+    }
+
+    return $_SESSION[$key];
+}
+
+function taskUndoStack(int $workspaceId, string $stackName): array
+{
+    $state = taskUndoSessionState($workspaceId);
+    $stack = $state[$stackName] ?? [];
+    return is_array($stack) ? array_values($stack) : [];
+}
+
+function taskUndoSetStack(int $workspaceId, string $stackName, array $stack): void
+{
+    if (!in_array($stackName, ['undo', 'redo'], true)) {
+        return;
+    }
+
+    $key = taskUndoStorageKey($workspaceId);
+    taskUndoSessionState($workspaceId);
+    $_SESSION[$key][$stackName] = array_values(array_slice($stack, -taskUndoMaxDepth()));
+}
+
+function taskUndoSnapshotValue(?array $snapshot, string $column): string
+{
+    if ($snapshot === null) {
+        return '';
+    }
+
+    $value = $snapshot[$column] ?? null;
+    if ($value === null) {
+        return '';
+    }
+
+    if (is_bool($value)) {
+        return $value ? '1' : '0';
+    }
+
+    return (string) $value;
+}
+
+function taskUndoSnapshotsEqual(?array $before, ?array $after): bool
+{
+    if ($before === null || $after === null) {
+        return $before === $after;
+    }
+
+    foreach (taskUndoComparableColumns() as $column) {
+        if (taskUndoSnapshotValue($before, $column) !== taskUndoSnapshotValue($after, $column)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function taskUndoOperationLabel(string $type, ?array $before, ?array $after): string
+{
+    if ($type === 'create') {
+        return 'Criar tarefa';
+    }
+    if ($type === 'delete') {
+        return 'Excluir tarefa';
+    }
+    if ($type !== 'update' || $before === null || $after === null) {
+        return 'Editar tarefa';
+    }
+
+    if (taskUndoSnapshotValue($before, 'group_name') !== taskUndoSnapshotValue($after, 'group_name')) {
+        return 'Mover tarefa';
+    }
+    if (taskUndoSnapshotValue($before, 'status') !== taskUndoSnapshotValue($after, 'status')) {
+        return 'Alterar status';
+    }
+    if (taskUndoSnapshotValue($before, 'due_date') !== taskUndoSnapshotValue($after, 'due_date')) {
+        return 'Alterar prazo';
+    }
+    if (taskUndoSnapshotValue($before, 'assignee_ids_json') !== taskUndoSnapshotValue($after, 'assignee_ids_json')) {
+        return 'Alterar responsavel';
+    }
+    if (taskUndoSnapshotValue($before, 'priority') !== taskUndoSnapshotValue($after, 'priority')) {
+        return 'Alterar prioridade';
+    }
+
+    return 'Editar tarefa';
+}
+
+function taskUndoBuildOperation(string $type, int $taskId, ?array $before, ?array $after): ?array
+{
+    if ($taskId <= 0) {
+        return null;
+    }
+
+    if ($type === 'update' && taskUndoSnapshotsEqual($before, $after)) {
+        return null;
+    }
+
+    if ($type === 'create' && $after === null) {
+        return null;
+    }
+
+    if ($type === 'delete' && $before === null) {
+        return null;
+    }
+
+    return [
+        'type' => $type,
+        'task_id' => $taskId,
+        'before' => $before,
+        'after' => $after,
+        'label' => taskUndoOperationLabel($type, $before, $after),
+        'created_at' => nowIso(),
+    ];
+}
+
+function taskUndoPushOperation(int $workspaceId, ?array $operation): void
+{
+    if ($workspaceId <= 0 || $operation === null) {
+        return;
+    }
+
+    $undoStack = taskUndoStack($workspaceId, 'undo');
+    $lastIndex = count($undoStack) - 1;
+    $shouldMerge = false;
+    if ($lastIndex >= 0) {
+        $last = is_array($undoStack[$lastIndex] ?? null) ? $undoStack[$lastIndex] : [];
+        $lastCreatedAt = strtotime((string) ($last['created_at'] ?? '')) ?: 0;
+        $shouldMerge =
+            (string) ($last['type'] ?? '') === 'update' &&
+            (string) ($operation['type'] ?? '') === 'update' &&
+            (int) ($last['task_id'] ?? 0) === (int) ($operation['task_id'] ?? 0) &&
+            (string) ($last['label'] ?? '') === (string) ($operation['label'] ?? '') &&
+            $lastCreatedAt > 0 &&
+            abs(time() - $lastCreatedAt) <= 12;
+    }
+
+    if ($shouldMerge) {
+        $undoStack[$lastIndex]['after'] = $operation['after'] ?? null;
+        $undoStack[$lastIndex]['created_at'] = (string) ($operation['created_at'] ?? nowIso());
+        if (taskUndoSnapshotsEqual(
+            is_array($undoStack[$lastIndex]['before'] ?? null) ? $undoStack[$lastIndex]['before'] : null,
+            is_array($undoStack[$lastIndex]['after'] ?? null) ? $undoStack[$lastIndex]['after'] : null
+        )) {
+            array_splice($undoStack, $lastIndex, 1);
+        }
+    } else {
+        $undoStack[] = $operation;
+    }
+
+    taskUndoSetStack($workspaceId, 'undo', $undoStack);
+    taskUndoSetStack($workspaceId, 'redo', []);
+}
+
+function taskUndoState(int $workspaceId): array
+{
+    $undoStack = taskUndoStack($workspaceId, 'undo');
+    $redoStack = taskUndoStack($workspaceId, 'redo');
+    $undoOperation = $undoStack ? end($undoStack) : null;
+    $redoOperation = $redoStack ? end($redoStack) : null;
+
+    return [
+        'can_undo' => !empty($undoStack),
+        'can_redo' => !empty($redoStack),
+        'undo_label' => is_array($undoOperation) ? (string) ($undoOperation['label'] ?? '') : '',
+        'redo_label' => is_array($redoOperation) ? (string) ($redoOperation['label'] ?? '') : '',
+    ];
+}
+
+function taskUndoEnsureSnapshotAccess(int $userId, int $workspaceId, ?array $snapshot): void
+{
+    if ($snapshot === null) {
+        return;
+    }
+
+    $groupName = normalizeTaskGroupName((string) ($snapshot['group_name'] ?? 'Geral'));
+    if (!userCanAccessTaskGroup($userId, $workspaceId, $groupName)) {
+        throw new RuntimeException('Voce nao possui acesso para aplicar esta acao.');
+    }
+}
+
+function taskUndoRestoreSnapshot(PDO $pdo, int $workspaceId, array $snapshot): void
+{
+    $columns = taskUndoColumns();
+    $authUser = currentUser();
+    $defaults = [
+        'workspace_id' => $workspaceId,
+        'title' => '',
+        'title_tag' => '',
+        'description' => '',
+        'status' => (string) (taskStatusConfig($workspaceId)['todo_status_key'] ?? 'todo'),
+        'priority' => 'medium',
+        'due_date' => null,
+        'overdue_flag' => 0,
+        'overdue_since_date' => null,
+        'created_by' => is_array($authUser) ? (int) ($authUser['id'] ?? 0) : 0,
+        'assigned_to' => null,
+        'assignee_ids_json' => '[]',
+        'reference_links_json' => '[]',
+        'reference_images_json' => '[]',
+        'subtasks_json' => '[]',
+        'subtasks_dependency_enabled' => 0,
+        'group_name' => defaultTaskGroupName($workspaceId),
+        'created_at' => nowIso(),
+        'updated_at' => nowIso(),
+    ];
+
+    $values = [];
+    foreach ($columns as $column) {
+        $values[$column] = array_key_exists($column, $snapshot)
+            ? $snapshot[$column]
+            : ($defaults[$column] ?? null);
+    }
+    $values['workspace_id'] = $workspaceId;
+    $values['updated_at'] = nowIso();
+
+    $columnSql = implode(', ', $columns);
+    $placeholderSql = implode(', ', array_map(static fn (string $column): string => ':' . $column, $columns));
+    $updateSql = implode(', ', array_map(
+        static fn (string $column): string => $column . ' = excluded.' . $column,
+        array_values(array_filter($columns, static fn (string $column): bool => $column !== 'id'))
+    ));
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO tasks (' . $columnSql . ')
+         VALUES (' . $placeholderSql . ')
+         ON CONFLICT (id) DO UPDATE SET ' . $updateSql
+    );
+
+    $params = [];
+    foreach ($columns as $column) {
+        $params[':' . $column] = $values[$column];
+    }
+    $stmt->execute($params);
+}
+
+function taskUndoDeleteTask(PDO $pdo, int $workspaceId, int $taskId): void
+{
+    $stmt = $pdo->prepare(
+        'DELETE FROM tasks
+         WHERE id = :id
+           AND workspace_id = :workspace_id'
+    );
+    $stmt->execute([
+        ':id' => $taskId,
+        ':workspace_id' => $workspaceId,
+    ]);
+}
+
+function taskUndoApplyOperation(PDO $pdo, int $workspaceId, int $actorUserId, array $operation, bool $redo): void
+{
+    $type = (string) ($operation['type'] ?? '');
+    $taskId = (int) ($operation['task_id'] ?? 0);
+    $before = is_array($operation['before'] ?? null) ? $operation['before'] : null;
+    $after = is_array($operation['after'] ?? null) ? $operation['after'] : null;
+
+    if ($taskId <= 0 || !in_array($type, ['create', 'update', 'delete'], true)) {
+        throw new RuntimeException('Acao invalida para desfazer.');
+    }
+
+    if ($type === 'update') {
+        if (taskUndoTaskSnapshot($pdo, $workspaceId, $taskId) === null) {
+            throw new RuntimeException('Tarefa nao encontrada para desfazer.');
+        }
+        $target = $redo ? $after : $before;
+        taskUndoEnsureSnapshotAccess($actorUserId, $workspaceId, $target);
+        if ($target === null) {
+            throw new RuntimeException('Estado da tarefa nao encontrado.');
+        }
+        taskUndoRestoreSnapshot($pdo, $workspaceId, $target);
+        return;
+    }
+
+    if ($type === 'create') {
+        if ($redo) {
+            taskUndoEnsureSnapshotAccess($actorUserId, $workspaceId, $after);
+            if ($after === null) {
+                throw new RuntimeException('Estado da tarefa nao encontrado.');
+            }
+            taskUndoRestoreSnapshot($pdo, $workspaceId, $after);
+            return;
+        }
+
+        taskUndoEnsureSnapshotAccess($actorUserId, $workspaceId, $after);
+        taskUndoDeleteTask($pdo, $workspaceId, $taskId);
+        return;
+    }
+
+    if ($type === 'delete') {
+        taskUndoEnsureSnapshotAccess($actorUserId, $workspaceId, $before);
+        if ($redo) {
+            taskUndoDeleteTask($pdo, $workspaceId, $taskId);
+            return;
+        }
+
+        if ($before === null) {
+            throw new RuntimeException('Estado da tarefa nao encontrado.');
+        }
+        taskUndoRestoreSnapshot($pdo, $workspaceId, $before);
+    }
+}
+
+function taskUndoApply(PDO $pdo, int $workspaceId, int $actorUserId, bool $redo): array
+{
+    $fromStackName = $redo ? 'redo' : 'undo';
+    $toStackName = $redo ? 'undo' : 'redo';
+    $fromStack = taskUndoStack($workspaceId, $fromStackName);
+    if (!$fromStack) {
+        throw new RuntimeException($redo ? 'Nada para refazer.' : 'Nada para desfazer.');
+    }
+
+    $operation = array_pop($fromStack);
+    taskUndoSetStack($workspaceId, $fromStackName, $fromStack);
+
+    try {
+        taskUndoApplyOperation($pdo, $workspaceId, $actorUserId, is_array($operation) ? $operation : [], $redo);
+    } catch (Throwable $throwable) {
+        $fromStack[] = is_array($operation) ? $operation : [];
+        taskUndoSetStack($workspaceId, $fromStackName, $fromStack);
+        throw $throwable;
+    }
+
+    $toStack = taskUndoStack($workspaceId, $toStackName);
+    $toStack[] = is_array($operation) ? $operation : [];
+    taskUndoSetStack($workspaceId, $toStackName, $toStack);
+
+    return [
+        'operation' => $operation,
+        'message' => $redo ? 'Acao refeita.' : 'Acao desfeita.',
+        'undo_state' => taskUndoState($workspaceId),
+    ];
+}
+
 function allTasks(?int $workspaceId = null): array
 {
     $workspaceId = $workspaceId && $workspaceId > 0 ? $workspaceId : activeWorkspaceId();
