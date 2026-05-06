@@ -1887,6 +1887,52 @@ window.addEventListener("DOMContentLoaded", () => {
     return inner;
   };
 
+  const descriptionStructuredBlockTags = new Set([
+    "BLOCKQUOTE",
+    "DIV",
+    "HR",
+    "LI",
+    "OL",
+    "P",
+    "PRE",
+    "UL",
+  ]);
+
+  const isDescriptionStructuredBlockNode = (node) =>
+    node instanceof HTMLElement && descriptionStructuredBlockTags.has(node.tagName);
+
+  const descriptionDirectInlineText = (element) =>
+    Array.from(element.childNodes)
+      .filter((child) => !isDescriptionStructuredBlockNode(child))
+      .map((child) => descriptionInlineNodeToText(child))
+      .join("");
+
+  const descriptionListItemToLines = (item) => {
+    const lines = [];
+    const inlineText = descriptionDirectInlineText(item).replace(/\s+/g, " ").trim();
+    if (inlineText) {
+      lines.push(`- ${inlineText}`);
+    }
+
+    Array.from(item.childNodes)
+      .filter((child) => isDescriptionStructuredBlockNode(child))
+      .forEach((child) => {
+        if (child instanceof HTMLElement && child.tagName === "LI") return;
+        const childLines = descriptionBlockToLines(child).filter((line) => line.trim() !== "");
+        if (child instanceof HTMLElement && (child.tagName === "UL" || child.tagName === "OL")) {
+          lines.push(...childLines);
+          return;
+        }
+
+        childLines.forEach((line) => {
+          const trimmed = line.trim();
+          lines.push(isTaskDescriptionSeparatorLine(trimmed) ? trimmed : `- ${trimmed}`);
+        });
+      });
+
+    return lines;
+  };
+
   const descriptionBlockToLines = (node) => {
     if (node.nodeType === Node.TEXT_NODE) {
       return String(node.textContent || "").split("\n");
@@ -1897,17 +1943,46 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (node.tagName === "UL" || node.tagName === "OL") {
-      return Array.from(node.children)
+      const lines = [];
+      Array.from(node.children)
         .filter((child) => child instanceof HTMLElement && child.tagName === "LI")
-        .map((item) => {
-          const value = descriptionInlineNodeToText(item).replace(/\s+/g, " ").trim();
-          return value ? `- ${value}` : "";
-        })
-        .filter(Boolean);
+        .forEach((item) => lines.push(...descriptionListItemToLines(item)));
+
+      return lines;
     }
 
     if (node.tagName === "HR") {
       return ["---"];
+    }
+
+    const hasStructuredChildren = Array.from(node.childNodes).some((child) =>
+      isDescriptionStructuredBlockNode(child)
+    );
+
+    if (hasStructuredChildren) {
+      const lines = [];
+      const inlinePieces = [];
+      const flushInlinePieces = () => {
+        const inlineText = inlinePieces.join("");
+        inlinePieces.length = 0;
+        if (!inlineText) return;
+        inlineText.split("\n").forEach((line) => {
+          lines.push(line.trimEnd());
+        });
+      };
+
+      Array.from(node.childNodes).forEach((child) => {
+        if (isDescriptionStructuredBlockNode(child)) {
+          flushInlinePieces();
+          lines.push(...descriptionBlockToLines(child));
+          return;
+        }
+
+        inlinePieces.push(descriptionInlineNodeToText(child));
+      });
+
+      flushInlinePieces();
+      return lines;
     }
 
     return descriptionInlineNodeToText(node)
@@ -9175,6 +9250,10 @@ window.addEventListener("DOMContentLoaded", () => {
         task_id: taskIdField.value || "",
       });
       const task = data?.task || {};
+
+      if (typeof task.description === "string") {
+        context.descriptionField.value = task.description;
+      }
 
       const linksField = ensureTaskHiddenField(context.form, {
         name: "reference_links_json",

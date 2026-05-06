@@ -1067,6 +1067,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                         'ok' => true,
                         'task' => [
                             'id' => $taskId,
+                            'description' => $taskDescription,
                             'reference_links_json' => encodeReferenceUrlList(
                                 decodeReferenceUrlList($taskRow['reference_links_json'] ?? null)
                             ),
