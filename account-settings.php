@@ -75,6 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $currentUser = requireAuth();
 $currentWorkspaceId = activeWorkspaceId($currentUser);
+$currentWorkspace = $currentWorkspaceId !== null ? workspaceById((int) $currentWorkspaceId) : null;
+$isPersonalWorkspace = !empty($currentWorkspace['is_personal']);
 $workspaceMemberships = workspaceMembershipsDetailedForUser((int) $currentUser['id']);
 $flashes = getFlashes();
 $stylesAssetVersion = is_file(__DIR__ . '/assets/styles.css')
@@ -91,14 +93,14 @@ $complianceAssetVersion = assetVersion('assets/compliance.js');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e(APP_NAME) ?> - Configurações da Conta</title>
-    <link rel="icon" type="image/png" href="assets/Bexon---Logo-Symbol.png?v=1">
-    <link rel="shortcut icon" href="assets/Bexon---Logo-Symbol.png?v=1">
-    <link rel="preçonnect" href="https://fonts.googleapis.com">
-    <link rel="preçonnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
-    <link rel="stylesheet" href="assets/theme-bexon.css?v=<?= e($themeBexonAssetVersion) ?>">
-    <script src="assets/compliance.js?v=<?= e($complianceAssetVersion) ?>" defer></script>
+    <link rel="stylesheet" href="<?= e(appPath('assets/styles.css?v=' . $stylesAssetVersion)) ?>">
+    <link rel="stylesheet" href="<?= e(appPath('assets/theme-bexon.css?v=' . $themeBexonAssetVersion)) ?>">
+    <script src="<?= e(appPath('assets/compliance.js?v=' . $complianceAssetVersion)) ?>" defer></script>
 </head>
 <body class="is-dashboard is-workspace-settings is-account-settings">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
@@ -125,7 +127,7 @@ $complianceAssetVersion = assetVersion('assets/compliance.js');
                 </a>
                 <a href="<?= e(appPath()) ?>" class="brand" aria-label="<?= e(APP_NAME) ?>">
                     <img
-                        src="assets/Bexon - Logo Horizontal.png?v=1"
+                        src="<?= e(appPath('assets/Bexon - Logo Horizontal.png?v=1')) ?>"
                         alt="<?= e(APP_NAME) ?>"
                         class="brand-lockup"
                         width="116"
@@ -197,6 +199,14 @@ $complianceAssetVersion = assetVersion('assets/compliance.js');
                             <button type="submit" class="btn btn-mini">Salvar perfil</button>
                         </form>
                     </section>
+
+                    <?php
+                    $workspacePlanCardExtraClass = 'workspace-settings-card account-plan-card';
+                    $workspacePlanCardHeading = 'Plano';
+                    $workspacePlanCardContextLabel = 'Plano ativo';
+                    include __DIR__ . '/partials/workspace_plan_card.php';
+                    unset($workspacePlanCardExtraClass, $workspacePlanCardHeading, $workspacePlanCardContextLabel);
+                    ?>
 
                     <section class="workspace-settings-card">
                         <h3>Senha</h3>

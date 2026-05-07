@@ -3855,8 +3855,14 @@ function requestShouldServePublicHomeFromIndex(): bool
         return false;
     }
 
-    $requestPath = strtolower(requestUriPath());
-    $isIndexRequest = $requestPath === '/' || basename($requestPath) === 'index.php';
+    $requestPath = rtrim(strtolower(requestUriPath()), '/');
+    $appBasePath = rtrim(strtolower(appBasePath()), '/');
+    $siteBasePath = rtrim(strtolower(siteBasePath()), '/');
+    $isIndexRequest = $requestPath === ''
+        || $requestPath === '/'
+        || basename($requestPath) === 'index.php'
+        || ($appBasePath !== '' && $requestPath === $appBasePath)
+        || ($siteBasePath !== '' && $requestPath === $siteBasePath);
     if (!$isIndexRequest) {
         return false;
     }

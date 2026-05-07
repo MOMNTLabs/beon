@@ -6541,7 +6541,7 @@ window.addEventListener("DOMContentLoaded", () => {
   );
   const usersSidebar = document.querySelector(".users-sidebar");
   const workspaceSidebarHeader = document.querySelector(".workspace-sidebar-header");
-  const workspaceSidebarHeadingActions = document.querySelector(".workspace-sidebar-heading-actions");
+  const dashboardMobileHeaderActions = document.querySelector("[data-dashboard-mobile-header-actions]");
   const mobileSidebarToggleButton = document.querySelector("[data-mobile-sidebar-toggle]");
   const dashboardContentNav = document.querySelector(".dashboard-content-nav");
   const dashboardNavMain = document.querySelector(".dashboard-content-nav .dashboard-nav-main");
@@ -6769,14 +6769,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const shouldInlineHeaderActions = Boolean(
       isMobileSidebarViewport() &&
-        workspaceSidebarHeadingActions instanceof HTMLElement &&
+        dashboardMobileHeaderActions instanceof HTMLElement &&
         topActions instanceof HTMLElement
     );
 
     if (shouldInlineHeaderActions) {
       document.body.classList.add("dashboard-header-actions-inline");
-      if (topActions.parentElement !== workspaceSidebarHeadingActions) {
-        workspaceSidebarHeadingActions.appendChild(topActions);
+      if (topActions.parentElement !== dashboardMobileHeaderActions) {
+        dashboardMobileHeaderActions.appendChild(topActions);
       }
       return;
     }

@@ -51,15 +51,18 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
 <main class="dashboard dashboard-compact">
     <section class="workspace-layout tasklist-layout">
         <aside class="panel users-sidebar" id="team">
-            <a href="<?= e(appPath()) ?>" class="sidebar-brand" aria-label="<?= e(APP_NAME) ?>">
-                <img
-                    src="assets/Bexon - Logo Horizontal Negativa.png?v=1"
-                    alt="<?= e(APP_NAME) ?>"
-                    class="sidebar-brand-lockup brand-lockup"
-                    width="116"
-                    height="29"
-                >
-            </a>
+            <div class="workspace-mobile-header-row">
+                <a href="<?= e(appPath()) ?>" class="sidebar-brand" aria-label="<?= e(APP_NAME) ?>">
+                    <img
+                        src="assets/Bexon - Logo Horizontal Negativa.png?v=1"
+                        alt="<?= e(APP_NAME) ?>"
+                        class="sidebar-brand-lockup brand-lockup"
+                        width="116"
+                        height="29"
+                    >
+                </a>
+                <div class="workspace-mobile-header-actions" data-dashboard-mobile-header-actions></div>
+            </div>
             <div class="users-sidebar-body">
                 <div class="panel-header workspace-sidebar-header">
                     <button
