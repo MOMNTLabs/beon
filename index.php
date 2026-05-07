@@ -72,8 +72,10 @@ $authInitialPanel = 'login';
 $passwordResetRequest = null;
 $authRedirectPath = safeRedirectPath((string) (($_GET['next'] ?? $_POST['next'] ?? '')), appDefaultAfterLoginPath());
 $workspaceInviteRequest = validWorkspaceEmailInvitationRequestFromPath($authRedirectPath);
-$authAllowsDirectRegister = str_starts_with($authRedirectPath, 'home?action=checkout')
-    || (!empty($workspaceInviteRequest) && (int) ($workspaceInviteRequest['existing_user_id'] ?? 0) <= 0);
+$authAllowsDirectRegister = authAllowsDirectRegisterForRedirectPath($authRedirectPath);
+$authRegisterRedirectPath = !empty($workspaceInviteRequest) || str_starts_with($authRedirectPath, 'home?action=checkout')
+    ? $authRedirectPath
+    : appPlansPath();
 $requestedAuthPanel = trim((string) ($_GET['auth'] ?? ''));
 if (in_array($requestedAuthPanel, ['login', 'register', 'forgot-password', 'reset-password'], true)) {
     $authInitialPanel = $requestedAuthPanel === 'register' && !$authAllowsDirectRegister
@@ -91,6 +93,9 @@ $billingGateBypassActions = [
     'perform_password_reset',
     'reset_password',
     'workspace_invite',
+    'google_auth',
+    'google_callback',
+    'plans',
 ];
 $shouldBypassBillingGate = $forceAuthScreen || in_array($entryAction, $billingGateBypassActions, true);
 
@@ -101,18 +106,19 @@ if (
     && envFlag('APP_ENFORCE_BILLING', false)
     && !userHasAppAccess((int) ($entryUser['id'] ?? 0))
 ) {
-    $pendingCheckoutUserId = (int) ($entryUser['id'] ?? 0);
-    logoutUser();
-    setPendingCheckoutUserId($pendingCheckoutUserId);
-    getFlashes();
-    redirectTo(siteUrl('home?checkout=required#planos'));
+    flash('success', 'Escolha um plano para liberar o acesso ao app.');
+    redirectTo(appPlansPath());
 }
 if (
     $_SERVER['REQUEST_METHOD'] === 'GET'
     && !$entryUser
     && !$forceAuthScreen
-    && $entryAction === ''
+    && ($entryAction === '' || $entryAction === 'plans')
 ) {
+    if ($entryAction === 'plans') {
+        redirectTo(appUrl('?auth=login&next=' . urlencode(appPlansPath()) . '#login'));
+    }
+
     redirectTo(siteUrl('home'));
 }
 
@@ -125,6 +131,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if ($getAction === 'workspace_avatar') {
         respondWorkspaceAvatarImage();
+    }
+
+    if ($getAction === 'google_auth') {
+        handleGoogleOAuthStart($pdo);
+    }
+
+    if ($getAction === 'google_callback') {
+        handleGoogleOAuthCallback($pdo);
     }
 
     if ($getAction === 'reset_password') {
@@ -362,7 +376,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $currentUser = currentUser();
-$renderAuthScreen = !$currentUser || $forceAuthScreen;
+$renderPlansScreen = $currentUser && !$forceAuthScreen && $entryAction === 'plans';
+$renderAuthScreen = (!$currentUser || $forceAuthScreen) && !$renderPlansScreen;
 $currentWorkspaceId = $currentUser ? activeWorkspaceId($currentUser) : null;
 $currentWorkspace = ($currentUser && $currentWorkspaceId !== null) ? activeWorkspace($currentUser) : null;
 if ($currentUser && $currentWorkspaceId !== null && shouldApplyOverduePolicyDuringRequests()) {
@@ -370,6 +385,7 @@ if ($currentUser && $currentWorkspaceId !== null && shouldApplyOverduePolicyDuri
 }
 $userWorkspaces = $currentUser ? workspacesForUser((int) $currentUser['id']) : [];
 $flashes = getFlashes();
+$pendingGoogleRegistration = pendingGoogleRegistration();
 $statusConfig = ($currentUser && $currentWorkspaceId !== null)
     ? taskStatusConfig($currentWorkspaceId, $currentWorkspace)
     : taskStatusConfig();
@@ -731,11 +747,11 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <script src="assets/app.js?v=<?= e($appAssetVersion) ?>" defer></script>
 </head>
 <body
-    class="<?= $renderAuthScreen ? 'is-auth' : 'is-dashboard' ?>"
+    class="<?= $renderAuthScreen ? 'is-auth' : ($renderPlansScreen ? 'is-plans' : 'is-dashboard') ?>"
     data-default-group-name="<?= e((string) $defaultTaskGroupName) ?>"
-    data-workspace-id="<?= e((string) ($renderAuthScreen ? '' : ($currentWorkspaceId ?? ''))) ?>"
+    data-workspace-id="<?= e((string) (($renderAuthScreen || $renderPlansScreen) ? '' : ($currentWorkspaceId ?? ''))) ?>"
     data-user-id="<?= e((string) ($renderAuthScreen ? '' : ($currentUser['id'] ?? ''))) ?>"
-    data-workspace-enabled-views="<?= e((string) ($renderAuthScreen ? '' : implode(',', $workspaceEnabledViews))) ?>"
+    data-workspace-enabled-views="<?= e((string) (($renderAuthScreen || $renderPlansScreen) ? '' : implode(',', $workspaceEnabledViews))) ?>"
 >
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>
     <div class="bg-layer bg-layer-two" aria-hidden="true"></div>
@@ -755,6 +771,8 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
 
         <?php if ($renderAuthScreen): ?>
             <?php include __DIR__ . '/partials/auth.php'; ?>
+        <?php elseif ($renderPlansScreen): ?>
+            <?php include __DIR__ . '/partials/plans.php'; ?>
         <?php else: ?>
             <?php include __DIR__ . '/partials/dashboard.php'; ?>
         <?php endif; ?>

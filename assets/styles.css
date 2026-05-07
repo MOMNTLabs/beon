@@ -530,6 +530,120 @@ select optgroup {
     margin-top: 14px;
 }
 
+.auth-social-row {
+    margin-top: 14px;
+    display: grid;
+    gap: 10px;
+}
+
+.auth-social-button {
+    width: min(100%, 260px);
+    justify-self: center;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.96);
+    color: #172033;
+    text-decoration: none;
+    font-size: 0.94rem;
+    font-weight: 800;
+    transition:
+        transform 160ms ease,
+        background-color 160ms ease,
+        border-color 160ms ease;
+}
+
+.auth-social-button:hover,
+.auth-social-button:focus-visible {
+    transform: translateY(-1px);
+    border-color: #ffffff;
+    background: #ffffff;
+    color: #111827;
+}
+
+.auth-social-icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+}
+
+.auth-divider {
+    margin: 14px 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.auth-social-note {
+    margin: 8px 0 0;
+    color: var(--muted);
+    text-align: center;
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+
+.auth-social-note a {
+    color: #69ddff;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.auth-social-note a:hover,
+.auth-social-note a:focus-visible {
+    color: #9de9ff;
+}
+
+.auth-google-register-prompt {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(105, 221, 255, 0.28);
+    background: rgba(105, 221, 255, 0.08);
+    color: var(--text);
+}
+
+.auth-google-register-prompt strong {
+    display: block;
+    font-size: 0.96rem;
+}
+
+.auth-google-register-prompt p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.auth-google-register-prompt p span {
+    color: var(--text);
+    font-weight: 800;
+}
+
+.auth-google-register-actions {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .auth-form {
     gap: 10px;
 }
@@ -584,6 +698,290 @@ select optgroup {
     font-family: var(--font-display);
     font-size: clamp(1.5rem, 3.4vw, 2.2rem);
     letter-spacing: -0.03em;
+}
+
+.is-plans .app-shell {
+    width: min(1180px, calc(100% - 24px));
+    min-height: 100vh;
+    padding: 22px 0 32px;
+    display: grid;
+    align-content: center;
+}
+
+.plans-screen {
+    min-height: calc(100vh - 54px);
+    display: grid;
+    align-items: center;
+}
+
+.plans-shell {
+    display: grid;
+    gap: 18px;
+}
+
+.plans-head {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: 8px;
+}
+
+.plans-brand-lockup {
+    width: min(174px, 58vw);
+    height: auto;
+    display: block;
+    opacity: 0.96;
+}
+
+.plans-eyebrow {
+    margin-top: 4px;
+    color: #69ddff;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.plans-head h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4vw, 3.1rem);
+    line-height: 1.05;
+}
+
+.plans-head p {
+    max-width: 58ch;
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.plans-billing-toggle {
+    justify-self: center;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    width: min(360px, 100%);
+    padding: 4px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.plans-billing-toggle button {
+    min-height: 44px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 800;
+}
+
+.plans-billing-toggle button span {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.66rem;
+    font-weight: 700;
+}
+
+.plans-billing-toggle button.is-active {
+    background: #ffffff;
+    color: #111827;
+}
+
+.plans-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    align-items: stretch;
+}
+
+.plans-card {
+    min-width: 0;
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    background: rgba(8, 15, 31, 0.78);
+    display: grid;
+    gap: 14px;
+}
+
+.plans-card.is-highlight {
+    border-color: rgba(55, 228, 155, 0.5);
+    background:
+        radial-gradient(circle at 25% 0%, rgba(55, 228, 155, 0.16), transparent 44%),
+        rgba(8, 15, 31, 0.88);
+}
+
+.plans-card-head {
+    min-height: 62px;
+    display: grid;
+    gap: 8px;
+    align-content: start;
+}
+
+.plans-card-head h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.16rem;
+}
+
+.plans-card-head span {
+    width: fit-content;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgba(105, 221, 255, 0.11);
+    color: #9de9ff;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.plans-price-block {
+    display: grid;
+    gap: 4px;
+}
+
+.plans-price {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.plans-price [data-plan-price-value] {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.plans-price-currency {
+    color: var(--muted);
+    font-weight: 800;
+}
+
+.plans-price-amount {
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.plans-price [data-plan-price-suffix] {
+    color: var(--muted);
+    font-weight: 800;
+}
+
+.plans-price.is-consult-price .plans-price-amount {
+    font-size: 1.44rem;
+}
+
+.plans-billing-note,
+.plans-trial-note,
+.plans-summary,
+.plans-limit,
+.plans-legal {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.plans-billing-note,
+.plans-trial-note,
+.plans-limit {
+    font-size: 0.8rem;
+}
+
+.plans-trial-note,
+.plans-limit {
+    color: #9de9ff;
+    font-weight: 800;
+}
+
+.plans-summary {
+    min-height: 64px;
+    font-size: 0.9rem;
+}
+
+.plans-action {
+    min-height: 44px;
+    align-self: start;
+}
+
+.plans-features {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 9px;
+}
+
+.plans-features li {
+    position: relative;
+    padding-left: 18px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.86rem;
+    line-height: 1.42;
+}
+
+.plans-features li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.56em;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #37e49b;
+}
+
+.plans-legal {
+    justify-self: center;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.plans-legal a {
+    color: #69ddff;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.plans-legal a:hover,
+.plans-legal a:focus-visible {
+    color: #9de9ff;
+}
+
+@media (max-width: 1060px) {
+    .plans-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .is-plans .app-shell {
+        width: min(100% - 18px, 560px);
+        padding: 14px 0 24px;
+        align-content: start;
+    }
+
+    .plans-screen {
+        min-height: auto;
+        align-items: start;
+    }
+
+    .plans-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .plans-card {
+        padding: 16px;
+    }
+
+    .plans-summary {
+        min-height: 0;
+    }
 }
 
 .hero {

@@ -114,6 +114,7 @@ const VAULT_SECRET_PREFIX = 'enc:v1:';
 const LAST_WORKSPACE_COOKIE_NAME = 'wf_last_workspace';
 const LAST_WORKSPACE_COOKIE_DAYS = 365;
 const PENDING_CHECKOUT_SESSION_TTL_SECONDS = 1800;
+const GOOGLE_OAUTH_STATE_TTL_SECONDS = 600;
 
 function ensureStorage(): void
 {
@@ -487,6 +488,7 @@ function migrate(PDO $pdo): void
     }
 
     ensureUserProfileSchema($pdo);
+    ensureGoogleAuthSchema($pdo);
     ensureAppMetaSchema($pdo);
     ensureWorkspaceSchema($pdo);
     ensureWorkspaceInvitationSchema($pdo);
@@ -509,6 +511,7 @@ function migrateSqlite(PDO $pdo): void
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
+            google_id TEXT DEFAULT NULL,
             password_hash TEXT NOT NULL,
             created_at TEXT NOT NULL
         )'
@@ -595,6 +598,7 @@ function migratePostgres(PDO $pdo): void
             id BIGSERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
+            google_id TEXT DEFAULT NULL,
             password_hash TEXT NOT NULL,
             created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
         )'
@@ -696,6 +700,20 @@ function ensureUserProfileSchema(PDO $pdo): void
     }
 
     $pdo->exec("ALTER TABLE users ADD COLUMN avatar_data_url TEXT NOT NULL DEFAULT ''");
+}
+
+function ensureGoogleAuthSchema(PDO $pdo): void
+{
+    if (!tableHasColumn($pdo, 'users', 'google_id')) {
+        $pdo->exec('ALTER TABLE users ADD COLUMN google_id TEXT DEFAULT NULL');
+    }
+
+    $pdo->exec('DROP INDEX IF EXISTS users_google_id_unique');
+    $pdo->exec(
+        "CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_not_empty_unique
+         ON users (google_id)
+         WHERE google_id IS NOT NULL AND google_id <> ''"
+    );
 }
 
 function ensureWorkspaceProfileSchema(PDO $pdo): void
@@ -996,6 +1014,128 @@ function billingPlanAnnualMonthlyEquivalentCents(array $plan): int
     }
 
     return intdiv(intdiv($annualPriceCents, 12), 10) * 10;
+}
+
+function appBillingMoneyLabel(int $amountCents, bool $compactWholeAmount = false): string
+{
+    $amountCents = max(0, $amountCents);
+    if ($compactWholeAmount && $amountCents % 100 === 0) {
+        return 'R$ ' . number_format($amountCents / 100, 0, ',', '.');
+    }
+
+    return 'R$ ' . number_format($amountCents / 100, 2, ',', '.');
+}
+
+function appBillingPriceParts(string $priceLabel): array
+{
+    $priceLabel = trim($priceLabel);
+    if (preg_match('/^R\$\s*(.+)$/u', $priceLabel, $matches)) {
+        return [
+            'currency' => 'R$',
+            'amount' => trim((string) ($matches[1] ?? '')),
+        ];
+    }
+
+    return [
+        'currency' => '',
+        'amount' => $priceLabel,
+    ];
+}
+
+function appBillingPlanPriceLabel(array $plan, string $billingInterval = 'year'): string
+{
+    $customPriceLabel = trim((string) ($plan['price_label'] ?? ''));
+    if ($customPriceLabel !== '') {
+        return $customPriceLabel;
+    }
+
+    $billingInterval = normalizeBillingInterval($billingInterval);
+    $priceCents = $billingInterval === 'year'
+        ? billingPlanAnnualMonthlyEquivalentCents($plan)
+        : billingPlanChargeCents($plan, 'month');
+
+    return appBillingMoneyLabel($priceCents);
+}
+
+function appBillingPlanPriceSuffix(array $plan): string
+{
+    return trim((string) ($plan['price_label'] ?? '')) !== '' ? '' : '/mes';
+}
+
+function appBillingPlanBillingNote(array $plan, string $billingInterval = 'year'): string
+{
+    if (trim((string) ($plan['price_label'] ?? '')) !== '') {
+        return '';
+    }
+
+    if (normalizeBillingInterval($billingInterval) === 'year') {
+        return 'cobrado anualmente ' . appBillingMoneyLabel(billingPlanChargeCents($plan, 'year'), true);
+    }
+
+    return 'cobranca mensal';
+}
+
+function appBillingPlanTrialNote(array $plan, string $billingInterval = 'year'): string
+{
+    $customTrialNote = trim((string) ($plan['trial_note'] ?? ''));
+    if ($customTrialNote !== '') {
+        return $customTrialNote;
+    }
+
+    if (normalizeBillingInterval($billingInterval) === 'year') {
+        return (string) ($plan['annual_savings_label'] ?? 'Economize no anual');
+    }
+
+    return '7 dias gratis para testar';
+}
+
+function appBillingPlanUsersLabel(array $plan): string
+{
+    $customUsersLabel = trim((string) ($plan['users_label'] ?? ''));
+    if ($customUsersLabel !== '') {
+        return $customUsersLabel;
+    }
+
+    $maxUsers = max(0, (int) ($plan['max_users'] ?? 0));
+    if ($maxUsers <= 1) {
+        return '1 usuario';
+    }
+
+    return 'Ate ' . $maxUsers . ' usuarios';
+}
+
+function appBillingPlanCheckoutUrl(string $planKey, string $billingInterval = 'year'): string
+{
+    return siteUrl(
+        'home?action=checkout&plan='
+        . rawurlencode(normalizeBillingPlanKey($planKey))
+        . '&interval='
+        . rawurlencode(normalizeBillingInterval($billingInterval))
+    );
+}
+
+function appBillingPlanMailtoUrl(array $plan): string
+{
+    $email = trim((string) ($plan['contact_email'] ?? 'suporte@bexon.com.br'));
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $email = 'suporte@bexon.com.br';
+    }
+
+    $subject = rawurlencode('Consulta Enterprise - Bexon');
+    $body = rawurlencode(
+        "Ola, equipe Bexon.\n\nTenho interesse no plano Enterprise para uma equipe com mais de 15 usuarios.\n\nNome:\nEmpresa:\nQuantidade aproximada de usuarios:\nMensagem:"
+    );
+
+    return 'mailto:' . $email . '?subject=' . $subject . '&body=' . $body;
+}
+
+function appBillingPlanActionUrl(array $plan, string $billingInterval = 'year'): string
+{
+    if (($plan['checkout_enabled'] ?? true) === false || trim((string) ($plan['contact_email'] ?? '')) !== '') {
+        return appBillingPlanMailtoUrl($plan);
+    }
+
+    return appBillingPlanCheckoutUrl((string) ($plan['key'] ?? 'solo'), $billingInterval);
 }
 
 function billingPlanMetadata(array $plan, string $billingInterval = 'year'): array
@@ -3021,6 +3161,88 @@ function createUser(PDO $pdo, string $name, string $email, string $passwordHash,
     return (int) $pdo->lastInsertId();
 }
 
+function userByEmail(PDO $pdo, string $email): ?array
+{
+    $email = strtolower(trim($email));
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return null;
+    }
+
+    ensureUserProfileSchema($pdo);
+
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE LOWER(email) = :email LIMIT 1');
+    $stmt->execute([':email' => $email]);
+    $user = $stmt->fetch();
+
+    return $user ?: null;
+}
+
+function userByGoogleId(PDO $pdo, string $googleId): ?array
+{
+    $googleId = trim($googleId);
+    if ($googleId === '') {
+        return null;
+    }
+
+    ensureGoogleAuthSchema($pdo);
+
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE google_id = :google_id LIMIT 1');
+    $stmt->execute([':google_id' => $googleId]);
+    $user = $stmt->fetch();
+
+    return $user ?: null;
+}
+
+function linkGoogleAccountForUser(PDO $pdo, int $userId, string $googleId): void
+{
+    $googleId = trim($googleId);
+    if ($userId <= 0 || $googleId === '') {
+        throw new RuntimeException('Conta Google invalida.');
+    }
+
+    ensureGoogleAuthSchema($pdo);
+
+    try {
+        $stmt = $pdo->prepare(
+            'UPDATE users
+             SET google_id = :google_id
+             WHERE id = :id
+               AND (google_id IS NULL OR google_id = \'\' OR google_id = :google_id)'
+        );
+        $stmt->execute([
+            ':google_id' => $googleId,
+            ':id' => $userId,
+        ]);
+    } catch (PDOException $e) {
+        throw new RuntimeException('Esta conta Google ja esta vinculada a outro usuario.');
+    }
+
+    if ($stmt->rowCount() > 0) {
+        return;
+    }
+
+    $check = $pdo->prepare('SELECT google_id FROM users WHERE id = :id LIMIT 1');
+    $check->execute([':id' => $userId]);
+    $currentGoogleId = trim((string) $check->fetchColumn());
+    if ($currentGoogleId !== '' && $currentGoogleId !== $googleId) {
+        throw new RuntimeException('Este usuario ja esta vinculado a outra conta Google.');
+    }
+}
+
+function createGoogleUser(PDO $pdo, string $name, string $email, string $googleId, string $createdAt): int
+{
+    $normalizedName = normalizeUserDisplayName($name);
+    if ($normalizedName === '') {
+        $normalizedName = strtolower(trim($email));
+    }
+
+    $passwordHash = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
+    $userId = createUser($pdo, $normalizedName, strtolower(trim($email)), $passwordHash, $createdAt);
+    linkGoogleAccountForUser($pdo, $userId, $googleId);
+
+    return $userId;
+}
+
 function loginUser(int $userId, bool $remember = true): void
 {
     $_SESSION['user_id'] = $userId;
@@ -3605,6 +3827,11 @@ function taskDetailPath(int $taskId, array $params = []): string
 function appDefaultAfterLoginPath(): string
 {
     return dashboardPath('tasks');
+}
+
+function appPlansPath(): string
+{
+    return '?action=plans';
 }
 
 function canonicalizeSiteRelativePath(string $path): string

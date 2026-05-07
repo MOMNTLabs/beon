@@ -107,6 +107,91 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const billingToggle = document.querySelector("[data-billing-toggle]");
+  const billingButtons =
+    billingToggle instanceof HTMLElement
+      ? Array.from(billingToggle.querySelectorAll("[data-billing-interval]"))
+      : [];
+  const planCards = Array.from(document.querySelectorAll("[data-plan-card]"));
+
+  if (billingButtons.length && planCards.length) {
+    const applyBillingInterval = (interval) => {
+      const normalizedInterval = interval === "month" ? "month" : "year";
+
+      billingButtons.forEach((button) => {
+        const isActive = button.getAttribute("data-billing-interval") === normalizedInterval;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+
+      planCards.forEach((card) => {
+        if (!(card instanceof HTMLElement)) return;
+
+        const price = card.querySelector("[data-plan-price-value]");
+        const amount = price?.querySelector(".plans-price-amount, .sales-price-amount");
+        let currency = price?.querySelector(".plans-price-currency, .sales-price-currency");
+        const suffix = card.querySelector("[data-plan-price-suffix]");
+        const billingNote = card.querySelector("[data-plan-billing-note]");
+        const trialNote = card.querySelector("[data-plan-trial-note]");
+        const action = card.querySelector("[data-plan-action]");
+        const priceValue = card.getAttribute(`data-price-${normalizedInterval}`) || "";
+        const noteValue = card.getAttribute(`data-note-${normalizedInterval}`) || "";
+        const trialValue = card.getAttribute(`data-trial-${normalizedInterval}`) || "";
+        const actionValue = card.getAttribute(`data-action-${normalizedInterval}`) || "";
+        const priceMatch = priceValue.match(/^R\$\s*(.+)$/);
+
+        if (price instanceof HTMLElement && amount instanceof HTMLElement) {
+          if (priceMatch) {
+            if (!(currency instanceof HTMLElement)) {
+              currency = document.createElement("span");
+              currency.className = card.classList.contains("plans-card")
+                ? "plans-price-currency"
+                : "sales-price-currency";
+              price.insertBefore(currency, amount);
+            }
+            currency.textContent = "R$";
+            currency.hidden = false;
+            amount.textContent = priceMatch[1] || "";
+          } else {
+            if (currency instanceof HTMLElement) {
+              currency.hidden = true;
+            }
+            amount.textContent = priceValue;
+          }
+        }
+
+        if (suffix instanceof HTMLElement) {
+          suffix.hidden = (card.getAttribute("data-suffix") || "") === "";
+        }
+
+        if (billingNote instanceof HTMLElement) {
+          billingNote.textContent = noteValue;
+          billingNote.hidden = noteValue === "";
+        }
+
+        if (trialNote instanceof HTMLElement) {
+          trialNote.textContent = trialValue;
+        }
+
+        if (action instanceof HTMLAnchorElement && actionValue !== "") {
+          action.setAttribute("href", actionValue);
+        }
+      });
+    };
+
+    billingButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        applyBillingInterval(button.getAttribute("data-billing-interval") || "year");
+      });
+    });
+
+    applyBillingInterval(
+      billingToggle instanceof HTMLElement
+        ? billingToggle.getAttribute("data-default-billing-interval") || "year"
+        : "year"
+    );
+  }
+
   const getEventTargetElement = (event) => {
     const rawTarget = event?.target;
     if (rawTarget instanceof Element) return rawTarget;
