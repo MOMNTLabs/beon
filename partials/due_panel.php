@@ -38,7 +38,7 @@
                         </span>
                         <span class="vault-summary-button-label">Novo vencimento</span>
                     </button>
-                    <span data-due-total-count><?= e((string) count($dueEntries)) ?> item(ns)</span>
+                    <span data-due-total-count><?= e(appItemCountLabel(count($dueEntries))) ?></span>
                 </div>
             </div>
 

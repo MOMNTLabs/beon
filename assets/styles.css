@@ -8977,6 +8977,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 
 .task-detail-ref-image-link {
     appearance: none;
+    position: relative;
     display: block;
     width: 100%;
     padding: 0;
@@ -8995,12 +8996,35 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     outline: none;
 }
 
+.task-detail-ref-image-link-video {
+    cursor: default;
+}
+
 .task-detail-ref-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
     background: rgba(255, 255, 255, 0.02);
+}
+
+.task-detail-ref-image-title {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: rgba(4, 7, 15, 0.72);
+    color: rgba(255, 255, 255, 0.94);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
 }
 
 .task-detail-view-meta {
@@ -9053,6 +9077,8 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 .create-task-title-composer > [data-task-detail-edit-title]:focus {
     border: 0;
     background: transparent;
+    box-shadow: none;
+    outline: none;
 }
 
 .create-task-title-tag-picker {
@@ -9303,18 +9329,24 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 
 .task-subtasks-editor {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px 12px;
-    align-items: center;
+    gap: 8px;
     min-width: 0;
 }
 
+.task-inline-list-editor {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+}
+
+.task-inline-list-head,
 .task-subtasks-editor-head {
     grid-column: 1 / -1;
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 12px;
+    gap: 8px;
     min-width: 0;
 }
 
@@ -9327,11 +9359,20 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 
 .task-subtasks-editor > span,
 .task-subtasks-editor-head > span,
-.task-subtasks-editor-title > span {
+.task-subtasks-editor-title > span,
+.task-inline-list-head > span {
     font-size: 0.78rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.62);
+}
+
+.task-inline-list-add-trigger {
+    min-height: 30px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    line-height: 1.1;
 }
 
 .task-subtasks-dependency-toggle {
@@ -9405,30 +9446,104 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     filter: drop-shadow(0 0 6px rgba(233, 196, 106, 0.24));
 }
 
+.task-inline-add-row,
 .task-subtasks-edit-add {
     grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 30px 30px;
+    gap: 7px;
     align-items: center;
 }
 
+.task-inline-add-row input {
+    width: 100%;
+    min-height: 34px;
+    border-radius: 999px;
+    padding: 7px 12px;
+    box-sizing: border-box;
+}
+
+.task-inline-action,
+.task-inline-item-remove {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(240, 246, 255, 0.86);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.task-reference-edit-item .task-inline-item-remove {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0 2px;
+    color: rgba(255, 164, 178, 0.82);
+    font-size: 0.76rem;
+    line-height: 1;
+}
+
+.task-inline-action-confirm {
+    color: rgba(117, 229, 177, 0.95);
+}
+
+.task-inline-action-cancel,
+.task-inline-item-remove {
+    color: rgba(255, 164, 178, 0.9);
+}
+
+.task-inline-action:hover,
+.task-inline-action:focus-visible,
+.task-inline-item-remove:hover,
+.task-inline-item-remove:focus-visible {
+    border-color: rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+}
+
+.task-reference-edit-item .task-inline-item-remove:hover,
+.task-reference-edit-item .task-inline-item-remove:focus-visible {
+    border-color: transparent;
+    background: transparent;
+    color: rgba(255, 190, 200, 0.98);
+}
+
+.task-reference-edit-list,
 .task-subtasks-edit-list {
     grid-column: 1 / -1;
     display: grid;
-    gap: 6px;
+    gap: 7px;
 }
 
+.task-reference-edit-item,
 .task-subtasks-edit-row {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 36px;
-    padding: 7px 10px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.02);
+    min-height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.task-reference-edit-item {
+    width: fit-content;
+    max-width: 100%;
+    gap: 5px;
 }
 
 .task-subtasks-edit-check {
@@ -9438,26 +9553,85 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 }
 
 .task-subtasks-edit-title {
+    flex: 1 1 auto;
+    width: 100%;
     min-height: 30px;
-    border-radius: 8px;
-    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 4px 10px;
     font-size: 0.82rem;
-    background: rgba(10, 14, 28, 0.58);
+    background: transparent;
+    box-sizing: border-box;
+    transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.task-subtasks-edit-title:focus {
+    outline: none;
+    border-color: rgba(var(--wf-accent-purple-rgb), 0.52);
+    background: rgba(var(--wf-accent-purple-rgb), 0.08);
+    box-shadow: 0 0 0 2px rgba(var(--wf-accent-purple-rgb), 0.1);
 }
 
 .task-subtasks-edit-remove {
-    min-height: 24px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
+    border-radius: 999px;
     background: rgba(255, 255, 255, 0.04);
     color: rgba(240, 246, 255, 0.86);
     display: grid;
     place-items: center;
     cursor: pointer;
     line-height: 1;
-    padding: 0 8px;
-    font-size: 0.72rem;
+    padding: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
     white-space: nowrap;
+}
+
+.task-reference-edit-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 0 1 auto;
+    color: #bfe7ff;
+    font-size: 0.84rem;
+    text-decoration: none;
+}
+
+.task-reference-edit-link:hover,
+.task-reference-edit-link:focus-visible {
+    color: #ffffff;
+    outline: none;
+}
+
+.task-reference-edit-favicon {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.task-reference-edit-label {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-reference-edit-link-no-favicon::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex: 0 0 16px;
+    background: rgba(114, 150, 187, 0.22);
+    border: 1px solid rgba(114, 150, 187, 0.36);
 }
 
 .task-subtasks-edit-remove:hover,
@@ -9474,13 +9648,13 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 
 .task-detail-edit-main-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
     align-items: stretch;
 }
 
 .task-detail-edit-main-row.is-images-compact {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
 }
 
@@ -9617,6 +9791,46 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     display: none;
 }
 
+.create-task-modal:not(.is-task-media-page) .task-detail-edit-images-field,
+.task-detail-modal:not(.is-task-media-page) .task-detail-edit-images-field {
+    display: none;
+}
+
+.create-task-modal.is-task-media-page .task-detail-title-group-row,
+.create-task-modal.is-task-media-page .task-detail-inline-controls,
+.create-task-modal.is-task-media-page .task-detail-edit-description-field,
+.create-task-modal.is-task-media-page .task-detail-links-steps-row,
+.task-detail-modal.is-task-media-page .task-detail-edit .task-detail-title-group-row,
+.task-detail-modal.is-task-media-page .task-detail-edit .task-detail-inline-controls,
+.task-detail-modal.is-task-media-page .task-detail-edit .task-detail-edit-description-field,
+.task-detail-modal.is-task-media-page .task-detail-edit .task-detail-links-steps-row {
+    display: none;
+}
+
+.create-task-modal.is-task-media-page .task-detail-edit-main-row,
+.task-detail-modal.is-task-media-page .task-detail-edit-main-row {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+
+.create-task-modal.is-task-media-page .task-detail-edit-images-field,
+.task-detail-modal.is-task-media-page .task-detail-edit-images-field {
+    display: grid;
+    width: 100%;
+    max-width: 100%;
+}
+
+.create-task-modal.is-task-media-page .task-detail-edit-image-picker,
+.task-detail-modal.is-task-media-page .task-detail-edit-image-picker {
+    min-height: clamp(220px, 34vh, 340px);
+}
+
+.create-task-modal.is-task-media-page .task-detail-edit-image-list,
+.task-detail-modal.is-task-media-page .task-detail-edit-image-list {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    max-height: none;
+}
+
 .task-detail-edit-image-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
@@ -9643,10 +9857,52 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     background: rgba(255, 255, 255, 0.02);
 }
 
+.task-detail-edit-image-placeholder {
+    display: grid;
+    place-items: center;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.82rem;
+    font-weight: 700;
+    background:
+        linear-gradient(135deg, rgba(230, 176, 60, 0.15), rgba(80, 92, 110, 0.12)),
+        rgba(8, 11, 22, 0.78);
+}
+
+.task-detail-edit-image-title {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 36px;
+    z-index: 2;
+    min-width: 0;
+    height: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(4, 7, 15, 0.76);
+    color: rgba(255, 255, 255, 0.94);
+    padding: 0 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    outline: none;
+    box-sizing: border-box;
+    backdrop-filter: blur(8px);
+}
+
+.task-detail-edit-image-title::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.task-detail-edit-image-title:focus {
+    border-color: rgba(230, 176, 60, 0.72);
+    background: rgba(4, 7, 15, 0.9);
+    box-shadow: 0 0 0 2px rgba(230, 176, 60, 0.18);
+}
+
 .task-detail-edit-image-remove {
     position: absolute;
     top: 6px;
     right: 6px;
+    z-index: 3;
     width: 22px;
     height: 22px;
     border-radius: 999px;
@@ -9666,6 +9922,23 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     border-color: rgba(255, 137, 137, 0.58);
     background: rgba(116, 18, 18, 0.68);
     outline: none;
+}
+
+.task-detail-edit-image-provider {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    z-index: 2;
+    border-radius: 999px;
+    padding: 4px 8px;
+    background: rgba(4, 7, 15, 0.76);
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
 }
 
 .task-detail-reference-input {
@@ -10033,13 +10306,27 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 .modal-actions {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 8px;
     margin-top: 4px;
     position: sticky;
     bottom: 0;
     z-index: 3;
-    padding: 10px 10px calc(10px + env(safe-area-inset-bottom)) 0;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
     background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--panel-strong) 46%);
+}
+
+.modal-actions-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: auto;
+}
+
+.task-detail-edit-media-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 4px;
 }
 
 .confirm-modal {
@@ -11754,20 +12041,27 @@ textarea:focus,
 
 .create-task-modal .task-subtasks-edit-row,
 .task-detail-modal .task-subtasks-edit-row {
-    border-color: rgba(var(--wf-accent-purple-rgb), 0.32);
-    background: #e9eef6;
+    border-color: transparent;
+    background: transparent;
 }
 
 .create-task-modal .task-subtasks-edit-title,
 .task-detail-modal .task-subtasks-edit-title {
-    border: 1px solid rgba(var(--wf-accent-purple-rgb), 0.28);
-    background: #f4f7fc;
+    border: 1px solid transparent;
+    background: transparent;
     color: #2f425f;
+}
+
+.create-task-modal .task-subtasks-edit-title:focus,
+.task-detail-modal .task-subtasks-edit-title:focus {
+    border-color: rgba(var(--wf-accent-purple-rgb), 0.52);
+    background: rgba(var(--wf-accent-purple-rgb), 0.08);
+    box-shadow: 0 0 0 2px rgba(var(--wf-accent-purple-rgb), 0.1);
 }
 
 .create-task-modal .task-subtasks-edit-check,
 .task-detail-modal .task-subtasks-edit-check {
-    accent-color: #6967ae;
+    accent-color: rgb(var(--wf-accent-purple-rgb));
 }
 
 .create-task-modal .task-subtasks-dependency-toggle,
@@ -13302,10 +13596,45 @@ select option:checked,
 }
 
 .accounting-check input {
+    appearance: none;
+    -webkit-appearance: none;
     margin: 0;
-    width: 14px;
-    height: 14px;
-    accent-color: #6967ae;
+    width: 15px;
+    height: 15px;
+    border-radius: 5px;
+    border: 1px solid rgba(126, 143, 164, 0.58);
+    background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+    display: grid;
+    place-content: center;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.accounting-check input::before {
+    content: "";
+    width: 7px;
+    height: 4px;
+    border-left: 2px solid #ffffff;
+    border-bottom: 2px solid #ffffff;
+    transform: rotate(-45deg) scale(0);
+    transform-origin: center;
+    transition: transform 0.14s ease;
+}
+
+.accounting-check input:checked {
+    border-color: rgba(188, 125, 31, 0.95);
+    background: linear-gradient(135deg, #f5a524 0%, #80521e 100%);
+    box-shadow: 0 4px 10px rgba(180, 109, 20, 0.2);
+}
+
+.accounting-check input:checked::before {
+    transform: rotate(-45deg) scale(1);
+}
+
+.accounting-check input:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(239, 171, 68, 0.22);
 }
 
 .accounting-entry-status {
@@ -13494,10 +13823,20 @@ select option:checked,
     gap: 12px 20px;
 }
 
-.accounting-opening-balance-form {
+.accounting-opening-balance-editor {
     display: flex;
-    flex-wrap: nowrap;
-    gap: 8px;
+    align-items: center;
+    min-width: 0;
+}
+
+.accounting-opening-balance-trigger {
+    margin: 0;
+}
+
+.accounting-opening-balance-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
     align-items: center;
     justify-content: flex-start;
     margin-bottom: 0;
@@ -13521,7 +13860,13 @@ select option:checked,
     width: 150px;
 }
 
-.accounting-opening-balance-form .btn-mini {
+.accounting-opening-balance-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.accounting-opening-balance-actions .btn-mini {
     min-width: auto;
     white-space: nowrap;
 }
@@ -13673,12 +14018,20 @@ select option:checked,
         grid-template-columns: 1fr;
     }
 
+    .accounting-opening-balance-editor {
+        width: 100%;
+    }
+
     .accounting-opening-balance-form {
         display: grid;
         grid-template-columns: 1fr;
     }
 
     .accounting-opening-balance-field {
+        width: 100%;
+    }
+
+    .accounting-opening-balance-form .accounting-input {
         width: 100%;
     }
 }
@@ -14292,9 +14645,13 @@ select option:checked,
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-form {
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
+        grid-template-columns: minmax(0, 1fr);
         gap: 6px;
+    }
+
+    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-editor,
+    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-trigger {
+        width: 100%;
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-field {
@@ -14311,12 +14668,20 @@ select option:checked,
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-form .accounting-input {
+        width: 100%;
         min-height: 30px;
         padding-block: 4px;
         font-size: 0.8rem;
     }
 
-    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-form .btn-mini {
+    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+        gap: 6px;
+    }
+
+    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-actions .btn-mini {
         min-height: 30px;
         padding-inline: 10px;
     }
@@ -15779,10 +16144,23 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
 }
 
 /* Better distribution for create/edit task modal fields */
-.task-detail-inline-controls {
-    grid-template-columns: minmax(260px, 1.45fr) minmax(210px, 0.88fr) auto;
+.task-detail-title-group-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(170px, 240px);
     gap: 12px 16px;
-    justify-content: stretch;
+    align-items: end;
+    margin-bottom: 4px;
+}
+
+.task-detail-title-group-row > label {
+    min-width: 0;
+}
+
+.task-detail-inline-controls {
+    grid-template-columns: minmax(210px, 320px) minmax(190px, 220px) auto minmax(180px, 210px);
+    gap: 12px 16px;
+    align-items: start;
+    justify-content: space-between;
 }
 
 .task-detail-inline-assignees {
@@ -15794,6 +16172,69 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
     justify-self: end;
 }
 
+.task-detail-inline-due {
+    min-width: 0;
+}
+
+.task-detail-inline-due input[type="date"] {
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    line-height: 1.2;
+}
+
+.create-task-modal .create-task-title-composer,
+.task-detail-modal .create-task-title-composer,
+.create-task-modal .create-task-title-tag-trigger,
+.task-detail-modal .create-task-title-tag-trigger,
+.create-task-modal .create-task-title-tag-picker > [data-create-task-title-tag-custom],
+.task-detail-modal .create-task-title-tag-picker > [data-task-detail-edit-title-tag-custom],
+.create-task-modal .task-detail-group-inline-wrap .group-inline-picker > summary,
+.task-detail-modal .task-detail-group-inline-wrap .group-inline-picker > summary,
+.create-task-modal .task-detail-inline-due input[type="date"],
+.task-detail-modal .task-detail-inline-due input[type="date"],
+.create-task-modal .task-detail-reference-input,
+.task-detail-modal .task-detail-reference-input,
+.create-task-modal .task-subtasks-edit-add input,
+.task-detail-modal .task-subtasks-edit-add input {
+    border-radius: 999px;
+}
+
+.create-task-modal .task-detail-reference-input.has-multiple-rows,
+.task-detail-modal .task-detail-reference-input.has-multiple-rows {
+    border-radius: 14px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.task-detail-links-steps-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr);
+    gap: 12px 16px;
+    align-items: start;
+}
+
+.task-detail-links-steps-row .task-inline-list-editor--links {
+    order: -1;
+    min-width: 0;
+}
+
+.task-detail-links-steps-row .task-inline-list-editor,
+.task-detail-links-steps-row .task-subtasks-editor {
+    min-width: 0;
+    align-self: start;
+}
+
+.task-detail-links-steps-row .task-detail-reference-input,
+.task-detail-links-steps-row .task-inline-add-row input {
+    width: 100%;
+    min-height: 40px;
+    box-sizing: border-box;
+}
+
 .create-task-modal .form-row,
 .task-detail-modal .form-row {
     grid-template-columns: minmax(0, 1.08fr) minmax(280px, 1fr);
@@ -15802,7 +16243,7 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
 }
 
 .task-detail-edit-main-row {
-    grid-template-columns: minmax(0, 1.6fr) minmax(270px, 0.78fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
 }
 
@@ -15818,7 +16259,7 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
     justify-content: flex-start;
     width: 100%;
     min-height: 44px;
-    border-radius: 14px;
+    border-radius: 999px;
     padding: 10px 36px 10px 14px;
     font-size: 0.92rem;
 }
@@ -15830,7 +16271,9 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
 }
 
 @media (max-width: 900px) {
+    .task-detail-title-group-row,
     .task-detail-inline-controls,
+    .task-detail-links-steps-row,
     .task-detail-edit-main-row,
     .create-task-modal .form-row,
     .task-detail-modal .form-row {

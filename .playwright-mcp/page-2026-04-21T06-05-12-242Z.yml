@@ -1,0 +1,152 @@
+- generic [ref=e2]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - complementary [ref=e5]:
+        - link "Bexon" [ref=e6] [cursor=pointer]:
+          - /url: /Beon/
+          - img "Bexon" [ref=e7]
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - button "Dashboard geral" [ref=e10] [cursor=pointer]:
+              - img [ref=e12]
+            - generic [ref=e16]:
+              - group [ref=e17]:
+                - generic "Trocar workspace" [ref=e18] [cursor=pointer]:
+                  - generic [ref=e19]:
+                    - generic [ref=e20]: T
+                    - generic "Teste MCP Workspace" [ref=e21]
+                  - generic [ref=e22]: ▾
+              - button "Configuracoes do workspace" [pressed] [ref=e24] [cursor=pointer]:
+                - img [ref=e26]
+          - navigation "Menu do workspace" [ref=e30]:
+            - button "Lista de tarefas" [ref=e31] [cursor=pointer]:
+              - img [ref=e33]
+              - generic [ref=e34]: Lista de tarefas
+          - group [ref=e35]:
+            - generic "Adicionar ferramenta ao sidebar" [ref=e36] [cursor=pointer]:
+              - generic [ref=e37]: +
+      - generic [ref=e38]:
+        - region "Indicadores do workspace" [ref=e39]:
+          - generic [ref=e40]:
+            - generic [ref=e41]: Tarefas
+            - strong [ref=e42]: "0"
+          - generic [ref=e43]:
+            - generic [ref=e44]: Concluidas
+            - strong [ref=e45]: 0 (0%)
+          - generic [ref=e46]:
+            - generic [ref=e47]: Para hoje
+            - strong [ref=e48]: "0"
+          - generic [ref=e49]:
+            - generic [ref=e50]: Urgentes
+            - strong [ref=e51]: "0"
+          - generic [ref=e52]:
+            - generic [ref=e53]: Minhas abertas
+            - strong [ref=e54]: "0"
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e57]: T
+            - generic [ref=e58]:
+              - strong [ref=e59]: Teste MCP
+              - generic [ref=e60]: teste.mcp.20260421@example.com
+          - generic [ref=e61]:
+            - button "Notificacoes" [ref=e63] [cursor=pointer]:
+              - img [ref=e65]
+            - link "Configuracoes da conta" [ref=e68] [cursor=pointer]:
+              - /url: account-settings.php
+              - img [ref=e69]
+            - button "Sair" [ref=e73] [cursor=pointer]:
+              - generic [ref=e74]: Sair
+      - text: ▾ ▾ ▾
+      - generic [ref=e75]:
+        - generic [ref=e77]:
+          - heading "Configuracoes do workspace" [level=2] [ref=e78]
+          - paragraph [ref=e79]: Gerencie foto e status do workspace pessoal.
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - heading "Dados do workspace" [level=3] [ref=e82]
+            - generic [ref=e83]:
+              - generic [ref=e84]:
+                - generic [ref=e85]: T
+                - generic [ref=e86]:
+                  - generic [ref=e87]: Foto do perfil
+                  - button "Foto do perfil" [ref=e88] [cursor=pointer]
+              - button "Salvar foto" [ref=e89] [cursor=pointer]
+          - generic [ref=e90]:
+            - heading "Usuarios do workspace" [level=3] [ref=e91]
+            - paragraph [ref=e92]: Workspace pessoal nao permite adicionar usuarios parceiros.
+            - generic "Usuarios visiveis no workspace" [ref=e94]:
+              - generic "Teste MCP" [ref=e95]:
+                - generic [ref=e96]: T
+                - generic [ref=e97]: Teste MCP
+          - generic [ref=e98]:
+            - heading "Ferramentas" [level=3] [ref=e99]
+            - generic [ref=e100]:
+              - generic [ref=e101]:
+                - generic [ref=e102]: Adicionar ferramenta
+                - generic [ref=e103]:
+                  - combobox "Adicionar ferramenta Adicionar" [ref=e104]:
+                    - option "Selecione..."
+                    - option "Gerenciador de acessos" [selected]
+                    - option "Vencimentos"
+                    - option "Estoque"
+                    - option "Contabilidade"
+                  - button "Adicionar" [ref=e105] [cursor=pointer]
+              - list
+              - paragraph [ref=e106]: Nenhuma ferramenta adicional no sidebar.
+              - button "Salvar ferramentas" [ref=e107] [cursor=pointer]
+          - generic [ref=e108]:
+            - heading "Status" [level=3] [ref=e111]
+            - generic [ref=e112]:
+              - generic [ref=e113]:
+                - generic [ref=e114]:
+                  - textbox "Nome do status" [ref=e116]: A fazer
+                  - generic "Cor do status" [ref=e117]:
+                    - button "Cor do status" [ref=e118] [cursor=pointer]:
+                      - generic [ref=e120]: Azul
+                  - button "Definir como status de revisão" [disabled] [ref=e121]:
+                    - img [ref=e123]
+                    - generic [ref=e126]: Definir como status de revisão
+                - generic [ref=e127]:
+                  - textbox "Nome do status" [ref=e129]: Em andamento
+                  - generic "Cor do status" [ref=e130]:
+                    - button "Cor do status" [ref=e131] [cursor=pointer]:
+                      - generic [ref=e133]: Laranja
+                  - button "Definir como status de revisão" [ref=e134] [cursor=pointer]:
+                    - img [ref=e136]
+                    - generic [ref=e139]: Definir como status de revisão
+                  - button "Remover status" [ref=e140] [cursor=pointer]:
+                    - generic [ref=e141]: ×
+                    - generic [ref=e142]: Remover status
+                  - button "Reorganizar status" [ref=e143]
+                - generic [ref=e151]:
+                  - textbox "Nome do status" [ref=e153]: Revisão
+                  - generic "Cor do status" [ref=e154]:
+                    - button "Cor do status" [ref=e155] [cursor=pointer]:
+                      - generic [ref=e157]: Roxo
+                  - button "Definir como status de revisão" [pressed] [ref=e158] [cursor=pointer]:
+                    - img [ref=e160]
+                    - generic [ref=e163]: Definir como status de revisão
+                  - button "Remover status" [ref=e164] [cursor=pointer]:
+                    - generic [ref=e165]: ×
+                    - generic [ref=e166]: Remover status
+                  - button "Reorganizar status" [ref=e167]
+                - generic [ref=e175]:
+                  - textbox "Nome do status" [ref=e177]: Concluído
+                  - generic "Cor do status" [ref=e178]:
+                    - button "Cor do status" [ref=e179] [cursor=pointer]:
+                      - generic [ref=e181]: Verde
+                  - button "Definir como status de revisão" [disabled] [ref=e182]:
+                    - img [ref=e184]
+                    - generic [ref=e187]: Definir como status de revisão
+              - generic [ref=e188]:
+                - generic [ref=e189]:
+                  - textbox "Novo status" [ref=e190]
+                  - generic "Cor do novo status" [ref=e191]:
+                    - button "Cor do novo status" [ref=e192] [cursor=pointer]:
+                      - generic [ref=e194]: Laranja
+                  - button "Adicionar status" [ref=e195] [cursor=pointer]:
+                    - generic [ref=e196]: +
+                    - generic [ref=e197]: Adicionar status
+                - generic [ref=e198]:
+                  - button "Salvar status" [disabled]
+  - text: ▾ ▾ ▾ Escreva a descricao... ▾ ▾ ▾ ▾ ▾ ▾ ▾ Escreva a descricao...

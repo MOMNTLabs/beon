@@ -38,76 +38,58 @@
 }
 
 .app-loading-panel {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    max-width: min(320px, 100%);
-    min-height: 56px;
-    padding: 12px 18px 12px 14px;
-    border: 1px solid rgba(var(--color-accent-500-rgb), 0.22);
-    border-radius: 18px;
-    background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(249, 244, 236, 0.86)),
-        rgba(255, 255, 255, 0.78);
-    color: var(--color-ink-800);
-    box-shadow:
-        0 24px 60px rgba(32, 36, 43, 0.24),
-        0 0 0 1px rgba(255, 255, 255, 0.58) inset,
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    transform: translateY(5px) scale(0.98);
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: none;
+    transform: scale(0.92);
     transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .app-loading-overlay.is-visible .app-loading-panel {
-    transform: translateY(0) scale(1);
+    transform: scale(1);
 }
 
 .app-loading-spinner {
     position: relative;
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     flex: 0 0 auto;
     border-radius: 999px;
     background:
         conic-gradient(
             from 0deg,
             rgba(var(--color-accent-500-rgb), 0) 0deg,
-            rgba(var(--color-accent-500-rgb), 0.14) 95deg,
-            rgba(var(--color-accent-500-rgb), 0.58) 220deg,
-            var(--color-accent-600) 360deg
+            rgba(var(--color-accent-500-rgb), 0.16) 92deg,
+            var(--color-accent-400) 210deg,
+            var(--color-accent-700) 360deg
         );
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    filter: drop-shadow(0 0 10px rgba(var(--color-accent-500-rgb), 0.28));
     animation: appLoadingSpin 900ms cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }
 
 .app-loading-spinner::before {
-    content: "";
-    position: absolute;
-    inset: 4px;
-    border-radius: inherit;
-    background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(249, 244, 236, 0.94));
-    box-shadow: inset 0 0 0 1px rgba(var(--color-accent-500-rgb), 0.08);
+    content: none;
 }
 
 .app-loading-spinner::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 50%;
-    width: 5px;
-    height: 5px;
-    border-radius: 999px;
-    background: var(--color-accent-600);
-    box-shadow: 0 0 12px rgba(var(--color-accent-500-rgb), 0.46);
-    transform: translateX(-50%);
+    content: none;
 }
 
 .app-loading-copy {
-    font-size: 0.9rem;
-    font-weight: 650;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-    color: var(--bexon-text-strong, var(--color-ink-800));
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
 }
 
 @keyframes appLoadingSpin {
@@ -745,7 +727,7 @@ body.is-dashboard .account-privacy-links {
     --ui-dropdown-menu-offset: 4px;
     --ui-dropdown-menu-min-width: 136px;
     --ui-dropdown-status-min-width: 156px;
-    --ui-dropdown-priority-min-width: 156px;
+    --ui-dropdown-priority-min-width: 132px;
     --ui-dropdown-option-min-height: 30px;
     --ui-dropdown-option-padding: 5px 8px;
     --ui-dropdown-option-radius: 10px;
@@ -1032,7 +1014,7 @@ body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle .sideba
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-icon {
     width: 16px;
     height: 16px;
-    color: var(--bexon-gold);
+    color: var(--bexon-gold-strong);
 }
 
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle .sidebar-view-toggle-icon svg {
@@ -1050,13 +1032,12 @@ body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle:focus-v
 }
 
 body.is-dashboard .users-sidebar .sidebar-view-menu .sidebar-view-toggle.is-active {
-    border: 1px solid transparent;
-    background: var(--ui-sidebar-active-surface);
+    border: 1px solid rgba(var(--color-accent-500-rgb), 0.46);
+    background: rgba(31, 34, 39, 0.98);
     color: var(--ui-sidebar-text);
     text-shadow: none;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.03),
-        0 12px 28px rgba(0, 0, 0, 0.22),
+        inset 3px 0 0 rgba(var(--color-accent-500-rgb), 0.72),
         0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
@@ -2988,6 +2969,44 @@ body.is-dashboard .task-filters-reorder-groups.is-active {
     color: var(--bexon-gold-strong);
 }
 
+@media (min-width: 721px) {
+    body.is-dashboard .task-filters {
+        grid-template-columns: repeat(3, minmax(150px, 190px)) minmax(0, 1fr);
+        gap: 6px 8px;
+        padding: 6px;
+        border-radius: 12px;
+    }
+
+    body.is-dashboard .task-filters .row-inline-picker > summary,
+    body.is-dashboard .task-filters select {
+        min-height: 30px;
+        padding: 4px 26px 4px 10px;
+        border-radius: 11px;
+        font-size: 0.78rem;
+    }
+
+    body.is-dashboard .task-filters-create {
+        gap: 5px;
+    }
+
+    body.is-dashboard .task-filters-reorder-groups {
+        width: 30px;
+        height: 30px;
+    }
+
+    body.is-dashboard .task-filters-create-group {
+        height: 30px;
+        min-height: 30px;
+        padding: 0 10px;
+        gap: 5px;
+        font-size: 0.76rem;
+    }
+
+    body.is-dashboard .task-filters-create-group-plus {
+        font-size: 1rem;
+    }
+}
+
 body.is-dashboard .group-permissions-button,
 body.is-dashboard .group-done-toggle-button,
 body.is-dashboard .group-add-button,
@@ -3111,6 +3130,17 @@ body.is-dashboard .modal-actions {
     background: var(--ui-modal-action-fade);
 }
 
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) .modal-actions {
+    border-bottom-right-radius: 18px;
+    border-bottom-left-radius: 18px;
+    overflow: hidden;
+}
+
+body.is-dashboard .task-detail-modal-body {
+    border-bottom-right-radius: 18px;
+    border-bottom-left-radius: 18px;
+}
+
 body.is-dashboard .modal-card .modal-form :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), textarea, select:not(.status-select)),
 body.is-dashboard .task-detail-modal :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), textarea, select:not(.status-select)) {
     border-color: var(--ui-modal-section-border);
@@ -3224,6 +3254,10 @@ body.is-dashboard :is(.create-task-modal, .task-detail-modal) .priority-inline-p
 body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option,
 body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option .row-inline-picker-summary-text {
     color: rgba(255, 255, 255, 0.97) !important;
+}
+
+body.is-dashboard .priority-inline-picker .row-inline-picker-option {
+    border-radius: 999px;
 }
 
 body.is-dashboard :is(.create-task-modal, .task-detail-modal) :is(.status-inline-picker, .priority-inline-picker) .row-inline-picker-option:hover,
@@ -3360,6 +3394,7 @@ body.is-dashboard .create-task-modal .task-detail-inline-field > span,
 body.is-dashboard .create-task-modal .task-subtasks-editor > span,
 body.is-dashboard .create-task-modal .task-subtasks-editor-head > span,
 body.is-dashboard .create-task-modal .task-subtasks-editor-title > span,
+body.is-dashboard .create-task-modal .task-inline-list-head > span,
 body.is-dashboard .create-task-modal .task-detail-edit-images-field > span,
 body.is-dashboard .task-detail-modal .form-stack label > span,
 body.is-dashboard .task-detail-modal .task-detail-edit-description-field > span,
@@ -3368,6 +3403,7 @@ body.is-dashboard .task-detail-modal .assignee-picker-label,
 body.is-dashboard .task-detail-modal .task-subtasks-editor > span,
 body.is-dashboard .task-detail-modal .task-subtasks-editor-head > span,
 body.is-dashboard .task-detail-modal .task-subtasks-editor-title > span,
+body.is-dashboard .task-detail-modal .task-inline-list-head > span,
 body.is-dashboard .task-detail-modal .task-detail-inline-field > span,
 body.is-dashboard .task-detail-modal .task-detail-edit-images-field > span,
 body.is-dashboard .task-detail-view-label {
@@ -3392,6 +3428,21 @@ body.is-dashboard .task-detail-modal .task-detail-edit-images-field .task-detail
     justify-content: center;
 }
 
+body.is-dashboard .create-task-modal.is-task-media-page .task-detail-edit-images-field,
+body.is-dashboard .task-detail-modal.is-task-media-page .task-detail-edit-images-field {
+    justify-items: stretch;
+}
+
+body.is-dashboard .create-task-modal.is-task-media-page .task-detail-edit-images-field > span,
+body.is-dashboard .task-detail-modal.is-task-media-page .task-detail-edit-images-field > span {
+    text-align: left;
+}
+
+body.is-dashboard .create-task-modal.is-task-media-page .task-detail-edit-images-field .task-detail-edit-image-picker-actions,
+body.is-dashboard .task-detail-modal.is-task-media-page .task-detail-edit-images-field .task-detail-edit-image-picker-actions {
+    justify-content: flex-start;
+}
+
 body.is-dashboard .create-task-modal .task-detail-edit-images-field.is-compact,
 body.is-dashboard .task-detail-modal .task-detail-edit-images-field.is-compact {
     justify-items: center;
@@ -3404,6 +3455,12 @@ body.is-dashboard .task-detail-modal .task-detail-edit-images-field.is-compact .
 
 body.is-dashboard .create-task-modal .task-image-add-button,
 body.is-dashboard .task-detail-modal .task-image-add-button,
+body.is-dashboard .create-task-modal .task-inline-list-add-trigger,
+body.is-dashboard .task-detail-modal .task-inline-list-add-trigger,
+body.is-dashboard .create-task-modal .task-inline-action,
+body.is-dashboard .task-detail-modal .task-inline-action,
+body.is-dashboard .create-task-modal .task-inline-item-remove,
+body.is-dashboard .task-detail-modal .task-inline-item-remove,
 body.is-dashboard .create-task-modal [data-create-task-subtask-add],
 body.is-dashboard .task-detail-modal [data-task-detail-edit-subtask-add] {
     border-color: var(--ui-modal-ghost-border);
@@ -3416,6 +3473,18 @@ body.is-dashboard .create-task-modal .task-image-add-button:hover,
 body.is-dashboard .create-task-modal .task-image-add-button:focus-visible,
 body.is-dashboard .task-detail-modal .task-image-add-button:hover,
 body.is-dashboard .task-detail-modal .task-image-add-button:focus-visible,
+body.is-dashboard .create-task-modal .task-inline-list-add-trigger:hover,
+body.is-dashboard .create-task-modal .task-inline-list-add-trigger:focus-visible,
+body.is-dashboard .task-detail-modal .task-inline-list-add-trigger:hover,
+body.is-dashboard .task-detail-modal .task-inline-list-add-trigger:focus-visible,
+body.is-dashboard .create-task-modal .task-inline-action:hover,
+body.is-dashboard .create-task-modal .task-inline-action:focus-visible,
+body.is-dashboard .task-detail-modal .task-inline-action:hover,
+body.is-dashboard .task-detail-modal .task-inline-action:focus-visible,
+body.is-dashboard .create-task-modal .task-inline-item-remove:hover,
+body.is-dashboard .create-task-modal .task-inline-item-remove:focus-visible,
+body.is-dashboard .task-detail-modal .task-inline-item-remove:hover,
+body.is-dashboard .task-detail-modal .task-inline-item-remove:focus-visible,
 body.is-dashboard .create-task-modal [data-create-task-subtask-add]:hover,
 body.is-dashboard .create-task-modal [data-create-task-subtask-add]:focus-visible,
 body.is-dashboard .task-detail-modal [data-task-detail-edit-subtask-add]:hover,
@@ -3427,12 +3496,50 @@ body.is-dashboard .task-detail-modal [data-task-detail-edit-subtask-add]:focus-v
     transform: none;
 }
 
+body.is-dashboard .create-task-modal .task-inline-action-confirm,
+body.is-dashboard .task-detail-modal .task-inline-action-confirm {
+    color: rgba(124, 234, 183, 0.98);
+}
+
+body.is-dashboard .create-task-modal .task-inline-action-cancel,
+body.is-dashboard .create-task-modal .task-inline-item-remove,
+body.is-dashboard .task-detail-modal .task-inline-action-cancel,
+body.is-dashboard .task-detail-modal .task-inline-item-remove {
+    color: rgba(255, 167, 181, 0.92);
+}
+
+body.is-dashboard .create-task-modal .task-reference-edit-item .task-inline-item-remove,
+body.is-dashboard .task-detail-modal .task-reference-edit-item .task-inline-item-remove {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0 2px;
+    color: rgba(255, 167, 181, 0.82);
+}
+
+body.is-dashboard .create-task-modal .task-reference-edit-item .task-inline-item-remove:hover,
+body.is-dashboard .create-task-modal .task-reference-edit-item .task-inline-item-remove:focus-visible,
+body.is-dashboard .task-detail-modal .task-reference-edit-item .task-inline-item-remove:hover,
+body.is-dashboard .task-detail-modal .task-reference-edit-item .task-inline-item-remove:focus-visible {
+    border-color: transparent;
+    background: transparent;
+    color: rgba(255, 195, 205, 0.98);
+    box-shadow: none;
+}
+
 body.is-dashboard .create-task-modal input::placeholder,
 body.is-dashboard .create-task-modal textarea::placeholder,
 body.is-dashboard .create-task-modal [data-create-task-subtask-input]::placeholder,
+body.is-dashboard .create-task-modal [data-create-task-link-input]::placeholder,
 body.is-dashboard .task-detail-modal input::placeholder,
 body.is-dashboard .task-detail-modal textarea::placeholder,
 body.is-dashboard .task-detail-modal [data-task-detail-edit-subtask-input]::placeholder,
+body.is-dashboard .task-detail-modal [data-task-detail-edit-link-input]::placeholder,
 body.is-dashboard .task-detail-modal [data-task-detail-edit-title-tag-custom]::placeholder {
     color: var(--ui-modal-placeholder);
 }
@@ -3453,8 +3560,19 @@ body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer]:focu
 
 body.is-dashboard .create-task-modal [data-create-task-title-composer] > [data-create-task-title-input],
 body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer] > [data-task-detail-edit-title] {
+    border-color: transparent;
+    background: transparent;
     color: var(--ui-modal-text-strong);
     caret-color: var(--ui-modal-text-strong);
+    box-shadow: none;
+}
+
+body.is-dashboard .create-task-modal [data-create-task-title-composer] > [data-create-task-title-input]:focus,
+body.is-dashboard .task-detail-modal [data-task-detail-edit-title-composer] > [data-task-detail-edit-title]:focus {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
 }
 
 body.is-dashboard .create-task-modal [data-create-task-title-composer] .create-task-title-tag-trigger,
@@ -3484,9 +3602,11 @@ body.is-dashboard .task-detail-modal .task-detail-edit-description-toolbar {
 
 body.is-dashboard .create-task-modal .task-detail-edit-description-editor,
 body.is-dashboard .create-task-modal .task-detail-reference-input,
+body.is-dashboard .create-task-modal .task-inline-add-row input,
 body.is-dashboard .create-task-modal .task-detail-edit-image-picker,
 body.is-dashboard .task-detail-modal .task-detail-edit-description-editor,
 body.is-dashboard .task-detail-modal .task-detail-reference-input,
+body.is-dashboard .task-detail-modal .task-inline-add-row input,
 body.is-dashboard .task-detail-modal .task-detail-edit-image-picker,
 body.is-dashboard .task-detail-history-column {
     border-color: var(--ui-modal-section-border);
@@ -3495,9 +3615,42 @@ body.is-dashboard .task-detail-history-column {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+body.is-dashboard :is(.create-task-modal, .task-detail-modal) .task-detail-reference-input.has-multiple-rows {
+    background-image: none;
+}
+
 body.is-dashboard .create-task-modal .task-detail-edit-description-editor,
 body.is-dashboard .task-detail-modal .task-detail-edit-description-editor {
     min-height: clamp(110px, 14vh, 156px);
+}
+
+body.is-dashboard .create-task-modal .task-reference-edit-link,
+body.is-dashboard .create-task-modal .task-reference-edit-label,
+body.is-dashboard .create-task-modal .task-subtasks-edit-title,
+body.is-dashboard .task-detail-modal .task-reference-edit-link,
+body.is-dashboard .task-detail-modal .task-reference-edit-label,
+body.is-dashboard .task-detail-modal .task-subtasks-edit-title {
+    color: var(--ui-modal-text-strong);
+}
+
+body.is-dashboard .create-task-modal .task-subtasks-edit-title:focus,
+body.is-dashboard .task-detail-modal .task-subtasks-edit-title:focus {
+    border-color: rgba(var(--color-accent-500-rgb), 0.42);
+    background: rgba(var(--color-accent-500-rgb), 0.08);
+    box-shadow: 0 0 0 2px rgba(var(--color-accent-500-rgb), 0.1);
+}
+
+body.is-dashboard .create-task-modal .task-reference-edit-link:hover,
+body.is-dashboard .create-task-modal .task-reference-edit-link:focus-visible,
+body.is-dashboard .task-detail-modal .task-reference-edit-link:hover,
+body.is-dashboard .task-detail-modal .task-reference-edit-link:focus-visible {
+    color: var(--bexon-gold-strong);
+}
+
+body.is-dashboard .create-task-modal .task-reference-edit-favicon,
+body.is-dashboard .task-detail-modal .task-reference-edit-favicon {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
 body.is-dashboard .create-task-modal .task-detail-edit-description-wrap,
@@ -3532,9 +3685,9 @@ body.is-dashboard .task-detail-modal :is(.assignee-picker-menu, .row-inline-pick
 
 body.is-dashboard .create-task-modal .priority-inline-picker > .row-inline-picker-menu,
 body.is-dashboard .task-detail-modal .priority-inline-picker > .row-inline-picker-menu {
-    left: auto;
-    right: 0;
-    transform: none;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
 }
 
 body.is-dashboard .create-task-modal :is(.assignee-option, .create-task-title-tag-menu-item),
@@ -3544,10 +3697,38 @@ body.is-dashboard .task-detail-modal :is(.assignee-option, .create-task-title-ta
     color: var(--ui-modal-ghost-text);
 }
 
+body.is-dashboard .create-task-modal .create-task-title-tag-menu-item,
+body.is-dashboard .task-detail-modal .create-task-title-tag-menu-item {
+    background: rgba(255, 255, 255, 0.055);
+}
+
+body.is-dashboard .create-task-modal :is(.create-task-title-tag-option, .create-task-title-tag-create),
+body.is-dashboard .task-detail-modal :is(.create-task-title-tag-option, .create-task-title-tag-create) {
+    color: var(--ui-modal-text-strong);
+    opacity: 1;
+    font-weight: 700;
+}
+
+body.is-dashboard .create-task-modal .create-task-title-tag-option.is-clear,
+body.is-dashboard .task-detail-modal .create-task-title-tag-option.is-clear {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+body.is-dashboard .create-task-modal .create-task-title-tag-remove,
+body.is-dashboard .task-detail-modal .create-task-title-tag-remove {
+    color: rgba(255, 177, 190, 0.82);
+    opacity: 1;
+}
+
 body.is-dashboard .create-task-modal :is(.assignee-option:hover, .assignee-option:focus-visible, .create-task-title-tag-menu-item:hover, .create-task-title-tag-menu-item:focus-within),
 body.is-dashboard .task-detail-modal :is(.assignee-option:hover, .assignee-option:focus-visible, .create-task-title-tag-menu-item:hover, .create-task-title-tag-menu-item:focus-within) {
     border-color: rgba(var(--color-accent-500-rgb), 0.24);
     background: rgba(var(--color-accent-500-rgb), 0.12);
+    color: #fff7dc;
+}
+
+body.is-dashboard .create-task-modal :is(.create-task-title-tag-menu-item:hover, .create-task-title-tag-menu-item:focus-within) :is(.create-task-title-tag-option, .create-task-title-tag-create),
+body.is-dashboard .task-detail-modal :is(.create-task-title-tag-menu-item:hover, .create-task-title-tag-menu-item:focus-within) :is(.create-task-title-tag-option, .create-task-title-tag-create) {
     color: #fff7dc;
 }
 
@@ -4639,4 +4820,556 @@ body.is-dashboard .flatpickr-day.endRange {
     background: rgba(var(--color-accent-500-rgb), 0.96);
     border-color: rgba(var(--color-accent-500-rgb), 0.96);
     color: #fff;
+}
+
+/* Flat application surfaces */
+:root {
+    --surface-auth: #ffffff;
+    --surface-card: #ffffff;
+    --surface-card-strong: #ffffff;
+    --surface-card-soft: #f7f9fb;
+    --surface-card-muted: #eef2f6;
+    --surface-card-hover: #eef2f6;
+    --surface-accent: rgba(var(--color-accent-500-rgb), 0.12);
+    --surface-topbar: #ffffff;
+    --surface-group-empty: #f7f9fb;
+    --surface-button: #2a313a;
+    --surface-button-hover: #343b44;
+    --surface-logout-hover: #343b44;
+    --surface-logout-glow: transparent;
+    --ui-brand-frame-surface: #2a313a;
+    --ui-brand-frame-surface-hover: #343b44;
+    --ui-brand-frame-border-gradient: rgba(var(--color-accent-500-rgb), 0.42);
+    --ui-brand-frame-inner-glow: transparent;
+    --ui-brand-frame-shadow: none;
+    --ui-brand-frame-shadow-strong: none;
+    --ui-button-shadow: none;
+    --ui-button-shadow-hover: none;
+    --ui-topbar-shadow: none;
+    --ui-group-shadow: none;
+    --ui-group-head-bg: #ffffff;
+    --ui-group-head-shadow: none;
+    --ui-empty-bg: #f7f9fb;
+    --ui-modal-bg: rgba(22, 25, 31, 0.98);
+    --ui-modal-shadow: none;
+    --ui-modal-section-bg: rgba(18, 20, 24, 0.9);
+    --ui-modal-toolbar-bg: rgba(22, 25, 31, 0.94);
+    --ui-modal-tag-bg: rgba(19, 22, 28, 0.9);
+    --ui-modal-close-bg: var(--ui-brand-frame-surface);
+    --ui-modal-close-bg-hover: var(--ui-brand-frame-surface-hover);
+}
+
+body .btn:not(.btn-danger),
+body .btn-mini:not(.btn-danger) {
+    background: #ffffff;
+    background-image: none;
+    box-shadow: none;
+}
+
+body .btn:not(.btn-danger):hover,
+body .btn:not(.btn-danger):focus-visible,
+body .btn-mini:not(.btn-danger):hover,
+body .btn-mini:not(.btn-danger):focus-visible {
+    background: var(--color-cream-150);
+    background-image: none;
+    box-shadow: none;
+    transform: none;
+}
+
+body .btn.btn-accent,
+body .btn.btn-logout,
+body .btn-mini.btn-accent,
+body .btn-mini.btn-logout,
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger),
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger),
+body.is-dashboard .top-nav.dashboard-nav .btn-logout {
+    background: var(--ui-brand-frame-surface);
+    background-image: none;
+    border-color: rgba(var(--color-accent-500-rgb), 0.24);
+    box-shadow: none;
+    color: var(--ui-button-text);
+}
+
+body .btn.btn-accent:hover,
+body .btn.btn-accent:focus-visible,
+body .btn.btn-logout:hover,
+body .btn.btn-logout:focus-visible,
+body .btn-mini.btn-accent:hover,
+body .btn-mini.btn-accent:focus-visible,
+body .btn-mini.btn-logout:hover,
+body .btn-mini.btn-logout:focus-visible,
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger):hover,
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger):focus-visible,
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger):hover,
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger):focus-visible,
+body.is-dashboard .top-nav.dashboard-nav .btn-logout:hover,
+body.is-dashboard .top-nav.dashboard-nav .btn-logout:focus-visible {
+    background: var(--ui-brand-frame-surface-hover);
+    background-image: none;
+    border-color: rgba(var(--color-accent-500-rgb), 0.34);
+    box-shadow: none;
+    color: var(--ui-button-text-hover);
+    transform: none;
+}
+
+body .btn-accent::before,
+body .btn-accent::after,
+body .btn-logout::before,
+body .btn-logout::after,
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger)::before,
+body.is-dashboard .modal-actions .btn:not(.btn-ghost):not(.btn-danger)::after,
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger)::before,
+body.is-dashboard .task-detail-modal-head-actions .btn:not(.btn-ghost):not(.btn-danger)::after {
+    content: none;
+}
+
+body.is-dashboard :is(
+    .group-permissions-button,
+    .group-done-toggle-button,
+    .group-add-button,
+    .icon-gear-button,
+    .header-notification-button,
+    .status-stepper-btn,
+    .task-expand-toggle,
+    .create-task-title-tag-trigger,
+    .task-detail-edit-description-toolbar button
+) {
+    background-image: none;
+    box-shadow: none;
+}
+
+body.is-dashboard :is(
+    .group-permissions-button:hover,
+    .group-permissions-button:focus-visible,
+    .group-done-toggle-button:hover,
+    .group-done-toggle-button:focus-visible,
+    .group-add-button:hover,
+    .group-add-button:focus-visible,
+    .icon-gear-button:hover,
+    .icon-gear-button:focus-visible,
+    .header-notification-button:hover,
+    .header-notification-button:focus-visible,
+    .header-notification-button.is-open,
+    .status-stepper-btn:hover,
+    .status-stepper-btn:focus-visible,
+    .task-expand-toggle:hover,
+    .task-expand-toggle:focus-visible,
+    .create-task-title-tag-trigger:hover,
+    .create-task-title-tag-trigger:focus-visible,
+    .task-detail-edit-description-toolbar button:hover,
+    .task-detail-edit-description-toolbar button:focus-visible
+) {
+    background-image: none;
+    box-shadow: none;
+    transform: none;
+}
+
+body :is(
+    .auth-card,
+    .auth-panel,
+    .panel,
+    .workspace-settings-card,
+    .workspace-settings-panel,
+    .task-group,
+    .overview-card,
+    .overview-radar-card,
+    .overview-focus-card,
+    .overview-summary-pill,
+    .overview-executive-strip,
+    .overview-radar-item,
+    .overview-stat-card,
+    .overview-workspace-item,
+    .due-entry-row,
+    .inventory-entry-row,
+    .header-notification-dropdown,
+    .workspace-sidebar-picker-menu,
+    .user-chip,
+    .flash
+) {
+    background: var(--bexon-card-surface);
+    background-image: none;
+    box-shadow: none;
+}
+
+body.is-auth .auth-card,
+body.is-auth .auth-card-flash,
+body.is-auth .auth-card-flash.flash-success,
+body.is-dashboard .panel,
+body.is-dashboard.is-workspace-settings .workspace-settings-panel,
+body.is-dashboard :is(
+    .overview-card,
+    .overview-radar-card,
+    .overview-focus-card,
+    .overview-summary-pill,
+    .overview-executive-strip,
+    .overview-radar-item,
+    .overview-stat-card,
+    .overview-workspace-item
+) {
+    background: var(--bexon-card-surface);
+    background-image: none;
+    box-shadow: none;
+}
+
+body.is-dashboard :is(.create-task-modal, .task-detail-modal, .modal-card) {
+    background: var(--ui-modal-bg);
+    background-image: none;
+    box-shadow: none;
+}
+
+body.is-dashboard :is(.overview-board-header, .task-group-head) {
+    background: #ffffff;
+    background-image: none;
+    box-shadow: none;
+}
+
+body.is-dashboard .overview-executive-strip::after,
+body.is-dashboard .overview-executive-strip.is-attention::after,
+body.is-dashboard .overview-executive-strip.is-critical::after {
+    background-image: none;
+}
+
+body.is-dashboard .overview-executive-strip::after {
+    background-color: rgba(76, 129, 213, 0.78);
+}
+
+body.is-dashboard .overview-executive-strip.is-attention::after {
+    background-color: rgba(228, 121, 73, 0.82);
+}
+
+body.is-dashboard .overview-executive-strip.is-critical::after {
+    background-color: rgba(200, 74, 103, 0.84);
+}
+
+body.is-dashboard :is(
+    .overview-executive-strip:hover,
+    .overview-radar-card:hover,
+    .overview-card:hover,
+    .overview-stat-card:hover,
+    .overview-workspace-item:hover,
+    .overview-focus-card:hover,
+    .overview-radar-item:hover,
+    .overview-summary-pill:hover,
+    .overview-list-item:hover,
+    .overview-card-action:hover,
+    .overview-card-action:focus-visible,
+    .overview-empty-action:hover,
+    .overview-empty-action:focus-visible
+) {
+    box-shadow: none;
+    transform: none;
+}
+
+body.is-dashboard :is(.overview-list-item-due.tone-critical, .overview-list-item-due.tone-attention),
+body.is-dashboard :is(.overview-workspace-item.is-active-workspace, .overview-workspace-item.is-critical, .overview-workspace-item.is-attention),
+body.is-dashboard .overview-empty,
+body.is-dashboard .overview-empty-state {
+    background: #ffffff;
+    background-image: none;
+    box-shadow: none;
+}
+
+body.is-dashboard .overview-list-item-due.tone-critical,
+body.is-dashboard .overview-workspace-item.is-critical {
+    background: #fff7f8;
+}
+
+body.is-dashboard .overview-list-item-due.tone-attention,
+body.is-dashboard .overview-workspace-item.is-attention {
+    background: #fff8ef;
+}
+
+body.is-dashboard .overview-workspace-item.is-active-workspace {
+    background: #f8f7ff;
+}
+
+body.is-dashboard .overview-radar-meter-fill,
+body.is-dashboard .overview-radar-meter-fill.is-attention,
+body.is-dashboard .overview-radar-meter-fill.is-critical {
+    background-image: none;
+}
+
+body.is-dashboard .overview-radar-meter-fill {
+    background-color: rgba(77, 132, 214, 0.82);
+}
+
+body.is-dashboard .overview-radar-meter-fill.is-attention {
+    background-color: rgba(229, 125, 78, 0.82);
+}
+
+body.is-dashboard .overview-radar-meter-fill.is-critical {
+    background-color: rgba(198, 74, 102, 0.84);
+}
+
+body.is-dashboard .modal-actions .btn-danger,
+body.is-dashboard .task-detail-modal-head-actions .btn-danger {
+    background: rgba(var(--state-priority-urgent-rgb), 0.16);
+    background-image: none;
+    box-shadow: none;
+}
+
+body.is-dashboard .modal-actions .btn-danger:hover,
+body.is-dashboard .modal-actions .btn-danger:focus-visible,
+body.is-dashboard .task-detail-modal-head-actions .btn-danger:hover,
+body.is-dashboard .task-detail-modal-head-actions .btn-danger:focus-visible {
+    background: rgba(var(--state-priority-urgent-rgb), 0.22);
+    background-image: none;
+    box-shadow: none;
+    transform: none;
+}
+
+body.is-dashboard .accounting-card,
+body.is-dashboard .accounting-balance-card,
+body.is-dashboard .workspace-settings-card,
+body.is-dashboard .workspace-users-modal-card {
+    background: var(--bexon-card-surface);
+    background-image: none;
+    box-shadow: none;
+}
+
+body.is-dashboard .accounting-card::before {
+    content: none;
+}
+
+body.is-dashboard .accounting-empty,
+body.is-dashboard .accounting-card .accounting-empty,
+body.is-dashboard .accounting-create-form,
+body.is-dashboard .accounting-card .accounting-create-form,
+body.is-dashboard .accounting-input[readonly] {
+    background: #ffffff;
+    background-image: none;
+    box-shadow: none;
+}
+
+body.is-dashboard .workspace-sidebar-picker-menu,
+body.is-dashboard .workspace-sidebar-picker-current,
+body.is-dashboard .workspace-sidebar-create-trigger,
+body.is-dashboard .workspace-sidebar-picker-option,
+body.is-dashboard .workspace-sidebar-picker-option:hover,
+body.is-dashboard .workspace-sidebar-picker-option:focus-visible {
+    background-image: none;
+    box-shadow: none;
+    transform: none;
+}
+
+body.is-dashboard .workspace-sidebar-picker-menu {
+    background: #ffffff;
+}
+
+body.is-dashboard .workspace-sidebar-picker-current {
+    background: #fff7e8;
+}
+
+body.is-dashboard .workspace-sidebar-picker-option {
+    background: #ffffff;
+}
+
+body.is-dashboard .workspace-sidebar-picker-option:hover,
+body.is-dashboard .workspace-sidebar-picker-option:focus-visible {
+    background: #fff8ef;
+}
+
+body.is-dashboard[data-dashboard-view="accounting"] :is(
+    .accounting-period-nav,
+    .accounting-period-input,
+    .accounting-create-trigger,
+    .accounting-input,
+    .accounting-installment-select,
+    .accounting-entry-badge[data-accounting-entry-edit],
+    .accounting-entry-delete-form .vault-entry-delete-button,
+    .accounting-create-actions .btn-mini,
+    .accounting-entry-editor-actions .btn-mini,
+    .accounting-opening-balance-actions .btn-mini
+) {
+    background: #ffffff;
+    background-image: none;
+    box-shadow: none;
+    transform: none;
+}
+
+body.is-dashboard[data-dashboard-view="accounting"] :is(
+    .accounting-period-input:focus-visible,
+    .accounting-input:focus,
+    .accounting-installment-select:focus
+) {
+    background: #ffffff;
+    background-image: none;
+    box-shadow: 0 0 0 3px rgba(var(--color-accent-200-rgb), 0.18);
+}
+
+body.is-dashboard[data-dashboard-view="accounting"] :is(
+    .accounting-period-nav:hover,
+    .accounting-period-nav:focus-visible,
+    .accounting-create-trigger:hover,
+    .accounting-create-trigger:focus-visible,
+    .accounting-entry-badge[data-accounting-entry-edit]:hover,
+    .accounting-entry-badge[data-accounting-entry-edit]:focus-visible,
+    .accounting-create-actions .btn-mini:hover,
+    .accounting-create-actions .btn-mini:focus-visible,
+    .accounting-entry-editor-actions .btn-mini:hover,
+    .accounting-entry-editor-actions .btn-mini:focus-visible,
+    .accounting-opening-balance-actions .btn-mini:hover,
+    .accounting-opening-balance-actions .btn-mini:focus-visible
+) {
+    background: #fff8ef;
+    background-image: none;
+    box-shadow: none;
+    transform: none;
+}
+
+body.is-dashboard[data-dashboard-view="accounting"] :is(
+    .accounting-create-actions .btn-mini:not(.btn-ghost),
+    .accounting-entry-editor-actions .btn-mini:not(.btn-ghost),
+    .accounting-opening-balance-actions .btn-mini:not(.btn-ghost)
+) {
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    background: #fff8ef;
+    background-image: none;
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard[data-dashboard-view="accounting"] :is(
+    .accounting-create-actions .btn-mini:not(.btn-ghost):hover,
+    .accounting-create-actions .btn-mini:not(.btn-ghost):focus-visible,
+    .accounting-entry-editor-actions .btn-mini:not(.btn-ghost):hover,
+    .accounting-entry-editor-actions .btn-mini:not(.btn-ghost):focus-visible,
+    .accounting-opening-balance-actions .btn-mini:not(.btn-ghost):hover,
+    .accounting-opening-balance-actions .btn-mini:not(.btn-ghost):focus-visible
+) {
+    border-color: rgba(var(--color-accent-500-rgb), 0.42);
+    background: #fff2db;
+    background-image: none;
+}
+
+body.is-dashboard[data-dashboard-view="accounting"] :is(
+    .accounting-opening-balance-trigger
+) {
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard[data-dashboard-view="accounting"] .accounting-card .accounting-create-toggle > .accounting-create-trigger {
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    color: var(--color-accent-700);
+}
+
+body.is-dashboard[data-dashboard-view="accounting"] :is(
+    .accounting-opening-balance-trigger:hover,
+    .accounting-opening-balance-trigger:focus-visible
+) {
+    border-color: rgba(var(--color-accent-500-rgb), 0.42);
+}
+
+body.is-dashboard[data-dashboard-view="accounting"] .accounting-card .accounting-create-toggle > .accounting-create-trigger:hover,
+body.is-dashboard[data-dashboard-view="accounting"] .accounting-card .accounting-create-toggle > .accounting-create-trigger:focus-visible {
+    border-color: rgba(var(--color-accent-500-rgb), 0.42);
+    color: var(--color-accent-900);
+}
+
+body.is-dashboard .users-sidebar .workspace-sidebar-plan-button {
+    border-color: rgba(var(--sidebar-plan-accent-rgb), 0.46);
+    background:
+        linear-gradient(135deg, rgba(var(--sidebar-plan-accent-rgb), 0.42), rgba(var(--color-accent-500-rgb), 0.26)),
+        rgba(255, 255, 255, 0.06);
+    box-shadow: none;
+    color: #fff7dc;
+    transform: none;
+}
+
+body.is-dashboard .users-sidebar .workspace-sidebar-plan-button:hover,
+body.is-dashboard .users-sidebar .workspace-sidebar-plan-button:focus-visible {
+    border-color: rgba(var(--sidebar-plan-accent-rgb), 0.62);
+    background:
+        linear-gradient(135deg, rgba(var(--sidebar-plan-accent-rgb), 0.56), rgba(var(--color-accent-500-rgb), 0.34)),
+        rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+    color: #fffaf0;
+    transform: none;
+}
+
+body.is-dashboard .top-nav.dashboard-nav :is(.icon-gear-button, .header-notification-button, .workspace-mobile-menu-button) {
+    border-color: rgba(60, 68, 79, 0.72);
+    background:
+        linear-gradient(135deg, var(--color-metal-300) 0%, var(--color-metal-400) 52%, var(--color-metal-200) 100%);
+    color: var(--color-white);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -10px 18px rgba(var(--color-accent-500-rgb), 0.1),
+        inset 0 -1px 0 rgba(var(--color-accent-200-rgb), 0.14),
+        0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+body.is-dashboard .top-nav.dashboard-nav :is(.icon-gear-button, .header-notification-button, .workspace-mobile-menu-button):hover,
+body.is-dashboard .top-nav.dashboard-nav :is(.icon-gear-button, .header-notification-button, .workspace-mobile-menu-button):focus-visible,
+body.is-dashboard .top-nav.dashboard-nav .header-notification-button.is-open,
+body.is-dashboard.dashboard-sidebar-open .top-nav.dashboard-nav .workspace-mobile-menu-button {
+    border-color: rgba(var(--color-accent-500-rgb), 0.72);
+    background:
+        linear-gradient(135deg, var(--color-metal-300) 0%, var(--color-metal-100) 52%, var(--color-metal-200) 100%);
+    color: var(--color-white);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -12px 22px rgba(var(--color-accent-500-rgb), 0.14),
+        inset 0 -1px 0 rgba(var(--color-accent-200-rgb), 0.18),
+        0 12px 28px rgba(15, 23, 42, 0.16),
+        0 0 16px rgba(var(--color-accent-500-rgb), 0.08);
+    transform: translateY(-1px);
+}
+
+body.is-dashboard .top-nav.dashboard-nav .btn-logout {
+    height: 36px;
+    min-height: 36px;
+    padding-block: 0;
+    padding-inline: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-color: rgba(var(--color-accent-500-rgb), 0.18);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.016) 100%),
+        rgba(18, 20, 24, 0.94);
+    color: var(--color-white);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -12px 18px rgba(var(--color-accent-500-rgb), 0.12),
+        0 0 18px rgba(var(--color-accent-500-rgb), 0.12),
+        0 14px 30px rgba(0, 0, 0, 0.18);
+}
+
+body.is-dashboard .top-nav.dashboard-nav .btn-logout:hover,
+body.is-dashboard .top-nav.dashboard-nav .btn-logout:focus-visible {
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.024) 100%),
+        rgba(20, 22, 27, 0.96);
+    color: var(--color-white);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -14px 22px rgba(var(--color-accent-500-rgb), 0.16),
+        0 0 24px rgba(var(--color-accent-500-rgb), 0.18),
+        0 18px 34px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+body.is-dashboard .top-nav.dashboard-nav .btn-logout::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(var(--color-accent-200-rgb), 0.98) 0%,
+            rgba(var(--color-accent-400-rgb), 0.9) 34%,
+            rgba(var(--color-accent-500-rgb), 0.96) 68%,
+            rgba(var(--color-accent-600-rgb), 0.9) 100%
+        );
+    opacity: 0.9;
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
 }

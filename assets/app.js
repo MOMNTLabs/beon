@@ -1405,6 +1405,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (target.matches("[data-task-detail-edit-links]")) {
       syncReferenceTextareaLayout(target);
+      return;
+    }
+
+    if (target.matches("[data-create-task-links]")) {
+      syncReferenceTextareaLayout(target);
     }
   });
 
@@ -1469,6 +1474,24 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (target instanceof HTMLTextAreaElement && target.matches("[data-task-detail-edit-links]")) {
+      if (event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+
+      const value = target.value || "";
+      const selectionStart = Number.isFinite(target.selectionStart) ? target.selectionStart : 0;
+      const lineStart = value.lastIndexOf("\n", Math.max(0, selectionStart - 1)) + 1;
+      const rawLineEnd = value.indexOf("\n", selectionStart);
+      const lineEnd = rawLineEnd === -1 ? value.length : rawLineEnd;
+      const currentLine = value.slice(lineStart, lineEnd).trim();
+
+      if (currentLine === "") {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    if (target instanceof HTMLTextAreaElement && target.matches("[data-create-task-links]")) {
       if (event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
         return;
       }
@@ -1628,7 +1651,16 @@ window.addEventListener("DOMContentLoaded", () => {
     textarea.rows = targetRows;
     textarea.classList.toggle("has-multiple-rows", targetRows > 1);
     textarea.style.height = "0px";
-    textarea.style.height = `${textarea.scrollHeight}px`;
+    let targetHeight = textarea.scrollHeight;
+    const style = window.getComputedStyle(textarea);
+    const lineHeight = Number.parseFloat(style.lineHeight) || 20;
+    const verticalPadding =
+      (Number.parseFloat(style.paddingTop) || 0) + (Number.parseFloat(style.paddingBottom) || 0);
+    const wrapsToMultipleLines = targetHeight > lineHeight + verticalPadding + 6;
+    textarea.classList.toggle("has-multiple-rows", targetRows > 1 || wrapsToMultipleLines);
+    textarea.style.height = "0px";
+    targetHeight = textarea.scrollHeight;
+    textarea.style.height = `${targetHeight}px`;
   };
 
   const escapeHtml = (value) =>
@@ -2391,6 +2423,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const maxReferenceItems = 20;
   const maxReferenceImageChars = 2_000_000;
+  const maxReferenceImageTitleChars = 80;
 
   const parseReferenceRawList = (value) => {
     if (Array.isArray(value)) {
@@ -2450,6 +2483,93 @@ window.addEventListener("DOMContentLoaded", () => {
     return normalizeHttpReference(raw);
   };
 
+  const normalizeReferenceImageTitle = (value) =>
+    String(value || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, maxReferenceImageTitleChars);
+
+  const normalizeGoogleDriveFileId = (value) => {
+    const raw = String(value || "").trim();
+    return /^[A-Za-z0-9_-]{6,220}$/.test(raw) ? raw : "";
+  };
+
+  const normalizeReferenceMediaName = (value) =>
+    String(value || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 180);
+
+  const normalizeReferenceMediaMimeType = (value) =>
+    String(value || "")
+      .replace(/\s+/g, "")
+      .trim()
+      .slice(0, 140);
+
+  const isGoogleDriveMediaItem = (item) =>
+    Boolean(item && typeof item === "object" && item.provider === "google_drive" && item.fileId);
+
+  const referenceMediaItemKey = (item) =>
+    isGoogleDriveMediaItem(item) ? `google_drive:${item.fileId}` : String(item?.src || "").trim();
+
+  const isVideoReferenceMediaItem = (item) =>
+    String(item?.mimeType || "").toLowerCase().startsWith("video/");
+
+  const isImageReferenceMediaItem = (item) =>
+    !isVideoReferenceMediaItem(item) &&
+    (String(item?.mimeType || "").toLowerCase().startsWith("image/") || Boolean(item?.src));
+
+  const normalizeReferenceImageMediaItem = (value) => {
+    let source = value;
+    let title = "";
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const provider = String(value.provider || "").trim().toLowerCase();
+      const fileId = normalizeGoogleDriveFileId(
+        value.file_id ?? value.fileId ?? value.drive_file_id ?? value.driveFileId ?? ""
+      );
+      if (provider === "google_drive" || fileId) {
+        if (!fileId) return null;
+
+        const mimeType = normalizeReferenceMediaMimeType(value.mime_type ?? value.mimeType ?? "");
+        const name = normalizeReferenceMediaName(value.name ?? value.label ?? "");
+        const thumbnailUrl = normalizeHttpReference(value.thumbnail_url ?? value.thumbnailUrl ?? "");
+        const webViewLink = normalizeHttpReference(value.web_view_link ?? value.webViewLink ?? "");
+        const downloadUrl = normalizeHttpReference(value.download_url ?? value.downloadUrl ?? "");
+        const explicitSrc = normalizeImageReference(
+          value.src ?? value.url ?? value.image ?? value.value ?? ""
+        );
+        const src =
+          explicitSrc ||
+          (mimeType.toLowerCase().startsWith("image/") ? downloadUrl : "") ||
+          thumbnailUrl ||
+          downloadUrl ||
+          webViewLink ||
+          "";
+
+        return {
+          provider: "google_drive",
+          fileId,
+          name,
+          mimeType,
+          thumbnailUrl: thumbnailUrl || "",
+          webViewLink: webViewLink || "",
+          downloadUrl: downloadUrl || "",
+          src,
+          title: normalizeReferenceImageTitle(value.title || ""),
+        };
+      }
+
+      source = value.src ?? value.url ?? value.image ?? value.value ?? "";
+      title = normalizeReferenceImageTitle(value.title ?? value.name ?? value.label ?? "");
+    }
+
+    const src = normalizeImageReference(source);
+    if (!src) return null;
+
+    return { src, title };
+  };
+
   const formatReferenceLinkLabel = (value) => {
     const raw = String(value || "").trim();
     if (!raw) return "";
@@ -2488,19 +2608,60 @@ window.addEventListener("DOMContentLoaded", () => {
     return result;
   };
 
-  const parseReferenceImageItems = (value, maxItems = maxReferenceItems) => {
+  const parseReferenceImageMediaItems = (value, maxItems = maxReferenceItems) => {
     const seen = new Set();
     const result = [];
 
     parseReferenceRawList(value).forEach((item) => {
       if (result.length >= maxItems) return;
-      const normalized = normalizeImageReference(item);
-      if (!normalized || seen.has(normalized)) return;
-      seen.add(normalized);
+      const normalized = normalizeReferenceImageMediaItem(item);
+      const itemKey = referenceMediaItemKey(normalized);
+      if (!normalized || !itemKey || seen.has(itemKey)) return;
+      seen.add(itemKey);
       result.push(normalized);
     });
 
     return result;
+  };
+
+  const serializeReferenceImageMediaItems = (items) =>
+    parseReferenceImageMediaItems(items || []).map((item) => {
+      if (isGoogleDriveMediaItem(item)) {
+        const serialized = {
+          provider: "google_drive",
+          file_id: item.fileId,
+        };
+        if (item.name) serialized.name = item.name;
+        if (item.mimeType) serialized.mime_type = item.mimeType;
+        if (item.thumbnailUrl) serialized.thumbnail_url = item.thumbnailUrl;
+        if (item.webViewLink) serialized.web_view_link = item.webViewLink;
+        if (item.downloadUrl) serialized.download_url = item.downloadUrl;
+        if (item.src) serialized.src = item.src;
+        if (item.title) serialized.title = item.title;
+        return serialized;
+      }
+
+      return item.title ? { src: item.src, title: item.title } : item.src;
+    });
+
+  const parseReferenceImageItems = (value, maxItems = maxReferenceItems) =>
+    parseReferenceImageMediaItems(value, maxItems).map((item) => item.src);
+
+  const readReferenceImageMediaField = (field) => {
+    if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLTextAreaElement)) return [];
+    const raw = (field.value || "").trim();
+    if (!raw) return [];
+    try {
+      const decoded = JSON.parse(raw);
+      return parseReferenceImageMediaItems(Array.isArray(decoded) ? decoded : []);
+    } catch (_error) {
+      return parseReferenceImageMediaItems(raw);
+    }
+  };
+
+  const writeReferenceImageMediaField = (field, values) => {
+    if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLTextAreaElement)) return;
+    field.value = JSON.stringify(serializeReferenceImageMediaItems(values || []));
   };
 
   const readJsonUrlListField = (field, parser = parseReferenceUrlLines) => {
@@ -2819,7 +2980,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const renderTaskDetailReferencesView = ({ links = [], images = [] } = {}) => {
     const safeLinks = parseReferenceUrlLines(links || []);
-    const safeImages = parseReferenceImageItems(images || []);
+    const safeMedia = parseReferenceImageMediaItems(images || []);
+    const safeImages = safeMedia
+      .filter((item) => !isVideoReferenceMediaItem(item) && item.src)
+      .map((item) => item.src);
     taskImagePreviewState.images = [...safeImages];
     if (!safeImages.length) {
       taskImagePreviewState.currentIndex = -1;
@@ -2867,12 +3031,35 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (taskDetailViewImages instanceof HTMLElement) {
       taskDetailViewImages.innerHTML = "";
-      safeImages.forEach((url, index) => {
+      safeMedia.forEach((mediaItem, index) => {
+        const url = mediaItem.src || mediaItem.downloadUrl || mediaItem.webViewLink || "";
+        if (!url) return;
+        if (isVideoReferenceMediaItem(mediaItem)) {
+          const item = document.createElement("div");
+          item.className = "task-detail-ref-image-link task-detail-ref-image-link-video";
+
+          const video = document.createElement("video");
+          video.src = mediaItem.downloadUrl || mediaItem.src;
+          video.className = "task-detail-ref-image";
+          video.controls = true;
+          video.preload = "metadata";
+          item.append(video);
+
+          if (mediaItem.title || mediaItem.name) {
+            const title = document.createElement("span");
+            title.className = "task-detail-ref-image-title";
+            title.textContent = mediaItem.title || mediaItem.name;
+            item.append(title);
+          }
+          taskDetailViewImages.append(item);
+          return;
+        }
+
         const trigger = document.createElement("button");
         trigger.type = "button";
         trigger.className = "task-detail-ref-image-link";
         trigger.dataset.taskRefImagePreview = url;
-        trigger.dataset.taskRefImageIndex = String(index);
+        trigger.dataset.taskRefImageIndex = String(safeImages.indexOf(url));
         trigger.setAttribute("aria-label", "Ampliar imagem de referencia");
 
         const img = document.createElement("img");
@@ -2882,15 +3069,21 @@ window.addEventListener("DOMContentLoaded", () => {
         img.className = "task-detail-ref-image";
 
         trigger.append(img);
+        if (mediaItem.title || mediaItem.name) {
+          const title = document.createElement("span");
+          title.className = "task-detail-ref-image-title";
+          title.textContent = mediaItem.title || mediaItem.name;
+          trigger.append(title);
+        }
         taskDetailViewImages.append(trigger);
       });
     }
     if (taskDetailViewImagesWrap instanceof HTMLElement) {
-      taskDetailViewImagesWrap.hidden = safeImages.length === 0;
+      taskDetailViewImagesWrap.hidden = safeMedia.length === 0;
     }
 
     if (taskDetailViewReferences instanceof HTMLElement) {
-      taskDetailViewReferences.hidden = safeLinks.length === 0 && safeImages.length === 0;
+      taskDetailViewReferences.hidden = safeLinks.length === 0 && safeMedia.length === 0;
     }
   };
 
@@ -4715,6 +4908,12 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const formatItemCountLabel = (count) => {
+    const numericCount = Number.parseInt(String(count), 10);
+    const safeCount = Number.isFinite(numericCount) && numericCount > 0 ? numericCount : 0;
+    return `${safeCount} ${safeCount === 1 ? "item" : "itens"}`;
+  };
+
   const refreshVaultSectionFromServer = async () => {
     let snapshotData = null;
     let nextDoc = null;
@@ -4749,7 +4948,7 @@ window.addEventListener("DOMContentLoaded", () => {
         currentTotal.textContent = nextTotal.textContent || currentTotal.textContent;
       } else {
         const nextEntriesCount = document.querySelectorAll("#vault [data-vault-entry]").length;
-        currentTotal.textContent = `${nextEntriesCount} item(ns)`;
+        currentTotal.textContent = formatItemCountLabel(nextEntriesCount);
       }
     }
 
@@ -4815,7 +5014,7 @@ window.addEventListener("DOMContentLoaded", () => {
         currentTotal.textContent = nextTotal.textContent || currentTotal.textContent;
       } else {
         const nextEntriesCount = document.querySelectorAll("#dues [data-due-entry]").length;
-        currentTotal.textContent = `${nextEntriesCount} item(ns)`;
+        currentTotal.textContent = formatItemCountLabel(nextEntriesCount);
       }
     }
 
@@ -4877,7 +5076,7 @@ window.addEventListener("DOMContentLoaded", () => {
         currentTotal.textContent = nextTotal.textContent || currentTotal.textContent;
       } else {
         const nextEntriesCount = document.querySelectorAll("#inventory [data-inventory-entry]").length;
-        currentTotal.textContent = `${nextEntriesCount} item(ns)`;
+        currentTotal.textContent = formatItemCountLabel(nextEntriesCount);
       }
     }
 
@@ -5354,6 +5553,108 @@ window.addEventListener("DOMContentLoaded", () => {
     }).format(absoluteValue / 100)}`;
   };
 
+  const isAccountingCurrencyInputField = (field) =>
+    field instanceof HTMLInputElement &&
+    field.type !== "hidden" &&
+    !field.readOnly &&
+    !field.disabled &&
+    ["amount_value", "total_amount_value", "opening_balance_value"].includes(field.name);
+
+  const getAccountingCurrencyFieldState = (field) => {
+    const allowNegative = field instanceof HTMLInputElement && field.dataset.accountingAllowNegative === "1";
+    const rawValue = field instanceof HTMLInputElement ? String(field.value || "").trim() : "";
+    const parsedCents = field instanceof HTMLInputElement
+      ? parseAccountingCurrencyToCents(rawValue, { allowNegative })
+      : null;
+    const isNegative =
+      allowNegative &&
+      ((parsedCents !== null && parsedCents < 0) || field?.dataset?.accountingNegative === "1");
+
+    let digits = "";
+    if (parsedCents !== null) {
+      digits = String(Math.abs(parsedCents));
+    } else {
+      const extractedDigits = rawValue.replace(/\D/g, "");
+      if (extractedDigits) {
+        digits = String(Number.parseInt(extractedDigits, 10) || 0);
+      }
+    }
+
+    if (!rawValue) {
+      digits = "";
+    }
+
+    return {
+      allowNegative,
+      isNegative,
+      digits,
+    };
+  };
+
+  const setAccountingCurrencyFieldDigits = (field, digits, { isNegative = null } = {}) => {
+    if (!(field instanceof HTMLInputElement)) return;
+
+    const state = getAccountingCurrencyFieldState(field);
+    const allowNegative = state.allowNegative;
+    const nextNegative = allowNegative && (isNegative === null ? state.isNegative : isNegative);
+    const normalizedDigits = String(digits || "").replace(/\D/g, "");
+
+    if (!normalizedDigits) {
+      field.value = "";
+      if (allowNegative) {
+        field.dataset.accountingNegative = nextNegative ? "1" : "0";
+      }
+      return;
+    }
+
+    const cents = Number.parseInt(normalizedDigits, 10);
+    if (!Number.isFinite(cents)) {
+      field.value = "";
+      return;
+    }
+
+    if (allowNegative) {
+      field.dataset.accountingNegative = nextNegative ? "1" : "0";
+    }
+    field.value = formatAccountingCentsToInputValue(nextNegative ? -cents : cents, { allowNegative });
+
+    const caret = field.value.length;
+    window.requestAnimationFrame(() => {
+      if (!(document.activeElement instanceof HTMLInputElement) || document.activeElement !== field) {
+        return;
+      }
+      try {
+        field.setSelectionRange(caret, caret);
+      } catch (_error) {}
+    });
+  };
+
+  const formatAccountingCurrencyInputFieldWhileTyping = (field) => {
+    if (!isAccountingCurrencyInputField(field)) return;
+
+    const allowNegative = field.dataset.accountingAllowNegative === "1";
+    const rawValue = String(field.value || "").trim();
+    const isNegative =
+      allowNegative && (rawValue.startsWith("-") || field.dataset.accountingNegative === "1");
+    const digits = rawValue.replace(/\D/g, "");
+
+    if (!digits) {
+      field.value = "";
+      if (allowNegative) {
+        field.dataset.accountingNegative = isNegative ? "1" : "0";
+      }
+      return;
+    }
+
+    setAccountingCurrencyFieldDigits(field, digits, { isNegative });
+  };
+
+  const hasAccountingCurrencySelection = (field) =>
+    field instanceof HTMLInputElement &&
+    field.selectionStart !== null &&
+    field.selectionEnd !== null &&
+    field.selectionStart !== field.selectionEnd;
+
   const normalizeAccountingCurrencyInputField = (field) => {
     if (!(field instanceof HTMLInputElement)) return;
     const rawValue = String(field.value || "").trim();
@@ -5362,6 +5663,9 @@ window.addEventListener("DOMContentLoaded", () => {
     const allowNegative = field.dataset.accountingAllowNegative === "1";
     const cents = parseAccountingCurrencyToCents(rawValue, { allowNegative });
     if (cents === null) return;
+    if (allowNegative) {
+      field.dataset.accountingNegative = cents < 0 ? "1" : "0";
+    }
     field.value = formatAccountingCentsToInputValue(cents, { allowNegative });
   };
 
@@ -5668,6 +5972,58 @@ window.addEventListener("DOMContentLoaded", () => {
       amountField.focus();
       amountField.select();
     }
+  };
+
+  const closeAccountingOpeningBalanceEditor = ({ reset = true } = {}) => {
+    const editor = document.querySelector(".accounting-opening-balance-editor");
+    const toggle = editor?.querySelector("[data-accounting-opening-balance-toggle]");
+    const form = editor?.querySelector(".accounting-opening-balance-form");
+    if (!(editor instanceof HTMLElement)) return;
+    if (!(toggle instanceof HTMLButtonElement) || !(form instanceof HTMLFormElement)) return;
+
+    if (reset) {
+      form.reset();
+      const openingBalanceField = form.querySelector('input[name="opening_balance_value"]');
+      if (openingBalanceField instanceof HTMLInputElement) {
+        normalizeAccountingCurrencyInputField(openingBalanceField);
+      }
+    }
+
+    form.hidden = true;
+    toggle.hidden = false;
+    toggle.setAttribute("aria-expanded", "false");
+    editor.classList.remove("is-editing");
+  };
+
+  const openAccountingOpeningBalanceEditor = () => {
+    const editor = document.querySelector(".accounting-opening-balance-editor");
+    const toggle = editor?.querySelector("[data-accounting-opening-balance-toggle]");
+    const form = editor?.querySelector(".accounting-opening-balance-form");
+    if (!(editor instanceof HTMLElement)) return;
+    if (!(toggle instanceof HTMLButtonElement) || !(form instanceof HTMLFormElement)) return;
+
+    toggle.hidden = true;
+    toggle.setAttribute("aria-expanded", "true");
+    form.hidden = false;
+    editor.classList.add("is-editing");
+
+    const openingBalanceField = form.querySelector('input[name="opening_balance_value"]');
+    if (openingBalanceField instanceof HTMLInputElement) {
+      openingBalanceField.focus();
+      openingBalanceField.select();
+    }
+  };
+
+  const closeAccountingCreateToggle = (toggle, { reset = true } = {}) => {
+    if (!(toggle instanceof HTMLDetailsElement)) return;
+
+    const form = toggle.querySelector(".accounting-create-form");
+    if (reset && form instanceof HTMLFormElement) {
+      form.reset();
+      syncAccountingInstallmentForm(form);
+    }
+
+    toggle.open = false;
   };
 
   const autosaveTimers = new WeakMap();
@@ -7003,6 +7359,8 @@ window.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("pageshow", syncMobileSidebarState);
 
   const createTaskModal = document.querySelector("[data-create-modal]");
+  const createTaskModalCard =
+    createTaskModal instanceof HTMLElement ? createTaskModal.querySelector(".create-task-modal") : null;
   const createTaskGroupInput = document.querySelector("[data-create-task-group-input]");
   const createTaskTitleComposer = document.querySelector("[data-create-task-title-composer]");
   const createTaskTitleTagPicker = document.querySelector("[data-create-task-title-tag-picker]");
@@ -7021,6 +7379,12 @@ window.addEventListener("DOMContentLoaded", () => {
   const createTaskDescriptionEditor = document.querySelector("[data-create-task-description-editor]");
   const createTaskDescriptionToolbar = document.querySelector("[data-create-task-description-toolbar]");
   const createTaskLinksField = document.querySelector("[data-create-task-links]");
+  const createTaskLinksList = document.querySelector("[data-create-task-links-list]");
+  const createTaskLinkToggleAddButton = document.querySelector("[data-create-task-link-toggle-add]");
+  const createTaskLinkAddForm = document.querySelector("[data-create-task-link-add-form]");
+  const createTaskLinkInput = document.querySelector("[data-create-task-link-input]");
+  const createTaskLinkConfirmButton = document.querySelector("[data-create-task-link-confirm]");
+  const createTaskLinkCancelButton = document.querySelector("[data-create-task-link-cancel]");
   const createTaskImagesField = document.querySelector("[data-create-task-images]");
   const createTaskSubtasksField = document.querySelector("[data-create-task-subtasks]");
   const createTaskSubtasksList = document.querySelector("[data-create-task-subtasks-list]");
@@ -7031,11 +7395,17 @@ window.addEventListener("DOMContentLoaded", () => {
     "[data-create-task-subtasks-dependency-toggle]"
   );
   const createTaskSubtaskInput = document.querySelector("[data-create-task-subtask-input]");
+  const createTaskSubtaskAddForm = document.querySelector("[data-create-task-subtask-add-form]");
+  const createTaskSubtaskToggleAddButton = document.querySelector("[data-create-task-subtask-toggle-add]");
+  const createTaskSubtaskCancelButton = document.querySelector("[data-create-task-subtask-cancel]");
   const createTaskSubtaskAddButton = document.querySelector("[data-create-task-subtask-add]");
   const createTaskImagePicker = document.querySelector("[data-create-task-image-picker]");
   const createTaskImageInput = document.querySelector("[data-create-task-image-input]");
   const createTaskImageAddButton = document.querySelector("[data-create-task-image-add]");
+  const createTaskDriveAddButton = document.querySelector("[data-create-task-drive-add]");
   const createTaskImageList = document.querySelector("[data-create-task-image-list]");
+  const createTaskOpenMediaButton = document.querySelector("[data-create-task-open-media]");
+  const createTaskBackMainButton = document.querySelector("[data-create-task-back-main]");
   const createTaskImagesFieldWrap =
     createTaskImagePicker instanceof HTMLElement
       ? createTaskImagePicker.closest(".task-detail-edit-images-field")
@@ -7125,6 +7495,8 @@ window.addEventListener("DOMContentLoaded", () => {
   );
   const inventoryEntryEditNotesField = document.querySelector("[data-inventory-entry-edit-notes]");
   const taskDetailModal = document.querySelector("[data-task-detail-modal]");
+  const taskDetailModalCard =
+    taskDetailModal instanceof HTMLElement ? taskDetailModal.querySelector(".task-detail-modal") : null;
   const taskDetailTitle = document.querySelector("[data-task-detail-title]");
   const taskDetailViewPanel = document.querySelector("[data-task-detail-view]");
   const taskDetailEditPanel = document.querySelector("[data-task-detail-edit-panel]");
@@ -7192,13 +7564,25 @@ window.addEventListener("DOMContentLoaded", () => {
     "[data-task-detail-edit-subtasks-dependency-toggle]"
   );
   const taskDetailEditSubtaskInput = document.querySelector("[data-task-detail-edit-subtask-input]");
+  const taskDetailEditSubtaskAddForm = document.querySelector("[data-task-detail-edit-subtask-add-form]");
+  const taskDetailEditSubtaskToggleAddButton = document.querySelector("[data-task-detail-edit-subtask-toggle-add]");
+  const taskDetailEditSubtaskCancelButton = document.querySelector("[data-task-detail-edit-subtask-cancel]");
   const taskDetailEditSubtaskAddButton = document.querySelector("[data-task-detail-edit-subtask-add]");
   const taskDetailEditLinks = document.querySelector("[data-task-detail-edit-links]");
+  const taskDetailEditLinksList = document.querySelector("[data-task-detail-edit-links-list]");
+  const taskDetailEditLinkToggleAddButton = document.querySelector("[data-task-detail-edit-link-toggle-add]");
+  const taskDetailEditLinkAddForm = document.querySelector("[data-task-detail-edit-link-add-form]");
+  const taskDetailEditLinkInput = document.querySelector("[data-task-detail-edit-link-input]");
+  const taskDetailEditLinkConfirmButton = document.querySelector("[data-task-detail-edit-link-confirm]");
+  const taskDetailEditLinkCancelButton = document.querySelector("[data-task-detail-edit-link-cancel]");
   const taskDetailEditImages = document.querySelector("[data-task-detail-edit-images]");
   const taskDetailImagePicker = document.querySelector("[data-task-detail-image-picker]");
   const taskDetailImageInput = document.querySelector("[data-task-detail-image-input]");
   const taskDetailImageAddButton = document.querySelector("[data-task-detail-image-add]");
+  const taskDetailDriveAddButton = document.querySelector("[data-task-detail-drive-add]");
   const taskDetailImageList = document.querySelector("[data-task-detail-image-list]");
+  const taskDetailOpenMediaButton = document.querySelector("[data-task-detail-open-media]");
+  const taskDetailBackMainButton = document.querySelector("[data-task-detail-back-main]");
   const taskDetailImagesFieldWrap =
     taskDetailImagePicker instanceof HTMLElement
       ? taskDetailImagePicker.closest(".task-detail-edit-images-field")
@@ -7238,9 +7622,11 @@ window.addEventListener("DOMContentLoaded", () => {
   let confirmModalAction = null;
   let taskDetailContext = null;
   let taskDetailEditImageItems = [];
+  let taskDetailEditReferenceLinks = [];
   let taskDetailEditSubtaskItems = [];
   let taskDetailEditSubtasksDependencyEnabled = false;
   let createTaskImageItems = [];
+  let createTaskReferenceLinks = [];
   let taskDetailImagePickerExpanded = false;
   let createTaskImagePickerExpanded = false;
   let createTaskSubtaskItems = [];
@@ -8263,6 +8649,126 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const writeReferenceLinksEditField = (field, links) => {
+    if (!(field instanceof HTMLTextAreaElement) && !(field instanceof HTMLInputElement)) return;
+    field.value = parseReferenceUrlLines(links || []).join("\n");
+  };
+
+  const openInlineAddForm = (form, input) => {
+    if (form instanceof HTMLElement) {
+      form.hidden = false;
+    }
+    if (input instanceof HTMLInputElement) {
+      input.focus();
+      input.select();
+    }
+  };
+
+  const closeInlineAddForm = (form, input, { clear = true } = {}) => {
+    if (form instanceof HTMLElement) {
+      form.hidden = true;
+    }
+    if (clear && input instanceof HTMLInputElement) {
+      input.value = "";
+    }
+  };
+
+  const renderReferenceLinksEditList = ({ container, links = [], removeAttribute = "" } = {}) => {
+    if (!(container instanceof HTMLElement)) return;
+
+    const safeLinks = parseReferenceUrlLines(links || []);
+    container.innerHTML = "";
+    if (!safeLinks.length) return;
+
+    safeLinks.forEach((url, index) => {
+      const row = document.createElement("div");
+      row.className = "task-reference-edit-item";
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noreferrer noopener";
+      link.className = "task-reference-edit-link";
+      link.title = url;
+
+      const faviconUrl = buildReferenceFaviconUrl(url);
+      if (faviconUrl) {
+        const icon = document.createElement("img");
+        icon.src = faviconUrl;
+        icon.alt = "";
+        icon.className = "task-reference-edit-favicon";
+        icon.loading = "lazy";
+        icon.decoding = "async";
+        icon.referrerPolicy = "no-referrer";
+        icon.setAttribute("aria-hidden", "true");
+        icon.onerror = () => {
+          icon.remove();
+          link.classList.add("task-reference-edit-link-no-favicon");
+        };
+        link.append(icon);
+      } else {
+        link.classList.add("task-reference-edit-link-no-favicon");
+      }
+
+      const label = document.createElement("span");
+      label.className = "task-reference-edit-label";
+      label.textContent = formatReferenceLinkLabel(url) || url;
+      link.append(label);
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "task-inline-item-remove";
+      remove.setAttribute("aria-label", "Remover link");
+      remove.textContent = "X";
+      if (removeAttribute) {
+        remove.setAttribute(removeAttribute, String(index));
+      }
+
+      row.append(link, remove);
+      container.append(row);
+    });
+  };
+
+  const renderCreateTaskReferenceLinks = () => {
+    renderReferenceLinksEditList({
+      container: createTaskLinksList,
+      links: createTaskReferenceLinks,
+      removeAttribute: "data-create-task-link-remove",
+    });
+  };
+
+  const renderTaskDetailEditReferenceLinks = () => {
+    renderReferenceLinksEditList({
+      container: taskDetailEditLinksList,
+      links: taskDetailEditReferenceLinks,
+      removeAttribute: "data-task-detail-edit-link-remove",
+    });
+  };
+
+  const setCreateTaskReferenceLinks = (links = []) => {
+    createTaskReferenceLinks = parseReferenceUrlLines(links || []);
+    writeReferenceLinksEditField(createTaskLinksField, createTaskReferenceLinks);
+    renderCreateTaskReferenceLinks();
+  };
+
+  const setTaskDetailEditReferenceLinks = (links = []) => {
+    taskDetailEditReferenceLinks = parseReferenceUrlLines(links || []);
+    writeReferenceLinksEditField(taskDetailEditLinks, taskDetailEditReferenceLinks);
+    renderTaskDetailEditReferenceLinks();
+  };
+
+  const addReferenceLinkFromInput = ({ input, currentLinks = [], setLinks } = {}) => {
+    if (!(input instanceof HTMLInputElement) || typeof setLinks !== "function") return false;
+    const raw = String(input.value || "").trim();
+    if (!raw) return false;
+    const normalized = parseReferenceUrlLines([raw], 1);
+    if (!normalized.length) return false;
+
+    setLinks(parseReferenceUrlLines([...(currentLinks || []), normalized[0]]));
+    input.value = "";
+    return true;
+  };
+
   const renderTaskDetailSubtasksEditList = () => {
     if (!(taskDetailEditSubtasksList instanceof HTMLElement)) return;
 
@@ -8300,7 +8806,7 @@ window.addEventListener("DOMContentLoaded", () => {
       remove.className = "task-subtasks-edit-remove";
       remove.dataset.taskDetailEditSubtaskRemove = String(index);
       remove.setAttribute("aria-label", "Remover etapa");
-      remove.textContent = "Excluir";
+      remove.textContent = "X";
 
       row.append(check, title, remove);
       taskDetailEditSubtasksList.append(row);
@@ -8350,7 +8856,7 @@ window.addEventListener("DOMContentLoaded", () => {
       remove.className = "task-subtasks-edit-remove";
       remove.dataset.createTaskSubtaskRemove = String(index);
       remove.setAttribute("aria-label", "Remover etapa");
-      remove.textContent = "Excluir";
+      remove.textContent = "X";
 
       row.append(check, title, remove);
       createTaskSubtasksList.append(row);
@@ -8674,15 +9180,11 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const syncTaskDetailImageHiddenField = () => {
-    if (taskDetailEditImages instanceof HTMLTextAreaElement) {
-      taskDetailEditImages.value = taskDetailEditImageItems.join("\n");
-    }
+    writeReferenceImageMediaField(taskDetailEditImages, taskDetailEditImageItems);
   };
 
   const syncCreateTaskImageHiddenField = () => {
-    if (createTaskImagesField instanceof HTMLTextAreaElement) {
-      createTaskImagesField.value = createTaskImageItems.join("\n");
-    }
+    writeReferenceImageMediaField(createTaskImagesField, createTaskImageItems);
   };
 
   const setCreateTaskImagePickerCompactMode = (compact) => {
@@ -8715,6 +9217,50 @@ window.addEventListener("DOMContentLoaded", () => {
     setTaskDetailImagePickerCompactMode(shouldCompact);
   };
 
+  const setCreateTaskMediaPage = (enabled) => {
+    const isEnabled = Boolean(enabled);
+    if (createTaskModal instanceof HTMLElement) {
+      createTaskModal.classList.toggle("is-task-media-page", isEnabled);
+    }
+    if (createTaskModalCard instanceof HTMLElement) {
+      createTaskModalCard.classList.toggle("is-task-media-page", isEnabled);
+    }
+    if (createTaskOpenMediaButton instanceof HTMLButtonElement) {
+      createTaskOpenMediaButton.hidden = isEnabled;
+    }
+    if (createTaskBackMainButton instanceof HTMLButtonElement) {
+      createTaskBackMainButton.hidden = !isEnabled;
+    }
+
+    createTaskImagePickerExpanded = isEnabled || createTaskImageItems.length > 0;
+    syncCreateTaskImagePickerLayout();
+    if (isEnabled && createTaskImageAddButton instanceof HTMLButtonElement) {
+      window.setTimeout(() => createTaskImageAddButton.focus(), 20);
+    }
+  };
+
+  const setTaskDetailMediaPage = (enabled) => {
+    const isEnabled = Boolean(enabled);
+    if (taskDetailModal instanceof HTMLElement) {
+      taskDetailModal.classList.toggle("is-task-media-page", isEnabled);
+    }
+    if (taskDetailModalCard instanceof HTMLElement) {
+      taskDetailModalCard.classList.toggle("is-task-media-page", isEnabled);
+    }
+    if (taskDetailOpenMediaButton instanceof HTMLButtonElement) {
+      taskDetailOpenMediaButton.hidden = isEnabled;
+    }
+    if (taskDetailBackMainButton instanceof HTMLButtonElement) {
+      taskDetailBackMainButton.hidden = !isEnabled;
+    }
+
+    taskDetailImagePickerExpanded = isEnabled || taskDetailEditImageItems.length > 0;
+    syncTaskDetailImagePickerLayout();
+    if (isEnabled && taskDetailImageAddButton instanceof HTMLButtonElement) {
+      window.setTimeout(() => taskDetailImageAddButton.focus(), 20);
+    }
+  };
+
   const collapseEmptyImagePickersIfOutside = (target) => {
     const clickedElement = target instanceof Element ? target : null;
 
@@ -8741,6 +9287,40 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const createReferenceMediaPreviewElement = (mediaItem) => {
+    if (isVideoReferenceMediaItem(mediaItem)) {
+      const video = document.createElement("video");
+      video.src = mediaItem.downloadUrl || mediaItem.src || "";
+      video.className = "task-detail-edit-image-preview";
+      video.preload = "metadata";
+      video.muted = true;
+      video.controls = true;
+      return video;
+    }
+
+    if (mediaItem.src) {
+      const image = document.createElement("img");
+      image.src = mediaItem.src;
+      image.alt = "Imagem de referencia";
+      image.className = "task-detail-edit-image-preview";
+      image.loading = "lazy";
+      return image;
+    }
+
+    const placeholder = document.createElement("div");
+    placeholder.className = "task-detail-edit-image-preview task-detail-edit-image-placeholder";
+    placeholder.textContent = "Drive";
+    return placeholder;
+  };
+
+  const appendReferenceMediaProviderBadge = (container, mediaItem) => {
+    if (!isGoogleDriveMediaItem(mediaItem)) return;
+    const badge = document.createElement("span");
+    badge.className = "task-detail-edit-image-provider";
+    badge.textContent = "Drive";
+    container.append(badge);
+  };
+
   const renderTaskDetailImageList = () => {
     if (!(taskDetailImageList instanceof HTMLElement)) return;
 
@@ -8751,14 +9331,21 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     taskDetailEditImageItems.forEach((imageValue, index) => {
+      const mediaItem = normalizeReferenceImageMediaItem(imageValue);
+      if (!mediaItem) return;
       const item = document.createElement("div");
       item.className = "task-detail-edit-image-item";
 
-      const image = document.createElement("img");
-      image.src = imageValue;
-      image.alt = "Imagem de referencia";
-      image.className = "task-detail-edit-image-preview";
-      image.loading = "lazy";
+      const preview = createReferenceMediaPreviewElement(mediaItem);
+
+      const titleInput = document.createElement("input");
+      titleInput.type = "text";
+      titleInput.maxLength = maxReferenceImageTitleChars;
+      titleInput.className = "task-detail-edit-image-title";
+      titleInput.placeholder = "Título da mídia";
+      titleInput.value = mediaItem.title;
+      titleInput.dataset.taskDetailImageTitle = String(index);
+      titleInput.setAttribute("aria-label", "Título da mídia");
 
       const removeButton = document.createElement("button");
       removeButton.type = "button";
@@ -8767,7 +9354,8 @@ window.addEventListener("DOMContentLoaded", () => {
       removeButton.setAttribute("aria-label", "Remover imagem de referencia");
       removeButton.textContent = "x";
 
-      item.append(image, removeButton);
+      item.append(preview, titleInput, removeButton);
+      appendReferenceMediaProviderBadge(item, mediaItem);
       taskDetailImageList.append(item);
     });
     syncTaskDetailImagePickerLayout();
@@ -8783,14 +9371,21 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     createTaskImageItems.forEach((imageValue, index) => {
+      const mediaItem = normalizeReferenceImageMediaItem(imageValue);
+      if (!mediaItem) return;
       const item = document.createElement("div");
       item.className = "task-detail-edit-image-item";
 
-      const image = document.createElement("img");
-      image.src = imageValue;
-      image.alt = "Imagem de referencia";
-      image.className = "task-detail-edit-image-preview";
-      image.loading = "lazy";
+      const preview = createReferenceMediaPreviewElement(mediaItem);
+
+      const titleInput = document.createElement("input");
+      titleInput.type = "text";
+      titleInput.maxLength = maxReferenceImageTitleChars;
+      titleInput.className = "task-detail-edit-image-title";
+      titleInput.placeholder = "Título da mídia";
+      titleInput.value = mediaItem.title;
+      titleInput.dataset.createTaskImageTitle = String(index);
+      titleInput.setAttribute("aria-label", "Título da mídia");
 
       const removeButton = document.createElement("button");
       removeButton.type = "button";
@@ -8799,14 +9394,15 @@ window.addEventListener("DOMContentLoaded", () => {
       removeButton.setAttribute("aria-label", "Remover imagem de referencia");
       removeButton.textContent = "x";
 
-      item.append(image, removeButton);
+      item.append(preview, titleInput, removeButton);
+      appendReferenceMediaProviderBadge(item, mediaItem);
       createTaskImageList.append(item);
     });
     syncCreateTaskImagePickerLayout();
   };
 
   const setTaskDetailEditImageItems = (items) => {
-    taskDetailEditImageItems = parseReferenceImageItems(items || []);
+    taskDetailEditImageItems = parseReferenceImageMediaItems(items || []);
     if (taskDetailEditImageItems.length) {
       taskDetailImagePickerExpanded = true;
     }
@@ -8815,7 +9411,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const mergeTaskDetailEditImageItems = (items) => {
-    const merged = parseReferenceImageItems([...(taskDetailEditImageItems || []), ...(items || [])]);
+    const merged = parseReferenceImageMediaItems([...(taskDetailEditImageItems || []), ...(items || [])]);
     taskDetailEditImageItems = merged;
     if (taskDetailEditImageItems.length) {
       taskDetailImagePickerExpanded = true;
@@ -8825,7 +9421,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const setCreateTaskImageItems = (items) => {
-    createTaskImageItems = parseReferenceImageItems(items || []);
+    createTaskImageItems = parseReferenceImageMediaItems(items || []);
     if (createTaskImageItems.length) {
       createTaskImagePickerExpanded = true;
     }
@@ -8834,7 +9430,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   const mergeCreateTaskImageItems = (items) => {
-    const merged = parseReferenceImageItems([...(createTaskImageItems || []), ...(items || [])]);
+    const merged = parseReferenceImageMediaItems([...(createTaskImageItems || []), ...(items || [])]);
     createTaskImageItems = merged;
     if (createTaskImageItems.length) {
       createTaskImagePickerExpanded = true;
@@ -8872,7 +9468,7 @@ window.addEventListener("DOMContentLoaded", () => {
         const dataUrl = await readFileAsDataUrl(file);
         const normalized = normalizeImageReference(dataUrl);
         if (normalized) {
-          nextValues.push(normalized);
+          nextValues.push({ src: normalized, title: "" });
         }
       } catch (_error) {
         // Ignore invalid files and keep processing remaining images.
@@ -8896,7 +9492,7 @@ window.addEventListener("DOMContentLoaded", () => {
         const dataUrl = await readFileAsDataUrl(file);
         const normalized = normalizeImageReference(dataUrl);
         if (normalized) {
-          nextValues.push(normalized);
+          nextValues.push({ src: normalized, title: "" });
         }
       } catch (_error) {
         // Ignore invalid files and keep processing remaining images.
@@ -8908,13 +9504,206 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  if (taskDetailImageAddButton instanceof HTMLButtonElement && taskDetailImageInput instanceof HTMLInputElement) {
-    taskDetailImageAddButton.addEventListener("click", () => {
-      if (!taskDetailImagePickerExpanded && taskDetailEditImageItems.length === 0) {
-        taskDetailImagePickerExpanded = true;
-        syncTaskDetailImagePickerLayout();
+  let googlePickerApiPromise = null;
+  const googleDriveMediaMimeTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/heic",
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
+  ].join(",");
+
+  const loadGooglePickerApi = () => {
+    if (window.google?.picker) {
+      return Promise.resolve();
+    }
+    if (googlePickerApiPromise) {
+      return googlePickerApiPromise;
+    }
+
+    googlePickerApiPromise = new Promise((resolve, reject) => {
+      const loadPicker = () => {
+        if (!window.gapi?.load) {
+          reject(new Error("Google Picker nao carregou."));
+          return;
+        }
+        window.gapi.load("picker", {
+          callback: resolve,
+          onerror: () => reject(new Error("Nao foi possivel carregar o Google Picker.")),
+          ontimeout: () => reject(new Error("Tempo esgotado ao carregar o Google Picker.")),
+          timeout: 10000,
+        });
+      };
+
+      if (window.gapi?.load) {
+        loadPicker();
         return;
       }
+
+      const existingScript = document.querySelector('script[data-google-picker-api="1"]');
+      if (existingScript instanceof HTMLScriptElement) {
+        existingScript.addEventListener("load", loadPicker, { once: true });
+        existingScript.addEventListener(
+          "error",
+          () => reject(new Error("Nao foi possivel carregar o Google Picker.")),
+          { once: true }
+        );
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = "https://apis.google.com/js/api.js";
+      script.async = true;
+      script.defer = true;
+      script.dataset.googlePickerApi = "1";
+      script.addEventListener("load", loadPicker, { once: true });
+      script.addEventListener(
+        "error",
+        () => reject(new Error("Nao foi possivel carregar o Google Picker.")),
+        { once: true }
+      );
+      document.head.append(script);
+    }).catch((error) => {
+      googlePickerApiPromise = null;
+      throw error;
+    });
+
+    return googlePickerApiPromise;
+  };
+
+  const getGoogleDrivePickerSession = async () => {
+    const csrfToken = getTaskTitleTagCsrfToken();
+    if (!csrfToken) {
+      throw new Error("Sessao expirada. Recarregue a pagina.");
+    }
+
+    const data = await postActionJson("google_drive_picker_token", {
+      csrf_token: csrfToken,
+      next: `${window.location.pathname}${window.location.search || ""}`,
+    });
+
+    if (data.configured === false) {
+      throw new Error("Configure GOOGLE_DRIVE_CLIENT_ID e GOOGLE_DRIVE_CLIENT_SECRET para usar o Drive.");
+    }
+    if (data.picker_configured === false) {
+      throw new Error("Configure GOOGLE_DRIVE_API_KEY para abrir o seletor do Google Drive.");
+    }
+    if (data.connected === false) {
+      const authUrl = String(data.auth_url || "").trim();
+      if (authUrl) {
+        window.location.href = authUrl;
+        return null;
+      }
+      throw new Error("Conecte o Google Drive para escolher arquivos.");
+    }
+
+    const accessToken = String(data.access_token || "").trim();
+    const developerKey = String(data.developer_key || "").trim();
+    if (!accessToken || !developerKey) {
+      throw new Error("Google Drive nao retornou credenciais para abrir o seletor.");
+    }
+
+    return {
+      accessToken,
+      developerKey,
+      appId: String(data.app_id || "").trim(),
+    };
+  };
+
+  const addGoogleDriveMediaItems = async (targetName, fileIds) => {
+    const csrfToken = getTaskTitleTagCsrfToken();
+    if (!csrfToken) {
+      throw new Error("Sessao expirada. Recarregue a pagina.");
+    }
+
+    const data = await postActionJson("google_drive_file_metadata", {
+      csrf_token: csrfToken,
+      file_ids: JSON.stringify(fileIds || []),
+    });
+    const mediaItems = parseReferenceImageMediaItems(data.media || []);
+    if (!mediaItems.length) return;
+
+    if (targetName === "task-detail") {
+      mergeTaskDetailEditImageItems(mediaItems);
+      return;
+    }
+
+    mergeCreateTaskImageItems(mediaItems);
+  };
+
+  const openGoogleDrivePickerForTaskMedia = async (targetName) => {
+    try {
+      const session = await getGoogleDrivePickerSession();
+      if (!session) return;
+      await loadGooglePickerApi();
+
+      const pickerNamespace = window.google?.picker;
+      if (!pickerNamespace?.PickerBuilder || !pickerNamespace?.DocsView) {
+        throw new Error("Google Picker indisponivel.");
+      }
+
+      const view = new pickerNamespace.DocsView(pickerNamespace.ViewId.DOCS);
+      view.setIncludeFolders(false);
+      if (typeof view.setSelectFolderEnabled === "function") {
+        view.setSelectFolderEnabled(false);
+      }
+      view.setMimeTypes(googleDriveMediaMimeTypes);
+
+      const pickerBuilder = new pickerNamespace.PickerBuilder()
+        .addView(view)
+        .enableFeature(pickerNamespace.Feature.MULTISELECT_ENABLED)
+        .setOAuthToken(session.accessToken)
+        .setDeveloperKey(session.developerKey)
+        .setOrigin(`${window.location.protocol}//${window.location.host}`)
+        .setCallback((pickerData) => {
+          if (!pickerData || pickerData.action !== pickerNamespace.Action.PICKED) return;
+          const docs = pickerData[pickerNamespace.Response.DOCUMENTS] || pickerData.docs || [];
+          const fileIds = docs
+            .map((doc) => doc?.[pickerNamespace.Document.ID] || doc?.id || "")
+            .map(normalizeGoogleDriveFileId)
+            .filter(Boolean);
+          if (!fileIds.length) return;
+          void addGoogleDriveMediaItems(targetName, fileIds).catch((error) => {
+            showClientFlash("error", error instanceof Error ? error.message : "Falha ao adicionar arquivos do Drive.");
+          });
+        });
+
+      if (session.appId) {
+        pickerBuilder.setAppId(session.appId);
+      }
+
+      pickerBuilder.build().setVisible(true);
+    } catch (error) {
+      showClientFlash("error", error instanceof Error ? error.message : "Falha ao abrir Google Drive.");
+    }
+  };
+
+  if (createTaskOpenMediaButton instanceof HTMLButtonElement) {
+    createTaskOpenMediaButton.addEventListener("click", () => {
+      setCreateTaskMediaPage(true);
+    });
+  }
+  if (createTaskBackMainButton instanceof HTMLButtonElement) {
+    createTaskBackMainButton.addEventListener("click", () => {
+      setCreateTaskMediaPage(false);
+    });
+  }
+  if (taskDetailOpenMediaButton instanceof HTMLButtonElement) {
+    taskDetailOpenMediaButton.addEventListener("click", () => {
+      setTaskDetailMediaPage(true);
+    });
+  }
+  if (taskDetailBackMainButton instanceof HTMLButtonElement) {
+    taskDetailBackMainButton.addEventListener("click", () => {
+      setTaskDetailMediaPage(false);
+    });
+  }
+
+  if (taskDetailImageAddButton instanceof HTMLButtonElement && taskDetailImageInput instanceof HTMLInputElement) {
+    taskDetailImageAddButton.addEventListener("click", () => {
       taskDetailImagePickerExpanded = true;
       syncTaskDetailImagePickerLayout();
       taskDetailImageInput.click();
@@ -8923,14 +9712,25 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (createTaskImageAddButton instanceof HTMLButtonElement && createTaskImageInput instanceof HTMLInputElement) {
     createTaskImageAddButton.addEventListener("click", () => {
-      if (!createTaskImagePickerExpanded && createTaskImageItems.length === 0) {
-        createTaskImagePickerExpanded = true;
-        syncCreateTaskImagePickerLayout();
-        return;
-      }
       createTaskImagePickerExpanded = true;
       syncCreateTaskImagePickerLayout();
       createTaskImageInput.click();
+    });
+  }
+
+  if (taskDetailDriveAddButton instanceof HTMLButtonElement) {
+    taskDetailDriveAddButton.addEventListener("click", () => {
+      taskDetailImagePickerExpanded = true;
+      syncTaskDetailImagePickerLayout();
+      void openGoogleDrivePickerForTaskMedia("task-detail");
+    });
+  }
+
+  if (createTaskDriveAddButton instanceof HTMLButtonElement) {
+    createTaskDriveAddButton.addEventListener("click", () => {
+      createTaskImagePickerExpanded = true;
+      syncCreateTaskImagePickerLayout();
+      void openGoogleDrivePickerForTaskMedia("create");
     });
   }
 
@@ -8963,6 +9763,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
       if (!files.length) return;
       event.preventDefault();
+      event.stopPropagation();
       taskDetailImagePickerExpanded = true;
       syncTaskDetailImagePickerLayout();
       void addTaskDetailImagesFromFiles(files);
@@ -8982,11 +9783,79 @@ window.addEventListener("DOMContentLoaded", () => {
 
       if (!files.length) return;
       event.preventDefault();
+      event.stopPropagation();
       createTaskImagePickerExpanded = true;
       syncCreateTaskImagePickerLayout();
       void addCreateTaskImagesFromFiles(files);
     });
   }
+
+  document.addEventListener("paste", (event) => {
+    if (event.defaultPrevented) return;
+
+    const files = Array.from(event.clipboardData?.items || [])
+      .map((item) =>
+        item.kind === "file" && String(item.type || "").toLowerCase().startsWith("image/")
+          ? item.getAsFile()
+          : null
+      )
+      .filter((file) => file instanceof File);
+
+    if (!files.length) return;
+
+    if (
+      createTaskModal instanceof HTMLElement &&
+      !createTaskModal.hidden &&
+      createTaskModal.classList.contains("is-task-media-page")
+    ) {
+      event.preventDefault();
+      createTaskImagePickerExpanded = true;
+      syncCreateTaskImagePickerLayout();
+      void addCreateTaskImagesFromFiles(files);
+      return;
+    }
+
+    if (
+      taskDetailModal instanceof HTMLElement &&
+      !taskDetailModal.hidden &&
+      taskDetailModal.classList.contains("is-task-media-page")
+    ) {
+      event.preventDefault();
+      taskDetailImagePickerExpanded = true;
+      syncTaskDetailImagePickerLayout();
+      void addTaskDetailImagesFromFiles(files);
+    }
+  });
+
+  document.addEventListener("input", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLInputElement)) return;
+
+    if (target.matches("[data-create-task-image-title]")) {
+      const index = Number.parseInt(target.dataset.createTaskImageTitle || "-1", 10);
+      if (!Number.isFinite(index) || index < 0 || index >= createTaskImageItems.length) return;
+      const current = normalizeReferenceImageMediaItem(createTaskImageItems[index]);
+      if (!current) return;
+      createTaskImageItems[index] = {
+        ...current,
+        title: normalizeReferenceImageTitle(target.value),
+      };
+      syncCreateTaskImageHiddenField();
+      return;
+    }
+
+    if (target.matches("[data-task-detail-image-title]")) {
+      const index = Number.parseInt(target.dataset.taskDetailImageTitle || "-1", 10);
+      if (!Number.isFinite(index) || index < 0 || index >= taskDetailEditImageItems.length) return;
+      const current = normalizeReferenceImageMediaItem(taskDetailEditImageItems[index]);
+      if (!current) return;
+      taskDetailEditImageItems[index] = {
+        ...current,
+        title: normalizeReferenceImageTitle(target.value),
+      };
+      syncTaskDetailImageHiddenField();
+    }
+  });
 
   document.addEventListener("click", (event) => {
     const target = getEventTargetElement(event);
@@ -9037,7 +9906,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
     taskDetailEditSubtaskInput.value = "";
     renderTaskDetailSubtasksEditList();
-    taskDetailEditSubtaskInput.focus();
+    closeInlineAddForm(taskDetailEditSubtaskAddForm, taskDetailEditSubtaskInput);
   };
 
   const addCreateTaskSubtaskFromInput = () => {
@@ -9052,8 +9921,77 @@ window.addEventListener("DOMContentLoaded", () => {
     });
     createTaskSubtaskInput.value = "";
     renderCreateTaskSubtasksEditList();
-    createTaskSubtaskInput.focus();
+    closeInlineAddForm(createTaskSubtaskAddForm, createTaskSubtaskInput);
   };
+
+  const addCreateTaskReferenceLinkFromInput = () => {
+    const added = addReferenceLinkFromInput({
+      input: createTaskLinkInput,
+      currentLinks: createTaskReferenceLinks,
+      setLinks: setCreateTaskReferenceLinks,
+    });
+    if (added) {
+      closeInlineAddForm(createTaskLinkAddForm, createTaskLinkInput);
+    }
+  };
+
+  const addTaskDetailReferenceLinkFromInput = () => {
+    const added = addReferenceLinkFromInput({
+      input: taskDetailEditLinkInput,
+      currentLinks: taskDetailEditReferenceLinks,
+      setLinks: setTaskDetailEditReferenceLinks,
+    });
+    if (added) {
+      closeInlineAddForm(taskDetailEditLinkAddForm, taskDetailEditLinkInput);
+    }
+  };
+
+  if (createTaskLinkToggleAddButton instanceof HTMLButtonElement) {
+    createTaskLinkToggleAddButton.addEventListener("click", () => {
+      openInlineAddForm(createTaskLinkAddForm, createTaskLinkInput);
+    });
+  }
+  if (taskDetailEditLinkToggleAddButton instanceof HTMLButtonElement) {
+    taskDetailEditLinkToggleAddButton.addEventListener("click", () => {
+      openInlineAddForm(taskDetailEditLinkAddForm, taskDetailEditLinkInput);
+    });
+  }
+  if (createTaskLinkConfirmButton instanceof HTMLButtonElement) {
+    createTaskLinkConfirmButton.addEventListener("click", addCreateTaskReferenceLinkFromInput);
+  }
+  if (taskDetailEditLinkConfirmButton instanceof HTMLButtonElement) {
+    taskDetailEditLinkConfirmButton.addEventListener("click", addTaskDetailReferenceLinkFromInput);
+  }
+  if (createTaskLinkCancelButton instanceof HTMLButtonElement) {
+    createTaskLinkCancelButton.addEventListener("click", () => {
+      closeInlineAddForm(createTaskLinkAddForm, createTaskLinkInput);
+    });
+  }
+  if (taskDetailEditLinkCancelButton instanceof HTMLButtonElement) {
+    taskDetailEditLinkCancelButton.addEventListener("click", () => {
+      closeInlineAddForm(taskDetailEditLinkAddForm, taskDetailEditLinkInput);
+    });
+  }
+  if (createTaskSubtaskToggleAddButton instanceof HTMLButtonElement) {
+    createTaskSubtaskToggleAddButton.addEventListener("click", () => {
+      openInlineAddForm(createTaskSubtaskAddForm, createTaskSubtaskInput);
+    });
+  }
+  if (taskDetailEditSubtaskToggleAddButton instanceof HTMLButtonElement) {
+    taskDetailEditSubtaskToggleAddButton.addEventListener("click", () => {
+      openInlineAddForm(taskDetailEditSubtaskAddForm, taskDetailEditSubtaskInput);
+    });
+  }
+  if (createTaskSubtaskCancelButton instanceof HTMLButtonElement) {
+    createTaskSubtaskCancelButton.addEventListener("click", () => {
+      closeInlineAddForm(createTaskSubtaskAddForm, createTaskSubtaskInput);
+    });
+  }
+  if (taskDetailEditSubtaskCancelButton instanceof HTMLButtonElement) {
+    taskDetailEditSubtaskCancelButton.addEventListener("click", () => {
+      closeInlineAddForm(taskDetailEditSubtaskAddForm, taskDetailEditSubtaskInput);
+    });
+  }
 
   if (taskDetailEditSubtaskAddButton instanceof HTMLButtonElement) {
     taskDetailEditSubtaskAddButton.addEventListener("click", addTaskDetailSubtaskFromInput);
@@ -9084,6 +10022,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (taskDetailEditSubtaskInput instanceof HTMLInputElement) {
     taskDetailEditSubtaskInput.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeInlineAddForm(taskDetailEditSubtaskAddForm, taskDetailEditSubtaskInput);
+        return;
+      }
       if (event.key !== "Enter") return;
       event.preventDefault();
       addTaskDetailSubtaskFromInput();
@@ -9091,15 +10034,64 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   if (createTaskSubtaskInput instanceof HTMLInputElement) {
     createTaskSubtaskInput.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeInlineAddForm(createTaskSubtaskAddForm, createTaskSubtaskInput);
+        return;
+      }
       if (event.key !== "Enter") return;
       event.preventDefault();
       addCreateTaskSubtaskFromInput();
+    });
+  }
+  if (createTaskLinkInput instanceof HTMLInputElement) {
+    createTaskLinkInput.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeInlineAddForm(createTaskLinkAddForm, createTaskLinkInput);
+        return;
+      }
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      addCreateTaskReferenceLinkFromInput();
+    });
+  }
+  if (taskDetailEditLinkInput instanceof HTMLInputElement) {
+    taskDetailEditLinkInput.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeInlineAddForm(taskDetailEditLinkAddForm, taskDetailEditLinkInput);
+        return;
+      }
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      addTaskDetailReferenceLinkFromInput();
     });
   }
 
   document.addEventListener("click", (event) => {
     const target = getEventTargetElement(event);
     if (!(target instanceof Element)) return;
+
+    const removeDetailLink = target.closest("[data-task-detail-edit-link-remove]");
+    if (removeDetailLink instanceof HTMLButtonElement) {
+      const index = Number.parseInt(removeDetailLink.dataset.taskDetailEditLinkRemove || "-1", 10);
+      if (!Number.isFinite(index) || index < 0) return;
+      setTaskDetailEditReferenceLinks(
+        taskDetailEditReferenceLinks.filter((_item, itemIndex) => itemIndex !== index)
+      );
+      return;
+    }
+
+    const removeCreateLink = target.closest("[data-create-task-link-remove]");
+    if (removeCreateLink instanceof HTMLButtonElement) {
+      const index = Number.parseInt(removeCreateLink.dataset.createTaskLinkRemove || "-1", 10);
+      if (!Number.isFinite(index) || index < 0) return;
+      setCreateTaskReferenceLinks(
+        createTaskReferenceLinks.filter((_item, itemIndex) => itemIndex !== index)
+      );
+      return;
+    }
 
     const removeDetailSubtask = target.closest("[data-task-detail-edit-subtask-remove]");
     if (removeDetailSubtask instanceof HTMLButtonElement) {
@@ -9268,6 +10260,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const isReadOnlyTask = Boolean(taskDetailContext?.readOnly);
     const isEditing = isReadOnlyTask ? false : Boolean(editing);
     taskDetailModal.classList.toggle("is-editing", isEditing);
+    setTaskDetailMediaPage(false);
     if (taskDetailViewPanel instanceof HTMLElement) {
       taskDetailViewPanel.hidden = isEditing;
     }
@@ -9289,6 +10282,8 @@ window.addEventListener("DOMContentLoaded", () => {
     syncTaskDetailRevisionActionButtons({ isEditing });
     if (!isEditing) {
       closeTaskDetailTitleTagMenu();
+      closeInlineAddForm(taskDetailEditLinkAddForm, taskDetailEditLinkInput);
+      closeInlineAddForm(taskDetailEditSubtaskAddForm, taskDetailEditSubtaskInput);
       if (taskDetailEditTitleTagIsCreating) {
         stopTaskDetailTitleTagCreation();
       }
@@ -9297,7 +10292,8 @@ window.addEventListener("DOMContentLoaded", () => {
     if (isEditing) {
       window.setTimeout(() => {
         syncTaskDetailDescriptionEditorFromTextarea();
-        syncReferenceTextareaLayout(taskDetailEditLinks);
+        writeReferenceLinksEditField(taskDetailEditLinks, taskDetailEditReferenceLinks);
+        renderTaskDetailEditReferenceLinks();
         renderTaskDetailImageList();
         syncTaskDetailDescriptionToolbar();
         taskDetailEditTitle?.focus();
@@ -9636,7 +10632,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const assignees = getCheckedAssigneeData(rowAssigneePicker);
     const description = (descriptionField.value || "").trim();
     const referenceLinks = readJsonUrlListField(referenceLinksField, parseReferenceUrlLines);
-    const referenceImages = readJsonUrlListField(referenceImagesField, parseReferenceImageItems);
+    const referenceImages = readReferenceImageMediaField(referenceImagesField);
     const subtasksDependencyEnabled = readTaskSubtasksDependencyField(subtasksDependencyField, false);
     const subtasks = readTaskSubtasksField(subtasksField, {
       enforceDependency: subtasksDependencyEnabled,
@@ -9743,10 +10739,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailEditDescription.value = descriptionField.value || "";
       syncTaskDetailDescriptionEditorFromTextarea();
     }
-    if (taskDetailEditLinks instanceof HTMLTextAreaElement) {
-      taskDetailEditLinks.value = referenceLinks.join("\n");
-      syncReferenceTextareaLayout(taskDetailEditLinks);
-    }
+    setTaskDetailEditReferenceLinks(referenceLinks);
     setTaskDetailEditSubtasks(subtasks, {
       dependencyEnabled: subtasksDependencyEnabled,
     });
@@ -9800,9 +10793,13 @@ window.addEventListener("DOMContentLoaded", () => {
     closeTaskReviewModal();
     closeTaskImagePreview();
     resetTaskDetailTitleTagPicker();
+    setTaskDetailMediaPage(false);
     taskDetailModal.hidden = true;
     taskDetailContext = null;
     taskDetailImagePickerExpanded = false;
+    setTaskDetailEditReferenceLinks([]);
+    closeInlineAddForm(taskDetailEditLinkAddForm, taskDetailEditLinkInput);
+    closeInlineAddForm(taskDetailEditSubtaskAddForm, taskDetailEditSubtaskInput);
     taskDetailEditSubtaskItems = [];
     setTaskDetailEditSubtasksDependencyEnabled(false);
     setTaskDetailEditMode(false);
@@ -9907,10 +10904,11 @@ window.addEventListener("DOMContentLoaded", () => {
     context.prioritySelect.value = taskDetailEditPriority.value;
     setIsoDateInputValue(context.dueDateInput, taskDetailEditDueDate.value);
     context.descriptionField.value = taskDetailEditDescription.value;
-    if (context.referenceLinksField instanceof HTMLInputElement && taskDetailEditLinks instanceof HTMLTextAreaElement) {
+    if (context.referenceLinksField instanceof HTMLInputElement) {
+      writeReferenceLinksEditField(taskDetailEditLinks, taskDetailEditReferenceLinks);
       writeJsonUrlListField(
         context.referenceLinksField,
-        parseReferenceUrlLines(taskDetailEditLinks.value),
+        taskDetailEditReferenceLinks,
         parseReferenceUrlLines
       );
     }
@@ -9923,9 +10921,9 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     }
     if (context.referenceImagesField instanceof HTMLInputElement) {
-      const referenceImages = parseReferenceImageItems(taskDetailEditImageItems);
+      const referenceImages = parseReferenceImageMediaItems(taskDetailEditImageItems);
       context.referenceImagesField.name = "reference_images_json";
-      writeJsonUrlListField(context.referenceImagesField, referenceImages, parseReferenceImageItems);
+      writeReferenceImageMediaField(context.referenceImagesField, referenceImages);
     }
     if (context.subtasksField instanceof HTMLInputElement) {
       if (!(context.subtasksDependencyField instanceof HTMLInputElement)) {
@@ -10905,11 +11903,12 @@ window.addEventListener("DOMContentLoaded", () => {
       syncCreateTaskDescriptionEditorFromTextarea();
       createTaskImagePickerExpanded = false;
       setCreateTaskImageItems([]);
+      setCreateTaskMediaPage(false);
+      setCreateTaskReferenceLinks([]);
       setCreateTaskSubtasks([]);
       renderCreateTaskSubtasksEditList();
-      if (createTaskLinksField instanceof HTMLTextAreaElement) {
-        createTaskLinksField.value = "";
-      }
+      closeInlineAddForm(createTaskLinkAddForm, createTaskLinkInput);
+      closeInlineAddForm(createTaskSubtaskAddForm, createTaskSubtaskInput);
       createTaskForm
         .querySelectorAll(".assignee-picker")
         .forEach(updateAssigneePickerSummaryVisual);
@@ -10945,6 +11944,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const closeCreateModal = () => {
     if (!createTaskModal) return;
+    setCreateTaskMediaPage(false);
     createTaskModal.hidden = true;
     syncBodyModalLock();
   };
@@ -12615,15 +13615,14 @@ window.addEventListener("DOMContentLoaded", () => {
       setCreateTaskTitleTagValue(createTitleTag, createTitleTagColor);
 
       if (createTaskLinksField instanceof HTMLTextAreaElement) {
+        writeReferenceLinksEditField(createTaskLinksField, createTaskReferenceLinks);
         createTaskLinksField.value = JSON.stringify(
-          parseReferenceUrlLines(createTaskLinksField.value || "")
+          parseReferenceUrlLines(createTaskReferenceLinks || [])
         );
       }
 
       if (createTaskImagesField instanceof HTMLTextAreaElement) {
-        createTaskImagesField.value = JSON.stringify(
-          parseReferenceImageItems(createTaskImageItems || [])
-        );
+        writeReferenceImageMediaField(createTaskImagesField, createTaskImageItems);
       }
       if (createTaskSubtasksField instanceof HTMLTextAreaElement) {
         createTaskSubtasksField.value = JSON.stringify(
@@ -13212,8 +14211,12 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(target instanceof HTMLElement)) return;
     if (!(target instanceof HTMLInputElement)) return;
 
+    if (isAccountingCurrencyInputField(target)) {
+      formatAccountingCurrencyInputFieldWhileTyping(target);
+    }
+
     if (
-      !["amount_value", "total_amount_value"].includes(target.name)
+      !["amount_value", "total_amount_value", "opening_balance_value"].includes(target.name)
     ) {
       return;
     }
@@ -13221,6 +14224,84 @@ window.addEventListener("DOMContentLoaded", () => {
     const accountingForm = target.closest(".accounting-entry-form, .accounting-create-form");
     if (!(accountingForm instanceof HTMLFormElement)) return;
     syncAccountingInstallmentForm(accountingForm);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const target = getEventTargetElement(event);
+    if (!isAccountingCurrencyInputField(target)) return;
+
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    if (/^\d$/.test(event.key)) {
+      event.preventDefault();
+      const state = getAccountingCurrencyFieldState(target);
+      const baseDigits = hasAccountingCurrencySelection(target) ? "" : state.digits;
+      setAccountingCurrencyFieldDigits(target, `${baseDigits}${event.key}`, {
+        isNegative: state.isNegative,
+      });
+      return;
+    }
+
+    if (event.key === "Backspace") {
+      event.preventDefault();
+      const state = getAccountingCurrencyFieldState(target);
+      const nextDigits = hasAccountingCurrencySelection(target) ? "" : state.digits.slice(0, -1);
+      setAccountingCurrencyFieldDigits(target, nextDigits, {
+        isNegative: state.isNegative,
+      });
+      return;
+    }
+
+    if (event.key === "Delete") {
+      event.preventDefault();
+      setAccountingCurrencyFieldDigits(target, "", {
+        isNegative: false,
+      });
+      return;
+    }
+
+    if ((event.key === "-" || event.key === "Subtract") && target.dataset.accountingAllowNegative === "1") {
+      event.preventDefault();
+      const state = getAccountingCurrencyFieldState(target);
+      if (!state.digits) {
+        target.dataset.accountingNegative = state.isNegative ? "0" : "1";
+        return;
+      }
+      setAccountingCurrencyFieldDigits(target, state.digits, {
+        isNegative: !state.isNegative,
+      });
+      return;
+    }
+
+    const allowedNavigationKeys = [
+      "Tab",
+      "Enter",
+      "Escape",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Home",
+      "End",
+    ];
+    if (allowedNavigationKeys.includes(event.key)) return;
+
+    if (event.key.length === 1) {
+      event.preventDefault();
+    }
+  });
+
+  document.addEventListener("paste", (event) => {
+    const target = getEventTargetElement(event);
+    if (!isAccountingCurrencyInputField(target)) return;
+
+    const pastedText = event.clipboardData?.getData("text") || "";
+    const digits = pastedText.replace(/\D/g, "");
+    const allowNegative = target.dataset.accountingAllowNegative === "1";
+    const isNegative = allowNegative && /^\s*-/.test(pastedText);
+
+    event.preventDefault();
+    setAccountingCurrencyFieldDigits(target, digits, { isNegative });
   });
 
   document.addEventListener("focusout", (event) => {
@@ -13272,14 +14353,30 @@ window.addEventListener("DOMContentLoaded", () => {
 
     event.preventDefault();
     if (accountingCreateForm.dataset.submitting === "1") return;
-
-    accountingCreateForm.reset();
-    syncAccountingInstallmentForm(accountingCreateForm);
-
     const accountingCreateToggle = accountingCreateForm.closest(".accounting-create-toggle");
-    if (accountingCreateToggle instanceof HTMLDetailsElement) {
-      accountingCreateToggle.open = false;
-    }
+    closeAccountingCreateToggle(accountingCreateToggle);
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    const openingBalanceToggle = target.closest("[data-accounting-opening-balance-toggle]");
+    if (!(openingBalanceToggle instanceof HTMLButtonElement)) return;
+
+    event.preventDefault();
+    openAccountingOpeningBalanceEditor();
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    const cancelButton = target.closest("[data-accounting-opening-balance-cancel]");
+    if (!(cancelButton instanceof HTMLButtonElement)) return;
+
+    event.preventDefault();
+    closeAccountingOpeningBalanceEditor();
   });
 
   document.addEventListener("click", (event) => {
@@ -13318,6 +14415,28 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!(openRow instanceof HTMLElement)) return;
       if (openRow.contains(target)) return;
       closeAccountingEntryEditor(openRow);
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    const openingBalanceEditor = document.querySelector(".accounting-opening-balance-editor.is-editing");
+    if (!(openingBalanceEditor instanceof HTMLElement)) return;
+    if (openingBalanceEditor.contains(target)) return;
+
+    closeAccountingOpeningBalanceEditor();
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    document.querySelectorAll("details.accounting-create-toggle[open]").forEach((toggle) => {
+      if (!(toggle instanceof HTMLDetailsElement)) return;
+      if (toggle.contains(target)) return;
+      closeAccountingCreateToggle(toggle);
     });
   });
 
@@ -13376,8 +14495,8 @@ window.addEventListener("DOMContentLoaded", () => {
         return;
       }
       void submitAccountingActionForm(form, {
-        successMessage: "Saldo inicial atualizado.",
-        fallbackError: "Falha ao atualizar saldo inicial.",
+        successMessage: "Saldo atualizado.",
+        fallbackError: "Falha ao atualizar saldo.",
         refresh: true,
       }).catch(() => {});
       return;

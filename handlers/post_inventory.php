@@ -133,7 +133,7 @@ function handleInventoryPostAction(PDO $pdo, string $action): bool
                 flash(
                     'success',
                     $deletedEntriesCount > 0
-                        ? sprintf('Grupo de estoque removido. %d item(ns) excluido(s).', $deletedEntriesCount)
+                        ? 'Grupo de estoque removido. ' . appItemCountLabel($deletedEntriesCount) . ($deletedEntriesCount === 1 ? ' excluido.' : ' excluidos.')
                         : 'Grupo de estoque removido.'
                 );
                 redirectTo('index.php#inventory');

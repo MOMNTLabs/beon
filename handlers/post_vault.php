@@ -167,14 +167,14 @@ function handleVaultPostAction(PDO $pdo, string $action): bool
                         'group_name' => $existingGroupName,
                         'deleted_entries_count' => $deletedEntriesCount,
                         'message' => $deletedEntriesCount > 0
-                            ? sprintf('Grupo do cofre removido. %d item(ns) excluido(s).', $deletedEntriesCount)
+                            ? 'Grupo do cofre removido. ' . appItemCountLabel($deletedEntriesCount) . ($deletedEntriesCount === 1 ? ' excluido.' : ' excluidos.')
                             : 'Grupo do cofre removido.',
                     ]);
                 }
                 flash(
                     'success',
                     $deletedEntriesCount > 0
-                        ? sprintf('Grupo do cofre removido. %d item(ns) excluido(s).', $deletedEntriesCount)
+                        ? 'Grupo do cofre removido. ' . appItemCountLabel($deletedEntriesCount) . ($deletedEntriesCount === 1 ? ' excluido.' : ' excluidos.')
                         : 'Grupo do cofre removido.'
                 );
                 redirectTo('index.php#vault');

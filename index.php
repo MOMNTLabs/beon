@@ -59,6 +59,7 @@ require_once __DIR__ . '/handlers/task_snapshot.php';
 require_once __DIR__ . '/handlers/section_snapshot.php';
 require_once __DIR__ . '/handlers/post_auth.php';
 require_once __DIR__ . '/handlers/post_workspace.php';
+require_once __DIR__ . '/handlers/post_google_drive.php';
 require_once __DIR__ . '/handlers/post_tasks.php';
 require_once __DIR__ . '/handlers/post_vault.php';
 require_once __DIR__ . '/handlers/post_dues.php';
@@ -95,6 +96,9 @@ $billingGateBypassActions = [
     'workspace_invite',
     'google_auth',
     'google_callback',
+    'google_drive_auth',
+    'google_drive_callback',
+    'google_drive_download',
     'plans',
 ];
 $shouldBypassBillingGate = $forceAuthScreen || in_array($entryAction, $billingGateBypassActions, true);
@@ -139,6 +143,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if ($getAction === 'google_callback') {
         handleGoogleOAuthCallback($pdo);
+    }
+
+    if ($getAction === 'google_drive_auth') {
+        handleGoogleDriveOAuthStart($pdo);
+    }
+
+    if ($getAction === 'google_drive_callback') {
+        handleGoogleDriveOAuthCallback($pdo);
+    }
+
+    if ($getAction === 'google_drive_download') {
+        handleGoogleDriveDownload($pdo);
     }
 
     if ($getAction === 'reset_password') {
@@ -341,6 +357,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     break;
                 }
                 if (handleWorkspacePostAction($pdo, $action)) {
+                    break;
+                }
+                if (handleGoogleDrivePostAction($pdo, $action)) {
                     break;
                 }
                 if (handleTaskPostAction($pdo, $action)) {

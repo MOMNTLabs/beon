@@ -240,10 +240,10 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                             type="button"
                             class="icon-gear-button task-filters-create-group"
                             data-open-create-group-modal
-                            aria-label="Criar grupo"
+                            aria-label="Criar projeto"
                         >
                             <span class="task-filters-create-group-plus" aria-hidden="true">+</span>
-                            <span>Grupo</span>
+                            <span>Projeto</span>
                         </button>
                     <?php endif; ?>
                 </div>
@@ -423,6 +423,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                             <input type="hidden" name="task_id" value="<?= e((string) $taskId) ?>">
                                             <input type="hidden" name="autosave" value="1">
                                             <input type="hidden" name="reference_links_json" value="<?= e(encodeReferenceUrlList($task['reference_links'] ?? [])) ?>" data-task-reference-links-json>
+                                            <input type="hidden" value="<?= e(encodeReferenceImageList($task['reference_images'] ?? [])) ?>" data-task-reference-images-json>
                                             <input type="hidden" name="subtasks_json" value="<?= e(encodeTaskSubtasks($taskSubtasks, $taskSubtasksDependencyEnabled === 1)) ?>" data-task-subtasks-json>
                                             <input type="hidden" name="subtasks_dependency_enabled" value="<?= $taskSubtasksDependencyEnabled === 1 ? '1' : '0' ?>" data-task-subtasks-dependency>
                                             <input type="hidden" name="title_tag" value="<?= e($taskTitleTag) ?>" data-task-title-tag>

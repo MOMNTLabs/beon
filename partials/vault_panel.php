@@ -36,7 +36,7 @@
                         </span>
                         <span class="vault-summary-button-label">Novo acesso</span>
                     </button>
-                    <span data-vault-total-count><?= e((string) count($vaultEntries)) ?> item(ns)</span>
+                    <span data-vault-total-count><?= e(appItemCountLabel(count($vaultEntries))) ?></span>
                 </div>
             </div>
 

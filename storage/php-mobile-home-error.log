@@ -1,0 +1,136 @@
+[Mon May  4 20:07:10 2026] PHP 8.1.10 Development Server (http://127.0.0.1:8011) started
+[Mon May  4 20:07:11 2026] 127.0.0.1:62724 Accepted
+[Mon May  4 20:07:12 2026] 127.0.0.1:62724 [200]: GET /home
+[Mon May  4 20:07:12 2026] 127.0.0.1:62724 Closing
+[Mon May  4 20:10:38 2026] 127.0.0.1:60346 Accepted
+[Mon May  4 20:10:38 2026] 127.0.0.1:64616 Accepted
+[Mon May  4 20:10:38 2026] 127.0.0.1:60346 [200]: GET /home
+[Mon May  4 20:10:38 2026] 127.0.0.1:60346 Closing
+[Mon May  4 20:10:39 2026] 127.0.0.1:56331 Accepted
+[Mon May  4 20:10:39 2026] 127.0.0.1:64616 [200]: GET /assets/styles.css?v=1777579572
+[Mon May  4 20:10:39 2026] 127.0.0.1:59144 Accepted
+[Mon May  4 20:10:39 2026] 127.0.0.1:56331 [200]: GET /assets/theme-bexon.css?v=1777598073
+[Mon May  4 20:10:39 2026] 127.0.0.1:55467 Accepted
+[Mon May  4 20:10:39 2026] 127.0.0.1:59144 [200]: GET /assets/home.css?v=1777935987
+[Mon May  4 20:10:39 2026] 127.0.0.1:64539 Accepted
+[Mon May  4 20:10:39 2026] 127.0.0.1:55467 [200]: GET /assets/home-hero-product.png?v=1777499309
+[Mon May  4 20:10:39 2026] 127.0.0.1:53161 Accepted
+[Mon May  4 20:10:39 2026] 127.0.0.1:64539 [200]: GET /assets/Bexon%20-%20Logo%20Horizontal.png?v=1
+[Mon May  4 20:10:39 2026] 127.0.0.1:53161 [200]: GET /assets/compliance.js?v=1777493657
+[Mon May  4 20:10:39 2026] 127.0.0.1:64616 Closing
+[Mon May  4 20:10:39 2026] 127.0.0.1:56331 Closing
+[Mon May  4 20:10:39 2026] 127.0.0.1:59144 Closing
+[Mon May  4 20:10:39 2026] 127.0.0.1:55467 Closing
+[Mon May  4 20:10:39 2026] 127.0.0.1:64539 Closing
+[Mon May  4 20:10:39 2026] 127.0.0.1:53161 Closing
+[Mon May  4 20:10:39 2026] 127.0.0.1:50394 Accepted
+[Mon May  4 20:10:39 2026] 127.0.0.1:50394 [200]: GET /assets/Bexon---Logo-Symbol.png?v=1
+[Mon May  4 20:10:39 2026] 127.0.0.1:50394 Closing
+[Mon May  4 20:10:39 2026] 127.0.0.1:53587 Accepted
+[Mon May  4 20:10:39 2026] 127.0.0.1:53587 [200]: GET /assets/Bexon---Logo-Symbol.png?v=1
+[Mon May  4 20:10:39 2026] 127.0.0.1:53587 Closing
+[Mon May  4 20:11:36 2026] 127.0.0.1:49291 Accepted
+[Mon May  4 20:11:36 2026] 127.0.0.1:49291 [200]: GET /home
+[Mon May  4 20:11:36 2026] 127.0.0.1:49291 Closing
+[Mon May  4 20:11:36 2026] 127.0.0.1:59425 Accepted
+[Mon May  4 20:11:36 2026] 127.0.0.1:59425 [200]: GET /assets/styles.css?v=1777579572
+[Mon May  4 20:11:36 2026] 127.0.0.1:59830 Accepted
+[Mon May  4 20:11:36 2026] 127.0.0.1:52433 Accepted
+[Mon May  4 20:11:36 2026] 127.0.0.1:54667 Accepted
+[Mon May  4 20:11:36 2026] 127.0.0.1:62243 Accepted
+[Mon May  4 20:11:36 2026] 127.0.0.1:59830 [200]: GET /assets/theme-bexon.css?v=1777936285
+[Mon May  4 20:11:36 2026] 127.0.0.1:52433 [200]: GET /assets/home.css?v=1777935987
+[Mon May  4 20:11:36 2026] 127.0.0.1:54667 [200]: GET /assets/home-hero-product.png?v=1777499309
+[Mon May  4 20:11:36 2026] 127.0.0.1:53590 Accepted
+[Mon May  4 20:11:36 2026] 127.0.0.1:62243 [200]: GET /assets/Bexon%20-%20Logo%20Horizontal.png?v=1
+[Mon May  4 20:11:36 2026] 127.0.0.1:59425 Closing
+[Mon May  4 20:11:36 2026] 127.0.0.1:53590 [200]: GET /assets/compliance.js?v=1777493657
+[Mon May  4 20:11:36 2026] 127.0.0.1:52433 Closing
+[Mon May  4 20:11:36 2026] 127.0.0.1:54667 Closing
+[Mon May  4 20:11:36 2026] 127.0.0.1:59830 Closing
+[Mon May  4 20:11:36 2026] 127.0.0.1:62243 Closing
+[Mon May  4 20:11:36 2026] 127.0.0.1:53590 Closing
+[Mon May  4 20:11:37 2026] 127.0.0.1:50360 Accepted
+[Mon May  4 20:11:37 2026] 127.0.0.1:50360 [200]: GET /assets/Bexon---Logo-Symbol.png?v=1
+[Mon May  4 20:11:37 2026] 127.0.0.1:50360 Closing
+[Mon May  4 20:11:37 2026] 127.0.0.1:60154 Accepted
+[Mon May  4 20:11:37 2026] 127.0.0.1:60154 [200]: GET /assets/Bexon---Logo-Symbol.png?v=1
+[Mon May  4 20:11:37 2026] 127.0.0.1:60154 Closing
+[Mon May  4 20:12:13 2026] 127.0.0.1:53548 Accepted
+[Mon May  4 20:12:13 2026] 127.0.0.1:53548 [200]: GET /home
+[Mon May  4 20:12:13 2026] 127.0.0.1:53548 Closing
+[Mon May  4 20:12:13 2026] 127.0.0.1:50033 Accepted
+[Mon May  4 20:12:13 2026] 127.0.0.1:50033 [200]: GET /assets/styles.css?v=1777579572
+[Mon May  4 20:12:13 2026] 127.0.0.1:49238 Accepted
+[Mon May  4 20:12:13 2026] 127.0.0.1:52928 Accepted
+[Mon May  4 20:12:13 2026] 127.0.0.1:49238 [200]: GET /assets/theme-bexon.css?v=1777936323
+[Mon May  4 20:12:13 2026] 127.0.0.1:52928 [200]: GET /assets/home.css?v=1777935987
+[Mon May  4 20:12:13 2026] 127.0.0.1:49238 Closing
+[Mon May  4 20:12:13 2026] 127.0.0.1:52928 Closing
+[Mon May  4 20:12:13 2026] 127.0.0.1:50724 Accepted
+[Mon May  4 20:12:13 2026] 127.0.0.1:50174 Accepted
+[Mon May  4 20:12:13 2026] 127.0.0.1:54412 Accepted
+[Mon May  4 20:12:13 2026] 127.0.0.1:50724 [200]: GET /assets/home-hero-product.png?v=1777499309
+[Mon May  4 20:12:13 2026] 127.0.0.1:50174 [200]: GET /assets/Bexon%20-%20Logo%20Horizontal.png?v=1
+[Mon May  4 20:12:13 2026] 127.0.0.1:50033 Closing
+[Mon May  4 20:12:13 2026] 127.0.0.1:54412 [200]: GET /assets/compliance.js?v=1777493657
+[Mon May  4 20:12:13 2026] 127.0.0.1:50724 Closing
+[Mon May  4 20:12:13 2026] 127.0.0.1:50174 Closing
+[Mon May  4 20:12:13 2026] 127.0.0.1:54412 Closing
+[Mon May  4 20:12:14 2026] 127.0.0.1:49633 Accepted
+[Mon May  4 20:12:14 2026] 127.0.0.1:49633 [200]: GET /assets/Bexon---Logo-Symbol.png?v=1
+[Mon May  4 20:12:14 2026] 127.0.0.1:49633 Closing
+[Mon May  4 20:12:14 2026] 127.0.0.1:61096 Accepted
+[Mon May  4 20:12:14 2026] 127.0.0.1:61096 [200]: GET /assets/Bexon---Logo-Symbol.png?v=1
+[Mon May  4 20:12:14 2026] 127.0.0.1:61096 Closing
+[Mon May  4 20:12:28 2026] 127.0.0.1:53695 Accepted
+[Mon May  4 20:12:28 2026] 127.0.0.1:62057 Accepted
+[Mon May  4 20:12:28 2026] 127.0.0.1:53695 [200]: GET /home
+[Mon May  4 20:12:28 2026] 127.0.0.1:53695 Closing
+[Mon May  4 20:12:28 2026] 127.0.0.1:62057 [200]: GET /assets/styles.css?v=1777579572
+[Mon May  4 20:12:28 2026] 127.0.0.1:58913 Accepted
+[Mon May  4 20:12:28 2026] 127.0.0.1:53510 Accepted
+[Mon May  4 20:12:28 2026] 127.0.0.1:62399 Accepted
+[Mon May  4 20:12:28 2026] 127.0.0.1:60822 Accepted
+[Mon May  4 20:12:28 2026] 127.0.0.1:58913 [200]: GET /assets/theme-bexon.css?v=1777936323
+[Mon May  4 20:12:28 2026] 127.0.0.1:53510 [200]: GET /assets/home.css?v=1777935987
+[Mon May  4 20:12:28 2026] 127.0.0.1:62399 [200]: GET /assets/home-hero-product.png?v=1777499309
+[Mon May  4 20:12:28 2026] 127.0.0.1:59936 Accepted
+[Mon May  4 20:12:28 2026] 127.0.0.1:60822 [200]: GET /assets/Bexon%20-%20Logo%20Horizontal.png?v=1
+[Mon May  4 20:12:28 2026] 127.0.0.1:59936 [200]: GET /assets/compliance.js?v=1777493657
+[Mon May  4 20:12:28 2026] 127.0.0.1:53510 Closing
+[Mon May  4 20:12:28 2026] 127.0.0.1:62399 Closing
+[Mon May  4 20:12:28 2026] 127.0.0.1:62057 Closing
+[Mon May  4 20:12:28 2026] 127.0.0.1:60822 Closing
+[Mon May  4 20:12:28 2026] 127.0.0.1:58913 Closing
+[Mon May  4 20:12:28 2026] 127.0.0.1:59936 Closing
+[Mon May  4 20:12:29 2026] 127.0.0.1:57230 Accepted
+[Mon May  4 20:12:29 2026] 127.0.0.1:57230 [200]: GET /assets/Bexon---Logo-Symbol.png?v=1
+[Mon May  4 20:12:29 2026] 127.0.0.1:57230 Closing
+[Mon May  4 20:12:29 2026] 127.0.0.1:54205 Accepted
+[Mon May  4 20:12:29 2026] 127.0.0.1:54205 [200]: GET /assets/Bexon---Logo-Symbol.png?v=1
+[Mon May  4 20:12:29 2026] 127.0.0.1:54205 Closing
+[Mon May  4 20:12:53 2026] 127.0.0.1:62759 Accepted
+[Mon May  4 20:12:54 2026] 127.0.0.1:62759 [200]: GET /home
+[Mon May  4 20:12:54 2026] 127.0.0.1:62759 Closing
+[Mon May  4 20:12:54 2026] 127.0.0.1:58071 Accepted
+[Mon May  4 20:12:54 2026] 127.0.0.1:58071 [200]: GET /assets/styles.css?v=1777579572
+[Mon May  4 20:12:54 2026] 127.0.0.1:53949 Accepted
+[Mon May  4 20:12:54 2026] 127.0.0.1:63249 Accepted
+[Mon May  4 20:12:54 2026] 127.0.0.1:53624 Accepted
+[Mon May  4 20:12:54 2026] 127.0.0.1:53949 [200]: GET /assets/theme-bexon.css?v=1777936323
+[Mon May  4 20:12:54 2026] 127.0.0.1:63249 [200]: GET /assets/home.css?v=1777935987
+[Mon May  4 20:12:54 2026] 127.0.0.1:60734 Accepted
+[Mon May  4 20:12:54 2026] 127.0.0.1:53624 [200]: GET /assets/home-hero-product.png?v=1777499309
+[Mon May  4 20:12:54 2026] 127.0.0.1:62011 Accepted
+[Mon May  4 20:12:54 2026] 127.0.0.1:60734 [200]: GET /assets/Bexon%20-%20Logo%20Horizontal.png?v=1
+[Mon May  4 20:12:54 2026] 127.0.0.1:58071 Closing
+[Mon May  4 20:12:54 2026] 127.0.0.1:62011 [200]: GET /assets/compliance.js?v=1777493657
+[Mon May  4 20:12:54 2026] 127.0.0.1:63249 Closing
+[Mon May  4 20:12:54 2026] 127.0.0.1:53949 Closing
+[Mon May  4 20:12:54 2026] 127.0.0.1:53624 Closing
+[Mon May  4 20:12:54 2026] 127.0.0.1:60734 Closing
+[Mon May  4 20:12:54 2026] 127.0.0.1:62011 Closing
+[Mon May  4 20:12:55 2026] 127.0.0.1:61831 Accepted
+[Mon May  4 20:12:55 2026] 127.0.0.1:61831 [200]: GET /assets/Bexon---Logo-Symbol.png?v=1
+[Mon May  4 20:12:55 2026] 127.0.0.1:61831 Closing

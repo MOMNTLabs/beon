@@ -167,14 +167,14 @@ function handleDuePostAction(PDO $pdo, string $action): bool
                         'group_name' => $existingGroupName,
                         'deleted_entries_count' => $deletedEntriesCount,
                         'message' => $deletedEntriesCount > 0
-                            ? sprintf('Grupo de vencimentos removido. %d item(ns) excluido(s).', $deletedEntriesCount)
+                            ? 'Grupo de vencimentos removido. ' . appItemCountLabel($deletedEntriesCount) . ($deletedEntriesCount === 1 ? ' excluido.' : ' excluidos.')
                             : 'Grupo de vencimentos removido.',
                     ]);
                 }
                 flash(
                     'success',
                     $deletedEntriesCount > 0
-                        ? sprintf('Grupo de vencimentos removido. %d item(ns) excluido(s).', $deletedEntriesCount)
+                        ? 'Grupo de vencimentos removido. ' . appItemCountLabel($deletedEntriesCount) . ($deletedEntriesCount === 1 ? ' excluido.' : ' excluidos.')
                         : 'Grupo de vencimentos removido.'
                 );
                 redirectTo('index.php#accounting');

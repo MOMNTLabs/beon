@@ -290,7 +290,7 @@ $overviewWorkspaceTitle = ($overviewCriticalWorkspaceTotal + $overviewAttentionW
             </div>
             <div class="dashboard-brief-head-actions">
                 <?php if (!empty($overviewAttentionItems)): ?>
-                    <span><?= e((string) count($overviewAttentionItems)) ?> item(ns)</span>
+                    <span><?= e(appItemCountLabel(count($overviewAttentionItems))) ?></span>
                 <?php endif; ?>
                 <?php if ($overviewPrimaryAction): ?>
                     <?php

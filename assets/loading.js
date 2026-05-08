@@ -3,12 +3,14 @@
   const SUBMIT_LABEL = "Processando...";
   const SHOW_DELAY_MS = 140;
   const HIDE_DELAY_MS = 180;
+  const MAX_VISIBLE_MS = 30000;
   const PUBLIC_ROUTE_SLUGS = new Set(["home", "privacidade", "termos", "cookies", "dados", "vendas"]);
 
   let overlay = null;
   let labelNode = null;
   let showTimer = 0;
   let hideTimer = 0;
+  let failSafeTimer = 0;
   let isVisible = false;
   const activeTokens = new Set();
 
@@ -93,6 +95,11 @@
 
     if (activeTokens.size > 0) return;
 
+    if (failSafeTimer) {
+      window.clearTimeout(failSafeTimer);
+      failSafeTimer = 0;
+    }
+
     if (showTimer) {
       window.clearTimeout(showTimer);
       showTimer = 0;
@@ -116,6 +123,13 @@
     const token = {};
     activeTokens.add(token);
     setLabel(options.label || DEFAULT_LABEL);
+
+    if (!failSafeTimer) {
+      failSafeTimer = window.setTimeout(() => {
+        failSafeTimer = 0;
+        hideToken();
+      }, MAX_VISIBLE_MS);
+    }
 
     if (hideTimer) {
       window.clearTimeout(hideTimer);
@@ -163,6 +177,10 @@
       window.clearTimeout(hideTimer);
       hideTimer = 0;
     }
+    if (failSafeTimer) {
+      window.clearTimeout(failSafeTimer);
+      failSafeTimer = 0;
+    }
     isVisible = false;
     if (overlay) {
       overlay.classList.remove("is-visible");
@@ -181,7 +199,10 @@
     return lastSegment.replace(/\.php$/i, "").toLowerCase();
   };
 
-  const isPublicRouteDestination = (pathname) => PUBLIC_ROUTE_SLUGS.has(routeSlugFromPathname(pathname));
+  const isPublicRouteDestination = (pathname) => {
+    const slug = routeSlugFromPathname(pathname);
+    return slug === "" || PUBLIC_ROUTE_SLUGS.has(slug);
+  };
 
   const shouldIgnoreAnchor = (anchor) => {
     if (!(anchor instanceof HTMLAnchorElement)) return true;

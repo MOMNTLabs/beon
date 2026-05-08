@@ -974,10 +974,10 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                             type="button"
                             class="icon-gear-button task-filters-create-group"
                             data-open-create-group-modal
-                            aria-label="Criar grupo"
+                            aria-label="Criar projeto"
                         >
                             <span class="task-filters-create-group-plus" aria-hidden="true">+</span>
-                            <span>Grupo</span>
+                            <span>Projeto</span>
                         </button>
                     <?php endif; ?>
                 </div>
@@ -1148,6 +1148,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                             <input type="hidden" name="task_id" value="<?= e((string) $taskId) ?>">
                                             <input type="hidden" name="autosave" value="1">
                                             <input type="hidden" name="reference_links_json" value="<?= e(encodeReferenceUrlList($task['reference_links'] ?? [])) ?>" data-task-reference-links-json>
+                                            <input type="hidden" value="<?= e(encodeReferenceImageList($task['reference_images'] ?? [])) ?>" data-task-reference-images-json>
                                             <input type="hidden" name="subtasks_json" value="<?= e(encodeTaskSubtasks($taskSubtasks, $taskSubtasksDependencyEnabled === 1)) ?>" data-task-subtasks-json>
                                             <input type="hidden" name="subtasks_dependency_enabled" value="<?= $taskSubtasksDependencyEnabled === 1 ? '1' : '0' ?>" data-task-subtasks-dependency>
                                             <input type="hidden" name="title_tag" value="<?= e($taskTitleTag) ?>" data-task-title-tag>
@@ -1493,7 +1494,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                         </span>
                         <span class="vault-summary-button-label">Novo acesso</span>
                     </button>
-                    <span data-vault-total-count><?= e((string) count($vaultEntries)) ?> item(ns)</span>
+                    <span data-vault-total-count><?= e(appItemCountLabel(count($vaultEntries))) ?></span>
                 </div>
             </div>
 
@@ -1756,7 +1757,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                         </span>
                         <span class="vault-summary-button-label">Novo item</span>
                     </button>
-                    <span data-inventory-total-count><?= e((string) count($inventoryEntries)) ?> item(ns)</span>
+                    <span data-inventory-total-count><?= e(appItemCountLabel(count($inventoryEntries))) ?></span>
                 </div>
             </div>
 
@@ -2035,32 +2036,96 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
             <input type="hidden" name="redirect_created_by" value="<?= e((string) ($creatorFilterId ?? '')) ?>">
             <input type="hidden" name="redirect_assignee" value="<?= e((string) ($assigneeFilterId ?? '')) ?>">
 
-            <label>
-                <span>Titulo</span>
-                <div class="create-task-title-composer" data-create-task-title-composer>
-                    <div class="create-task-title-tag-picker" data-create-task-title-tag-picker>
-                        <button
-                            type="button"
-                            class="create-task-title-tag-trigger is-empty"
-                            data-create-task-title-tag-trigger
-                            aria-haspopup="listbox"
-                            aria-expanded="false"
-                        >tag</button>
-                        <input
-                            type="text"
-                            maxlength="40"
-                            placeholder="Criar tag"
-                            autocomplete="off"
-                            data-create-task-title-tag-custom
+            <div class="task-detail-title-group-row">
+                <label>
+                    <span>Titulo</span>
+                    <div class="create-task-title-composer" data-create-task-title-composer>
+                        <div class="create-task-title-tag-picker" data-create-task-title-tag-picker>
+                            <button
+                                type="button"
+                                class="create-task-title-tag-trigger is-empty"
+                                data-create-task-title-tag-trigger
+                                aria-haspopup="listbox"
+                                aria-expanded="false"
+                            >tag</button>
+                            <input
+                                type="text"
+                                maxlength="40"
+                                placeholder="Criar tag"
+                                autocomplete="off"
+                                data-create-task-title-tag-custom
+                                hidden
+                            >
+                            <div class="create-task-title-tag-menu" data-create-task-title-tag-menu hidden></div>
+                        </div>
+                        <input type="text" name="title" maxlength="140" required data-create-task-title-input>
+                    </div>
+                    <input type="hidden" name="title_tag" value="" data-create-task-title-tag-input>
+                    <input type="hidden" name="title_tag_color" value="<?= e(taskTitleTagDefaultColor()) ?>" data-create-task-title-tag-color-input>
+                </label>
+
+                <label>
+                    <span>Grupo</span>
+                    <div
+                        class="task-detail-group-inline-wrap row-inline-picker-wrap"
+                        data-inline-select-wrap
+                        data-inline-picker-kind="group"
+                    >
+                        <details class="row-inline-picker group-inline-picker" data-inline-select-picker>
+                            <summary aria-label="Grupo da tarefa">
+                                <span class="row-inline-picker-summary-text" data-inline-select-text>
+                                    <?= $taskGroupsWithAccess ? e((string) $taskGroupsWithAccess[0]) : 'Sem grupo com acesso' ?>
+                                </span>
+                            </summary>
+                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Selecionar grupo">
+                                <?php if (!$taskGroupsWithAccess): ?>
+                                    <button
+                                        type="button"
+                                        class="row-inline-picker-option"
+                                        data-inline-select-option
+                                        data-value=""
+                                        data-label="Sem grupo com acesso"
+                                        role="option"
+                                        aria-selected="true"
+                                        disabled
+                                    >Sem grupo com acesso</button>
+                                <?php else: ?>
+                                    <?php foreach ($taskGroupsWithAccess as $groupIndex => $groupNameOption): ?>
+                                        <button
+                                            type="button"
+                                            class="row-inline-picker-option<?= $groupIndex === 0 ? ' is-active' : '' ?>"
+                                            data-inline-select-option
+                                            data-value="<?= e((string) $groupNameOption) ?>"
+                                            data-label="<?= e((string) $groupNameOption) ?>"
+                                            role="option"
+                                            aria-selected="<?= $groupIndex === 0 ? 'true' : 'false' ?>"
+                                        ><?= e((string) $groupNameOption) ?></button>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </details>
+                        <select
+                            name="group_name"
+                            class="group-tag-select row-inline-picker-native task-group-inline-select"
+                            data-inline-select-source
+                            data-inline-select-sync-options="group"
+                            data-create-task-group-input
+                            <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>
                             hidden
                         >
-                        <div class="create-task-title-tag-menu" data-create-task-title-tag-menu hidden></div>
+                            <?php if (!$taskGroupsWithAccess): ?>
+                                <option value="">Sem grupo com acesso</option>
+                            <?php else: ?>
+                                <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
+                                    <option value="<?= e((string) $groupNameOption) ?>">
+                                        <?= e((string) $groupNameOption) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
                     </div>
-                    <input type="text" name="title" maxlength="140" required data-create-task-title-input>
-                </div>
-                <input type="hidden" name="title_tag" value="" data-create-task-title-tag-input>
-                <input type="hidden" name="title_tag_color" value="<?= e(taskTitleTagDefaultColor()) ?>" data-create-task-title-tag-color-input>
-            </label>
+                </label>
+            </div>
 
             <div class="task-detail-inline-controls">
                 <div class="assignee-picker-wrap task-detail-inline-field task-detail-inline-assignees">
@@ -2235,72 +2300,8 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                         </select>
                     </div>
                 </div>
-            </div>
 
-            <div class="form-row">
-                <label>
-                    <span>Grupo</span>
-                    <div
-                        class="task-detail-group-inline-wrap row-inline-picker-wrap"
-                        data-inline-select-wrap
-                        data-inline-picker-kind="group"
-                    >
-                        <details class="row-inline-picker group-inline-picker" data-inline-select-picker>
-                            <summary aria-label="Grupo da tarefa">
-                                <span class="row-inline-picker-summary-text" data-inline-select-text>
-                                    <?= $taskGroupsWithAccess ? e((string) $taskGroupsWithAccess[0]) : 'Sem grupo com acesso' ?>
-                                </span>
-                            </summary>
-                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Selecionar grupo">
-                                <?php if (!$taskGroupsWithAccess): ?>
-                                    <button
-                                        type="button"
-                                        class="row-inline-picker-option"
-                                        data-inline-select-option
-                                        data-value=""
-                                        data-label="Sem grupo com acesso"
-                                        role="option"
-                                        aria-selected="true"
-                                        disabled
-                                    >Sem grupo com acesso</button>
-                                <?php else: ?>
-                                    <?php foreach ($taskGroupsWithAccess as $groupIndex => $groupNameOption): ?>
-                                        <button
-                                            type="button"
-                                            class="row-inline-picker-option<?= $groupIndex === 0 ? ' is-active' : '' ?>"
-                                            data-inline-select-option
-                                            data-value="<?= e((string) $groupNameOption) ?>"
-                                            data-label="<?= e((string) $groupNameOption) ?>"
-                                            role="option"
-                                            aria-selected="<?= $groupIndex === 0 ? 'true' : 'false' ?>"
-                                        ><?= e((string) $groupNameOption) ?></button>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                        </details>
-                        <select
-                            name="group_name"
-                            class="group-tag-select row-inline-picker-native task-group-inline-select"
-                            data-inline-select-source
-                            data-inline-select-sync-options="group"
-                            data-create-task-group-input
-                            <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>
-                            hidden
-                        >
-                            <?php if (!$taskGroupsWithAccess): ?>
-                                <option value="">Sem grupo com acesso</option>
-                            <?php else: ?>
-                                <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
-                                    <option value="<?= e((string) $groupNameOption) ?>">
-                                        <?= e((string) $groupNameOption) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>
-                    </div>
-                </label>
-
-                <label>
+                <label class="task-detail-inline-field task-detail-inline-due">
                     <span>Prazo</span>
                     <input type="date" name="due_date" value="<?= e((new DateTimeImmutable('today'))->format('Y-m-d')) ?>">
                 </label>
@@ -2345,7 +2346,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                 </div>
 
                 <div class="task-detail-edit-images-field">
-                    <span>Imagens de referencia</span>
+                    <span>Mídias</span>
                     <div class="task-detail-edit-image-picker-actions">
                         <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-create-task-image-add>
                             <span class="task-image-add-button-icon" aria-hidden="true">
@@ -2355,10 +2356,20 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                     <path d="M3.8 14.8 8.3 10.2l3 2.7 2.1-1.8 2.8 3.7"></path>
                                 </svg>
                             </span>
-                            <span class="task-image-add-button-label">Adicionar imagem</span>
+                            <span class="task-image-add-button-label">Adicionar mídia</span>
+                        </button>
+                        <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-create-task-drive-add>
+                            <span class="task-image-add-button-icon" aria-hidden="true">
+                                <svg viewBox="0 0 20 20" focusable="false">
+                                    <path d="M7.2 3.4h5.6l4.1 7.2-2.8 4.9H5.9l-2.8-4.9 4.1-7.2Z"></path>
+                                    <path d="M7.2 3.4 11.3 10.6"></path>
+                                    <path d="M16.9 10.6H8.6"></path>
+                                </svg>
+                            </span>
+                            <span class="task-image-add-button-label">Google Drive</span>
                         </button>
                     </div>
-                    <div class="task-detail-edit-image-picker" data-create-task-image-picker tabindex="0" aria-label="Adicionar imagens de referencia">
+                    <div class="task-detail-edit-image-picker" data-create-task-image-picker tabindex="0" aria-label="Adicionar mídias de referencia">
                         <input type="file" accept="image/*" multiple data-create-task-image-input hidden>
                         <div class="task-detail-edit-image-list" data-create-task-image-list></div>
                     </div>
@@ -2366,18 +2377,34 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                 </div>
             </div>
 
-            <label class="task-detail-edit-links-field">
-                <span>Links de referencia</span>
+            <div class="task-detail-links-steps-row">
+            <section class="task-inline-list-editor task-inline-list-editor--links">
+                <div class="task-inline-list-head">
+                    <span>Links de referencia</span>
+                    <button type="button" class="btn btn-mini btn-ghost task-inline-list-add-trigger" data-create-task-link-toggle-add>+&nbsp;Link</button>
+                </div>
+                <div class="task-inline-add-row" data-create-task-link-add-form hidden>
+                    <input
+                        type="url"
+                        maxlength="260"
+                        placeholder="https://site.com"
+                        data-create-task-link-input
+                    >
+                    <button type="button" class="task-inline-action task-inline-action-confirm" data-create-task-link-confirm aria-label="Confirmar link">✓</button>
+                    <button type="button" class="task-inline-action task-inline-action-cancel" data-create-task-link-cancel aria-label="Cancelar link">X</button>
+                </div>
+                <div class="task-reference-edit-list" data-create-task-links-list></div>
                 <textarea
                     name="reference_links_json"
                     rows="1"
                     class="task-detail-reference-input"
                     data-create-task-links
+                    hidden
                 ></textarea>
-            </label>
+            </section>
 
-            <div class="task-subtasks-editor">
-                <div class="task-subtasks-editor-head">
+            <section class="task-inline-list-editor task-subtasks-editor">
+                <div class="task-inline-list-head task-subtasks-editor-head">
                     <div class="task-subtasks-editor-title">
                         <span>Etapas</span>
                         <label class="task-subtasks-dependency-toggle" title="Ativar sequência entre etapas">
@@ -2400,23 +2427,30 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                             <span class="sr-only">Ativar sequência entre etapas</span>
                         </label>
                     </div>
+                    <button type="button" class="btn btn-mini btn-ghost task-inline-list-add-trigger" data-create-task-subtask-toggle-add>+&nbsp;Etapa</button>
                 </div>
-                <div class="task-subtasks-edit-add">
+                <div class="task-subtasks-edit-add task-inline-add-row" data-create-task-subtask-add-form hidden>
                     <input
                         type="text"
                         maxlength="120"
                         placeholder="Nova etapa"
                         data-create-task-subtask-input
                     >
-                    <button type="button" class="btn btn-mini btn-ghost" data-create-task-subtask-add>Adicionar etapa</button>
+                    <button type="button" class="task-inline-action task-inline-action-confirm" data-create-task-subtask-add aria-label="Confirmar etapa">✓</button>
+                    <button type="button" class="task-inline-action task-inline-action-cancel" data-create-task-subtask-cancel aria-label="Cancelar etapa">X</button>
                 </div>
                 <div class="task-subtasks-edit-list" data-create-task-subtasks-list></div>
                 <textarea name="subtasks_json" rows="1" data-create-task-subtasks hidden></textarea>
                 <input type="hidden" name="subtasks_dependency_enabled" value="0" data-create-task-subtasks-dependency>
+            </section>
+
             </div>
 
             <div class="modal-actions">
-                <button type="button" class="btn btn-mini btn-ghost" data-close-create-modal>Cancelar</button>
+                <div class="modal-actions-left">
+                    <button type="button" class="btn btn-mini btn-ghost" data-create-task-open-media>Mídias</button>
+                    <button type="button" class="btn btn-mini btn-ghost" data-create-task-back-main hidden>Voltar</button>
+                </div>
                 <button type="submit" class="btn btn-pill" <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar tarefa</button>
             </div>
         </form>
@@ -3097,32 +3131,94 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
 
             <section class="task-detail-edit" data-task-detail-edit-panel hidden>
                 <div class="form-stack modal-form">
-                    <label>
-                        <span>Titulo</span>
-                        <div class="create-task-title-composer" data-task-detail-edit-title-composer>
-                            <div class="create-task-title-tag-picker" data-task-detail-edit-title-tag-picker>
-                                <button
-                                    type="button"
-                                    class="create-task-title-tag-trigger is-empty"
-                                    data-task-detail-edit-title-tag-trigger
-                                    aria-haspopup="listbox"
-                                    aria-expanded="false"
-                                >tag</button>
-                                <input
-                                    type="text"
-                                    maxlength="40"
-                                    placeholder="Criar tag"
-                                    autocomplete="off"
-                                    data-task-detail-edit-title-tag-custom
+                    <div class="task-detail-title-group-row">
+                        <label>
+                            <span>Titulo</span>
+                            <div class="create-task-title-composer" data-task-detail-edit-title-composer>
+                                <div class="create-task-title-tag-picker" data-task-detail-edit-title-tag-picker>
+                                    <button
+                                        type="button"
+                                        class="create-task-title-tag-trigger is-empty"
+                                        data-task-detail-edit-title-tag-trigger
+                                        aria-haspopup="listbox"
+                                        aria-expanded="false"
+                                    >tag</button>
+                                    <input
+                                        type="text"
+                                        maxlength="40"
+                                        placeholder="Criar tag"
+                                        autocomplete="off"
+                                        data-task-detail-edit-title-tag-custom
+                                        hidden
+                                    >
+                                    <div class="create-task-title-tag-menu" data-task-detail-edit-title-tag-menu hidden></div>
+                                </div>
+                                <input type="text" maxlength="140" required data-task-detail-edit-title>
+                            </div>
+                            <input type="hidden" name="title_tag" value="" data-task-detail-edit-title-tag-input>
+                            <input type="hidden" name="title_tag_color" value="<?= e(taskTitleTagDefaultColor()) ?>" data-task-detail-edit-title-tag-color-input>
+                        </label>
+
+                        <label>
+                            <span>Grupo</span>
+                            <div
+                                class="task-detail-group-inline-wrap row-inline-picker-wrap"
+                                data-inline-select-wrap
+                                data-inline-picker-kind="group"
+                            >
+                                <details class="row-inline-picker group-inline-picker" data-inline-select-picker>
+                                    <summary aria-label="Grupo da tarefa">
+                                        <span class="row-inline-picker-summary-text" data-inline-select-text>
+                                            <?= $taskGroupsWithAccess ? e((string) $taskGroupsWithAccess[0]) : 'Sem grupo com acesso' ?>
+                                        </span>
+                                    </summary>
+                                    <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Selecionar grupo">
+                                        <?php if (!$taskGroupsWithAccess): ?>
+                                            <button
+                                                type="button"
+                                                class="row-inline-picker-option"
+                                                data-inline-select-option
+                                                data-value=""
+                                                data-label="Sem grupo com acesso"
+                                                role="option"
+                                                aria-selected="true"
+                                                disabled
+                                            >Sem grupo com acesso</button>
+                                        <?php else: ?>
+                                            <?php foreach ($taskGroupsWithAccess as $groupIndex => $groupNameOption): ?>
+                                                <button
+                                                    type="button"
+                                                    class="row-inline-picker-option<?= $groupIndex === 0 ? ' is-active' : '' ?>"
+                                                    data-inline-select-option
+                                                    data-value="<?= e((string) $groupNameOption) ?>"
+                                                    data-label="<?= e((string) $groupNameOption) ?>"
+                                                    role="option"
+                                                    aria-selected="<?= $groupIndex === 0 ? 'true' : 'false' ?>"
+                                                ><?= e((string) $groupNameOption) ?></button>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </div>
+                                </details>
+                                <select
+                                    class="group-tag-select row-inline-picker-native task-group-inline-select"
+                                    data-inline-select-source
+                                    data-inline-select-sync-options="group"
+                                    data-task-detail-edit-group
                                     hidden
                                 >
-                                <div class="create-task-title-tag-menu" data-task-detail-edit-title-tag-menu hidden></div>
+                                    <?php if (!$taskGroupsWithAccess): ?>
+                                        <option value="">Sem grupo com acesso</option>
+                                    <?php else: ?>
+                                        <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
+                                            <option value="<?= e((string) $groupNameOption) ?>">
+                                                <?= e((string) $groupNameOption) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
                             </div>
-                            <input type="text" maxlength="140" required data-task-detail-edit-title>
-                        </div>
-                        <input type="hidden" name="title_tag" value="" data-task-detail-edit-title-tag-input>
-                        <input type="hidden" name="title_tag_color" value="<?= e(taskTitleTagDefaultColor()) ?>" data-task-detail-edit-title-tag-color-input>
-                    </label>
+                        </label>
+                    </div>
 
                     <div class="task-detail-inline-controls">
                         <div class="assignee-picker-wrap task-detail-inline-field task-detail-inline-assignees">
@@ -3277,70 +3373,8 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                 </select>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="form-row">
-                        <label>
-                            <span>Grupo</span>
-                            <div
-                                class="task-detail-group-inline-wrap row-inline-picker-wrap"
-                                data-inline-select-wrap
-                                data-inline-picker-kind="group"
-                            >
-                                <details class="row-inline-picker group-inline-picker" data-inline-select-picker>
-                                    <summary aria-label="Grupo da tarefa">
-                                        <span class="row-inline-picker-summary-text" data-inline-select-text>
-                                            <?= $taskGroupsWithAccess ? e((string) $taskGroupsWithAccess[0]) : 'Sem grupo com acesso' ?>
-                                        </span>
-                                    </summary>
-                                    <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Selecionar grupo">
-                                        <?php if (!$taskGroupsWithAccess): ?>
-                                            <button
-                                                type="button"
-                                                class="row-inline-picker-option"
-                                                data-inline-select-option
-                                                data-value=""
-                                                data-label="Sem grupo com acesso"
-                                                role="option"
-                                                aria-selected="true"
-                                                disabled
-                                            >Sem grupo com acesso</button>
-                                        <?php else: ?>
-                                            <?php foreach ($taskGroupsWithAccess as $groupIndex => $groupNameOption): ?>
-                                                <button
-                                                    type="button"
-                                                    class="row-inline-picker-option<?= $groupIndex === 0 ? ' is-active' : '' ?>"
-                                                    data-inline-select-option
-                                                    data-value="<?= e((string) $groupNameOption) ?>"
-                                                    data-label="<?= e((string) $groupNameOption) ?>"
-                                                    role="option"
-                                                    aria-selected="<?= $groupIndex === 0 ? 'true' : 'false' ?>"
-                                                ><?= e((string) $groupNameOption) ?></button>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </div>
-                                </details>
-                                <select
-                                    class="group-tag-select row-inline-picker-native task-group-inline-select"
-                                    data-inline-select-source
-                                    data-inline-select-sync-options="group"
-                                    data-task-detail-edit-group
-                                    hidden
-                                >
-                                    <?php if (!$taskGroupsWithAccess): ?>
-                                        <option value="">Sem grupo com acesso</option>
-                                    <?php else: ?>
-                                        <?php foreach ($taskGroupsWithAccess as $groupNameOption): ?>
-                                            <option value="<?= e((string) $groupNameOption) ?>">
-                                                <?= e((string) $groupNameOption) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                        </label>
-
-                        <label>
+                        <label class="task-detail-inline-field task-detail-inline-due">
                             <span>Prazo</span>
                             <input type="date" data-task-detail-edit-due-date>
                         </label>
@@ -3385,7 +3419,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                         </div>
 
                         <div class="task-detail-edit-images-field">
-                            <span>Imagens de referencia</span>
+                            <span>Mídias</span>
                             <div class="task-detail-edit-image-picker-actions">
                                 <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-task-detail-image-add>
                                     <span class="task-image-add-button-icon" aria-hidden="true">
@@ -3395,10 +3429,20 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                             <path d="M3.8 14.8 8.3 10.2l3 2.7 2.1-1.8 2.8 3.7"></path>
                                         </svg>
                                     </span>
-                                    <span class="task-image-add-button-label">Adicionar imagem</span>
+                                    <span class="task-image-add-button-label">Adicionar mídia</span>
+                                </button>
+                                <button type="button" class="btn btn-mini btn-ghost task-image-add-button" data-task-detail-drive-add>
+                                    <span class="task-image-add-button-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 20 20" focusable="false">
+                                            <path d="M7.2 3.4h5.6l4.1 7.2-2.8 4.9H5.9l-2.8-4.9 4.1-7.2Z"></path>
+                                            <path d="M7.2 3.4 11.3 10.6"></path>
+                                            <path d="M16.9 10.6H8.6"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="task-image-add-button-label">Google Drive</span>
                                 </button>
                             </div>
-                            <div class="task-detail-edit-image-picker" data-task-detail-image-picker tabindex="0" aria-label="Adicionar imagens de referencia">
+                            <div class="task-detail-edit-image-picker" data-task-detail-image-picker tabindex="0" aria-label="Adicionar mídias de referencia">
                                 <input type="file" accept="image/*" multiple data-task-detail-image-input hidden>
                                 <div class="task-detail-edit-image-list" data-task-detail-image-list></div>
                             </div>
@@ -3406,8 +3450,9 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                         </div>
                     </div>
 
-                    <div class="task-subtasks-editor">
-                        <div class="task-subtasks-editor-head">
+                    <div class="task-detail-links-steps-row">
+                    <section class="task-inline-list-editor task-subtasks-editor">
+                        <div class="task-inline-list-head task-subtasks-editor-head">
                             <div class="task-subtasks-editor-title">
                                 <span>Etapas</span>
                                 <label class="task-subtasks-dependency-toggle" title="Ativar sequência entre etapas">
@@ -3430,29 +3475,51 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                     <span class="sr-only">Ativar sequência entre etapas</span>
                                 </label>
                             </div>
+                            <button type="button" class="btn btn-mini btn-ghost task-inline-list-add-trigger" data-task-detail-edit-subtask-toggle-add>+&nbsp;Etapa</button>
                         </div>
-                        <div class="task-subtasks-edit-add">
+                        <div class="task-subtasks-edit-add task-inline-add-row" data-task-detail-edit-subtask-add-form hidden>
                             <input
                                 type="text"
                                 maxlength="120"
                                 placeholder="Nova etapa"
                                 data-task-detail-edit-subtask-input
                             >
-                            <button type="button" class="btn btn-mini btn-ghost" data-task-detail-edit-subtask-add>Adicionar etapa</button>
+                            <button type="button" class="task-inline-action task-inline-action-confirm" data-task-detail-edit-subtask-add aria-label="Confirmar etapa">✓</button>
+                            <button type="button" class="task-inline-action task-inline-action-cancel" data-task-detail-edit-subtask-cancel aria-label="Cancelar etapa">X</button>
                         </div>
                         <div class="task-subtasks-edit-list" data-task-detail-edit-subtasks-list></div>
                         <textarea rows="1" data-task-detail-edit-subtasks hidden></textarea>
                         <input type="hidden" value="0" data-task-detail-edit-subtasks-dependency>
-                    </div>
+                    </section>
 
-                    <label class="task-detail-edit-links-field">
-                        <span>Links de referencia</span>
+                    <section class="task-inline-list-editor task-inline-list-editor--links">
+                        <div class="task-inline-list-head">
+                            <span>Links de referencia</span>
+                            <button type="button" class="btn btn-mini btn-ghost task-inline-list-add-trigger" data-task-detail-edit-link-toggle-add>+&nbsp;Link</button>
+                        </div>
+                        <div class="task-inline-add-row" data-task-detail-edit-link-add-form hidden>
+                            <input
+                                type="url"
+                                maxlength="260"
+                                placeholder="https://site.com"
+                                data-task-detail-edit-link-input
+                            >
+                            <button type="button" class="task-inline-action task-inline-action-confirm" data-task-detail-edit-link-confirm aria-label="Confirmar link">✓</button>
+                            <button type="button" class="task-inline-action task-inline-action-cancel" data-task-detail-edit-link-cancel aria-label="Cancelar link">X</button>
+                        </div>
+                        <div class="task-reference-edit-list" data-task-detail-edit-links-list></div>
                         <textarea
                             rows="1"
                             class="task-detail-reference-input"
                             data-task-detail-edit-links
+                            hidden
                         ></textarea>
-                    </label>
+                    </section>
+                    </div>
+                    <div class="task-detail-edit-media-actions">
+                        <button type="button" class="btn btn-mini btn-ghost" data-task-detail-open-media>Mídias</button>
+                        <button type="button" class="btn btn-mini btn-ghost" data-task-detail-back-main hidden>Voltar</button>
+                    </div>
                 </div>
             </section>
         </div>

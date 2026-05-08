@@ -93,7 +93,7 @@ $sidebarToolAddRedirectPath = dashboardPath($currentSidebarView !== '' ? $curren
     <?php endforeach; ?>
 </nav>
 
-<?php if (!empty($canManageWorkspace)): ?>
+<?php if (!empty($canManageWorkspace) && $availableSidebarTools !== []): ?>
     <details class="workspace-sidebar-tool-adder">
         <summary
             class="workspace-sidebar-tool-adder-trigger"
@@ -103,20 +103,16 @@ $sidebarToolAddRedirectPath = dashboardPath($currentSidebarView !== '' ? $curren
             <span aria-hidden="true">+</span>
         </summary>
         <div class="workspace-sidebar-tool-adder-menu">
-            <?php if ($availableSidebarTools === []): ?>
-                <p class="workspace-sidebar-tool-adder-empty">Todas as ferramentas j&aacute; foram adicionadas.</p>
-            <?php else: ?>
-                <?php foreach ($availableSidebarTools as $sidebarToolKey): ?>
-                    <?php $toolLabel = (string) ($sidebarOptionalToolLabels[$sidebarToolKey] ?? $sidebarToolKey); ?>
-                    <form method="post" class="workspace-sidebar-tool-adder-form">
-                        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                        <input type="hidden" name="action" value="workspace_add_sidebar_tool">
-                        <input type="hidden" name="sidebar_tool" value="<?= e((string) $sidebarToolKey) ?>">
-                        <input type="hidden" name="redirect_to" value="<?= e($sidebarToolAddRedirectPath) ?>">
-                        <button type="submit" class="workspace-sidebar-tool-adder-option"><?= e($toolLabel) ?></button>
-                    </form>
-                <?php endforeach; ?>
-            <?php endif; ?>
+            <?php foreach ($availableSidebarTools as $sidebarToolKey): ?>
+                <?php $toolLabel = (string) ($sidebarOptionalToolLabels[$sidebarToolKey] ?? $sidebarToolKey); ?>
+                <form method="post" class="workspace-sidebar-tool-adder-form">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="workspace_add_sidebar_tool">
+                    <input type="hidden" name="sidebar_tool" value="<?= e((string) $sidebarToolKey) ?>">
+                    <input type="hidden" name="redirect_to" value="<?= e($sidebarToolAddRedirectPath) ?>">
+                    <button type="submit" class="workspace-sidebar-tool-adder-option"><?= e($toolLabel) ?></button>
+                </form>
+            <?php endforeach; ?>
         </div>
     </details>
 <?php endif; ?>

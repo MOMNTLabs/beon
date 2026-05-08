@@ -35,7 +35,7 @@
                         </span>
                         <span class="vault-summary-button-label">Novo item</span>
                     </button>
-                    <span data-inventory-total-count><?= e((string) count($inventoryEntries)) ?> item(ns)</span>
+                    <span data-inventory-total-count><?= e(appItemCountLabel(count($inventoryEntries))) ?></span>
                 </div>
             </div>
 

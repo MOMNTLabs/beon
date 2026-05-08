@@ -1,0 +1,26 @@
+- main [ref=e3]:
+  - region "Acesso ao workspace" [ref=e4]:
+    - img "Bexon" [ref=e6]
+    - heading "Acesso ao workspace" [level=1] [ref=e8]
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]: Nome
+          - textbox "Nome" [ref=e26]:
+            - /placeholder: Nome completo
+        - generic [ref=e27]:
+          - generic [ref=e28]: E-mail
+          - textbox "E-mail" [ref=e29]:
+            - /placeholder: voce@empresa.com
+        - generic [ref=e30]:
+          - generic [ref=e31]: Senha
+          - textbox "Senha" [ref=e32]:
+            - /placeholder: Minimo 6 caracteres
+        - generic [ref=e33]:
+          - generic [ref=e34]: Confirmar senha
+          - textbox "Confirmar senha" [ref=e35]:
+            - /placeholder: Repita a senha
+        - button "Criar conta" [ref=e36] [cursor=pointer]
+      - paragraph [ref=e37]:
+        - text: Ja tem conta?
+        - button "Entrar" [ref=e38] [cursor=pointer]
