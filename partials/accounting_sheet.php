@@ -1,6 +1,6 @@
             <div class="accounting-sheet">
                 <div class="accounting-columns">
-                    <section class="accounting-card is-expense-card">
+                    <section class="accounting-card is-expense-card<?= empty($accountingExpenseEntries) ? ' is-empty' : '' ?>">
                         <header class="accounting-card-head">
                             <div class="accounting-card-head-text">
                                 <h3>Contas</h3>
@@ -246,7 +246,7 @@
                         </div>
                     </section>
 
-                    <section class="accounting-card is-income-card">
+                    <section class="accounting-card is-income-card<?= empty($accountingIncomeEntries) ? ' is-empty' : '' ?>">
                         <header class="accounting-card-head">
                             <div class="accounting-card-head-text">
                                 <h3>Entradas</h3>
@@ -420,7 +420,7 @@
                                 required
                             >
                         </label>
-                        <button type="submit" class="btn btn-mini">Salvar saldo</button>
+                        <button type="submit" class="btn btn-mini">Salvar</button>
                     </form>
                     <dl class="accounting-balance-values">
                         <div>
