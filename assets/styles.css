@@ -3253,9 +3253,10 @@ body.is-dashboard.is-account-settings {
 }
 
 body.is-dashboard.is-account-settings .app-shell {
-    width: min(1480px, calc(100% - clamp(40px, 6vw, 112px)));
+    width: min(1680px, calc(100% - clamp(40px, 6vw, 112px)));
     min-height: 100dvh;
     height: auto;
+    margin: 0 auto;
     gap: clamp(14px, 2vw, 24px);
     padding: clamp(18px, 2.4vw, 34px) 0 clamp(44px, 6vw, 80px);
 }
@@ -13768,6 +13769,10 @@ select option:checked,
         border-radius: 10px;
         font-size: 0.76rem;
         white-space: nowrap;
+    }
+
+    body.is-dashboard .users-sidebar .workspace-sidebar-plan-card {
+        display: none;
     }
 
     .sidebar-view-menu {

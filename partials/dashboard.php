@@ -171,6 +171,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                     </div>
                 </div>
                 <?php include __DIR__ . '/workspace_sidebar_menu.php'; ?>
+                <?php include __DIR__ . '/workspace_plan_card.php'; ?>
             </div>
         </aside>
 
