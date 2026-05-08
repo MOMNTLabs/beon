@@ -94,6 +94,8 @@ function googleDriveTokenRow(PDO $pdo, int $userId): ?array
         return null;
     }
 
+    googleDriveEnsureSchema($pdo);
+
     $stmt = $pdo->prepare(
         'SELECT user_id, access_token, refresh_token, expires_at, scope, token_type, created_at, updated_at
          FROM user_google_drive_tokens
@@ -110,6 +112,18 @@ function googleDriveConnected(PDO $pdo, int $userId): bool
 {
     $row = googleDriveTokenRow($pdo, $userId);
     return is_array($row) && trim((string) ($row['refresh_token'] ?? '')) !== '';
+}
+
+function googleDriveEnsureSchema(PDO $pdo): void
+{
+    static $ensured = false;
+
+    if ($ensured) {
+        return;
+    }
+
+    ensureGoogleDriveSchema($pdo);
+    $ensured = true;
 }
 
 function googleDriveDecryptTokenValue(?string $value): string
@@ -550,6 +564,7 @@ function handleGoogleDrivePostAction(PDO $pdo, string $action): bool
         case 'google_drive_disconnect':
             $authUser = requireAuth();
             $userId = (int) ($authUser['id'] ?? 0);
+            googleDriveEnsureSchema($pdo);
             $stmt = $pdo->prepare('DELETE FROM user_google_drive_tokens WHERE user_id = :user_id');
             $stmt->execute([':user_id' => $userId]);
             respondJson([
