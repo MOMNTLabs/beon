@@ -12817,7 +12817,7 @@ select option:checked,
     grid-template-columns: 34px minmax(0, 1fr) 34px;
     align-items: center;
     gap: 8px;
-    width: min(100%, 322px);
+    width: min(100%, 292px);
 }
 
 .accounting-period-nav {
@@ -12905,6 +12905,10 @@ select option:checked,
     margin-top: auto;
 }
 
+.accounting-card.is-empty .accounting-card-footer {
+    margin-top: 0;
+}
+
 .accounting-card-head {
     display: flex;
     align-items: flex-start;
@@ -12973,22 +12977,105 @@ select option:checked,
 
 .accounting-entry-row {
     display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 7px 0;
+}
+
+.accounting-entry-summary {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0;
+    display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
     align-items: center;
-    padding: 8px 0;
+    text-align: left;
+    cursor: pointer;
+}
+
+.accounting-entry-summary-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    justify-self: start;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.accounting-entry-summary-title {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #29486a;
+    font-weight: 600;
+}
+
+.accounting-entry-summary-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.accounting-entry-summary-amount {
+    min-width: 112px;
+    justify-self: end;
+    text-align: right;
+    color: #29486a;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.accounting-entry-quick-status-form {
+    display: flex;
+    align-items: center;
+    align-self: center;
+    justify-self: end;
+    margin: 0;
+    min-height: 34px;
+}
+
+.accounting-entry-quick-status-form .accounting-check {
+    justify-content: flex-start;
+    align-items: center;
+    white-space: nowrap;
 }
 
 .accounting-entry-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto 116px auto;
-    gap: 8px;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) 116px minmax(86px, auto);
+    grid-template-rows: auto auto auto;
+    gap: 6px 8px;
     align-items: center;
+    border: 1px solid rgba(140, 181, 223, 0.32);
+    border-radius: 12px;
+    background: rgba(238, 245, 255, 0.6);
+    padding: 8px;
+}
+
+.accounting-entry-form .accounting-input-label {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
 }
 
 .accounting-create-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 116px auto auto;
+    grid-template-columns: minmax(0, 1fr) 116px;
     gap: 8px;
     align-items: center;
     border: 1px dashed rgba(140, 181, 223, 0.62);
@@ -13035,23 +13122,56 @@ select option:checked,
     display: none;
 }
 
-.accounting-create-actions {
+.accounting-create-footer {
     grid-column: 1 / -1;
     display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px 14px;
+    flex-wrap: wrap;
+}
+
+.accounting-create-meta {
+    display: flex;
     align-items: center;
+    gap: 8px 10px;
+    flex: 1 1 280px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.accounting-create-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
     gap: 8px;
 }
 
 .accounting-create-actions .btn-mini {
-    min-width: 110px;
+    min-width: 96px;
 }
 
 .accounting-entry-options {
-    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.accounting-create-form .accounting-entry-options {
+    width: 100%;
+    justify-content: space-between;
+}
+
+.accounting-entry-type-select {
+    flex: 1 1 148px;
+    min-width: 138px;
+    max-width: 220px;
+}
+
+.accounting-hidden-toggle {
+    display: none;
 }
 
 .accounting-monthly-fields {
@@ -13070,6 +13190,11 @@ select option:checked,
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+.accounting-create-form .accounting-installment-fields,
+.accounting-create-form .accounting-monthly-fields {
+    flex-basis: 100%;
 }
 
 .accounting-installment-fields[hidden] {
@@ -13160,6 +13285,11 @@ select option:checked,
     width: 132px;
 }
 
+.accounting-create-form > .accounting-check,
+.accounting-create-meta > .accounting-check {
+    justify-content: flex-start;
+}
+
 .accounting-check {
     display: inline-flex;
     align-items: center;
@@ -13168,6 +13298,7 @@ select option:checked,
     color: #4c6582;
     white-space: nowrap;
     justify-content: center;
+    cursor: pointer;
 }
 
 .accounting-check input {
@@ -13181,14 +13312,24 @@ select option:checked,
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    justify-self: start;
+    justify-self: end;
     flex-wrap: wrap;
 }
 
 .accounting-entry-delete-form {
     display: flex;
     align-items: center;
+    align-self: center;
     margin: 0;
+}
+
+.accounting-entry-delete-form .vault-entry-delete-button span {
+    transform: none;
+}
+
+.accounting-entry-row.is-editing .accounting-entry-quick-status-form,
+.accounting-entry-row.is-editing .accounting-entry-delete-form {
+    display: none;
 }
 
 .accounting-entry-badge {
@@ -13232,51 +13373,56 @@ select option:checked,
     appearance: none;
 }
 
-.accounting-entry-badge-select {
-    gap: 6px;
-    padding-right: 6px;
-}
-
-.accounting-entry-badge-select-control {
-    min-height: 22px;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 0 2px;
-}
-
-.accounting-entry-badge-select-control:focus {
-    outline: none;
-}
-
-.accounting-entry-badge.is-installment[data-accounting-entry-edit]:hover,
-.accounting-entry-badge.is-installment[data-accounting-entry-edit]:focus-visible {
+.accounting-entry-badge[data-accounting-entry-edit]:hover,
+.accounting-entry-badge[data-accounting-entry-edit]:focus-visible {
     border-color: rgba(89, 88, 160, 0.64);
     background: rgba(105, 103, 174, 0.2);
     color: #3f3f83;
 }
 
-.accounting-entry-badge-inline {
-    grid-column: 2;
+.accounting-entry-meta {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
     justify-self: start;
-    white-space: nowrap;
+    min-width: 0;
 }
 
 .accounting-entry-form .accounting-input-amount {
-    grid-column: 3;
+    grid-column: 2;
+    grid-row: 1;
 }
 
 .accounting-entry-form .accounting-entry-status {
-    grid-column: 4;
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.accounting-entry-editor-actions {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.accounting-entry-editor-actions .btn-mini {
+    min-width: 74px;
 }
 
 .accounting-totals {
     margin: 0;
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 4px;
+}
+
+.accounting-totals.is-single {
+    grid-template-columns: 1fr;
 }
 
 .accounting-totals div {
@@ -13318,20 +13464,22 @@ select option:checked,
     font-variant-numeric: tabular-nums;
 }
 
-.accounting-totals div.is-faturamento dd {
-    font-weight: 400;
+.accounting-total-pair {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 4px;
+    min-width: 0;
 }
 
-.accounting-faturamento-recebido {
-    font-weight: 400;
+.accounting-total-secondary,
+.accounting-total-separator {
+    color: #6d7f94;
+    font-weight: 500;
 }
 
-.accounting-faturamento-separator {
-    margin: 0 2px;
-    font-weight: 400;
-}
-
-.accounting-faturamento-total {
+.accounting-total-main {
+    color: inherit;
     font-weight: 700;
 }
 
@@ -13341,32 +13489,36 @@ select option:checked,
     background: #f3f8ff;
     padding: 10px;
     display: grid;
-    gap: 10px;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px 20px;
 }
 
 .accounting-opening-balance-form {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
-    align-items: end;
+    align-items: center;
     justify-content: flex-start;
     margin-bottom: 0;
 }
 
 .accounting-opening-balance-field {
-    display: grid;
-    gap: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     min-width: 0;
-    width: 190px;
+    width: auto;
 }
 
 .accounting-opening-balance-field > span {
     color: #617893;
     font-size: 0.8rem;
+    white-space: nowrap;
 }
 
 .accounting-opening-balance-form .accounting-input {
-    width: 100%;
+    width: 150px;
 }
 
 .accounting-opening-balance-form .btn-mini {
@@ -13376,23 +13528,28 @@ select option:checked,
 
 .accounting-balance-values {
     margin: 0;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+    padding-top: 0;
+    min-width: 0;
 }
 
 .accounting-balance-values div {
-    border-radius: 8px;
-    border: 1px solid rgba(135, 177, 221, 0.6);
-    background: #fbfdff;
-    padding: 8px 10px;
-    display: grid;
-    gap: 4px;
+    border: 0;
+    background: transparent;
+    padding: 0 2px;
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 6px;
+    min-width: 0;
 }
 
 .accounting-balance-values div.is-final {
-    border-color: rgba(105, 103, 174, 0.56);
-    background: rgba(105, 103, 174, 0.12);
+    border: 0;
+    background: transparent;
 }
 
 .accounting-balance-values dt {
@@ -13407,6 +13564,16 @@ select option:checked,
     font-weight: 700;
     font-size: 1.04rem;
     font-variant-numeric: tabular-nums;
+}
+
+.accounting-balance-values div.is-final.is-positive dt,
+.accounting-balance-values div.is-final.is-positive dd {
+    color: #3e8061;
+}
+
+.accounting-balance-values div.is-final.is-negative dt,
+.accounting-balance-values div.is-final.is-negative dd {
+    color: #a45a56;
 }
 
 @media (max-width: 1180px) {
@@ -13446,25 +13613,40 @@ select option:checked,
         gap: 6px;
     }
 
-    .accounting-entry-form,
-    .accounting-create-form {
+    .accounting-entry-form {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .accounting-entry-form .accounting-entry-badge-inline,
-    .accounting-entry-form .accounting-input-amount,
-    .accounting-entry-form .accounting-entry-status {
-        grid-column: auto;
+    .accounting-create-form {
+        grid-template-columns: minmax(0, 1fr) 86px;
     }
 
+    .accounting-totals {
+        grid-template-columns: 1fr;
+    }
+
+    .accounting-entry-form .accounting-input-label,
+    .accounting-entry-form .accounting-entry-meta,
     .accounting-entry-form .accounting-input-amount,
-    .accounting-create-form .accounting-input-amount {
+    .accounting-entry-form .accounting-entry-status,
+    .accounting-entry-editor-actions {
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    .accounting-entry-form .accounting-input-amount {
         width: 100%;
+    }
+
+    .accounting-create-form .accounting-input-amount {
+        width: 86px;
     }
 
     .accounting-create-actions {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        flex: 1 1 100%;
+        width: 100%;
     }
 
     .accounting-entry-options,
@@ -13483,6 +13665,11 @@ select option:checked,
     }
 
     .accounting-balance-values {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .accounting-balance-card {
         grid-template-columns: 1fr;
     }
 
@@ -13493,6 +13680,20 @@ select option:checked,
 
     .accounting-opening-balance-field {
         width: 100%;
+    }
+}
+
+@media (max-width: 380px) {
+    .accounting-create-form {
+        grid-template-columns: minmax(0, 1fr) 82px;
+    }
+
+    .accounting-create-form .accounting-input-amount {
+        width: 82px;
+    }
+
+    .accounting-entry-type-select {
+        min-width: 130px;
     }
 }
 
@@ -13956,16 +14157,16 @@ select option:checked,
 
     .accounting-entry-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) auto auto;
         gap: 6px;
-        align-items: start;
+        align-items: center;
         padding: 6px 0;
     }
 
     .accounting-entry-form {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 112px auto;
-        grid-template-rows: auto auto;
+        grid-template-rows: auto auto auto;
         gap: 6px;
         align-items: center;
         min-width: 0;
@@ -13977,13 +14178,23 @@ select option:checked,
         min-width: 0;
     }
 
-    .accounting-entry-form .accounting-entry-badge-inline {
+    .accounting-entry-form .accounting-entry-meta {
         grid-column: 1 / 4;
         grid-row: 2;
         justify-self: start;
+        gap: 4px;
+    }
+
+    .accounting-entry-form .accounting-entry-meta .accounting-entry-badge {
         min-height: 22px;
         padding-inline: 7px;
         font-size: 0.66rem;
+    }
+
+    .accounting-entry-summary-main {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 6px;
     }
 
     .accounting-entry-form .accounting-input-amount {
@@ -14014,12 +14225,34 @@ select option:checked,
         height: 18px;
     }
 
+    .accounting-entry-editor-actions {
+        grid-column: 1 / 4;
+        grid-row: 3;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .accounting-entry-summary {
+        grid-template-columns: minmax(0, 1fr) 96px;
+        gap: 6px;
+    }
+
+    .accounting-entry-summary-amount {
+        min-width: 96px;
+    }
+
+    .accounting-entry-quick-status-form .accounting-check {
+        gap: 5px;
+        font-size: 0.72rem;
+    }
+
     .accounting-entry-delete-form {
         align-self: center;
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-wrap {
-        padding-bottom: calc(130px + env(safe-area-inset-bottom));
+        padding-bottom: calc(110px + env(safe-area-inset-bottom));
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-balance-card {
@@ -14029,30 +14262,63 @@ select option:checked,
         bottom: calc(8px + env(safe-area-inset-bottom));
         z-index: 45;
         margin: 0;
+        gap: 6px;
+        grid-template-columns: 1fr;
+        padding: 8px 10px;
+        border-radius: 18px 18px 0 0;
         box-shadow: 0 12px 24px rgba(35, 97, 156, 0.2);
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-balance-values {
+        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
+        gap: 5px;
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-balance-values div {
-        padding: 7px 8px;
-        gap: 3px;
+        min-height: 0;
+        padding: 0 2px;
+        gap: 2px;
+        display: grid;
+        align-items: start;
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-balance-values dt {
-        font-size: 0.74rem;
+        font-size: 0.7rem;
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-balance-values dd {
-        font-size: 0.92rem;
+        font-size: 0.86rem;
     }
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-form {
         grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
         gap: 6px;
+    }
+
+    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-field {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+    }
+
+    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-field > span {
+        font-size: 0.7rem;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-form .accounting-input {
+        min-height: 30px;
+        padding-block: 4px;
+        font-size: 0.8rem;
+    }
+
+    body.is-dashboard[data-dashboard-view="accounting"] .accounting-opening-balance-form .btn-mini {
+        min-height: 30px;
+        padding-inline: 10px;
     }
 
     .is-dashboard .tasklist-layout > .tasklist-wrap,

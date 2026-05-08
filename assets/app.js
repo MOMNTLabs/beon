@@ -5393,6 +5393,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const monthlyToggle = form.querySelector("[data-accounting-monthly-toggle]");
     const monthlyFields = form.querySelector("[data-accounting-monthly-fields]");
     const monthlyDayField = form.querySelector("[data-accounting-monthly-day]");
+    const typeSelect = form.querySelector("[data-accounting-type-select]");
 
     if (!(installmentToggle instanceof HTMLInputElement)) return;
     if (!(installmentFields instanceof HTMLElement)) return;
@@ -5401,6 +5402,13 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(installmentTotalCountField instanceof HTMLSelectElement)) return;
     if (!(totalAmountField instanceof HTMLInputElement)) return;
     if (!(primaryAmountField instanceof HTMLInputElement)) return;
+
+    if (typeSelect instanceof HTMLSelectElement) {
+      installmentToggle.checked = typeSelect.value === "installment";
+      if (monthlyToggle instanceof HTMLInputElement) {
+        monthlyToggle.checked = typeSelect.value === "monthly";
+      }
+    }
 
     const isMonthlyDue = monthlyToggle instanceof HTMLInputElement && monthlyToggle.checked;
     if (monthlyToggle instanceof HTMLInputElement) {
@@ -5433,6 +5441,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (isInstallment) {
         monthlyToggle.checked = false;
       }
+    }
+    if (typeSelect instanceof HTMLSelectElement) {
+      typeSelect.value = isInstallment ? "installment" : (isMonthlyDue ? "monthly" : "single");
     }
 
     let installmentTotal = Number.parseInt(installmentTotalCountField.value, 10);
@@ -5604,6 +5615,59 @@ window.addEventListener("DOMContentLoaded", () => {
     }, delay);
 
     accountingAutosaveTimers.set(form, nextTimer);
+  };
+
+  const closeAccountingEntryEditor = (entryRow, { reset = true } = {}) => {
+    if (!(entryRow instanceof HTMLElement)) return;
+
+    const summary = entryRow.querySelector("[data-accounting-entry-toggle]");
+    const form = entryRow.querySelector(".accounting-entry-editor-form");
+    if (!(summary instanceof HTMLButtonElement) || !(form instanceof HTMLFormElement)) return;
+
+    if (reset) {
+      form.reset();
+      syncAccountingInstallmentForm(form);
+    }
+
+    form.hidden = true;
+    summary.hidden = false;
+    summary.setAttribute("aria-expanded", "false");
+    entryRow.classList.remove("is-editing");
+  };
+
+  const openAccountingEntryEditor = (entryRow) => {
+    if (!(entryRow instanceof HTMLElement)) return;
+
+    const summary = entryRow.querySelector("[data-accounting-entry-toggle]");
+    const form = entryRow.querySelector(".accounting-entry-editor-form");
+    if (!(summary instanceof HTMLButtonElement) || !(form instanceof HTMLFormElement)) return;
+
+    const sheet = entryRow.closest(".accounting-sheet");
+    if (sheet instanceof HTMLElement) {
+      sheet.querySelectorAll(".accounting-entry-row.is-editing").forEach((openRow) => {
+        if (openRow !== entryRow && openRow instanceof HTMLElement) {
+          closeAccountingEntryEditor(openRow);
+        }
+      });
+    }
+
+    summary.hidden = true;
+    summary.setAttribute("aria-expanded", "true");
+    form.hidden = false;
+    entryRow.classList.add("is-editing");
+
+    const labelField = form.querySelector('input[name="label"]');
+    if (labelField instanceof HTMLInputElement) {
+      labelField.focus();
+      labelField.select();
+      return;
+    }
+
+    const amountField = form.querySelector('input[name="amount_value"]');
+    if (amountField instanceof HTMLInputElement && !amountField.readOnly) {
+      amountField.focus();
+      amountField.select();
+    }
   };
 
   const autosaveTimers = new WeakMap();
@@ -13087,7 +13151,7 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const accountingEntryForm = target.closest(".accounting-entry-form");
+    const accountingEntryForm = target.closest(".accounting-entry-form, .accounting-entry-quick-status-form");
     const isAccountingEntryField =
       target instanceof HTMLInputElement || target instanceof HTMLSelectElement;
     if (
@@ -13096,6 +13160,9 @@ window.addEventListener("DOMContentLoaded", () => {
       ["label", "amount_value", "is_settled", "monthly_day"].includes(target.name)
     ) {
       syncAccountingInstallmentForm(accountingEntryForm);
+      if (accountingEntryForm.classList.contains("accounting-entry-editor-form")) {
+        return;
+      }
       scheduleAccountingAutosave(accountingEntryForm, target instanceof HTMLInputElement && target.type === "checkbox" ? 120 : 240, {
         fallbackError: "Falha ao atualizar registro.",
       });
@@ -13108,7 +13175,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (
       accountingCreateForm instanceof HTMLFormElement &&
       isAccountingCreateField &&
-      ["is_installment", "is_monthly_due", "installment_number", "installment_total", "total_amount_value", "amount_value", "monthly_day"].includes(target.name)
+      ["accounting_type_choice", "is_installment", "is_monthly_due", "installment_number", "installment_total", "total_amount_value", "amount_value", "monthly_day"].includes(target.name)
     ) {
       if (target.name === "is_installment" && target instanceof HTMLInputElement && target.checked) {
         const monthlyToggle = accountingCreateForm.querySelector("[data-accounting-monthly-toggle]");
@@ -13164,16 +13231,33 @@ window.addEventListener("DOMContentLoaded", () => {
       normalizeAccountingCurrencyInputField(target);
     }
 
-    const accountingEntryForm = target.closest(".accounting-entry-form");
+    const accountingEntryForm = target.closest(".accounting-entry-form, .accounting-entry-quick-status-form");
     if (
       accountingEntryForm instanceof HTMLFormElement &&
       ["label", "amount_value", "monthly_day"].includes(target.name)
     ) {
       syncAccountingInstallmentForm(accountingEntryForm);
+      if (accountingEntryForm.classList.contains("accounting-entry-editor-form")) {
+        return;
+      }
       scheduleAccountingAutosave(accountingEntryForm, 160, {
         fallbackError: "Falha ao atualizar registro.",
       });
     }
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    const cancelButton = target.closest("[data-accounting-entry-cancel]");
+    if (!(cancelButton instanceof HTMLButtonElement)) return;
+
+    const entryRow = cancelButton.closest(".accounting-entry-row");
+    if (!(entryRow instanceof HTMLElement)) return;
+
+    event.preventDefault();
+    closeAccountingEntryEditor(entryRow);
   });
 
   document.addEventListener("click", (event) => {
@@ -13202,36 +13286,46 @@ window.addEventListener("DOMContentLoaded", () => {
     const target = getEventTargetElement(event);
     if (!(target instanceof HTMLElement)) return;
 
-    const editButton = target.closest("[data-accounting-entry-edit]");
-    if (!(editButton instanceof HTMLButtonElement)) return;
+    const editButton = target.closest("[data-accounting-entry-toggle], [data-accounting-entry-edit]");
+    if (!(editButton instanceof HTMLElement)) return;
 
     event.preventDefault();
 
     const entryRow = editButton.closest(".accounting-entry-row");
     if (!(entryRow instanceof HTMLElement)) return;
 
-    const accountingEntryForm = entryRow.querySelector(".accounting-entry-form");
-    if (!(accountingEntryForm instanceof HTMLFormElement)) return;
+    const accountingEntryForm = entryRow.querySelector(".accounting-entry-editor-form");
+    if (!(accountingEntryForm instanceof HTMLFormElement)) {
+      return;
+    }
+    if (accountingEntryForm.hidden) {
+      openAccountingEntryEditor(entryRow);
+      return;
+    }
 
     const labelField = accountingEntryForm.querySelector('input[name="label"]');
     if (labelField instanceof HTMLInputElement) {
       labelField.focus();
       labelField.select();
-      return;
     }
+  });
 
-    const amountField = accountingEntryForm.querySelector('input[name="amount_value"]');
-    if (amountField instanceof HTMLInputElement && !amountField.readOnly) {
-      amountField.focus();
-      amountField.select();
-    }
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    document.querySelectorAll(".accounting-entry-row.is-editing").forEach((openRow) => {
+      if (!(openRow instanceof HTMLElement)) return;
+      if (openRow.contains(target)) return;
+      closeAccountingEntryEditor(openRow);
+    });
   });
 
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
 
-    if (form.matches(".accounting-entry-form")) {
+    if (form.matches(".accounting-entry-form, .accounting-entry-quick-status-form")) {
       event.preventDefault();
       syncAccountingInstallmentForm(form);
       if (typeof form.reportValidity === "function" && !form.reportValidity()) {
