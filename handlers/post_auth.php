@@ -612,9 +612,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             }
 
             $requestPasswordResetMessage = 'Se o e-mail estiver cadastrado, enviamos as instrucoes para redefinir a senha.';
-            if (!empty($delivery['logged_to_file'])) {
-                $requestPasswordResetMessage .= ' Se o envio não estiver configurado neste ambiente, confira o arquivo storage/password-reset-mails.log.';
-            }
+            $requestPasswordResetMessage .= deliveryFallbackNotice($delivery, 'storage/password-reset-mails.log');
 
             flash('success', $requestPasswordResetMessage);
             redirectTo(appUrl('?auth=login#login'));

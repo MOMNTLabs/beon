@@ -546,24 +546,27 @@ select optgroup {
     gap: 10px;
     padding: 0 18px;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(var(--color-accent-500-rgb), 0.34);
     background: rgba(255, 255, 255, 0.96);
     color: #172033;
     text-decoration: none;
     font-size: 0.94rem;
     font-weight: 800;
+    box-shadow: 0 1px 2px rgba(var(--color-accent-700-rgb), 0.08);
     transition:
         transform 160ms ease,
         background-color 160ms ease,
-        border-color 160ms ease;
+        border-color 160ms ease,
+        box-shadow 160ms ease;
 }
 
 .auth-social-button:hover,
 .auth-social-button:focus-visible {
     transform: translateY(-1px);
-    border-color: #ffffff;
+    border-color: rgba(var(--color-accent-500-rgb), 0.52);
     background: #ffffff;
     color: #111827;
+    box-shadow: 0 1px 2px rgba(var(--color-accent-700-rgb), 0.08);
 }
 
 .auth-social-icon {

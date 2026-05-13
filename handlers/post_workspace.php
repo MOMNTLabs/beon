@@ -232,9 +232,7 @@ function handleWorkspacePostAction(PDO $pdo, string $action): bool
                     );
 
                     $workspaceAddMemberMessage = 'Convite por e-mail enviado. A pessoa precisa entrar ou criar a conta para aceitar.';
-                    if (!empty($delivery['logged_to_file'])) {
-                        $workspaceAddMemberMessage .= ' Se o envio nao estiver configurado neste ambiente, confira o arquivo storage/workspace-invite-mails.log.';
-                    }
+                    $workspaceAddMemberMessage .= deliveryFallbackNotice($delivery, 'storage/workspace-invite-mails.log');
 
                     if (requestExpectsJson()) {
                         respondJson([

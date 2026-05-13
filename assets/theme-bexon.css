@@ -1727,21 +1727,19 @@ body.is-auth .auth-password-toggle {
     display: grid;
     place-items: center;
     padding: 0;
-    border: 1px solid rgba(var(--color-accent-500-rgb), 0.28);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.72);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     color: var(--color-accent-700);
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
     transform: translateY(-50%);
-    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+    transition: color 160ms ease;
 }
 
 body.is-auth .auth-password-toggle:hover,
 body.is-auth .auth-password-toggle:focus-visible {
-    border-color: rgba(var(--color-accent-600-rgb), 0.5);
-    background: #ffffff;
     color: var(--color-accent-900);
     outline: none;
 }
