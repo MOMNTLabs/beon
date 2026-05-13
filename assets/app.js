@@ -9646,9 +9646,12 @@ window.addEventListener("DOMContentLoaded", () => {
       }
 
       const view = new pickerNamespace.DocsView(pickerNamespace.ViewId.DOCS);
-      view.setIncludeFolders(false);
+      view.setIncludeFolders(true);
       if (typeof view.setSelectFolderEnabled === "function") {
         view.setSelectFolderEnabled(false);
+      }
+      if (pickerNamespace.DocsViewMode?.LIST && typeof view.setMode === "function") {
+        view.setMode(pickerNamespace.DocsViewMode.LIST);
       }
       view.setMimeTypes(googleDriveMediaMimeTypes);
 
@@ -9670,6 +9673,23 @@ window.addEventListener("DOMContentLoaded", () => {
             showClientFlash("error", error instanceof Error ? error.message : "Falha ao adicionar arquivos do Drive.");
           });
         });
+
+      if (typeof pickerBuilder.setTitle === "function") {
+        pickerBuilder.setTitle("Selecionar midias do Google Drive");
+      }
+
+      if (typeof pickerBuilder.setLocale === "function") {
+        pickerBuilder.setLocale(
+          (Array.isArray(navigator.languages) && navigator.languages[0])
+            || document.documentElement.lang
+            || navigator.language
+            || "pt-BR"
+        );
+      }
+
+      if (typeof pickerBuilder.setSize === "function") {
+        pickerBuilder.setSize(980, 650);
+      }
 
       if (session.appId) {
         pickerBuilder.setAppId(session.appId);
