@@ -13202,10 +13202,6 @@ select option:checked,
     margin-top: auto;
 }
 
-.accounting-card.is-empty .accounting-card-footer {
-    margin-top: 0;
-}
-
 .accounting-card-head {
     display: flex;
     align-items: flex-start;
