@@ -24,7 +24,34 @@ function googleDriveAppId(): string
 function googleDriveRedirectUri(): string
 {
     $configured = trim((string) (envValue('GOOGLE_DRIVE_REDIRECT_URI') ?? ''));
-    return $configured !== '' ? $configured : appUrl('?action=google_drive_callback');
+    return $configured !== '' ? $configured : googleOAuthRedirectUri();
+}
+
+function googleDriveUsesSharedCallback(): bool
+{
+    return googleDriveRedirectUri() === googleOAuthRedirectUri();
+}
+
+function googleDriveStateMatches(string $state): bool
+{
+    $state = trim($state);
+    $stored = $_SESSION['google_drive_oauth_state'] ?? null;
+    if (!is_array($stored) || $state === '') {
+        return false;
+    }
+
+    $createdAt = (int) ($stored['created_at'] ?? 0);
+    if ($createdAt <= 0 || (time() - $createdAt) > GOOGLE_OAUTH_STATE_TTL_SECONDS) {
+        return false;
+    }
+
+    $expectedHash = (string) ($stored['state_hash'] ?? '');
+    return $expectedHash !== '' && hash_equals($expectedHash, hash('sha256', $state));
+}
+
+function googleDriveShouldHandleSharedCallback(string $state): bool
+{
+    return googleDriveUsesSharedCallback() && googleDriveStateMatches($state);
 }
 
 function googleDriveScopes(): string

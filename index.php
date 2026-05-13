@@ -142,6 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     if ($getAction === 'google_callback') {
+        if (googleDriveShouldHandleSharedCallback((string) ($_GET['state'] ?? ''))) {
+            handleGoogleDriveOAuthCallback($pdo);
+        }
         handleGoogleOAuthCallback($pdo);
     }
 

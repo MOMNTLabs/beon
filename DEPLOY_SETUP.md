@@ -25,6 +25,29 @@ APP_VAULT_ENCRYPTION_KEY=base64:CHAVE_FIXA_DE_32_BYTES
 APP_AUTO_MIGRATE=false
 ```
 
+## Google OAuth e Google Drive
+
+Se o app usar login com Google ou anexo via Google Drive, o cliente OAuth do Google Cloud precisa autorizar exatamente os callbacks usados pelo app.
+
+Variaveis comuns:
+
+```env
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_DRIVE_API_KEY=...
+
+# opcional: so use se quiser um callback exclusivo para o Drive
+GOOGLE_DRIVE_REDIRECT_URI=https://app.bexon.com.br/?action=google_drive_callback
+```
+
+Callbacks autorizados no Google Cloud:
+
+- Login com Google: `https://app.bexon.com.br/?action=google_callback`
+- Google Drive: por padrao usa o mesmo callback do login (`https://app.bexon.com.br/?action=google_callback`)
+- Google Drive com callback dedicado: autorize tambem `https://app.bexon.com.br/?action=google_drive_callback` se `GOOGLE_DRIVE_REDIRECT_URI` estiver definido com essa URL
+
+Se o Google mostrar `Erro 400: redirect_uri_mismatch`, o `redirect_uri` enviado pelo app nao esta cadastrado exatamente na tela de credenciais do projeto no Google Cloud. Revise esquema (`https`), host, query string e barra final.
+
 ## Comandos operacionais
 
 Valide o ambiente de producao antes do deploy:
