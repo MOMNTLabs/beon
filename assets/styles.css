@@ -13387,6 +13387,11 @@ select option:checked,
 
 .accounting-card.is-empty .accounting-create-toggle {
     justify-self: start;
+    width: 100%;
+    max-width: 100%;
+}
+
+.accounting-card.is-empty .accounting-create-toggle:not([open]) {
     width: min(100%, 220px);
 }
 
