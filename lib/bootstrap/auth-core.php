@@ -134,3 +134,137 @@ function createGoogleUser(PDO $pdo, string $name, string $email, string $googleI
 
     return $userId;
 }
+
+function stripeTimestampToIso($value): ?string
+{
+    if (!is_numeric($value)) {
+        return null;
+    }
+
+    $timestamp = (int) $value;
+    if ($timestamp <= 0) {
+        return null;
+    }
+
+    return (new DateTimeImmutable('@' . $timestamp))
+        ->setTimezone(new DateTimeZone(date_default_timezone_get()))
+        ->format('Y-m-d H:i:s');
+}
+
+function uploadedUserAvatarDataUrl(array $file): string
+{
+    $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($errorCode === UPLOAD_ERR_NO_FILE) {
+        return '';
+    }
+
+    if ($errorCode !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('Falha ao enviar a foto de perfil.');
+    }
+
+    $size = (int) ($file['size'] ?? 0);
+    if ($size <= 0) {
+        throw new RuntimeException('Arquivo de foto invalido.');
+    }
+
+    if ($size > 2 * 1024 * 1024) {
+        throw new RuntimeException('A foto de perfil deve ter no maximo 2 MB.');
+    }
+
+    $tmpName = (string) ($file['tmp_name'] ?? '');
+    if ($tmpName === '' || !is_file($tmpName)) {
+        throw new RuntimeException('Arquivo de foto invalido.');
+    }
+
+    $contents = file_get_contents($tmpName);
+    if (!is_string($contents) || $contents === '') {
+        throw new RuntimeException('Nao foi possivel ler a foto de perfil.');
+    }
+
+    $imageInfo = @getimagesizefromstring($contents);
+    $mime = strtolower((string) ($imageInfo['mime'] ?? ''));
+    $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!$imageInfo || !in_array($mime, $allowedMimeTypes, true)) {
+        throw new RuntimeException('Use uma imagem PNG, JPG, WEBP ou GIF.');
+    }
+
+    return 'data:' . $mime . ';base64,' . base64_encode($contents);
+}
+
+function updateUserProfile(PDO $pdo, int $userId, string $name, array $avatarFile = []): void
+{
+    if ($userId <= 0) {
+        throw new RuntimeException('Usuario invalido.');
+    }
+
+    ensureUserProfileSchema($pdo);
+
+    $normalizedName = normalizeUserDisplayName($name);
+    if ($normalizedName === '') {
+        throw new RuntimeException('Informe um nome valido.');
+    }
+
+    $params = [
+        ':name' => $normalizedName,
+        ':id' => $userId,
+    ];
+    $sql = 'UPDATE users
+            SET name = :name';
+
+    $avatarDataUrl = uploadedUserAvatarDataUrl($avatarFile);
+    if ($avatarDataUrl !== '') {
+        $sql .= ',
+                avatar_data_url = :avatar_data_url';
+        $params[':avatar_data_url'] = $avatarDataUrl;
+    }
+
+    $sql .= '
+            WHERE id = :id';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+}
+
+function updateUserPassword(PDO $pdo, int $userId, string $currentPassword, string $newPassword, string $confirmPassword): void
+{
+    if ($userId <= 0) {
+        throw new RuntimeException('Usuario invalido.');
+    }
+
+    if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
+        throw new RuntimeException('Preencha os campos de senha.');
+    }
+
+    if ($newPassword !== $confirmPassword) {
+        throw new RuntimeException('A confirmacao da nova senha nao confere.');
+    }
+
+    if (mb_strlen($newPassword) < 6) {
+        throw new RuntimeException('A nova senha deve ter pelo menos 6 caracteres.');
+    }
+
+    $stmt = $pdo->prepare('SELECT password_hash FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $userId]);
+    $hash = (string) $stmt->fetchColumn();
+    if ($hash === '') {
+        throw new RuntimeException('Usuario nao encontrado.');
+    }
+
+    if (!password_verify($currentPassword, $hash)) {
+        throw new RuntimeException('Senha atual invalida.');
+    }
+
+    if (password_verify($newPassword, $hash)) {
+        throw new RuntimeException('A nova senha deve ser diferente da senha atual.');
+    }
+
+    $updateStmt = $pdo->prepare(
+        'UPDATE users
+         SET password_hash = :password_hash
+         WHERE id = :id'
+    );
+    $updateStmt->execute([
+        ':password_hash' => password_hash($newPassword, PASSWORD_DEFAULT),
+        ':id' => $userId,
+    ]);
+}

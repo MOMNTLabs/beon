@@ -328,3 +328,109 @@ function renderWorkspaceAvatar(array $workspace, string $class = 'avatar', bool 
 
     return '<' . $tag . ' class="' . e($classes) . '">' . e(avatarLabelInitials($label, $isPersonal ? 'U' : 'W')) . '</' . $tag . '>';
 }
+
+function avatarBinaryParts(string $value): ?array
+{
+    $normalized = avatarImageSource($value);
+    if (!str_starts_with($normalized, 'data:image/')) {
+        return null;
+    }
+
+    if (!preg_match('#^data:(image/(?:png|jpe?g|webp|gif));base64,([a-z0-9+/=]+)$#i', $normalized, $matches)) {
+        return null;
+    }
+
+    $bytes = base64_decode((string) $matches[2], true);
+    if (!is_string($bytes) || $bytes === '') {
+        return null;
+    }
+
+    return [
+        'mime' => strtolower((string) $matches[1]),
+        'bytes' => $bytes,
+        'etag' => '"' . sha1($bytes) . '"',
+    ];
+}
+
+function outputAvatarImageSource(string $value): void
+{
+    $normalized = avatarImageSource($value);
+    if ($normalized === '') {
+        http_response_code(404);
+        exit;
+    }
+
+    if (preg_match('~^https?://~i', $normalized) === 1) {
+        header('Location: ' . $normalized);
+        exit;
+    }
+
+    $parts = avatarBinaryParts($normalized);
+    if ($parts === null) {
+        http_response_code(404);
+        exit;
+    }
+
+    $etag = (string) $parts['etag'];
+    $ifNoneMatch = trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? ''));
+    if ($ifNoneMatch === $etag) {
+        http_response_code(304);
+        header('ETag: ' . $etag);
+        header('Cache-Control: private, max-age=604800');
+        exit;
+    }
+
+    $bytes = (string) $parts['bytes'];
+    header('Content-Type: ' . (string) $parts['mime']);
+    header('Content-Length: ' . strlen($bytes));
+    header('Cache-Control: private, max-age=604800');
+    header('ETag: ' . $etag);
+    echo $bytes;
+    exit;
+}
+
+function respondUserAvatarImage(): void
+{
+    $currentUser = currentUser();
+    $userId = (int) ($_GET['id'] ?? 0);
+    if (!$currentUser || $userId <= 0) {
+        http_response_code(404);
+        exit;
+    }
+
+    ensureUserProfileSchema(db());
+    $stmt = db()->prepare('SELECT avatar_data_url FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $userId]);
+    outputAvatarImageSource((string) $stmt->fetchColumn());
+}
+
+function respondWorkspaceAvatarImage(): void
+{
+    $currentUser = currentUser();
+    $workspaceId = (int) ($_GET['id'] ?? 0);
+    if (!$currentUser || $workspaceId <= 0) {
+        http_response_code(404);
+        exit;
+    }
+
+    if (workspaceRoleForUser((int) ($currentUser['id'] ?? 0), $workspaceId) === null) {
+        http_response_code(404);
+        exit;
+    }
+
+    $workspace = workspaceById($workspaceId);
+    if (!$workspace) {
+        http_response_code(404);
+        exit;
+    }
+
+    $isPersonal = !empty($workspace['is_personal']);
+    if ($isPersonal) {
+        $ownerImage = avatarImageSource((string) ($workspace['owner_avatar_data_url'] ?? ''));
+        if ($ownerImage !== '') {
+            outputAvatarImageSource($ownerImage);
+        }
+    }
+
+    outputAvatarImageSource((string) ($workspace['avatar_data_url'] ?? ''));
+}
