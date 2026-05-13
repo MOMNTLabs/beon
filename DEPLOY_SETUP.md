@@ -25,6 +25,8 @@ APP_VAULT_ENCRYPTION_KEY=base64:CHAVE_FIXA_DE_32_BYTES
 APP_AUTO_MIGRATE=false
 ```
 
+Importante: nessas variaveis, nao envolva os valores com aspas no painel do provedor. Exemplo correto: `APP_URL=https://app.bexon.com.br`. Exemplo que pode quebrar integrações: `APP_URL="https://app.bexon.com.br"`.
+
 ## Google OAuth e Google Drive
 
 Se o app usar login com Google ou anexo via Google Drive, o cliente OAuth do Google Cloud precisa autorizar exatamente os callbacks usados pelo app.

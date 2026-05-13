@@ -9,7 +9,17 @@ function envValue(string $key, ?string $default = null): ?string
         return $default;
     }
 
-    return (string) $value;
+    $value = (string) $value;
+    $length = strlen($value);
+    if ($length >= 2) {
+        $first = $value[0];
+        $last = $value[$length - 1];
+        if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+            return substr($value, 1, -1);
+        }
+    }
+
+    return $value;
 }
 
 function envFlag(string $key, bool $default = false): bool
