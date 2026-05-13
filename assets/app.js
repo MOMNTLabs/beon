@@ -9645,18 +9645,26 @@ window.addEventListener("DOMContentLoaded", () => {
         throw new Error("Google Picker indisponivel.");
       }
 
-      const view = new pickerNamespace.DocsView(pickerNamespace.ViewId.DOCS);
-      view.setIncludeFolders(true);
-      if (typeof view.setSelectFolderEnabled === "function") {
-        view.setSelectFolderEnabled(false);
-      }
-      if (pickerNamespace.DocsViewMode?.LIST && typeof view.setMode === "function") {
-        view.setMode(pickerNamespace.DocsViewMode.LIST);
-      }
-      view.setMimeTypes(googleDriveMediaMimeTypes);
+      const buildDriveMediaView = (ownedByMe) => {
+        const driveView = new pickerNamespace.DocsView(pickerNamespace.ViewId.DOCS);
+        driveView.setIncludeFolders(true);
+        if (typeof driveView.setSelectFolderEnabled === "function") {
+          driveView.setSelectFolderEnabled(false);
+        }
+        if (typeof driveView.setOwnedByMe === "function") {
+          driveView.setOwnedByMe(Boolean(ownedByMe));
+        }
+        if (pickerNamespace.DocsViewMode?.LIST && typeof driveView.setMode === "function") {
+          driveView.setMode(pickerNamespace.DocsViewMode.LIST);
+        }
+        driveView.setMimeTypes(googleDriveMediaMimeTypes);
+        return driveView;
+      };
+
+      const myDriveView = buildDriveMediaView(true);
+      const sharedWithMeView = buildDriveMediaView(false);
 
       const pickerBuilder = new pickerNamespace.PickerBuilder()
-        .addView(view)
         .enableFeature(pickerNamespace.Feature.MULTISELECT_ENABLED)
         .setOAuthToken(session.accessToken)
         .setDeveloperKey(session.developerKey)
@@ -9673,6 +9681,24 @@ window.addEventListener("DOMContentLoaded", () => {
             showClientFlash("error", error instanceof Error ? error.message : "Falha ao adicionar arquivos do Drive.");
           });
         });
+
+      if (pickerNamespace.ViewGroup && typeof pickerBuilder.addViewGroup === "function") {
+        const myDriveGroup = new pickerNamespace.ViewGroup(myDriveView);
+        if (typeof myDriveGroup.addLabel === "function") {
+          myDriveGroup.addLabel("Meu Drive");
+        }
+
+        const sharedWithMeGroup = new pickerNamespace.ViewGroup(sharedWithMeView);
+        if (typeof sharedWithMeGroup.addLabel === "function") {
+          sharedWithMeGroup.addLabel("Compartilhados comigo");
+        }
+
+        pickerBuilder
+          .addViewGroup(myDriveGroup)
+          .addViewGroup(sharedWithMeGroup);
+      } else {
+        pickerBuilder.addView(myDriveView);
+      }
 
       if (typeof pickerBuilder.setTitle === "function") {
         pickerBuilder.setTitle("Selecionar midias do Google Drive");
