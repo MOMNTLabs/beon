@@ -267,9 +267,61 @@ function avatarTagName(string $tag): string
     return in_array($tag, ['div', 'span'], true) ? $tag : 'div';
 }
 
+function avatarCacheKey(string $value): string
+{
+    return substr(sha1($value), 0, 12);
+}
+
+function avatarImageResponseUrl(string $action, int $subjectId, string $source): string
+{
+    $normalized = avatarImageSource($source);
+    if ($normalized === '') {
+        return '';
+    }
+
+    if (preg_match('~^https?://~i', $normalized) === 1) {
+        return $normalized;
+    }
+
+    if ($subjectId <= 0) {
+        return strlen($normalized) <= 32768 ? $normalized : '';
+    }
+
+    return appPath(
+        '?action=' . rawurlencode($action)
+        . '&id=' . $subjectId
+        . '&v=' . avatarCacheKey($normalized)
+    );
+}
+
+function userAvatarSubjectId(array $user): int
+{
+    foreach (['avatar_user_id', 'user_id', 'invited_user_id', 'id'] as $key) {
+        $value = (int) ($user[$key] ?? 0);
+        if ($value > 0) {
+            return $value;
+        }
+    }
+
+    return 0;
+}
+
+function workspaceAvatarSubjectId(array $workspace): int
+{
+    foreach (['workspace_id', 'id'] as $key) {
+        $value = (int) ($workspace[$key] ?? 0);
+        if ($value > 0) {
+            return $value;
+        }
+    }
+
+    return 0;
+}
+
 function userAvatarImageSrc(array $user): string
 {
-    return avatarImageSource((string) ($user['avatar_data_url'] ?? ''));
+    $source = (string) ($user['avatar_data_url'] ?? '');
+    return avatarImageResponseUrl('user_avatar', userAvatarSubjectId($user), $source);
 }
 
 function userDisplayInitial(string $label, string $fallback = 'U'): string
@@ -281,13 +333,14 @@ function workspaceAvatarImageSrc(array $workspace): string
 {
     $isPersonal = !empty($workspace['workspace_is_personal']) || !empty($workspace['is_personal']);
     if ($isPersonal) {
-        $ownerImage = avatarImageSource((string) ($workspace['owner_avatar_data_url'] ?? ''));
+        $ownerImage = (string) ($workspace['owner_avatar_data_url'] ?? '');
         if ($ownerImage !== '') {
-            return $ownerImage;
+            return avatarImageResponseUrl('workspace_avatar', workspaceAvatarSubjectId($workspace), $ownerImage);
         }
     }
 
-    return avatarImageSource((string) ($workspace['workspace_avatar_data_url'] ?? $workspace['avatar_data_url'] ?? ''));
+    $source = (string) ($workspace['workspace_avatar_data_url'] ?? $workspace['avatar_data_url'] ?? '');
+    return avatarImageResponseUrl('workspace_avatar', workspaceAvatarSubjectId($workspace), $source);
 }
 
 function renderUserAvatar(array $user, string $class = 'avatar', bool $unused = false, string $tag = 'div'): string
