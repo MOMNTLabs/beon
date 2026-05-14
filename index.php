@@ -99,6 +99,7 @@ $billingGateBypassActions = [
     'google_drive_auth',
     'google_drive_callback',
     'google_drive_download',
+    'google_drive_thumbnail',
     'plans',
 ];
 $shouldBypassBillingGate = $forceAuthScreen || in_array($entryAction, $billingGateBypassActions, true);
@@ -158,6 +159,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if ($getAction === 'google_drive_download') {
         handleGoogleDriveDownload($pdo);
+    }
+
+    if ($getAction === 'google_drive_thumbnail') {
+        handleGoogleDriveThumbnail($pdo);
     }
 
     if ($getAction === 'reset_password') {

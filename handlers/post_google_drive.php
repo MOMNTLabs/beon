@@ -455,10 +455,7 @@ function googleDriveNormalizeBrowserItem(array $file): array
 
     if (!$isFolder) {
         $item['download_url'] = appUrl('?action=google_drive_download&file_id=' . rawurlencode($fileId));
-        $thumbnailUrl = normalizeHttpReferenceValue((string) ($file['thumbnailLink'] ?? ''));
-        if ($thumbnailUrl !== null) {
-            $item['thumbnail_url'] = $thumbnailUrl;
-        }
+        $item['thumbnail_url'] = appUrl('?action=google_drive_thumbnail&file_id=' . rawurlencode($fileId));
     }
 
     return $item;
@@ -566,18 +563,19 @@ function googleDriveMediaItemFromFile(array $file): array
     }
 
     $downloadUrl = appUrl('?action=google_drive_download&file_id=' . rawurlencode($fileId));
+    $thumbnailProxyUrl = appUrl('?action=google_drive_thumbnail&file_id=' . rawurlencode($fileId));
     $item = [
         'provider' => 'google_drive',
         'file_id' => $fileId,
         'name' => $name,
         'mime_type' => $mimeType,
         'download_url' => $downloadUrl,
+        'thumbnail_url' => $thumbnailProxyUrl,
     ];
 
     foreach ([
-        'thumbnail_url' => $file['thumbnailLink'] ?? '',
         'web_view_link' => $file['webViewLink'] ?? '',
-        'src' => str_starts_with(strtolower($mimeType), 'image/') ? $downloadUrl : ($file['thumbnailLink'] ?? ''),
+        'src' => str_starts_with(strtolower($mimeType), 'image/') ? $downloadUrl : $thumbnailProxyUrl,
     ] as $key => $value) {
         $normalizedUrl = normalizeHttpReferenceValue((string) $value);
         if ($normalizedUrl !== null) {
@@ -586,6 +584,103 @@ function googleDriveMediaItemFromFile(array $file): array
     }
 
     return $item;
+}
+
+function googleDriveProxyBinaryUrl(string $url, string $accessToken, string $fallbackContentType = 'application/octet-stream'): void
+{
+    $url = trim($url);
+    if ($url === '') {
+        http_response_code(404);
+        exit;
+    }
+
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    $statusCode = 200;
+    $contentType = $fallbackContentType;
+    $contentLength = null;
+    $responseBody = null;
+
+    if (function_exists('curl_init')) {
+        $responseHeaders = [];
+        $ch = curl_init($url);
+        if ($ch === false) {
+            http_response_code(502);
+            exit;
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $accessToken],
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CONNECTTIMEOUT => 15,
+            CURLOPT_HEADERFUNCTION => static function ($curl, string $headerLine) use (&$responseHeaders): int {
+                $trimmed = trim($headerLine);
+                if ($trimmed !== '' && str_contains($trimmed, ':')) {
+                    [$name, $value] = explode(':', $trimmed, 2);
+                    $responseHeaders[strtolower(trim($name))] = trim($value);
+                }
+                return strlen($headerLine);
+            },
+        ]);
+
+        $responseBody = curl_exec($ch);
+        $statusCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $infoContentType = trim((string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE));
+        if ($infoContentType !== '') {
+            $contentType = $infoContentType;
+        } elseif (!empty($responseHeaders['content-type'])) {
+            $contentType = (string) $responseHeaders['content-type'];
+        }
+        if (!empty($responseHeaders['content-length']) && ctype_digit((string) $responseHeaders['content-length'])) {
+            $contentLength = (string) $responseHeaders['content-length'];
+        }
+        curl_close($ch);
+    } else {
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'header' => 'Authorization: Bearer ' . $accessToken . "\r\n",
+                'timeout' => 30,
+                'ignore_errors' => true,
+            ],
+        ]);
+        $responseBody = @file_get_contents($url, false, $context);
+        $responseHeaders = $http_response_header ?? [];
+        foreach ($responseHeaders as $headerLine) {
+            if (preg_match('/^HTTP\/\S+\s+(\d{3})/i', $headerLine, $matches) === 1) {
+                $statusCode = (int) $matches[1];
+                continue;
+            }
+            if (stripos($headerLine, 'Content-Type:') === 0) {
+                $contentType = trim((string) substr($headerLine, 13));
+                continue;
+            }
+            if (stripos($headerLine, 'Content-Length:') === 0) {
+                $lengthValue = trim((string) substr($headerLine, 15));
+                if ($lengthValue !== '' && ctype_digit($lengthValue)) {
+                    $contentLength = $lengthValue;
+                }
+            }
+        }
+    }
+
+    if ($statusCode < 200 || $statusCode >= 300 || !is_string($responseBody) || $responseBody === '') {
+        http_response_code($statusCode >= 400 ? $statusCode : 404);
+        exit;
+    }
+
+    header('Content-Type: ' . ($contentType !== '' ? $contentType : $fallbackContentType));
+    header('Cache-Control: private, max-age=300');
+    if (is_string($contentLength) && $contentLength !== '') {
+        header('Content-Length: ' . $contentLength);
+    }
+
+    echo $responseBody;
+    exit;
 }
 
 function handleGoogleDriveOAuthStart(PDO $pdo): void
@@ -750,6 +845,38 @@ function handleGoogleDriveDownload(PDO $pdo): void
     }
     fpassthru($stream);
     fclose($stream);
+    exit;
+}
+
+function handleGoogleDriveThumbnail(PDO $pdo): void
+{
+    $authUser = requireAuth();
+    $userId = (int) ($authUser['id'] ?? 0);
+    if ($userId <= 0) {
+        http_response_code(401);
+        exit;
+    }
+
+    $fileId = googleDriveNormalizeFileId((string) ($_GET['file_id'] ?? ''));
+    if ($fileId === '') {
+        http_response_code(404);
+        exit;
+    }
+
+    $accessToken = googleDriveAccessToken($pdo, $userId);
+    $file = googleDriveFetchFileMetadata($accessToken, $fileId);
+    $mimeType = trim((string) ($file['mimeType'] ?? ''));
+    $thumbnailUrl = normalizeHttpReferenceValue((string) ($file['thumbnailLink'] ?? ''));
+
+    if ($thumbnailUrl !== null) {
+        googleDriveProxyBinaryUrl($thumbnailUrl, $accessToken, 'image/jpeg');
+    }
+
+    if (str_starts_with(strtolower($mimeType), 'image/')) {
+        handleGoogleDriveDownload($pdo);
+    }
+
+    http_response_code(404);
     exit;
 }
 

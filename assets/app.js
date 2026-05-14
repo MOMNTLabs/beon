@@ -2512,6 +2512,13 @@ window.addEventListener("DOMContentLoaded", () => {
   const referenceMediaItemKey = (item) =>
     isGoogleDriveMediaItem(item) ? `google_drive:${item.fileId}` : String(item?.src || "").trim();
 
+  const googleDriveThumbnailProxyUrl = (fileId) => {
+    const normalizedFileId = normalizeGoogleDriveFileId(fileId);
+    return normalizedFileId
+      ? `?action=google_drive_thumbnail&file_id=${encodeURIComponent(normalizedFileId)}`
+      : "";
+  };
+
   const isVideoReferenceMediaItem = (item) =>
     String(item?.mimeType || "").toLowerCase().startsWith("video/");
 
@@ -2524,6 +2531,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const referenceMediaThumbnailUrl = (item) => {
     if (!item || typeof item !== "object") return "";
+
+    if (isGoogleDriveMediaItem(item)) {
+      const proxiedThumbnailUrl = googleDriveThumbnailProxyUrl(item.fileId);
+      if (proxiedThumbnailUrl) return proxiedThumbnailUrl;
+    }
 
     if (isVideoReferenceMediaItem(item)) {
       const thumbnailUrl = normalizeImageReference(item.thumbnailUrl || "");
@@ -2551,6 +2563,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (isVideoReferenceMediaItem(item)) {
       return normalizeHttpReference(item.downloadUrl || item.webViewLink || item.src || "");
+    }
+
+    if (isGoogleDriveMediaItem(item)) {
+      return normalizeImageReference(
+        item.downloadUrl || item.src || item.webViewLink || item.thumbnailUrl || ""
+      );
     }
 
     return normalizeImageReference(
@@ -9440,8 +9458,7 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.innerHTML = isVideoReferenceMediaItem(mediaItem)
       ? `
         <svg viewBox="0 0 20 20" focusable="false">
-          <circle cx="10" cy="10" r="6.8"></circle>
-          <path d="M8.5 7.6v4.8l4-2.4-4-2.4Z" fill="currentColor" stroke="none"></path>
+          <path d="M7.2 6.5v7l5.8-3.5-5.8-3.5Z" fill="currentColor" stroke="none"></path>
         </svg>
       `
       : `
