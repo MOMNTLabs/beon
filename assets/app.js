@@ -5759,7 +5759,7 @@ window.addEventListener("DOMContentLoaded", () => {
     field.type !== "hidden" &&
     !field.readOnly &&
     !field.disabled &&
-    ["amount_value", "total_amount_value", "opening_balance_value"].includes(field.name);
+    ["amount_value", "total_amount_value", "opening_balance_value", "paid_amount_value"].includes(field.name);
 
   const getAccountingCurrencyFieldState = (field) => {
     const allowNegative = field instanceof HTMLInputElement && field.dataset.accountingAllowNegative === "1";
@@ -5897,7 +5897,10 @@ window.addEventListener("DOMContentLoaded", () => {
     const primaryAmountField = form.querySelector("[data-accounting-primary-amount]");
     const monthlyToggle = form.querySelector("[data-accounting-monthly-toggle]");
     const monthlyFields = form.querySelector("[data-accounting-monthly-fields]");
+    const monthlyModeField = form.querySelector("[data-accounting-monthly-mode]");
+    const monthlyDayFieldWrap = form.querySelector("[data-accounting-monthly-day-field]");
     const monthlyDayField = form.querySelector("[data-accounting-monthly-day]");
+    const settledCheck = form.querySelector("[data-accounting-settled-check]");
     const typeSelect = form.querySelector("[data-accounting-type-select]");
 
     if (!(installmentToggle instanceof HTMLInputElement)) return;
@@ -5916,6 +5919,11 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const isMonthlyDue = monthlyToggle instanceof HTMLInputElement && monthlyToggle.checked;
+    const monthlyMode =
+      monthlyModeField instanceof HTMLSelectElement && monthlyModeField.value === "goal"
+        ? "goal"
+        : "uniform";
+    const isMonthlyGoal = isMonthlyDue && monthlyMode === "goal";
     if (monthlyToggle instanceof HTMLInputElement) {
       installmentToggle.disabled = isMonthlyDue;
       if (isMonthlyDue) {
@@ -5934,11 +5942,30 @@ window.addEventListener("DOMContentLoaded", () => {
     if (monthlyFields instanceof HTMLElement) {
       monthlyFields.hidden = !isMonthlyDue;
     }
+    if (monthlyModeField instanceof HTMLSelectElement) {
+      monthlyModeField.disabled = !isMonthlyDue;
+      if (isMonthlyDue && !String(monthlyModeField.value || "").trim()) {
+        monthlyModeField.value = "uniform";
+      }
+    }
+    if (monthlyDayFieldWrap instanceof HTMLElement) {
+      monthlyDayFieldWrap.hidden = !isMonthlyDue || isMonthlyGoal;
+    }
     if (monthlyDayField instanceof HTMLSelectElement) {
-      monthlyDayField.disabled = !isMonthlyDue;
-      monthlyDayField.required = isMonthlyDue;
+      monthlyDayField.disabled = !isMonthlyDue || isMonthlyGoal;
+      monthlyDayField.required = isMonthlyDue && !isMonthlyGoal;
       if (isMonthlyDue && !String(monthlyDayField.value || "").trim()) {
         monthlyDayField.value = String(new Date().getDate());
+      }
+    }
+    if (settledCheck instanceof HTMLElement) {
+      settledCheck.hidden = isMonthlyGoal;
+      const settledField = settledCheck.querySelector('input[name="is_settled"]');
+      if (settledField instanceof HTMLInputElement) {
+        settledField.disabled = isMonthlyGoal;
+        if (isMonthlyGoal) {
+          settledField.checked = false;
+        }
       }
     }
     if (monthlyToggle instanceof HTMLInputElement) {
@@ -6032,6 +6059,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     currentSheet.replaceWith(nextSheet);
+    initializeAccountingEnhancements(nextSheet);
   };
 
   const submitAccountingActionForm = async (
@@ -6140,6 +6168,64 @@ window.addEventListener("DOMContentLoaded", () => {
     entryRow.classList.remove("is-editing");
   };
 
+  const closeAccountingGoalPaymentForm = (entryRow, { reset = true } = {}) => {
+    if (!(entryRow instanceof HTMLElement)) return;
+
+    const panel = entryRow.querySelector(".accounting-entry-goal-payment-panel");
+    const toggle = panel?.querySelector("[data-accounting-goal-payment-toggle]");
+    const drawer = entryRow.querySelector(".accounting-entry-goal-payment-drawer");
+    if (!(toggle instanceof HTMLButtonElement) || !(drawer instanceof HTMLElement)) return;
+
+    if (reset) {
+      const addForm = drawer.querySelector(".accounting-entry-goal-payment-add-form");
+      if (addForm instanceof HTMLFormElement) {
+        addForm.reset();
+      }
+      const paymentField = drawer.querySelector('input[name="payment_amount_value"]');
+      if (paymentField instanceof HTMLInputElement) {
+        normalizeAccountingCurrencyInputField(paymentField);
+      }
+    }
+
+    drawer.hidden = true;
+    toggle.hidden = false;
+    entryRow.classList.remove("is-goal-paymenting");
+  };
+
+  const openAccountingGoalPaymentForm = (entryRow) => {
+    if (!(entryRow instanceof HTMLElement)) return;
+
+    const panel = entryRow.querySelector(".accounting-entry-goal-payment-panel");
+    const toggle = panel?.querySelector("[data-accounting-goal-payment-toggle]");
+    const drawer = entryRow.querySelector(".accounting-entry-goal-payment-drawer");
+    if (!(toggle instanceof HTMLButtonElement) || !(drawer instanceof HTMLElement)) return;
+
+    const sheet = entryRow.closest(".accounting-sheet");
+    if (sheet instanceof HTMLElement) {
+      sheet.querySelectorAll(".accounting-entry-row.is-editing").forEach((openRow) => {
+        if (openRow instanceof HTMLElement) {
+          closeAccountingEntryEditor(openRow);
+        }
+      });
+      sheet.querySelectorAll(".accounting-entry-row.is-goal-paymenting").forEach((openRow) => {
+        if (openRow !== entryRow && openRow instanceof HTMLElement) {
+          closeAccountingGoalPaymentForm(openRow);
+        }
+      });
+    }
+
+    toggle.hidden = true;
+    drawer.hidden = false;
+    entryRow.classList.add("is-goal-paymenting");
+    drawer.scrollIntoView({ block: "center", inline: "nearest" });
+
+    const paymentField = drawer.querySelector('input[name="payment_amount_value"]');
+    if (paymentField instanceof HTMLInputElement) {
+      paymentField.focus();
+      paymentField.select();
+    }
+  };
+
   const openAccountingEntryEditor = (entryRow) => {
     if (!(entryRow instanceof HTMLElement)) return;
 
@@ -6152,6 +6238,11 @@ window.addEventListener("DOMContentLoaded", () => {
       sheet.querySelectorAll(".accounting-entry-row.is-editing").forEach((openRow) => {
         if (openRow !== entryRow && openRow instanceof HTMLElement) {
           closeAccountingEntryEditor(openRow);
+        }
+      });
+      sheet.querySelectorAll(".accounting-entry-row.is-goal-paymenting").forEach((openRow) => {
+        if (openRow instanceof HTMLElement) {
+          closeAccountingGoalPaymentForm(openRow);
         }
       });
     }
@@ -15632,7 +15723,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (
       accountingCreateForm instanceof HTMLFormElement &&
       isAccountingCreateField &&
-      ["accounting_type_choice", "is_installment", "is_monthly_due", "installment_number", "installment_total", "total_amount_value", "amount_value", "monthly_day"].includes(target.name)
+      ["accounting_type_choice", "is_installment", "is_monthly_due", "installment_number", "installment_total", "total_amount_value", "amount_value", "monthly_day", "monthly_mode"].includes(target.name)
     ) {
       if (target.name === "is_installment" && target instanceof HTMLInputElement && target.checked) {
         const monthlyToggle = accountingCreateForm.querySelector("[data-accounting-monthly-toggle]");
@@ -15673,9 +15764,7 @@ window.addEventListener("DOMContentLoaded", () => {
       formatAccountingCurrencyInputFieldWhileTyping(target);
     }
 
-    if (
-      !["amount_value", "total_amount_value", "opening_balance_value"].includes(target.name)
-    ) {
+    if (!["amount_value", "total_amount_value", "opening_balance_value", "paid_amount_value"].includes(target.name)) {
       return;
     }
 
@@ -15766,7 +15855,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const target = getEventTargetElement(event);
     if (!(target instanceof HTMLInputElement)) return;
 
-    if (["amount_value", "total_amount_value", "opening_balance_value"].includes(target.name)) {
+    if (["amount_value", "total_amount_value", "opening_balance_value", "paid_amount_value"].includes(target.name)) {
       normalizeAccountingCurrencyInputField(target);
     }
 
@@ -15797,6 +15886,40 @@ window.addEventListener("DOMContentLoaded", () => {
 
     event.preventDefault();
     closeAccountingEntryEditor(entryRow);
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    const goalToggle = target.closest("[data-accounting-goal-payment-toggle]");
+    if (!(goalToggle instanceof HTMLButtonElement)) return;
+
+    const entryRow = goalToggle.closest(".accounting-entry-row");
+    if (!(entryRow instanceof HTMLElement)) return;
+
+    event.preventDefault();
+    const paymentDrawer = entryRow.querySelector(".accounting-entry-goal-payment-drawer");
+    if (paymentDrawer instanceof HTMLElement && !paymentDrawer.hidden) {
+      closeAccountingGoalPaymentForm(entryRow);
+      return;
+    }
+
+    openAccountingGoalPaymentForm(entryRow);
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    const cancelButton = target.closest("[data-accounting-goal-payment-close]");
+    if (!(cancelButton instanceof HTMLButtonElement)) return;
+
+    const entryRow = cancelButton.closest(".accounting-entry-row");
+    if (!(entryRow instanceof HTMLElement)) return;
+
+    event.preventDefault();
+    closeAccountingGoalPaymentForm(entryRow);
   });
 
   document.addEventListener("click", (event) => {
@@ -15853,6 +15976,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(accountingEntryForm instanceof HTMLFormElement)) {
       return;
     }
+    closeAccountingGoalPaymentForm(entryRow);
     if (accountingEntryForm.hidden) {
       openAccountingEntryEditor(entryRow);
       return;
@@ -15873,6 +15997,17 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!(openRow instanceof HTMLElement)) return;
       if (openRow.contains(target)) return;
       closeAccountingEntryEditor(openRow);
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof HTMLElement)) return;
+
+    document.querySelectorAll(".accounting-entry-row.is-goal-paymenting").forEach((openRow) => {
+      if (!(openRow instanceof HTMLElement)) return;
+      if (openRow.contains(target)) return;
+      closeAccountingGoalPaymentForm(openRow);
     });
   });
 
@@ -15943,6 +16078,33 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    if (form.matches(".accounting-entry-goal-payment-add-form")) {
+      event.preventDefault();
+      const paymentField = form.querySelector('input[name="payment_amount_value"]');
+      if (paymentField instanceof HTMLInputElement) {
+        normalizeAccountingCurrencyInputField(paymentField);
+      }
+      if (typeof form.reportValidity === "function" && !form.reportValidity()) {
+        return;
+      }
+      void submitAccountingActionForm(form, {
+        successMessage: "Pagamento adicionado.",
+        fallbackError: "Falha ao adicionar pagamento.",
+        refresh: true,
+      }).catch(() => {});
+      return;
+    }
+
+    if (form.matches(".accounting-entry-goal-payment-delete-form")) {
+      event.preventDefault();
+      void submitAccountingActionForm(form, {
+        successMessage: "Pagamento removido.",
+        fallbackError: "Falha ao remover pagamento.",
+        refresh: true,
+      }).catch(() => {});
+      return;
+    }
+
     if (form.matches(".accounting-opening-balance-form")) {
       event.preventDefault();
       const openingBalanceField = form.querySelector('input[name="opening_balance_value"]');
@@ -15962,17 +16124,62 @@ window.addEventListener("DOMContentLoaded", () => {
 
   });
 
-  document.querySelectorAll("[data-accounting-form]").forEach((form) => {
-    if (!(form instanceof HTMLFormElement)) return;
-    syncAccountingInstallmentForm(form);
-    form
-      .querySelectorAll('input[name="amount_value"], input[name="total_amount_value"], input[name="opening_balance_value"]')
-      .forEach((field) => {
+  const initializeAccountingEnhancements = (root = document) => {
+    if (!root || typeof root.querySelectorAll !== "function") return;
+
+    root.querySelectorAll("[data-accounting-form]").forEach((form) => {
+      if (!(form instanceof HTMLFormElement)) return;
+      syncAccountingInstallmentForm(form);
+      form
+        .querySelectorAll('input[name="amount_value"], input[name="total_amount_value"], input[name="opening_balance_value"], input[name="paid_amount_value"], input[name="payment_amount_value"]')
+        .forEach((field) => {
+          if (field instanceof HTMLInputElement) {
+            normalizeAccountingCurrencyInputField(field);
+          }
+        });
+    });
+
+    root.querySelectorAll(".accounting-entry-goal-payment-add-form").forEach((form) => {
+      if (!(form instanceof HTMLFormElement)) return;
+      form.querySelectorAll('input[name="payment_amount_value"]').forEach((field) => {
         if (field instanceof HTMLInputElement) {
           normalizeAccountingCurrencyInputField(field);
         }
       });
-  });
+    });
+
+    root.querySelectorAll("[data-accounting-goal-payment-toggle]").forEach((button) => {
+      if (!(button instanceof HTMLButtonElement) || button.dataset.goalPaymentBound === "1") return;
+      button.dataset.goalPaymentBound = "1";
+      button.addEventListener("click", (event) => {
+        const entryRow = button.closest(".accounting-entry-row");
+        if (!(entryRow instanceof HTMLElement)) return;
+
+        event.preventDefault();
+        const drawer = entryRow.querySelector(".accounting-entry-goal-payment-drawer");
+        if (drawer instanceof HTMLElement && !drawer.hidden) {
+          closeAccountingGoalPaymentForm(entryRow);
+          return;
+        }
+
+        openAccountingGoalPaymentForm(entryRow);
+      });
+    });
+
+    root.querySelectorAll("[data-accounting-goal-payment-close]").forEach((button) => {
+      if (!(button instanceof HTMLButtonElement) || button.dataset.goalPaymentBound === "1") return;
+      button.dataset.goalPaymentBound = "1";
+      button.addEventListener("click", (event) => {
+        const entryRow = button.closest(".accounting-entry-row");
+        if (!(entryRow instanceof HTMLElement)) return;
+
+        event.preventDefault();
+        closeAccountingGoalPaymentForm(entryRow);
+      });
+    });
+  };
+
+  initializeAccountingEnhancements(document);
 
   if (typeof syncTaskDetailModalFromUrl === "function") {
     syncTaskDetailModalFromUrl({
