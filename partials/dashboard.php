@@ -3598,6 +3598,83 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
     </section>
 </div>
 
+<div class="modal-backdrop google-drive-browser-modal-backdrop" data-google-drive-browser-modal hidden>
+    <div class="modal-scrim" data-close-google-drive-browser></div>
+    <section class="modal-card google-drive-browser-modal" role="dialog" aria-modal="true" aria-labelledby="google-drive-browser-title">
+        <header class="modal-head google-drive-browser-modal-head">
+            <div class="google-drive-browser-head-copy">
+                <h2 id="google-drive-browser-title">Google Drive</h2>
+                <p>Escolha midias por pasta, com navegacao hierarquica dentro do Bexon.</p>
+            </div>
+            <button type="button" class="modal-close-button" data-close-google-drive-browser aria-label="Fechar navegador do Google Drive">
+                <span aria-hidden="true">&#10005;</span>
+            </button>
+        </header>
+
+        <div class="google-drive-browser-modal-body">
+            <section class="google-drive-browser-roots" data-google-drive-browser-roots>
+                <button type="button" class="google-drive-browser-root-card" data-google-drive-browser-root="my_drive">
+                    <span class="google-drive-browser-root-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M10.2 4.4h8.1l3.2 5.3-2.6 4.4H7.2L4.5 9.7l3.2-5.3Z"></path>
+                            <path d="M10.2 4.4 13.5 9.7"></path>
+                            <path d="M21.5 9.7h-8"></path>
+                        </svg>
+                    </span>
+                    <span class="google-drive-browser-root-copy">
+                        <strong>Meu Drive</strong>
+                        <span>Arquivos e pastas do proprio usuario.</span>
+                    </span>
+                </button>
+
+                <button type="button" class="google-drive-browser-root-card" data-google-drive-browser-root="shared_with_me">
+                    <span class="google-drive-browser-root-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M8.2 11.3a3.3 3.3 0 1 1 0-6.6 3.3 3.3 0 0 1 0 6.6Z"></path>
+                            <path d="M16.9 12.8a2.7 2.7 0 1 1 0-5.4 2.7 2.7 0 0 1 0 5.4Z"></path>
+                            <path d="M4.1 18.7c.5-2.9 2.5-4.3 6-4.3s5.5 1.4 6 4.3"></path>
+                            <path d="M14.6 18.7c.4-1.9 1.8-2.9 4.1-2.9 1 0 1.8.2 2.6.6"></path>
+                        </svg>
+                    </span>
+                    <span class="google-drive-browser-root-copy">
+                        <strong>Compartilhados comigo</strong>
+                        <span>Itens recebidos de outras pessoas, separados da raiz pessoal.</span>
+                    </span>
+                </button>
+            </section>
+
+            <section class="google-drive-browser-explorer" data-google-drive-browser-explorer hidden>
+                <div class="google-drive-browser-toolbar">
+                    <button type="button" class="btn btn-mini btn-ghost" data-google-drive-browser-back-root>Raizes</button>
+                    <div class="google-drive-browser-breadcrumbs" data-google-drive-browser-breadcrumbs></div>
+                </div>
+
+                <div class="google-drive-browser-state" data-google-drive-browser-state hidden></div>
+
+                <div class="google-drive-browser-columns google-drive-browser-columns-head" aria-hidden="true">
+                    <span>Nome</span>
+                    <span>Proprietario</span>
+                    <span>Ultima modificacao</span>
+                </div>
+
+                <div class="google-drive-browser-list" data-google-drive-browser-list></div>
+
+                <div class="google-drive-browser-more" data-google-drive-browser-more-wrap hidden>
+                    <button type="button" class="btn btn-mini btn-ghost" data-google-drive-browser-more>Carregar mais</button>
+                </div>
+            </section>
+        </div>
+
+        <div class="modal-actions google-drive-browser-actions">
+            <span class="google-drive-browser-selection-count" data-google-drive-browser-selection-count>Nenhuma midia selecionada</span>
+            <div class="google-drive-browser-actions-buttons">
+                <button type="button" class="btn btn-mini btn-ghost" data-close-google-drive-browser>Cancelar</button>
+                <button type="button" class="btn btn-mini" data-google-drive-browser-attach disabled>Adicionar selecionadas</button>
+            </div>
+        </div>
+    </section>
+</div>
+
 <div class="modal-backdrop" data-confirm-modal hidden>
     <div class="modal-scrim" data-close-confirm-modal></div>
     <section class="modal-card confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">

@@ -16296,3 +16296,351 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
     --wf-title-graphite: #4a3510;
     --wf-divider-rgb: 215, 170, 74;
 }
+/* Native Google Drive browser for task media selection */
+.google-drive-browser-modal-backdrop {
+    z-index: 1600;
+}
+
+.google-drive-browser-modal {
+    width: min(1080px, calc(100vw - 48px));
+    max-width: 1080px;
+    max-height: min(82vh, 880px);
+    display: flex;
+    flex-direction: column;
+}
+
+.google-drive-browser-modal-head {
+    align-items: flex-start;
+    gap: 18px;
+}
+
+.google-drive-browser-head-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.google-drive-browser-head-copy p {
+    margin: 0;
+    color: var(--ui-modal-text-soft, rgba(219, 229, 244, 0.88));
+    font-size: 0.94rem;
+    line-height: 1.45;
+}
+
+.google-drive-browser-modal-body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 24px 24px;
+}
+
+.google-drive-browser-roots,
+.google-drive-browser-explorer {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.google-drive-browser-roots {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-content: start;
+}
+
+.google-drive-browser-root-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    min-height: 148px;
+    padding: 22px;
+    border-radius: 24px;
+    border: 1px solid rgba(var(--color-accent-500-rgb), 0.18);
+    background:
+        linear-gradient(160deg, rgba(17, 21, 30, 0.96), rgba(10, 13, 20, 0.98)),
+        radial-gradient(circle at top right, rgba(var(--color-accent-500-rgb), 0.16), transparent 55%);
+    color: rgba(244, 247, 255, 0.96);
+    box-shadow: 0 26px 50px rgba(0, 0, 0, 0.3);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.google-drive-browser-root-card:hover,
+.google-drive-browser-root-card:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(var(--color-accent-500-rgb), 0.34);
+    box-shadow: 0 30px 56px rgba(0, 0, 0, 0.34);
+}
+
+.google-drive-browser-root-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    border-radius: 16px;
+    border: 1px solid rgba(var(--color-accent-500-rgb), 0.2);
+    background: rgba(var(--color-accent-500-rgb), 0.12);
+    color: #ffd98a;
+}
+
+.google-drive-browser-root-icon svg {
+    width: 26px;
+    height: 26px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.55;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.google-drive-browser-root-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.google-drive-browser-root-copy strong {
+    font-size: 1.06rem;
+    color: #fff7dc;
+}
+
+.google-drive-browser-root-copy span {
+    color: rgba(219, 229, 244, 0.82);
+    line-height: 1.5;
+}
+
+.google-drive-browser-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+    align-items: center;
+    padding-bottom: 14px;
+}
+
+.google-drive-browser-breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.google-drive-browser-breadcrumb,
+.google-drive-browser-breadcrumb-current {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    line-height: 1.35;
+}
+
+.google-drive-browser-breadcrumb {
+    color: rgba(229, 236, 248, 0.8);
+    cursor: pointer;
+}
+
+.google-drive-browser-breadcrumb:hover,
+.google-drive-browser-breadcrumb:focus-visible {
+    color: #fff7dc;
+}
+
+.google-drive-browser-breadcrumb-current {
+    color: rgba(255, 247, 220, 0.98);
+    font-weight: 700;
+}
+
+.google-drive-browser-breadcrumb-separator {
+    color: rgba(194, 205, 223, 0.42);
+}
+
+.google-drive-browser-state {
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(var(--color-accent-500-rgb), 0.16);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(224, 232, 244, 0.82);
+}
+
+.google-drive-browser-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(120px, 0.7fr) minmax(120px, 0.65fr);
+    gap: 16px;
+    align-items: center;
+}
+
+.google-drive-browser-columns-head {
+    padding: 0 16px 10px;
+    color: rgba(194, 205, 223, 0.7);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.google-drive-browser-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 220px;
+    max-height: min(54vh, 520px);
+    overflow: auto;
+    padding-right: 6px;
+}
+
+.google-drive-browser-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(120px, 0.7fr) minmax(120px, 0.65fr);
+    gap: 16px;
+    align-items: center;
+    width: 100%;
+    padding: 16px 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(var(--color-accent-500-rgb), 0.12);
+    background: linear-gradient(180deg, rgba(15, 19, 27, 0.94), rgba(8, 11, 18, 0.98));
+    color: rgba(236, 241, 250, 0.94);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.google-drive-browser-item:hover,
+.google-drive-browser-item:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(var(--color-accent-500-rgb), 0.28);
+    background: linear-gradient(180deg, rgba(21, 25, 35, 0.98), rgba(11, 15, 23, 1));
+}
+
+.google-drive-browser-item.is-selected {
+    border-color: rgba(var(--color-accent-500-rgb), 0.42);
+    box-shadow: inset 0 0 0 1px rgba(var(--color-accent-500-rgb), 0.3);
+}
+
+.google-drive-browser-item-name {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.google-drive-browser-item-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.google-drive-browser-item-copy strong,
+.google-drive-browser-item-owner,
+.google-drive-browser-item-modified {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.google-drive-browser-item-copy strong {
+    color: rgba(249, 250, 255, 0.96);
+}
+
+.google-drive-browser-item-meta,
+.google-drive-browser-item-owner,
+.google-drive-browser-item-modified {
+    color: rgba(194, 205, 223, 0.76);
+    font-size: 0.88rem;
+}
+
+.google-drive-browser-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 14px;
+    border: 1px solid rgba(var(--color-accent-500-rgb), 0.14);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.google-drive-browser-item-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.55;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.google-drive-browser-item-icon.is-folder {
+    color: #f3c878;
+}
+
+.google-drive-browser-item-icon.is-image {
+    color: #7fd4c4;
+}
+
+.google-drive-browser-item-icon.is-video {
+    color: #87aaf8;
+}
+
+.google-drive-browser-more {
+    display: flex;
+    justify-content: center;
+    padding-top: 14px;
+}
+
+.google-drive-browser-actions {
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.google-drive-browser-selection-count {
+    color: rgba(224, 232, 244, 0.82);
+    font-weight: 600;
+}
+
+.google-drive-browser-actions-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+@media (max-width: 860px) {
+    .google-drive-browser-modal {
+        width: min(100vw - 20px, 1080px);
+        max-height: 90vh;
+    }
+
+    .google-drive-browser-modal-body {
+        padding: 0 16px 18px;
+    }
+
+    .google-drive-browser-roots {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .google-drive-browser-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .google-drive-browser-columns-head {
+        display: none;
+    }
+
+    .google-drive-browser-item {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .google-drive-browser-item-owner,
+    .google-drive-browser-item-modified {
+        padding-left: 56px;
+    }
+
+    .google-drive-browser-actions {
+        align-items: flex-start;
+    }
+}

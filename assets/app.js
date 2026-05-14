@@ -7616,6 +7616,19 @@ window.addEventListener("DOMContentLoaded", () => {
   const confirmModalTitle = document.querySelector("#confirm-modal-title");
   const confirmModalMessage = document.querySelector("[data-confirm-modal-message]");
   const confirmModalSubmit = document.querySelector("[data-confirm-modal-submit]");
+  const googleDriveBrowserModal = document.querySelector("[data-google-drive-browser-modal]");
+  const googleDriveBrowserRoots = document.querySelector("[data-google-drive-browser-roots]");
+  const googleDriveBrowserExplorer = document.querySelector("[data-google-drive-browser-explorer]");
+  const googleDriveBrowserBreadcrumbs = document.querySelector("[data-google-drive-browser-breadcrumbs]");
+  const googleDriveBrowserList = document.querySelector("[data-google-drive-browser-list]");
+  const googleDriveBrowserState = document.querySelector("[data-google-drive-browser-state]");
+  const googleDriveBrowserSelectionCount = document.querySelector(
+    "[data-google-drive-browser-selection-count]"
+  );
+  const googleDriveBrowserAttachButton = document.querySelector("[data-google-drive-browser-attach]");
+  const googleDriveBrowserMoreWrap = document.querySelector("[data-google-drive-browser-more-wrap]");
+  const googleDriveBrowserMoreButton = document.querySelector("[data-google-drive-browser-more]");
+  const googleDriveBrowserBackRootButton = document.querySelector("[data-google-drive-browser-back-root]");
   const groupPermissionModals = Array.from(
     document.querySelectorAll("[data-group-permissions-modal]")
   );
@@ -7629,6 +7642,14 @@ window.addEventListener("DOMContentLoaded", () => {
   let createTaskReferenceLinks = [];
   let taskDetailImagePickerExpanded = false;
   let createTaskImagePickerExpanded = false;
+  let googleDriveBrowserTarget = "";
+  let googleDriveBrowserRoot = "";
+  let googleDriveBrowserFolderId = "";
+  let googleDriveBrowserItems = [];
+  let googleDriveBrowserBreadcrumbTrail = [];
+  let googleDriveBrowserNextPageToken = "";
+  let googleDriveBrowserSelectedItems = new Map();
+  let googleDriveBrowserLoading = false;
   let createTaskSubtaskItems = [];
   let createTaskSubtasksDependencyEnabled = false;
   const TASK_TITLE_TAG_DEFAULT_PALETTE = [
@@ -9504,83 +9525,48 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  let googlePickerApiPromise = null;
-  const googleDriveMediaMimeTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/gif",
-    "image/heic",
-    "video/mp4",
-    "video/quicktime",
-    "video/webm",
-  ].join(",");
+  const googleDriveBrowserMaxSelectionCount = 20;
 
-  const loadGooglePickerApi = () => {
-    if (window.google?.picker) {
-      return Promise.resolve();
-    }
-    if (googlePickerApiPromise) {
-      return googlePickerApiPromise;
-    }
-
-    googlePickerApiPromise = new Promise((resolve, reject) => {
-      const loadPicker = () => {
-        if (!window.gapi?.load) {
-          reject(new Error("Google Picker nao carregou."));
-          return;
-        }
-        window.gapi.load("picker", {
-          callback: resolve,
-          onerror: () => reject(new Error("Nao foi possivel carregar o Google Picker.")),
-          ontimeout: () => reject(new Error("Tempo esgotado ao carregar o Google Picker.")),
-          timeout: 10000,
-        });
-      };
-
-      if (window.gapi?.load) {
-        loadPicker();
-        return;
-      }
-
-      const existingScript = document.querySelector('script[data-google-picker-api="1"]');
-      if (existingScript instanceof HTMLScriptElement) {
-        existingScript.addEventListener("load", loadPicker, { once: true });
-        existingScript.addEventListener(
-          "error",
-          () => reject(new Error("Nao foi possivel carregar o Google Picker.")),
-          { once: true }
-        );
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = "https://apis.google.com/js/api.js";
-      script.async = true;
-      script.defer = true;
-      script.dataset.googlePickerApi = "1";
-      script.addEventListener("load", loadPicker, { once: true });
-      script.addEventListener(
-        "error",
-        () => reject(new Error("Nao foi possivel carregar o Google Picker.")),
-        { once: true }
-      );
-      document.head.append(script);
-    }).catch((error) => {
-      googlePickerApiPromise = null;
-      throw error;
+  const postGoogleDriveBrowserAction = async (action, payload = {}) => {
+    const formData = new FormData();
+    formData.append("action", String(action || "").trim());
+    Object.entries(payload || {}).forEach(([key, value]) => {
+      if (!key || value === undefined || value === null) return;
+      formData.append(key, String(value));
     });
 
-    return googlePickerApiPromise;
+    const response = await fetch(window.location.pathname, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        Accept: "application/json",
+      },
+      credentials: "same-origin",
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (_error) {
+      data = null;
+    }
+
+    if (!response.ok || !data || data.ok !== true) {
+      const message = (data && (data.error || data.message)) || "Nao foi possivel concluir a operacao.";
+      throw new Error(message);
+    }
+
+    return data;
   };
 
-  const getGoogleDrivePickerSession = async () => {
+  const getGoogleDriveBrowserSession = async () => {
     const csrfToken = getTaskTitleTagCsrfToken();
     if (!csrfToken) {
       throw new Error("Sessao expirada. Recarregue a pagina.");
     }
 
-    const data = await postActionJson("google_drive_picker_token", {
+    const data = await postGoogleDriveBrowserAction("google_drive_browser_session", {
       csrf_token: csrfToken,
       next: `${window.location.pathname}${window.location.search || ""}`,
     });
@@ -9588,29 +9574,19 @@ window.addEventListener("DOMContentLoaded", () => {
     if (data.configured === false) {
       throw new Error("Configure GOOGLE_DRIVE_CLIENT_ID e GOOGLE_DRIVE_CLIENT_SECRET para usar o Drive.");
     }
-    if (data.picker_configured === false) {
-      throw new Error("Configure GOOGLE_DRIVE_API_KEY para abrir o seletor do Google Drive.");
-    }
-    if (data.connected === false) {
+    if (data.connected === false || data.reconnect_required === true) {
       const authUrl = String(data.auth_url || "").trim();
       if (authUrl) {
         window.location.href = authUrl;
         return null;
       }
-      throw new Error("Conecte o Google Drive para escolher arquivos.");
+      throw new Error("Conecte o Google Drive para navegar pelas midias.");
+    }
+    if (data.browser_ready === false) {
+      throw new Error(String(data.message || "Google Drive ainda nao esta pronto para navegacao."));
     }
 
-    const accessToken = String(data.access_token || "").trim();
-    const developerKey = String(data.developer_key || "").trim();
-    if (!accessToken || !developerKey) {
-      throw new Error("Google Drive nao retornou credenciais para abrir o seletor.");
-    }
-
-    return {
-      accessToken,
-      developerKey,
-      appId: String(data.app_id || "").trim(),
-    };
+    return data;
   };
 
   const addGoogleDriveMediaItems = async (targetName, fileIds) => {
@@ -9619,7 +9595,7 @@ window.addEventListener("DOMContentLoaded", () => {
       throw new Error("Sessao expirada. Recarregue a pagina.");
     }
 
-    const data = await postActionJson("google_drive_file_metadata", {
+    const data = await postGoogleDriveBrowserAction("google_drive_file_metadata", {
       csrf_token: csrfToken,
       file_ids: JSON.stringify(fileIds || []),
     });
@@ -9634,98 +9610,456 @@ window.addEventListener("DOMContentLoaded", () => {
     mergeCreateTaskImageItems(mediaItems);
   };
 
-  const openGoogleDrivePickerForTaskMedia = async (targetName) => {
+  const getGoogleDriveBrowserReturnTarget = () =>
+    googleDriveBrowserTarget === "task-detail" ? taskDetailDriveAddButton : createTaskDriveAddButton;
+
+  const setGoogleDriveBrowserStatus = (message, type = "info") => {
+    if (!(googleDriveBrowserState instanceof HTMLElement)) return;
+    const normalized = String(message || "").trim();
+    googleDriveBrowserState.hidden = normalized === "";
+    googleDriveBrowserState.textContent = normalized;
+    googleDriveBrowserState.dataset.stateType = normalized === "" ? "" : type;
+  };
+
+  const formatGoogleDriveBrowserDate = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return "";
+
     try {
-      const session = await getGoogleDrivePickerSession();
-      if (!session) return;
-      await loadGooglePickerApi();
+      return new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(date);
+    } catch (_error) {
+      return raw;
+    }
+  };
 
-      const pickerNamespace = window.google?.picker;
-      if (!pickerNamespace?.PickerBuilder || !pickerNamespace?.DocsView) {
-        throw new Error("Google Picker indisponivel.");
+  const createGoogleDriveBrowserIcon = (kind) => {
+    const icon = document.createElement("span");
+    icon.className = `google-drive-browser-item-icon is-${kind}`;
+    icon.setAttribute("aria-hidden", "true");
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 20 20");
+    svg.setAttribute("focusable", "false");
+
+    if (kind === "folder") {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M2.4 5.8h5.3l1.4 1.7h8.5v7.4a2 2 0 0 1-2 2H4.4a2 2 0 0 1-2-2V7.8a2 2 0 0 1 2-2Z");
+      svg.append(path);
+    } else if (kind === "video") {
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("x", "2.6");
+      rect.setAttribute("y", "4.1");
+      rect.setAttribute("width", "14.8");
+      rect.setAttribute("height", "11.8");
+      rect.setAttribute("rx", "2.2");
+      const play = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      play.setAttribute("d", "m8.3 7.2 5 2.8-5 2.8Z");
+      svg.append(rect, play);
+    } else {
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("x", "2.6");
+      rect.setAttribute("y", "3.4");
+      rect.setAttribute("width", "14.8");
+      rect.setAttribute("height", "13.2");
+      rect.setAttribute("rx", "2.2");
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", "7.4");
+      circle.setAttribute("cy", "8");
+      circle.setAttribute("r", "1.3");
+      const mountain = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      mountain.setAttribute("d", "M4.5 14.2 8.5 10l2.6 2.3 2-1.7 2.5 3.6");
+      svg.append(rect, circle, mountain);
+    }
+
+    icon.append(svg);
+    return icon;
+  };
+
+  const getGoogleDriveBrowserItemKind = (item) => {
+    if (item && item.is_folder) return "folder";
+    const mimeType = String(item?.mime_type || "").toLowerCase();
+    return mimeType.startsWith("video/") ? "video" : "image";
+  };
+
+  const syncGoogleDriveBrowserSelectionUi = () => {
+    if (googleDriveBrowserSelectionCount instanceof HTMLElement) {
+      const count = googleDriveBrowserSelectedItems.size;
+      googleDriveBrowserSelectionCount.textContent =
+        count === 0
+          ? "Nenhuma midia selecionada"
+          : count === 1
+            ? "1 midia selecionada"
+            : `${count} midias selecionadas`;
+    }
+
+    if (googleDriveBrowserAttachButton instanceof HTMLButtonElement) {
+      googleDriveBrowserAttachButton.disabled =
+        googleDriveBrowserLoading || googleDriveBrowserSelectedItems.size === 0;
+    }
+  };
+
+  const resetGoogleDriveBrowserState = () => {
+    googleDriveBrowserRoot = "";
+    googleDriveBrowserFolderId = "";
+    googleDriveBrowserItems = [];
+    googleDriveBrowserBreadcrumbTrail = [];
+    googleDriveBrowserNextPageToken = "";
+    googleDriveBrowserSelectedItems = new Map();
+    googleDriveBrowserLoading = false;
+    setGoogleDriveBrowserStatus("");
+    syncGoogleDriveBrowserSelectionUi();
+  };
+
+  const renderGoogleDriveBrowserBreadcrumbs = () => {
+    if (!(googleDriveBrowserBreadcrumbs instanceof HTMLElement)) return;
+    googleDriveBrowserBreadcrumbs.innerHTML = "";
+
+    const crumbs = Array.isArray(googleDriveBrowserBreadcrumbTrail)
+      ? googleDriveBrowserBreadcrumbTrail
+      : [];
+
+    crumbs.forEach((crumb, index) => {
+      if (index > 0) {
+        const separator = document.createElement("span");
+        separator.className = "google-drive-browser-breadcrumb-separator";
+        separator.textContent = "/";
+        googleDriveBrowserBreadcrumbs.append(separator);
       }
 
-      const buildDriveMediaView = (ownedByMe) => {
-        const driveView = new pickerNamespace.DocsView(pickerNamespace.ViewId.DOCS);
-        driveView.setIncludeFolders(true);
-        if (typeof driveView.setSelectFolderEnabled === "function") {
-          driveView.setSelectFolderEnabled(false);
-        }
-        if (typeof driveView.setOwnedByMe === "function") {
-          driveView.setOwnedByMe(Boolean(ownedByMe));
-        }
-        if (pickerNamespace.DocsViewMode?.LIST && typeof driveView.setMode === "function") {
-          driveView.setMode(pickerNamespace.DocsViewMode.LIST);
-        }
-        driveView.setMimeTypes(googleDriveMediaMimeTypes);
-        return driveView;
-      };
+      const isLast = index === crumbs.length - 1;
+      if (isLast) {
+        const label = document.createElement("span");
+        label.className = "google-drive-browser-breadcrumb-current";
+        label.textContent = String(crumb?.label || "Pasta");
+        googleDriveBrowserBreadcrumbs.append(label);
+        return;
+      }
 
-      const myDriveView = buildDriveMediaView(true);
-      const sharedWithMeView = buildDriveMediaView(false);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "google-drive-browser-breadcrumb";
+      button.dataset.googleDriveBrowserCrumbRoot = index === 0 ? "1" : "0";
+      button.dataset.googleDriveBrowserCrumbFolderId = String(crumb?.id || "");
+      button.textContent = String(crumb?.label || "Pasta");
+      googleDriveBrowserBreadcrumbs.append(button);
+    });
+  };
 
-      const pickerBuilder = new pickerNamespace.PickerBuilder()
-        .enableFeature(pickerNamespace.Feature.MULTISELECT_ENABLED)
-        .setOAuthToken(session.accessToken)
-        .setDeveloperKey(session.developerKey)
-        .setOrigin(`${window.location.protocol}//${window.location.host}`)
-        .setCallback((pickerData) => {
-          if (!pickerData || pickerData.action !== pickerNamespace.Action.PICKED) return;
-          const docs = pickerData[pickerNamespace.Response.DOCUMENTS] || pickerData.docs || [];
-          const fileIds = docs
-            .map((doc) => doc?.[pickerNamespace.Document.ID] || doc?.id || "")
-            .map(normalizeGoogleDriveFileId)
-            .filter(Boolean);
-          if (!fileIds.length) return;
-          void addGoogleDriveMediaItems(targetName, fileIds).catch((error) => {
-            showClientFlash("error", error instanceof Error ? error.message : "Falha ao adicionar arquivos do Drive.");
-          });
-        });
+  const renderGoogleDriveBrowserItems = () => {
+    if (!(googleDriveBrowserList instanceof HTMLElement)) return;
+    googleDriveBrowserList.innerHTML = "";
 
-      if (pickerNamespace.ViewGroup && typeof pickerBuilder.addViewGroup === "function") {
-        const myDriveGroup = new pickerNamespace.ViewGroup(myDriveView);
-        if (typeof myDriveGroup.addLabel === "function") {
-          myDriveGroup.addLabel("Meu Drive");
-        }
+    if (!googleDriveBrowserItems.length) {
+      setGoogleDriveBrowserStatus("Nenhuma pasta ou midia disponivel neste nivel.");
+    } else if (!googleDriveBrowserLoading) {
+      setGoogleDriveBrowserStatus("");
+    }
 
-        const sharedWithMeGroup = new pickerNamespace.ViewGroup(sharedWithMeView);
-        if (typeof sharedWithMeGroup.addLabel === "function") {
-          sharedWithMeGroup.addLabel("Compartilhados comigo");
-        }
+    googleDriveBrowserItems.forEach((item) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "google-drive-browser-item";
+      row.dataset.googleDriveBrowserItemId = String(item?.id || "");
+      row.dataset.googleDriveBrowserItemAction = item?.is_folder ? "open" : "toggle";
 
-        pickerBuilder
-          .addViewGroup(myDriveGroup)
-          .addViewGroup(sharedWithMeGroup);
+      const isSelected = googleDriveBrowserSelectedItems.has(String(item?.id || ""));
+      if (isSelected) {
+        row.classList.add("is-selected");
+      }
+      if (item?.is_folder) {
+        row.classList.add("is-folder");
+        row.setAttribute("aria-label", `Abrir pasta ${String(item?.name || "Pasta")}`);
       } else {
-        pickerBuilder.addView(myDriveView);
+        row.classList.add("is-file");
+        row.setAttribute("aria-pressed", isSelected ? "true" : "false");
+        row.setAttribute("aria-label", `${isSelected ? "Remover" : "Selecionar"} ${String(item?.name || "arquivo")}`);
       }
 
-      if (typeof pickerBuilder.setTitle === "function") {
-        pickerBuilder.setTitle("Selecionar midias do Google Drive");
-      }
+      const nameColumn = document.createElement("span");
+      nameColumn.className = "google-drive-browser-item-name";
+      nameColumn.append(createGoogleDriveBrowserIcon(getGoogleDriveBrowserItemKind(item)));
 
-      if (typeof pickerBuilder.setLocale === "function") {
-        pickerBuilder.setLocale(
-          (Array.isArray(navigator.languages) && navigator.languages[0])
-            || document.documentElement.lang
-            || navigator.language
-            || "pt-BR"
+      const copy = document.createElement("span");
+      copy.className = "google-drive-browser-item-copy";
+      const title = document.createElement("strong");
+      title.textContent = String(item?.name || "Arquivo");
+      const meta = document.createElement("span");
+      meta.className = "google-drive-browser-item-meta";
+      meta.textContent = item?.is_folder
+        ? "Pasta"
+        : getGoogleDriveBrowserItemKind(item) === "video"
+          ? "Video"
+          : "Imagem";
+      if (isSelected && !item?.is_folder) {
+        meta.textContent += " selecionada";
+      } else if (item?.shared) {
+        meta.textContent += " compartilhado";
+      }
+      copy.append(title, meta);
+      nameColumn.append(copy);
+
+      const ownerColumn = document.createElement("span");
+      ownerColumn.className = "google-drive-browser-item-owner";
+      ownerColumn.textContent = String(item?.owner || "");
+
+      const modifiedColumn = document.createElement("span");
+      modifiedColumn.className = "google-drive-browser-item-modified";
+      modifiedColumn.textContent = formatGoogleDriveBrowserDate(item?.modified_at);
+
+      row.append(nameColumn, ownerColumn, modifiedColumn);
+      googleDriveBrowserList.append(row);
+    });
+
+    if (googleDriveBrowserMoreWrap instanceof HTMLElement) {
+      googleDriveBrowserMoreWrap.hidden = !googleDriveBrowserNextPageToken;
+    }
+    syncGoogleDriveBrowserSelectionUi();
+  };
+
+  const showGoogleDriveBrowserRoots = () => {
+    if (googleDriveBrowserRoots instanceof HTMLElement) {
+      googleDriveBrowserRoots.hidden = false;
+    }
+    if (googleDriveBrowserExplorer instanceof HTMLElement) {
+      googleDriveBrowserExplorer.hidden = true;
+    }
+    setGoogleDriveBrowserStatus("");
+  };
+
+  const showGoogleDriveBrowserExplorer = () => {
+    if (googleDriveBrowserRoots instanceof HTMLElement) {
+      googleDriveBrowserRoots.hidden = true;
+    }
+    if (googleDriveBrowserExplorer instanceof HTMLElement) {
+      googleDriveBrowserExplorer.hidden = false;
+    }
+  };
+
+  const loadGoogleDriveBrowserLocation = async (
+    root,
+    folderId = "",
+    { append = false, pageToken = "" } = {}
+  ) => {
+    if (!root) return;
+    const csrfToken = getTaskTitleTagCsrfToken();
+    if (!csrfToken) {
+      throw new Error("Sessao expirada. Recarregue a pagina.");
+    }
+
+    googleDriveBrowserLoading = true;
+    setGoogleDriveBrowserStatus("Carregando Google Drive...");
+    syncGoogleDriveBrowserSelectionUi();
+
+    try {
+      const data = await postGoogleDriveBrowserAction("google_drive_browser_list", {
+        csrf_token: csrfToken,
+        root,
+        folder_id: folderId,
+        page_token: pageToken,
+      });
+
+      googleDriveBrowserRoot = String(data.root || root).trim() || "my_drive";
+      googleDriveBrowserFolderId = String(data.folder_id || "").trim();
+      googleDriveBrowserBreadcrumbTrail = Array.isArray(data.breadcrumbs) ? data.breadcrumbs : [];
+      googleDriveBrowserNextPageToken = String(data.next_page_token || "").trim();
+
+      const incomingItems = Array.isArray(data.items) ? data.items : [];
+      if (append) {
+        const deduped = new Map(
+          [...googleDriveBrowserItems, ...incomingItems].map((item) => [String(item?.id || ""), item])
         );
+        googleDriveBrowserItems = Array.from(deduped.values()).filter((item) => item && item.id);
+      } else {
+        googleDriveBrowserItems = incomingItems;
       }
 
-      if (typeof pickerBuilder.setSize === "function") {
-        pickerBuilder.setSize(980, 650);
+      renderGoogleDriveBrowserBreadcrumbs();
+      renderGoogleDriveBrowserItems();
+      showGoogleDriveBrowserExplorer();
+    } catch (error) {
+      setGoogleDriveBrowserStatus(
+        error instanceof Error ? error.message : "Falha ao carregar Google Drive.",
+        "error"
+      );
+      throw error;
+    } finally {
+      googleDriveBrowserLoading = false;
+      if (googleDriveBrowserMoreButton instanceof HTMLButtonElement) {
+        googleDriveBrowserMoreButton.disabled = false;
+        googleDriveBrowserMoreButton.classList.remove("is-loading");
+      }
+      syncGoogleDriveBrowserSelectionUi();
+    }
+  };
+
+  const toggleGoogleDriveBrowserSelection = (itemId) => {
+    const normalizedId = normalizeGoogleDriveFileId(itemId);
+    if (!normalizedId) return;
+
+    if (googleDriveBrowserSelectedItems.has(normalizedId)) {
+      googleDriveBrowserSelectedItems.delete(normalizedId);
+      renderGoogleDriveBrowserItems();
+      return;
+    }
+
+    if (googleDriveBrowserSelectedItems.size >= googleDriveBrowserMaxSelectionCount) {
+      showClientFlash("error", `Selecione no maximo ${googleDriveBrowserMaxSelectionCount} midias por vez.`);
+      return;
+    }
+
+    const selectedItem = googleDriveBrowserItems.find((item) => String(item?.id || "") === normalizedId);
+    if (!selectedItem || selectedItem.is_folder) {
+      return;
+    }
+
+    googleDriveBrowserSelectedItems.set(normalizedId, selectedItem);
+    renderGoogleDriveBrowserItems();
+  };
+
+  const closeGoogleDriveBrowserModal = () => {
+    if (!(googleDriveBrowserModal instanceof HTMLElement)) return;
+    googleDriveBrowserModal.hidden = true;
+    resetGoogleDriveBrowserState();
+    showGoogleDriveBrowserRoots();
+    syncBodyModalLock();
+    const returnTarget = getGoogleDriveBrowserReturnTarget();
+    if (returnTarget instanceof HTMLElement) {
+      window.setTimeout(() => returnTarget.focus(), 20);
+    }
+  };
+
+  const openGoogleDriveBrowserModal = async (targetName) => {
+    try {
+      const session = await getGoogleDriveBrowserSession();
+      if (!session) return;
+
+      googleDriveBrowserTarget = targetName;
+      resetGoogleDriveBrowserState();
+      showGoogleDriveBrowserRoots();
+
+      if (!(googleDriveBrowserModal instanceof HTMLElement)) {
+        throw new Error("Modal do Google Drive indisponivel.");
       }
 
-      if (session.appId) {
-        pickerBuilder.setAppId(session.appId);
-      }
+      googleDriveBrowserModal.hidden = false;
+      syncBodyModalLock();
 
-      pickerBuilder.build().setVisible(true);
+      const firstRootButton = googleDriveBrowserModal.querySelector("[data-google-drive-browser-root]");
+      if (firstRootButton instanceof HTMLElement) {
+        window.setTimeout(() => firstRootButton.focus(), 20);
+      }
     } catch (error) {
       showClientFlash("error", error instanceof Error ? error.message : "Falha ao abrir Google Drive.");
     }
   };
+
+  const attachGoogleDriveBrowserSelection = async () => {
+    if (googleDriveBrowserLoading || googleDriveBrowserSelectedItems.size === 0) return;
+    const targetName = googleDriveBrowserTarget;
+    const fileIds = Array.from(googleDriveBrowserSelectedItems.keys());
+
+    if (googleDriveBrowserAttachButton instanceof HTMLButtonElement) {
+      googleDriveBrowserAttachButton.disabled = true;
+      googleDriveBrowserAttachButton.classList.add("is-loading");
+      googleDriveBrowserAttachButton.textContent = "Adicionando";
+    }
+
+    try {
+      await addGoogleDriveMediaItems(targetName, fileIds);
+      closeGoogleDriveBrowserModal();
+    } finally {
+      if (googleDriveBrowserAttachButton instanceof HTMLButtonElement) {
+        googleDriveBrowserAttachButton.disabled = false;
+        googleDriveBrowserAttachButton.classList.remove("is-loading");
+        googleDriveBrowserAttachButton.textContent = "Adicionar selecionadas";
+      }
+    }
+  };
+
+  if (googleDriveBrowserModal instanceof HTMLElement) {
+    googleDriveBrowserModal.addEventListener("click", (event) => {
+      const target = getEventTargetElement(event);
+      if (!(target instanceof HTMLElement)) return;
+      if (googleDriveBrowserLoading) return;
+
+      const rootTrigger = target.closest("[data-google-drive-browser-root]");
+      if (rootTrigger instanceof HTMLElement) {
+        const nextRoot = String(rootTrigger.dataset.googleDriveBrowserRoot || "").trim();
+        if (!nextRoot) return;
+        void loadGoogleDriveBrowserLocation(nextRoot).catch((error) => {
+          showClientFlash("error", error instanceof Error ? error.message : "Falha ao carregar Google Drive.");
+        });
+        return;
+      }
+
+      const crumbTrigger = target.closest("[data-google-drive-browser-crumb-root], [data-google-drive-browser-crumb-folder-id]");
+      if (crumbTrigger instanceof HTMLElement) {
+        const isRootCrumb = crumbTrigger.dataset.googleDriveBrowserCrumbRoot === "1";
+        const nextFolderId = isRootCrumb ? "" : String(crumbTrigger.dataset.googleDriveBrowserCrumbFolderId || "");
+        void loadGoogleDriveBrowserLocation(googleDriveBrowserRoot, nextFolderId).catch((error) => {
+          showClientFlash("error", error instanceof Error ? error.message : "Falha ao abrir a pasta.");
+        });
+        return;
+      }
+
+      const rowTrigger = target.closest("[data-google-drive-browser-item-id]");
+      if (rowTrigger instanceof HTMLElement) {
+        const action = String(rowTrigger.dataset.googleDriveBrowserItemAction || "").trim();
+        const itemId = String(rowTrigger.dataset.googleDriveBrowserItemId || "").trim();
+        if (action === "open") {
+          void loadGoogleDriveBrowserLocation(googleDriveBrowserRoot, itemId).catch((error) => {
+            showClientFlash("error", error instanceof Error ? error.message : "Falha ao abrir a pasta.");
+          });
+          return;
+        }
+        toggleGoogleDriveBrowserSelection(itemId);
+        return;
+      }
+    });
+  }
+
+  if (googleDriveBrowserBackRootButton instanceof HTMLButtonElement) {
+    googleDriveBrowserBackRootButton.addEventListener("click", () => {
+      googleDriveBrowserRoot = "";
+      googleDriveBrowserFolderId = "";
+      googleDriveBrowserItems = [];
+      googleDriveBrowserBreadcrumbTrail = [];
+      googleDriveBrowserNextPageToken = "";
+      renderGoogleDriveBrowserBreadcrumbs();
+      renderGoogleDriveBrowserItems();
+      showGoogleDriveBrowserRoots();
+    });
+  }
+
+  if (googleDriveBrowserMoreButton instanceof HTMLButtonElement) {
+    googleDriveBrowserMoreButton.addEventListener("click", () => {
+      if (!googleDriveBrowserRoot || !googleDriveBrowserNextPageToken || googleDriveBrowserLoading) {
+        return;
+      }
+
+      googleDriveBrowserMoreButton.disabled = true;
+      googleDriveBrowserMoreButton.classList.add("is-loading");
+      void loadGoogleDriveBrowserLocation(googleDriveBrowserRoot, googleDriveBrowserFolderId, {
+        append: true,
+        pageToken: googleDriveBrowserNextPageToken,
+      }).catch((error) => {
+        showClientFlash("error", error instanceof Error ? error.message : "Falha ao carregar mais arquivos.");
+      });
+    });
+  }
+
+  if (googleDriveBrowserAttachButton instanceof HTMLButtonElement) {
+    googleDriveBrowserAttachButton.addEventListener("click", () => {
+      void attachGoogleDriveBrowserSelection().catch((error) => {
+        showClientFlash("error", error instanceof Error ? error.message : "Falha ao adicionar arquivos do Drive.");
+      });
+    });
+  }
 
   if (createTaskOpenMediaButton instanceof HTMLButtonElement) {
     createTaskOpenMediaButton.addEventListener("click", () => {
@@ -9768,7 +10102,7 @@ window.addEventListener("DOMContentLoaded", () => {
     taskDetailDriveAddButton.addEventListener("click", () => {
       taskDetailImagePickerExpanded = true;
       syncTaskDetailImagePickerLayout();
-      void openGoogleDrivePickerForTaskMedia("task-detail");
+      void openGoogleDriveBrowserModal("task-detail");
     });
   }
 
@@ -9776,7 +10110,7 @@ window.addEventListener("DOMContentLoaded", () => {
     createTaskDriveAddButton.addEventListener("click", () => {
       createTaskImagePickerExpanded = true;
       syncCreateTaskImagePickerLayout();
-      void openGoogleDrivePickerForTaskMedia("create");
+      void openGoogleDriveBrowserModal("create");
     });
   }
 
@@ -11449,6 +11783,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskDetailModal,
       taskReviewModal,
       taskImagePreviewModal,
+      googleDriveBrowserModal,
       confirmModal,
       ...groupPermissionModals,
     ].some(
@@ -13204,6 +13539,12 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const closeGoogleDriveBrowserTrigger = target.closest("[data-close-google-drive-browser]");
+    if (closeGoogleDriveBrowserTrigger) {
+      closeGoogleDriveBrowserModal();
+      return;
+    }
+
     const closeConfirmTrigger = target.closest("[data-close-confirm-modal]");
     if (closeConfirmTrigger) {
       closeConfirmModal();
@@ -13313,6 +13654,11 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (event.key !== "Escape") return;
+
+    if (googleDriveBrowserModal && !googleDriveBrowserModal.hidden) {
+      closeGoogleDriveBrowserModal();
+      return;
+    }
 
     if (fabWrap?.classList.contains("is-open")) {
       setFabMenuOpen(false);

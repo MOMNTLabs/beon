@@ -11,16 +11,6 @@ function googleDriveClientSecret(): string
     return trim((string) (envValue('GOOGLE_DRIVE_CLIENT_SECRET') ?? envValue('GOOGLE_CLIENT_SECRET') ?? envValue('GOOGLE_OAUTH_CLIENT_SECRET') ?? ''));
 }
 
-function googleDriveApiKey(): string
-{
-    return trim((string) (envValue('GOOGLE_DRIVE_API_KEY') ?? envValue('GOOGLE_API_KEY') ?? ''));
-}
-
-function googleDriveAppId(): string
-{
-    return trim((string) (envValue('GOOGLE_DRIVE_APP_ID') ?? envValue('GOOGLE_CLOUD_PROJECT_NUMBER') ?? ''));
-}
-
 function googleDriveRedirectUri(): string
 {
     $configured = trim((string) (envValue('GOOGLE_DRIVE_REDIRECT_URI') ?? ''));
@@ -56,17 +46,12 @@ function googleDriveShouldHandleSharedCallback(string $state): bool
 
 function googleDriveScopes(): string
 {
-    return trim((string) (envValue('GOOGLE_DRIVE_SCOPES') ?? 'https://www.googleapis.com/auth/drive.file'));
+    return trim((string) (envValue('GOOGLE_DRIVE_SCOPES') ?? 'https://www.googleapis.com/auth/drive.readonly'));
 }
 
 function googleDriveOAuthConfigured(): bool
 {
     return googleDriveClientId() !== '' && googleDriveClientSecret() !== '';
-}
-
-function googleDrivePickerConfigured(): bool
-{
-    return googleDriveApiKey() !== '';
 }
 
 function googleDriveIssueState(string $nextPath): string
@@ -139,6 +124,42 @@ function googleDriveConnected(PDO $pdo, int $userId): bool
 {
     $row = googleDriveTokenRow($pdo, $userId);
     return is_array($row) && trim((string) ($row['refresh_token'] ?? '')) !== '';
+}
+
+function googleDriveGrantedScopes(?array $tokenRow): array
+{
+    $raw = trim((string) ($tokenRow['scope'] ?? ''));
+    if ($raw === '') {
+        return [];
+    }
+
+    $parts = preg_split('/\s+/', $raw) ?: [];
+    $scopes = [];
+    foreach ($parts as $part) {
+        $scope = trim((string) $part);
+        if ($scope === '') {
+            continue;
+        }
+        $scopes[$scope] = true;
+    }
+
+    return array_keys($scopes);
+}
+
+function googleDriveTokenSupportsBrowser(?array $tokenRow): bool
+{
+    $grantedScopes = googleDriveGrantedScopes($tokenRow);
+    if ($grantedScopes === []) {
+        return false;
+    }
+
+    foreach ($grantedScopes as $scope) {
+        if ($scope === 'https://www.googleapis.com/auth/drive' || $scope === 'https://www.googleapis.com/auth/drive.readonly') {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function googleDriveEnsureSchema(PDO $pdo): void
@@ -289,6 +310,206 @@ function googleDriveNormalizeFileId(string $fileId): string
 {
     $fileId = trim($fileId);
     return preg_match('/^[A-Za-z0-9_-]{6,220}$/', $fileId) === 1 ? $fileId : '';
+}
+
+function googleDriveEscapeQueryValue(string $value): string
+{
+    return str_replace(["\\", "'"], ["\\\\", "\\'"], trim($value));
+}
+
+function googleDriveIsFolderMimeType(string $mimeType): bool
+{
+    return trim($mimeType) === 'application/vnd.google-apps.folder';
+}
+
+function googleDriveIsMediaMimeType(string $mimeType): bool
+{
+    $normalized = strtolower(trim($mimeType));
+    return str_starts_with($normalized, 'image/') || str_starts_with($normalized, 'video/');
+}
+
+function googleDriveBrowserItemAllowed(array $file): bool
+{
+    $mimeType = trim((string) ($file['mimeType'] ?? ''));
+    return googleDriveIsFolderMimeType($mimeType) || googleDriveIsMediaMimeType($mimeType);
+}
+
+function googleDriveFetchBrowserFolder(string $accessToken, string $fileId): array
+{
+    $fileId = googleDriveNormalizeFileId($fileId);
+    if ($fileId === '') {
+        throw new RuntimeException('Pasta do Google Drive invalida.');
+    }
+
+    $file = googleDriveApiJson(
+        'GET',
+        'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId),
+        $accessToken,
+        [
+            'fields' => 'id,name,mimeType,parents',
+            'supportsAllDrives' => 'true',
+        ],
+        'Nao foi possivel abrir a pasta do Google Drive.'
+    );
+
+    if (!googleDriveIsFolderMimeType((string) ($file['mimeType'] ?? ''))) {
+        throw new RuntimeException('O item selecionado nao e uma pasta do Google Drive.');
+    }
+
+    return $file;
+}
+
+function googleDriveBrowserRootLabel(string $root): string
+{
+    return $root === 'shared_with_me' ? 'Compartilhados comigo' : 'Meu Drive';
+}
+
+function googleDriveBuildBrowserBreadcrumb(string $accessToken, string $root, string $folderId = ''): array
+{
+    $trail = [[
+        'id' => '',
+        'label' => googleDriveBrowserRootLabel($root),
+    ]];
+
+    $folderId = googleDriveNormalizeFileId($folderId);
+    if ($folderId === '') {
+        return $trail;
+    }
+
+    $chain = [];
+    $visited = [];
+    $cursor = $folderId;
+    for ($depth = 0; $depth < 12 && $cursor !== ''; $depth++) {
+        if (isset($visited[$cursor])) {
+            break;
+        }
+        $visited[$cursor] = true;
+
+        $folder = googleDriveFetchBrowserFolder($accessToken, $cursor);
+        $chain[] = [
+            'id' => $cursor,
+            'label' => trim((string) ($folder['name'] ?? 'Pasta')),
+        ];
+
+        $parents = $folder['parents'] ?? [];
+        if (!is_array($parents) || $parents === []) {
+            break;
+        }
+
+        $nextParent = googleDriveNormalizeFileId((string) ($parents[0] ?? ''));
+        if ($nextParent === '' || $nextParent === 'root') {
+            break;
+        }
+        $cursor = $nextParent;
+    }
+
+    if ($chain !== []) {
+        $trail = array_merge($trail, array_reverse($chain));
+    }
+
+    return $trail;
+}
+
+function googleDriveNormalizeBrowserItem(array $file): array
+{
+    $fileId = googleDriveNormalizeFileId((string) ($file['id'] ?? ''));
+    if ($fileId === '') {
+        throw new RuntimeException('Arquivo do Google Drive invalido.');
+    }
+
+    $mimeType = trim((string) ($file['mimeType'] ?? ''));
+    $isFolder = googleDriveIsFolderMimeType($mimeType);
+    $ownerLabel = '';
+    $owners = $file['owners'] ?? [];
+    if (is_array($owners) && isset($owners[0]) && is_array($owners[0])) {
+        $ownerLabel = trim((string) ($owners[0]['displayName'] ?? ''));
+    }
+
+    $item = [
+        'id' => $fileId,
+        'name' => trim((string) ($file['name'] ?? 'Arquivo')),
+        'mime_type' => $mimeType,
+        'is_folder' => $isFolder,
+        'can_select' => !$isFolder && googleDriveIsMediaMimeType($mimeType),
+        'owner' => $ownerLabel,
+        'modified_at' => trim((string) ($file['modifiedTime'] ?? '')),
+        'shared' => !empty($file['shared']),
+    ];
+
+    if (!$isFolder) {
+        $item['download_url'] = appUrl('?action=google_drive_download&file_id=' . rawurlencode($fileId));
+        $thumbnailUrl = normalizeHttpReferenceValue((string) ($file['thumbnailLink'] ?? ''));
+        if ($thumbnailUrl !== null) {
+            $item['thumbnail_url'] = $thumbnailUrl;
+        }
+    }
+
+    return $item;
+}
+
+function googleDriveListBrowserItems(string $accessToken, string $root, string $folderId = '', string $search = '', string $pageToken = ''): array
+{
+    $root = $root === 'shared_with_me' ? 'shared_with_me' : 'my_drive';
+    $folderId = googleDriveNormalizeFileId($folderId);
+    $search = trim($search);
+    $pageToken = trim($pageToken);
+
+    $conditions = ['trashed = false'];
+    if ($folderId !== '') {
+        $conditions[] = "'" . googleDriveEscapeQueryValue($folderId) . "' in parents";
+    } elseif ($root === 'shared_with_me') {
+        $conditions[] = 'sharedWithMe = true';
+    } else {
+        $conditions[] = "'root' in parents";
+    }
+
+    if ($search !== '') {
+        $conditions[] = "name contains '" . googleDriveEscapeQueryValue(mb_substr($search, 0, 80)) . "'";
+    }
+
+    $payload = [
+        'q' => implode(' and ', $conditions),
+        'fields' => 'nextPageToken,files(id,name,mimeType,parents,thumbnailLink,modifiedTime,owners(displayName),shared)',
+        'pageSize' => '100',
+        'supportsAllDrives' => 'true',
+        'includeItemsFromAllDrives' => 'true',
+        'spaces' => 'drive',
+        'corpora' => 'user',
+    ];
+    if ($pageToken !== '') {
+        $payload['pageToken'] = $pageToken;
+    }
+
+    $response = googleDriveApiJson(
+        'GET',
+        'https://www.googleapis.com/drive/v3/files',
+        $accessToken,
+        $payload,
+        'Nao foi possivel listar os arquivos do Google Drive.'
+    );
+
+    $files = [];
+    foreach (($response['files'] ?? []) as $rawFile) {
+        if (!is_array($rawFile) || !googleDriveBrowserItemAllowed($rawFile)) {
+            continue;
+        }
+        $files[] = googleDriveNormalizeBrowserItem($rawFile);
+    }
+
+    usort($files, static function (array $left, array $right): int {
+        $leftFolder = !empty($left['is_folder']);
+        $rightFolder = !empty($right['is_folder']);
+        if ($leftFolder !== $rightFolder) {
+            return $leftFolder ? -1 : 1;
+        }
+
+        return strnatcasecmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+    });
+
+    return [
+        'items' => $files,
+        'next_page_token' => trim((string) ($response['nextPageToken'] ?? '')),
+    ];
 }
 
 function googleDriveFetchFileMetadata(string $accessToken, string $fileId): array
@@ -513,47 +734,80 @@ function handleGoogleDriveDownload(PDO $pdo): void
 function handleGoogleDrivePostAction(PDO $pdo, string $action): bool
 {
     switch ($action) {
-        case 'google_drive_picker_token':
+        case 'google_drive_browser_session':
             $authUser = requireAuth();
             $userId = (int) ($authUser['id'] ?? 0);
+            $nextPath = (string) ($_POST['next'] ?? dashboardPath('tasks'));
             if (!googleDriveOAuthConfigured()) {
                 respondJson([
                     'ok' => true,
                     'configured' => false,
                     'connected' => false,
-                    'picker_configured' => googleDrivePickerConfigured(),
+                    'browser_ready' => false,
                     'error' => 'Google Drive ainda nao configurado.',
                 ]);
             }
-            if (!googleDrivePickerConfigured()) {
-                respondJson([
-                    'ok' => true,
-                    'configured' => true,
-                    'connected' => googleDriveConnected($pdo, $userId),
-                    'picker_configured' => false,
-                    'auth_url' => googleDriveAuthUrl((string) ($_POST['next'] ?? dashboardPath('tasks'))),
-                ]);
-            }
-            if (!googleDriveConnected($pdo, $userId)) {
+
+            $tokenRow = googleDriveTokenRow($pdo, $userId);
+            if (!is_array($tokenRow) || !googleDriveConnected($pdo, $userId)) {
                 respondJson([
                     'ok' => true,
                     'configured' => true,
                     'connected' => false,
-                    'picker_configured' => true,
-                    'auth_url' => googleDriveAuthUrl((string) ($_POST['next'] ?? dashboardPath('tasks'))),
+                    'browser_ready' => false,
+                    'auth_url' => googleDriveAuthUrl($nextPath),
                 ]);
             }
 
-            $accessToken = googleDriveAccessToken($pdo, $userId);
+            if (!googleDriveTokenSupportsBrowser($tokenRow)) {
+                respondJson([
+                    'ok' => true,
+                    'configured' => true,
+                    'connected' => true,
+                    'browser_ready' => false,
+                    'reconnect_required' => true,
+                    'auth_url' => googleDriveAuthUrl($nextPath),
+                    'message' => 'Reconecte o Google Drive para autorizar a navegacao completa por pastas.',
+                ]);
+            }
+
             respondJson([
                 'ok' => true,
                 'configured' => true,
                 'connected' => true,
-                'picker_configured' => true,
-                'access_token' => $accessToken,
-                'developer_key' => googleDriveApiKey(),
-                'app_id' => googleDriveAppId(),
-                'scope' => googleDriveScopes(),
+                'browser_ready' => true,
+            ]);
+
+        case 'google_drive_browser_list':
+            $authUser = requireAuth();
+            $userId = (int) ($authUser['id'] ?? 0);
+            $tokenRow = googleDriveTokenRow($pdo, $userId);
+            if (!is_array($tokenRow) || !googleDriveConnected($pdo, $userId)) {
+                throw new RuntimeException('Conecte o Google Drive para navegar pelas midias.');
+            }
+            if (!googleDriveTokenSupportsBrowser($tokenRow)) {
+                throw new RuntimeException('Reconecte o Google Drive para autorizar a navegacao completa por pastas.');
+            }
+
+            $root = trim((string) ($_POST['root'] ?? ''));
+            $root = $root === 'shared_with_me' ? 'shared_with_me' : 'my_drive';
+            $folderId = googleDriveNormalizeFileId((string) ($_POST['folder_id'] ?? ''));
+            $search = trim((string) ($_POST['search'] ?? ''));
+            $pageToken = trim((string) ($_POST['page_token'] ?? ''));
+
+            $accessToken = googleDriveAccessToken($pdo, $userId);
+            if ($folderId !== '') {
+                googleDriveFetchBrowserFolder($accessToken, $folderId);
+            }
+
+            $listing = googleDriveListBrowserItems($accessToken, $root, $folderId, $search, $pageToken);
+            respondJson([
+                'ok' => true,
+                'root' => $root,
+                'folder_id' => $folderId,
+                'breadcrumbs' => googleDriveBuildBrowserBreadcrumb($accessToken, $root, $folderId),
+                'items' => $listing['items'],
+                'next_page_token' => $listing['next_page_token'],
             ]);
 
         case 'google_drive_file_metadata':

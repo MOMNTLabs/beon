@@ -36,11 +36,16 @@ Variaveis comuns:
 ```env
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
-GOOGLE_DRIVE_API_KEY=...
+GOOGLE_DRIVE_SCOPES=https://www.googleapis.com/auth/drive.readonly
 
 # opcional: so use se quiser um callback exclusivo para o Drive
 GOOGLE_DRIVE_REDIRECT_URI=https://app.bexon.com.br/?action=google_drive_callback
 ```
+
+Notas:
+
+- O navegador proprio do Google Drive no Bexon nao precisa mais de `GOOGLE_DRIVE_API_KEY` nem `GOOGLE_DRIVE_APP_ID`.
+- Se usuarios antigos tiverem conectado o Drive com `drive.file`, sera preciso reconectar para liberar a navegacao completa por pastas.
 
 Callbacks autorizados no Google Cloud:
 
