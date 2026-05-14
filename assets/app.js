@@ -16191,6 +16191,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (!(entryRow instanceof HTMLElement)) return;
 
         event.preventDefault();
+        event.stopPropagation();
         const drawer = entryRow.querySelector(".accounting-entry-goal-payment-drawer");
         if (drawer instanceof HTMLElement && !drawer.hidden) {
           closeAccountingGoalPaymentForm(entryRow);
@@ -16209,6 +16210,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (!(entryRow instanceof HTMLElement)) return;
 
         event.preventDefault();
+        event.stopPropagation();
         closeAccountingGoalPaymentForm(entryRow);
       });
     });
