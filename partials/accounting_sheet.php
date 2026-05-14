@@ -4,14 +4,14 @@
                         <header class="accounting-card-head">
                             <div class="accounting-card-head-text">
                                 <h3>Contas</h3>
-                                <p>Despesas do mes</p>
+                                <p>Despesas do mês</p>
                             </div>
                             <span><?= e(appItemCountLabel(count($accountingExpenseEntries))) ?></span>
                         </header>
 
                         <div class="accounting-entries">
                             <?php if (empty($accountingExpenseEntries)): ?>
-                                <div class="accounting-empty">Nenhuma conta cadastrada neste mes.</div>
+                                <div class="accounting-empty">Nenhuma conta cadastrada neste mês.</div>
                             <?php else: ?>
                                 <?php foreach ($accountingExpenseEntries as $accountingEntry): ?>
                                     <?php
@@ -119,14 +119,14 @@
                                             <div class="accounting-entry-goal-payment-drawer" data-accounting-goal-payment-drawer hidden>
                                                 <div class="accounting-entry-goal-payment-drawer-head">
                                                     <div class="accounting-entry-goal-payment-drawer-copy">
-                                                        <strong>Lancamentos do mes</strong>
-                                                        <span>A soma abaixo define o valor pago no mes.</span>
+                                                        <strong>Lançamentos do mês</strong>
+                                                        <span>A soma abaixo define o valor pago no mês.</span>
                                                     </div>
                                                     <button
                                                         type="button"
                                                         class="accounting-entry-goal-payment-close"
                                                         data-accounting-goal-payment-close
-                                                        aria-label="Fechar lancamentos do mes"
+                                                        aria-label="Fechar lançamentos do mês"
                                                     >
                                                         <span aria-hidden="true">&times;</span>
                                                     </button>
@@ -173,7 +173,7 @@
                                                                     <button
                                                                         type="submit"
                                                                         class="accounting-entry-goal-payment-delete"
-                                                                        aria-label="Remover lancamento de <?= e($goalPaymentHistoryAmountDisplay) ?>"
+                                                                        aria-label="Remover lançamento de <?= e($goalPaymentHistoryAmountDisplay) ?>"
                                                                     >
                                                                         <span aria-hidden="true">&times;</span>
                                                                     </button>
@@ -181,7 +181,7 @@
                                                             </div>
                                                         <?php endforeach; ?>
                                                     <?php else: ?>
-                                                        <p class="accounting-entry-goal-payment-empty">Nenhum valor lancado neste mes.</p>
+                                                        <p class="accounting-entry-goal-payment-empty">Nenhum valor lançado neste mês.</p>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
@@ -243,7 +243,7 @@
                                             <?php if ($accountingEntryIsMonthlyGoal || $accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment || $accountingEntryShowPendingBadge): ?>
                                                 <div class="accounting-entry-meta">
                                                     <?php if ($accountingEntryIsMonthlyGoal): ?>
-                                                        <span class="accounting-entry-goal-status">Os pagamentos do mes sao lancados no icone de lapis.</span>
+                                                        <span class="accounting-entry-goal-status">Os pagamentos do mês são lançados no ícone de lápis.</span>
                                                     <?php elseif ($accountingEntryMonthlyBadge !== ''): ?>
                                                         <label class="accounting-entry-edit-control is-monthly">
                                                             <span>Mensal -</span>
@@ -458,14 +458,14 @@
                         <header class="accounting-card-head">
                             <div class="accounting-card-head-text">
                                 <h3>Entradas</h3>
-                                <p>Receitas do mes</p>
+                                <p>Receitas do mês</p>
                             </div>
                             <span><?= e(appItemCountLabel(count($accountingIncomeEntries))) ?></span>
                         </header>
 
                         <div class="accounting-entries">
                             <?php if (empty($accountingIncomeEntries)): ?>
-                                <div class="accounting-empty">Nenhuma entrada cadastrada neste mes.</div>
+                                <div class="accounting-empty">Nenhuma entrada cadastrada neste mês.</div>
                             <?php else: ?>
                                 <?php foreach ($accountingIncomeEntries as $accountingEntry): ?>
                                     <?php

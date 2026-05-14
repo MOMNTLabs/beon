@@ -4731,17 +4731,22 @@ body.is-dashboard .accounting-entry-goal-payment-item {
 
 body.is-dashboard .accounting-entry-goal-payment-item-main {
     flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
 }
 
 body.is-dashboard .accounting-entry-goal-payment-item-main strong {
     color: var(--bexon-text-strong);
+    white-space: nowrap;
 }
 
 body.is-dashboard .accounting-entry-goal-payment-item-main time {
-    display: block;
-    width: 100%;
+    margin-left: auto;
     text-align: right;
     color: var(--bexon-text-soft);
+    white-space: nowrap;
 }
 
 body.is-dashboard .accounting-entry-goal-payment-delete {

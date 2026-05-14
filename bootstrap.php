@@ -880,7 +880,7 @@ function workspaceBillingLimit(int $workspaceId): array
 function ensureWorkspaceCanInviteMembers(int $workspaceId): void
 {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $limit = workspaceBillingLimit($workspaceId);
@@ -4321,7 +4321,7 @@ function createWorkspaceDueEntry(
             $monthlyDay = dueMonthlyDayFromDate($dueDate);
         }
         if ($monthlyDay === null) {
-            throw new RuntimeException('Informe um dia valido para o vencimento mensal.');
+            throw new RuntimeException('Informe um dia válido para o vencimento mensal.');
         }
         $dueDate = dueNextMonthlyDate($monthlyDay);
     } elseif ($recurrenceType === 'annual') {
@@ -4442,7 +4442,7 @@ function updateWorkspaceDueEntry(
             $monthlyDay = dueMonthlyDayFromDate($dueDate);
         }
         if ($monthlyDay === null) {
-            throw new RuntimeException('Informe um dia valido para o vencimento mensal.');
+            throw new RuntimeException('Informe um dia válido para o vencimento mensal.');
         }
         $dueDate = dueNextMonthlyDate($monthlyDay);
     } elseif ($recurrenceType === 'annual') {
@@ -4640,12 +4640,12 @@ function createWorkspaceDueEntryFromAccounting(
     $periodKey = normalizeAccountingPeriodKey($periodKey);
     $monthlyDay = normalizeDueMonthlyDay($monthlyDay);
     if ($monthlyDay === null) {
-        throw new RuntimeException('Informe um dia valido para a conta mensal.');
+        throw new RuntimeException('Informe um dia válido para a conta mensal.');
     }
 
     $dueDate = accountingDueDateForPeriod($periodKey, $monthlyDay);
     if ($dueDate === null) {
-        throw new RuntimeException('Nao foi possivel definir a data da conta mensal.');
+        throw new RuntimeException('Não foi possível definir a data da conta mensal.');
     }
 
     $groupName = normalizeDueGroupName($groupName);
@@ -4708,7 +4708,7 @@ function updateWorkspaceDueEntryFromAccounting(
 ): array {
     $dueEntry = workspaceDueEntryById($pdo, $workspaceId, $entryId);
     if ($dueEntry === null) {
-        throw new RuntimeException('Conta mensal nÃ£o encontrada.');
+        throw new RuntimeException('Conta mensal não encontrada.');
     }
 
     $label = normalizeDueEntryLabel($label);
@@ -4718,14 +4718,14 @@ function updateWorkspaceDueEntryFromAccounting(
 
     $monthlyDay = normalizeDueMonthlyDay($monthlyDay);
     if ($monthlyDay === null) {
-        throw new RuntimeException('Informe um dia valido para a conta mensal.');
+        throw new RuntimeException('Informe um dia válido para a conta mensal.');
     }
 
     $anchorPeriodKey = accountingPeriodKeyFromDate((string) ($dueEntry['due_date'] ?? ''))
         ?? normalizeAccountingPeriodKey($currentPeriodKey);
     $dueDate = accountingDueDateForPeriod($anchorPeriodKey, $monthlyDay);
     if ($dueDate === null) {
-        throw new RuntimeException('Nao foi possivel definir a data da conta mensal.');
+        throw new RuntimeException('Não foi possível definir a data da conta mensal.');
     }
 
     $stmt = $pdo->prepare(
@@ -5554,7 +5554,7 @@ function resolveAccountingEntryAmounts(
 
     $amountCents = normalizeDueAmountCents($amountInput);
     if ($amountCents === null) {
-        throw new RuntimeException('Informe um valor valido.');
+        throw new RuntimeException('Informe um valor válido.');
     }
 
     return [
@@ -5570,7 +5570,7 @@ function resolveAccountingGoalMonthlyState($totalAmountInput, ?int $existingPaid
 {
     $totalAmountCents = normalizeDueAmountCents($totalAmountInput);
     if ($totalAmountCents === null) {
-        throw new RuntimeException('Informe um valor valido.');
+        throw new RuntimeException('Informe um valor válido.');
     }
 
     $paidAmountCents = max(0, $existingPaidAmountCents ?? 0);
@@ -5596,7 +5596,7 @@ function resolveAccountingGoalMonthlyPaymentState(int $startingAmountCents, $pai
     $startingAmountCents = max(0, $startingAmountCents);
     $paidAmountCents = normalizeDueAmountCents($paidAmountInput);
     if ($paidAmountCents === null) {
-        throw new RuntimeException('Informe um valor valido.');
+        throw new RuntimeException('Informe um valor válido.');
     }
 
     return resolveAccountingGoalMonthlyPaymentStateFromCents($startingAmountCents, $paidAmountCents);
@@ -6647,7 +6647,7 @@ function workspaceAccountingCreateCarriedEntry(PDO $pdo, array $payload): int
         : null;
 
     if ($workspaceId <= 0 || $carrySourceEntryId <= 0 || $label === '') {
-        throw new RuntimeException('Registro de continuidade invalido.');
+        throw new RuntimeException('Registro de continuidade inválido.');
     }
 
     $nextSortOrder = workspaceAccountingNextSortOrder($pdo, $workspaceId, $periodKey, $entryType);
@@ -7412,7 +7412,7 @@ function setWorkspaceAccountingOpeningBalance(
     $periodKey = normalizeAccountingPeriodKey($periodKey);
     $amountCents = normalizeSignedDueAmountCents($amountInput);
     if ($amountCents === null) {
-        throw new RuntimeException('Informe um saldo inicial valido.');
+        throw new RuntimeException('Informe um saldo inicial válido.');
     }
 
     $updatedAt = nowIso();
@@ -7547,7 +7547,7 @@ function createWorkspaceAccountingMonthlyDue(
         );
         $dueEntry = workspaceDueEntryById($pdo, $workspaceId, $dueEntryId);
         if ($dueEntry === null) {
-            throw new RuntimeException('Nao foi possivel criar a conta mensal.');
+            throw new RuntimeException('Não foi possível criar a conta mensal.');
         }
 
         $entry = workspaceAccountingEnsureMonthlyDueEntry(
@@ -7558,7 +7558,7 @@ function createWorkspaceAccountingMonthlyDue(
             $isSettled === 1 ? 1 : 0
         );
         if ($entry === null) {
-            throw new RuntimeException('Nao foi possivel gerar a conta mensal na contabilidade.');
+            throw new RuntimeException('Não foi possível gerar a conta mensal na contabilidade.');
         }
 
         if ($startedTransaction) {
@@ -7638,7 +7638,7 @@ function createWorkspaceAccountingEntry(
         }
         $dueDate = accountingDueDateForPeriod($periodKey, $monthlyDay);
         if ($dueDate === null) {
-            throw new RuntimeException('Dia mensal invalido.');
+            throw new RuntimeException('Dia mensal inválido.');
         }
     }
 
@@ -7820,12 +7820,12 @@ function updateWorkspaceAccountingEntry(
     if ($isGoalMonthly) {
         $requestedTotalAmountCents = normalizeDueAmountCents($amountInput);
         if ($requestedTotalAmountCents === null) {
-            throw new RuntimeException('Informe um valor valido.');
+            throw new RuntimeException('Informe um valor válido.');
         }
 
         $existingPaidAmountCents = max(0, (int) ($existingPaidAmountCents ?? 0));
         if ($requestedTotalAmountCents < $existingPaidAmountCents) {
-            throw new RuntimeException('O valor total da meta nao pode ser menor que o valor ja pago.');
+            throw new RuntimeException('O valor total da meta não pode ser menor que o valor já pago.');
         }
 
         $amountPayload = resolveAccountingGoalMonthlyState($amountInput, $existingPaidAmountCents);
@@ -7852,7 +7852,7 @@ function updateWorkspaceAccountingEntry(
         }
         $dueDate = accountingDueDateForPeriod(normalizeAccountingPeriodKey($periodKey), $monthlyDay);
         if ($dueDate === null) {
-            throw new RuntimeException('Dia mensal invalido.');
+            throw new RuntimeException('Dia mensal inválido.');
         }
     }
 
@@ -7950,7 +7950,7 @@ function updateWorkspaceAccountingGoalPayment(PDO $pdo, int $workspaceId, int $e
             ':workspace_id' => $workspaceId,
         ]);
         if (!$existsStmt->fetchColumn()) {
-            throw new RuntimeException('Registro nÃ£o encontrado.');
+            throw new RuntimeException('Registro não encontrado.');
         }
     }
 }
@@ -7979,10 +7979,10 @@ function syncWorkspaceAccountingGoalPaymentHistory(PDO $pdo, int $workspaceId, i
 {
     $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
     if ($existingEntry === null) {
-        throw new RuntimeException('Registro nao encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
     if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
-        throw new RuntimeException('Apenas metas mensais aceitam historico de pagamentos.');
+        throw new RuntimeException('Apenas metas mensais aceitam histórico de pagamentos.');
     }
 
     $startingAmountCents = max(
@@ -8003,7 +8003,7 @@ function syncWorkspaceAccountingGoalPaymentHistory(PDO $pdo, int $workspaceId, i
 
     $updatedEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
     if ($updatedEntry === null) {
-        throw new RuntimeException('Registro nao encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
 
     return $updatedEntry;
@@ -8018,7 +8018,7 @@ function addWorkspaceAccountingGoalPaymentWithCarrySync(
 ): void {
     $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
     if ($existingEntry === null) {
-        throw new RuntimeException('Registro nao encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
     if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
         throw new RuntimeException('Apenas metas mensais aceitam pagamentos parciais.');
@@ -8026,7 +8026,7 @@ function addWorkspaceAccountingGoalPaymentWithCarrySync(
 
     $paymentAmountCents = normalizeDueAmountCents($paymentAmountInput);
     if ($paymentAmountCents === null || $paymentAmountCents <= 0) {
-        throw new RuntimeException('Informe um valor valido para adicionar.');
+        throw new RuntimeException('Informe um valor válido para adicionar.');
     }
 
     $startingAmountCents = max(
@@ -8035,7 +8035,7 @@ function addWorkspaceAccountingGoalPaymentWithCarrySync(
     );
     $currentPaidAmountCents = workspaceAccountingGoalPaymentTotalCents($pdo, $workspaceId, $entryId);
     if (($currentPaidAmountCents + $paymentAmountCents) > $startingAmountCents) {
-        throw new RuntimeException('Esse lancamento ultrapassa o valor total da meta.');
+        throw new RuntimeException('Esse lançamento ultrapassa o valor total da meta.');
     }
 
     $futureCarryLimit = workspaceAccountingLatestDescendantPeriodKey(
@@ -8094,12 +8094,12 @@ function addWorkspaceAccountingGoalPaymentWithCarrySync(
 function deleteWorkspaceAccountingGoalPaymentWithCarrySync(PDO $pdo, int $workspaceId, int $entryId, int $paymentId): void
 {
     if ($paymentId <= 0) {
-        throw new RuntimeException('Lancamento invalido.');
+        throw new RuntimeException('Lançamento inválido.');
     }
 
     $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
     if ($existingEntry === null) {
-        throw new RuntimeException('Registro nao encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
     if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
         throw new RuntimeException('Apenas metas mensais aceitam pagamentos parciais.');
@@ -8128,7 +8128,7 @@ function deleteWorkspaceAccountingGoalPaymentWithCarrySync(PDO $pdo, int $worksp
         ]);
 
         if ($deleteStmt->rowCount() <= 0) {
-            throw new RuntimeException('Lancamento nao encontrado.');
+            throw new RuntimeException('Lançamento não encontrado.');
         }
 
         $updatedEntry = syncWorkspaceAccountingGoalPaymentHistory($pdo, $workspaceId, $entryId);
@@ -8190,7 +8190,7 @@ function updateWorkspaceAccountingEntryWithCarrySync(
 {
     $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
     if ($existingEntry === null) {
-        throw new RuntimeException('Registro nÃ£o encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
 
     $futureCarryLimit = workspaceAccountingLatestDescendantPeriodKey(
@@ -8315,7 +8315,7 @@ function updateWorkspaceAccountingGoalPaymentWithCarrySync(
 {
     $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
     if ($existingEntry === null) {
-        throw new RuntimeException('Registro nÃ£o encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
     if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
         throw new RuntimeException('Apenas metas mensais aceitam pagamentos parciais.');
@@ -8369,7 +8369,7 @@ function updateWorkspaceAccountingGoalPaymentWithCarrySync(
 
         $updatedEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
         if ($updatedEntry === null) {
-            throw new RuntimeException('Registro nÃ£o encontrado.');
+            throw new RuntimeException('Registro não encontrado.');
         }
 
         if ($futureCarryLimit !== null) {
@@ -8392,7 +8392,7 @@ function deleteWorkspaceAccountingEntryWithCarrySync(PDO $pdo, int $workspaceId,
 {
     $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
     if ($existingEntry === null) {
-        throw new RuntimeException('Registro nÃ£o encontrado.');
+        throw new RuntimeException('Registro não encontrado.');
     }
 
     $startedTransaction = !$pdo->inTransaction();
