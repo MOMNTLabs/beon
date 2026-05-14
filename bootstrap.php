@@ -10872,6 +10872,96 @@ function taskUndoTaskSnapshot(PDO $pdo, int $workspaceId, int $taskId): ?array
     return $snapshot;
 }
 
+function taskUndoGroupColumns(): array
+{
+    return [
+        'id',
+        'workspace_id',
+        'name',
+        'created_by',
+        'created_at',
+    ];
+}
+
+function taskUndoGroupSnapshot(PDO $pdo, int $workspaceId, string $groupName, ?array $taskIds = null): ?array
+{
+    if ($workspaceId <= 0) {
+        return null;
+    }
+
+    $normalizedGroupName = normalizeTaskGroupName($groupName);
+    $groupColumns = implode(', ', taskUndoGroupColumns());
+    $groupStmt = $pdo->prepare(
+        'SELECT ' . $groupColumns . '
+         FROM task_groups
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(name)) = LOWER(TRIM(:group_name))
+         LIMIT 1'
+    );
+    $groupStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $normalizedGroupName,
+    ]);
+    $groupRow = $groupStmt->fetch();
+    if (!$groupRow) {
+        return null;
+    }
+
+    $groupSnapshot = [];
+    foreach (taskUndoGroupColumns() as $column) {
+        $groupSnapshot[$column] = $groupRow[$column] ?? null;
+    }
+
+    $taskSnapshots = [];
+    if (is_array($taskIds)) {
+        foreach ($taskIds as $taskId) {
+            $taskSnapshot = taskUndoTaskSnapshot($pdo, $workspaceId, (int) $taskId);
+            if ($taskSnapshot !== null) {
+                $taskSnapshots[] = $taskSnapshot;
+            }
+        }
+    } else {
+        $taskColumns = implode(', ', taskUndoColumns());
+        $taskStmt = $pdo->prepare(
+            'SELECT ' . $taskColumns . '
+             FROM tasks
+             WHERE workspace_id = :workspace_id
+               AND LOWER(TRIM(COALESCE(group_name, \'\'))) = LOWER(TRIM(:group_name))
+             ORDER BY id ASC'
+        );
+        $taskStmt->execute([
+            ':workspace_id' => $workspaceId,
+            ':group_name' => $normalizedGroupName,
+        ]);
+
+        foreach ($taskStmt->fetchAll() as $taskRow) {
+            $taskSnapshot = [];
+            foreach (taskUndoColumns() as $column) {
+                $taskSnapshot[$column] = $taskRow[$column] ?? null;
+            }
+            $taskSnapshots[] = $taskSnapshot;
+        }
+    }
+
+    $permissionStmt = $pdo->prepare(
+        'SELECT workspace_id, group_name, user_id, can_view, can_access, updated_at
+         FROM task_group_permissions
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(group_name)) = LOWER(TRIM(:group_name))
+         ORDER BY user_id ASC'
+    );
+    $permissionStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $normalizedGroupName,
+    ]);
+
+    return [
+        'group' => $groupSnapshot,
+        'tasks' => $taskSnapshots,
+        'permissions' => $permissionStmt->fetchAll() ?: [],
+    ];
+}
+
 function taskUndoSessionState(int $workspaceId): array
 {
     $key = taskUndoStorageKey($workspaceId);
@@ -10942,6 +11032,15 @@ function taskUndoSnapshotsEqual(?array $before, ?array $after): bool
     return true;
 }
 
+function taskUndoOperationId(): string
+{
+    try {
+        return 'undo_' . bin2hex(random_bytes(8));
+    } catch (Throwable $_error) {
+        return 'undo_' . str_replace('.', '', uniqid('', true));
+    }
+}
+
 function taskUndoOperationLabel(string $type, ?array $before, ?array $after): string
 {
     if ($type === 'create') {
@@ -10949,6 +11048,9 @@ function taskUndoOperationLabel(string $type, ?array $before, ?array $after): st
     }
     if ($type === 'delete') {
         return 'Excluir tarefa';
+    }
+    if ($type === 'delete_group') {
+        return 'Excluir grupo';
     }
     if ($type !== 'update' || $before === null || $after === null) {
         return 'Editar tarefa';
@@ -10992,11 +11094,34 @@ function taskUndoBuildOperation(string $type, int $taskId, ?array $before, ?arra
     }
 
     return [
+        'id' => taskUndoOperationId(),
         'type' => $type,
         'task_id' => $taskId,
         'before' => $before,
         'after' => $after,
         'label' => taskUndoOperationLabel($type, $before, $after),
+        'created_at' => nowIso(),
+    ];
+}
+
+function taskUndoBuildGroupDeleteOperation(?array $snapshot): ?array
+{
+    $group = is_array($snapshot['group'] ?? null) ? $snapshot['group'] : null;
+    if ($group === null) {
+        return null;
+    }
+
+    $groupName = normalizeTaskGroupName((string) ($group['name'] ?? ''));
+    if ($groupName === '') {
+        return null;
+    }
+
+    return [
+        'id' => taskUndoOperationId(),
+        'type' => 'delete_group',
+        'group_name' => $groupName,
+        'snapshot' => $snapshot,
+        'label' => taskUndoOperationLabel('delete_group', null, null),
         'created_at' => nowIso(),
     ];
 }
@@ -11023,6 +11148,7 @@ function taskUndoPushOperation(int $workspaceId, ?array $operation): void
     }
 
     if ($shouldMerge) {
+        $undoStack[$lastIndex]['id'] = (string) ($operation['id'] ?? ($undoStack[$lastIndex]['id'] ?? taskUndoOperationId()));
         $undoStack[$lastIndex]['after'] = $operation['after'] ?? null;
         $undoStack[$lastIndex]['created_at'] = (string) ($operation['created_at'] ?? nowIso());
         if (taskUndoSnapshotsEqual(
@@ -11051,6 +11177,8 @@ function taskUndoState(int $workspaceId): array
         'can_redo' => !empty($redoStack),
         'undo_label' => is_array($undoOperation) ? (string) ($undoOperation['label'] ?? '') : '',
         'redo_label' => is_array($redoOperation) ? (string) ($redoOperation['label'] ?? '') : '',
+        'undo_operation_id' => is_array($undoOperation) ? (string) ($undoOperation['id'] ?? '') : '',
+        'redo_operation_id' => is_array($redoOperation) ? (string) ($redoOperation['id'] ?? '') : '',
     ];
 }
 
@@ -11061,6 +11189,19 @@ function taskUndoEnsureSnapshotAccess(int $userId, int $workspaceId, ?array $sna
     }
 
     $groupName = normalizeTaskGroupName((string) ($snapshot['group_name'] ?? 'Geral'));
+    if (!userCanAccessTaskGroup($userId, $workspaceId, $groupName)) {
+        throw new RuntimeException('Voce nao possui acesso para aplicar esta acao.');
+    }
+}
+
+function taskUndoEnsureGroupSnapshotAccess(int $userId, int $workspaceId, ?array $snapshot): void
+{
+    $group = is_array($snapshot['group'] ?? null) ? $snapshot['group'] : null;
+    if ($group === null) {
+        return;
+    }
+
+    $groupName = normalizeTaskGroupName((string) ($group['name'] ?? 'Geral'));
     if (!userCanAccessTaskGroup($userId, $workspaceId, $groupName)) {
         throw new RuntimeException('Voce nao possui acesso para aplicar esta acao.');
     }
@@ -11121,6 +11262,79 @@ function taskUndoRestoreSnapshot(PDO $pdo, int $workspaceId, array $snapshot): v
     $stmt->execute($params);
 }
 
+function taskUndoRestoreGroupSnapshot(PDO $pdo, int $workspaceId, array $snapshot): void
+{
+    $group = is_array($snapshot['group'] ?? null) ? $snapshot['group'] : null;
+    if ($group === null) {
+        throw new RuntimeException('Estado do grupo nao encontrado.');
+    }
+
+    $groupName = normalizeTaskGroupName((string) ($group['name'] ?? ''));
+    if ($groupName === '') {
+        throw new RuntimeException('Grupo invalido para desfazer.');
+    }
+
+    $groupId = (int) ($group['id'] ?? 0);
+    if ($groupId > 0) {
+        $stmt = $pdo->prepare(
+            'INSERT INTO task_groups (id, workspace_id, name, created_by, created_at)
+             VALUES (:id, :workspace_id, :name, :created_by, :created_at)
+             ON CONFLICT (id) DO UPDATE SET
+                workspace_id = excluded.workspace_id,
+                name = excluded.name,
+                created_by = excluded.created_by,
+                created_at = excluded.created_at'
+        );
+        $stmt->execute([
+            ':id' => $groupId,
+            ':workspace_id' => $workspaceId,
+            ':name' => $groupName,
+            ':created_by' => isset($group['created_by']) ? (int) $group['created_by'] : null,
+            ':created_at' => trim((string) ($group['created_at'] ?? '')) !== ''
+                ? (string) $group['created_at']
+                : nowIso(),
+        ]);
+    } else {
+        upsertTaskGroup($pdo, $groupName, isset($group['created_by']) ? (int) $group['created_by'] : null, $workspaceId);
+    }
+
+    deleteTaskGroupPermissions($pdo, $workspaceId, $groupName);
+    $permissionRows = is_array($snapshot['permissions'] ?? null) ? $snapshot['permissions'] : [];
+    if ($permissionRows) {
+        $permissionStmt = $pdo->prepare(
+            'INSERT INTO task_group_permissions (workspace_id, group_name, user_id, can_view, can_access, updated_at)
+             VALUES (:workspace_id, :group_name, :user_id, :can_view, :can_access, :updated_at)'
+        );
+        foreach ($permissionRows as $permissionRow) {
+            if (!is_array($permissionRow)) {
+                continue;
+            }
+            $userId = (int) ($permissionRow['user_id'] ?? 0);
+            if ($userId <= 0) {
+                continue;
+            }
+            $permissionStmt->execute([
+                ':workspace_id' => $workspaceId,
+                ':group_name' => $groupName,
+                ':user_id' => $userId,
+                ':can_view' => normalizePermissionFlag($permissionRow['can_view'] ?? 1),
+                ':can_access' => normalizePermissionFlag($permissionRow['can_access'] ?? 1),
+                ':updated_at' => trim((string) ($permissionRow['updated_at'] ?? '')) !== ''
+                    ? (string) $permissionRow['updated_at']
+                    : nowIso(),
+            ]);
+        }
+    }
+
+    $taskSnapshots = is_array($snapshot['tasks'] ?? null) ? $snapshot['tasks'] : [];
+    foreach ($taskSnapshots as $taskSnapshot) {
+        if (!is_array($taskSnapshot)) {
+            continue;
+        }
+        taskUndoRestoreSnapshot($pdo, $workspaceId, $taskSnapshot);
+    }
+}
+
 function taskUndoDeleteTask(PDO $pdo, int $workspaceId, int $taskId): void
 {
     $stmt = $pdo->prepare(
@@ -11134,12 +11348,57 @@ function taskUndoDeleteTask(PDO $pdo, int $workspaceId, int $taskId): void
     ]);
 }
 
+function taskUndoDeleteGroup(PDO $pdo, int $workspaceId, string $groupName): void
+{
+    $normalizedGroupName = normalizeTaskGroupName($groupName);
+
+    $deleteTasksStmt = $pdo->prepare(
+        'DELETE FROM tasks
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(COALESCE(group_name, \'\'))) = LOWER(TRIM(:group_name))'
+    );
+    $deleteTasksStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $normalizedGroupName,
+    ]);
+
+    deleteTaskGroupPermissions($pdo, $workspaceId, $normalizedGroupName);
+
+    $deleteGroupStmt = $pdo->prepare(
+        'DELETE FROM task_groups
+         WHERE workspace_id = :workspace_id
+           AND LOWER(TRIM(name)) = LOWER(TRIM(:group_name))'
+    );
+    $deleteGroupStmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':group_name' => $normalizedGroupName,
+    ]);
+}
+
 function taskUndoApplyOperation(PDO $pdo, int $workspaceId, int $actorUserId, array $operation, bool $redo): void
 {
     $type = (string) ($operation['type'] ?? '');
     $taskId = (int) ($operation['task_id'] ?? 0);
     $before = is_array($operation['before'] ?? null) ? $operation['before'] : null;
     $after = is_array($operation['after'] ?? null) ? $operation['after'] : null;
+    $groupSnapshot = is_array($operation['snapshot'] ?? null) ? $operation['snapshot'] : null;
+
+    if ($type === 'delete_group') {
+        taskUndoEnsureGroupSnapshotAccess($actorUserId, $workspaceId, $groupSnapshot);
+        $group = is_array($groupSnapshot['group'] ?? null) ? $groupSnapshot['group'] : null;
+        $groupName = normalizeTaskGroupName((string) ($operation['group_name'] ?? ($group['name'] ?? '')));
+        if ($groupName === '') {
+            throw new RuntimeException('Grupo invalido para desfazer.');
+        }
+
+        if ($redo) {
+            taskUndoDeleteGroup($pdo, $workspaceId, $groupName);
+            return;
+        }
+
+        taskUndoRestoreGroupSnapshot($pdo, $workspaceId, $groupSnapshot ?? []);
+        return;
+    }
 
     if ($taskId <= 0 || !in_array($type, ['create', 'update', 'delete'], true)) {
         throw new RuntimeException('Acao invalida para desfazer.');

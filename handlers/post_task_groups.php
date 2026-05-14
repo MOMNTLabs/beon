@@ -197,6 +197,7 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                 ]);
                 $taskIds = array_map('intval', array_column($taskIdsStmt->fetchAll(), 'id'));
                 $taskCount = count($taskIds);
+                $undoBeforeGroup = taskUndoGroupSnapshot($pdo, $workspaceId, $existingGroupName, $taskIds);
 
                 $pdo->beginTransaction();
                 try {
@@ -251,12 +252,25 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                     throw $e;
                 }
 
+                $restoreToken = '';
+                if (is_array($undoBeforeGroup) && !empty($undoBeforeGroup['group'])) {
+                    if (!isset($_SESSION['task_group_restore']) || !is_array($_SESSION['task_group_restore'])) {
+                        $_SESSION['task_group_restore'] = [];
+                    }
+                    if (!isset($_SESSION['task_group_restore'][$workspaceId]) || !is_array($_SESSION['task_group_restore'][$workspaceId])) {
+                        $_SESSION['task_group_restore'][$workspaceId] = [];
+                    }
+                    $restoreToken = 'group_restore_' . taskUndoOperationId();
+                    $_SESSION['task_group_restore'][$workspaceId][$restoreToken] = $undoBeforeGroup;
+                }
+
                 if (requestExpectsJson()) {
                     respondJson([
                         'ok' => true,
                         'group_name' => $existingGroupName,
                         'deleted_task_count' => $taskCount,
                         'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id'], $workspaceId),
+                        'restore_token' => $restoreToken,
                     ]);
                 }
 
@@ -266,6 +280,55 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                         ? sprintf('Grupo removido. %d tarefa(s) excluida(s).', $taskCount)
                         : 'Grupo removido.'
                 );
+                redirectTo('index.php#tasks');
+
+            case 'restore_deleted_group':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                }
+
+                $restoreToken = trim((string) ($_POST['restore_token'] ?? ''));
+                if ($restoreToken === '') {
+                    throw new RuntimeException('RestauraÃ§Ã£o invÃ¡lida.');
+                }
+
+                $restoreSnapshot =
+                    $_SESSION['task_group_restore'][$workspaceId][$restoreToken] ?? null;
+                if (!is_array($restoreSnapshot) || empty($restoreSnapshot['group'])) {
+                    throw new RuntimeException('Este grupo nÃ£o pode mais ser restaurado.');
+                }
+
+                $pdo->beginTransaction();
+                try {
+                    taskUndoEnsureGroupSnapshotAccess((int) $authUser['id'], $workspaceId, $restoreSnapshot);
+                    taskUndoRestoreGroupSnapshot($pdo, $workspaceId, $restoreSnapshot);
+                    $pdo->commit();
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $e;
+                }
+
+                unset($_SESSION['task_group_restore'][$workspaceId][$restoreToken]);
+                if (empty($_SESSION['task_group_restore'][$workspaceId])) {
+                    unset($_SESSION['task_group_restore'][$workspaceId]);
+                }
+                if (empty($_SESSION['task_group_restore'])) {
+                    unset($_SESSION['task_group_restore']);
+                }
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => 'Grupo restaurado.',
+                        'dashboard' => dashboardSummaryPayloadForUser((int) $authUser['id'], $workspaceId),
+                    ]);
+                }
+
+                flash('success', 'Grupo restaurado.');
                 redirectTo('index.php#tasks');
 
             case 'update_task_group_permissions':
@@ -308,6 +371,7 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
         'create_group',
         'rename_group',
         'delete_group',
+        'restore_deleted_group',
         'update_task_group_permissions',
     ], true);
 }

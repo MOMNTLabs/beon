@@ -3142,10 +3142,13 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                         </div>
                     </div>
 
-                    <aside class="task-detail-history-column">
-                        <div class="task-detail-view-label">Historico</div>
+                    <details class="task-detail-history-column" data-task-detail-history-column>
+                        <summary class="task-detail-history-summary">
+                            <span class="task-detail-view-label">Historico</span>
+                            <span class="task-detail-history-summary-icon" aria-hidden="true">&#8249;</span>
+                        </summary>
                         <div class="task-detail-history-list" data-task-detail-view-history></div>
-                    </aside>
+                    </details>
                 </div>
             </section>
 

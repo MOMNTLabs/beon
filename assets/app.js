@@ -3493,10 +3493,17 @@ window.addEventListener("DOMContentLoaded", () => {
     return stack;
   };
 
-  const showClientFlash = (type, message) => {
+  const showClientFlash = (type, message, options = {}) => {
     if (!message) return;
     const stack = ensureFlashStack();
     if (!stack) return;
+
+    const normalizedOptions = options && typeof options === "object" ? options : {};
+    const flashAction = String(normalizedOptions.action || "").trim();
+    const flashActionLabel = String(normalizedOptions.actionLabel || "").trim();
+    const flashActionToken = String(normalizedOptions.actionToken || "").trim();
+    const expectedUndoId = String(normalizedOptions.expectedUndoId || "").trim();
+    const duration = Number.parseInt(String(normalizedOptions.duration ?? ""), 10);
 
     const item = document.createElement("div");
     item.className = `flash flash-${type}`;
@@ -3504,11 +3511,48 @@ window.addEventListener("DOMContentLoaded", () => {
     item.innerHTML =
       `<span></span><button type="button" class="flash-close" data-flash-close aria-label="Fechar">×</button>`;
     item.querySelector("span").textContent = message;
+
+    if (flashAction && flashActionLabel) {
+      item.classList.add("flash-has-action");
+    }
+
+    const messageElement = item.querySelector("span");
+    if (messageElement instanceof HTMLSpanElement) {
+      messageElement.className = "flash-message";
+      const main = document.createElement("div");
+      main.className = "flash-main";
+      messageElement.replaceWith(main);
+      main.append(messageElement);
+
+      if (flashAction && flashActionLabel) {
+        const actionButton = document.createElement("button");
+        actionButton.type = "button";
+        actionButton.className = "flash-action";
+        actionButton.dataset.flashAction = flashAction;
+        if (flashActionToken) {
+          actionButton.dataset.flashActionToken = flashActionToken;
+        }
+        if (expectedUndoId) {
+          actionButton.dataset.flashExpectedUndoId = expectedUndoId;
+        }
+        actionButton.textContent = flashActionLabel;
+        main.append(actionButton);
+      }
+    }
+
     stack.append(item);
 
+    const timeoutMs =
+      Number.isFinite(duration) && duration > 0
+        ? duration
+        : flashAction
+          ? 8000
+          : 4500;
     window.setTimeout(() => {
       if (item.isConnected) item.remove();
-    }, 4500);
+    }, timeoutMs);
+
+    return item;
   };
 
   const updateBoardCountText = (selector, suffix, delta) => {
@@ -4219,11 +4263,14 @@ window.addEventListener("DOMContentLoaded", () => {
     return data;
   }, { label: "Carregando..." });
 
+  let currentTaskHistoryState = {};
+
   const syncTaskHistoryControls = (state = null) => {
+    const normalizedState = state && typeof state === "object" ? state : {};
+    currentTaskHistoryState = normalizedState;
     const controls = document.querySelector("[data-task-history-controls]");
     if (!(controls instanceof HTMLElement)) return;
 
-    const normalizedState = state && typeof state === "object" ? state : {};
     const configs = [
       {
         action: "undo",
@@ -4252,6 +4299,21 @@ window.addEventListener("DOMContentLoaded", () => {
       button.title = title;
       button.setAttribute("aria-label", canRun && label ? title : config.action === "undo" ? "Desfazer" : "Refazer");
     });
+  };
+
+  const undoFlashOptions = (undoState, fallbackDuration = 8000) => {
+    const normalizedState = undoState && typeof undoState === "object" ? undoState : null;
+    const undoOperationId = String(normalizedState?.undo_operation_id || "").trim();
+    if (!normalizedState || normalizedState.can_undo !== true || !undoOperationId) {
+      return { duration: fallbackDuration };
+    }
+
+    return {
+      action: "undo",
+      actionLabel: "Retroceder",
+      expectedUndoId: undoOperationId,
+      duration: fallbackDuration,
+    };
   };
 
   const notificationWorkspaceId = Number.parseInt(
@@ -7701,6 +7763,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const taskImagePreviewPrevButton = document.querySelector("[data-task-image-preview-prev]");
   const taskImagePreviewNextButton = document.querySelector("[data-task-image-preview-next]");
   const taskDetailViewHistory = document.querySelector("[data-task-detail-view-history]");
+  const taskDetailHistoryColumn = document.querySelector("[data-task-detail-history-column]");
   const taskDetailViewCreatedBy = document.querySelector("[data-task-detail-view-created-by]");
   const taskDetailViewUpdatedAt = document.querySelector("[data-task-detail-view-updated-at]");
   const taskDetailEditTitleComposer = document.querySelector("[data-task-detail-edit-title-composer]");
@@ -11936,6 +11999,11 @@ window.addEventListener("DOMContentLoaded", () => {
       : 0;
   };
 
+  const setTaskDetailHistoryExpanded = (expanded) => {
+    if (!(taskDetailHistoryColumn instanceof HTMLDetailsElement)) return;
+    taskDetailHistoryColumn.open = Boolean(expanded);
+  };
+
   const openTaskDetailModal = (taskItem, { updateUrl = true, scrollIntoView = false } = {}) => {
     if (!taskDetailModal) return;
     const bindings = getTaskDetailBindings(taskItem);
@@ -11949,6 +12017,7 @@ window.addEventListener("DOMContentLoaded", () => {
     taskDetailContext = bindings;
     populateTaskDetailModalFromRow(bindings);
     setTaskDetailEditMode(false);
+    setTaskDetailHistoryExpanded(false);
     taskDetailModal.hidden = false;
     if (scrollIntoView && taskItem instanceof HTMLElement) {
       taskItem.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -11979,6 +12048,7 @@ window.addEventListener("DOMContentLoaded", () => {
     taskDetailEditSubtaskItems = [];
     setTaskDetailEditSubtasksDependencyEnabled(false);
     setTaskDetailEditMode(false);
+    setTaskDetailHistoryExpanded(false);
     if (taskDetailSaveButton instanceof HTMLButtonElement) {
       taskDetailSaveButton.disabled = false;
       taskDetailSaveButton.classList.remove("is-loading");
@@ -12677,6 +12747,175 @@ window.addEventListener("DOMContentLoaded", () => {
     void submitTaskHistoryForm(form);
   });
 
+  const ensureTaskHistoryForm = (action) => {
+    const normalizedAction = action === "redo" ? "redo" : "undo";
+    const existingForm = document.querySelector(
+      `[data-task-history-form][data-task-history-action="${normalizedAction}"]`
+    );
+    if (existingForm instanceof HTMLFormElement) {
+      return { form: existingForm, synthetic: false };
+    }
+
+    const csrfField = document.querySelector('input[name="csrf_token"]');
+    if (!(csrfField instanceof HTMLInputElement) || (csrfField.value || "").trim() === "") {
+      return { form: null, synthetic: false };
+    }
+
+    const form = document.createElement("form");
+    form.hidden = true;
+    form.dataset.taskHistoryForm = "";
+    form.dataset.taskHistoryAction = normalizedAction;
+
+    const csrfInput = document.createElement("input");
+    csrfInput.type = "hidden";
+    csrfInput.name = "csrf_token";
+    csrfInput.value = csrfField.value;
+
+    const actionInput = document.createElement("input");
+    actionInput.type = "hidden";
+    actionInput.name = "action";
+    actionInput.value = normalizedAction === "redo" ? "task_redo" : "task_undo";
+
+    form.append(csrfInput, actionInput);
+    document.body.append(form);
+    return { form, synthetic: true };
+  };
+
+  const createSyntheticPostForm = (actionName, fields = {}) => {
+    const normalizedActionName = String(actionName || "").trim();
+    if (!normalizedActionName) return null;
+
+    const csrfField = document.querySelector('input[name="csrf_token"]');
+    if (!(csrfField instanceof HTMLInputElement) || (csrfField.value || "").trim() === "") {
+      return null;
+    }
+
+    const form = document.createElement("form");
+    form.hidden = true;
+
+    const csrfInput = document.createElement("input");
+    csrfInput.type = "hidden";
+    csrfInput.name = "csrf_token";
+    csrfInput.value = csrfField.value;
+
+    const actionInput = document.createElement("input");
+    actionInput.type = "hidden";
+    actionInput.name = "action";
+    actionInput.value = normalizedActionName;
+
+    form.append(csrfInput, actionInput);
+
+    Object.entries(fields).forEach(([name, value]) => {
+      if (!name) return;
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = String(value ?? "");
+      form.append(input);
+    });
+
+    document.body.append(form);
+    return form;
+  };
+
+  const submitRestoreDeletedGroupForm = async (restoreForm) => {
+    if (!(restoreForm instanceof HTMLFormElement)) return;
+    if (restoreForm.dataset.submitting === "1") return;
+
+    restoreForm.dataset.submitting = "1";
+    try {
+      const data = await postFormJson(restoreForm);
+      await refreshTasksSectionFromServer();
+      renderDashboardSummary(data.dashboard);
+      if (typeof syncTaskGroupInputs === "function") {
+        syncTaskGroupInputs();
+      }
+      showClientFlash("success", data.message || "Grupo restaurado.");
+    } catch (error) {
+      showClientFlash(
+        "error",
+        error instanceof Error ? error.message : "Nao foi possivel restaurar este grupo."
+      );
+      throw error;
+    } finally {
+      delete restoreForm.dataset.submitting;
+    }
+  };
+
+  document.addEventListener("click", (event) => {
+    const target = getEventTargetElement(event);
+    if (!(target instanceof Element)) return;
+
+    const actionButton = target.closest("[data-flash-action]");
+    if (!(actionButton instanceof HTMLButtonElement)) return;
+
+    event.preventDefault();
+    if (actionButton.disabled) return;
+
+    const flash = actionButton.closest("[data-flash]");
+    const action = String(actionButton.dataset.flashAction || "").trim();
+    if (action === "undo") {
+      const { form: undoForm, synthetic } = ensureTaskHistoryForm("undo");
+      if (!(undoForm instanceof HTMLFormElement)) {
+        showClientFlash("error", "Nenhuma acao disponivel para retroceder.");
+        if (flash instanceof HTMLElement) flash.remove();
+        return;
+      }
+
+      const expectedUndoId = String(actionButton.dataset.flashExpectedUndoId || "").trim();
+      const currentUndoId = String(currentTaskHistoryState?.undo_operation_id || "").trim();
+      const canUndo = currentTaskHistoryState?.can_undo === true;
+      if (!canUndo || !currentUndoId || (expectedUndoId && expectedUndoId !== currentUndoId)) {
+        showClientFlash("error", "Essa exclusao ja nao e mais a ultima acao disponivel para retroceder.");
+        if (flash instanceof HTMLElement) flash.remove();
+        return;
+      }
+
+      actionButton.disabled = true;
+      actionButton.setAttribute("aria-busy", "true");
+      void submitTaskHistoryForm(undoForm).finally(() => {
+        actionButton.removeAttribute("aria-busy");
+        if (synthetic && undoForm.isConnected) {
+          undoForm.remove();
+        }
+        if (flash instanceof HTMLElement && flash.isConnected) {
+          flash.remove();
+        }
+      });
+      return;
+    }
+
+    if (action === "restore-group") {
+      const restoreToken = String(actionButton.dataset.flashActionToken || "").trim();
+      if (!restoreToken) {
+        showClientFlash("error", "Esta restauracao ja nao esta disponivel.");
+        if (flash instanceof HTMLElement) flash.remove();
+        return;
+      }
+
+      const restoreForm = createSyntheticPostForm("restore_deleted_group", {
+        restore_token: restoreToken,
+      });
+      if (!(restoreForm instanceof HTMLFormElement)) {
+        showClientFlash("error", "Nao foi possivel preparar a restauracao.");
+        if (flash instanceof HTMLElement) flash.remove();
+        return;
+      }
+
+      actionButton.disabled = true;
+      actionButton.setAttribute("aria-busy", "true");
+      void submitRestoreDeletedGroupForm(restoreForm).finally(() => {
+        actionButton.removeAttribute("aria-busy");
+        if (restoreForm.isConnected) {
+          restoreForm.remove();
+        }
+        if (flash instanceof HTMLElement && flash.isConnected) {
+          flash.remove();
+        }
+      });
+    }
+  });
+
   const submitDeleteTask = async (deleteForm) => {
     if (!(deleteForm instanceof HTMLFormElement)) return;
     if (deleteForm.dataset.submitting === "1") return;
@@ -12708,7 +12947,7 @@ window.addEventListener("DOMContentLoaded", () => {
       if (typeof syncTaskGroupInputs === "function") {
         syncTaskGroupInputs();
       }
-      showClientFlash("success", "Tarefa removida.");
+      showClientFlash("success", "Tarefa removida.", undoFlashOptions(data.undo_state));
     } catch (error) {
       showClientFlash(
         "error",
@@ -12798,11 +13037,20 @@ window.addEventListener("DOMContentLoaded", () => {
       if (typeof syncTaskGroupInputs === "function") {
         syncTaskGroupInputs();
       }
+      const restoreToken = String(data?.restore_token || "").trim();
       showClientFlash(
         "success",
         deletedTaskCount > 0
           ? `Grupo ${groupName} removido. ${deletedTaskCount} tarefa(s) excluida(s).`
-          : `Grupo ${groupName} removido.`
+          : `Grupo ${groupName} removido.`,
+        restoreToken
+          ? {
+              action: "restore-group",
+              actionLabel: "Retroceder",
+              actionToken: restoreToken,
+              duration: 8000,
+            }
+          : { duration: 8000 }
       );
     } catch (error) {
       showClientFlash(
