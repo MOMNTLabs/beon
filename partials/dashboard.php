@@ -3564,9 +3564,9 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
 
 <div class="modal-backdrop task-image-preview-modal" data-task-image-preview-modal hidden>
     <div class="modal-scrim" data-close-task-image-preview></div>
-    <section class="modal-card task-image-preview-card" role="dialog" aria-modal="true" aria-label="Imagem de referencia">
+    <section class="modal-card task-image-preview-card" role="dialog" aria-modal="true" aria-label="Midia de referencia">
         <header class="modal-head task-image-preview-head">
-            <button type="button" class="modal-close-button" data-close-task-image-preview aria-label="Fechar visualizacao da imagem">
+            <button type="button" class="modal-close-button" data-close-task-image-preview aria-label="Fechar visualizacao da midia">
                 <span aria-hidden="true">&#10005;</span>
             </button>
         </header>
@@ -3576,7 +3576,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                     type="button"
                     class="task-image-preview-nav task-image-preview-nav-prev"
                     data-task-image-preview-prev
-                    aria-label="Imagem anterior"
+                    aria-label="Midia anterior"
                     hidden
                 >
                     <span aria-hidden="true">&#8249;</span>
@@ -3584,13 +3584,14 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
             </div>
             <div class="task-image-preview-viewport">
                 <img src="" alt="Imagem de referencia ampliada" data-task-image-preview-img>
+                <video controls playsinline preload="metadata" hidden data-task-image-preview-video></video>
             </div>
             <div class="task-image-preview-nav-slot">
                 <button
                     type="button"
                     class="task-image-preview-nav task-image-preview-nav-next"
                     data-task-image-preview-next
-                    aria-label="Proxima imagem"
+                    aria-label="Proxima midia"
                     hidden
                 >
                     <span aria-hidden="true">&#8250;</span>
