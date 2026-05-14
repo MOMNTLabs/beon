@@ -2177,6 +2177,8 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
                 total_amount_cents BIGINT NOT NULL DEFAULT 0,
                 is_installment SMALLINT NOT NULL DEFAULT 0,
                 is_monthly SMALLINT NOT NULL DEFAULT 0,
+                monthly_mode VARCHAR(16) NOT NULL DEFAULT \'uniform\',
+                paid_amount_cents BIGINT NOT NULL DEFAULT 0,
                 installment_number INTEGER NOT NULL DEFAULT 0,
                 installment_total INTEGER NOT NULL DEFAULT 0,
                 is_settled SMALLINT NOT NULL DEFAULT 0,
@@ -2199,6 +2201,16 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
                 updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
             )'
         );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_accounting_goal_payments (
+                id BIGSERIAL PRIMARY KEY,
+                workspace_id BIGINT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+                entry_id BIGINT NOT NULL REFERENCES workspace_accounting_entries(id) ON DELETE CASCADE,
+                amount_cents BIGINT NOT NULL DEFAULT 0,
+                created_by BIGINT DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
+            )'
+        );
     } else {
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS workspace_accounting_entries (
@@ -2211,6 +2223,8 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
                 total_amount_cents INTEGER NOT NULL DEFAULT 0,
                 is_installment INTEGER NOT NULL DEFAULT 0,
                 is_monthly INTEGER NOT NULL DEFAULT 0,
+                monthly_mode TEXT NOT NULL DEFAULT \'uniform\',
+                paid_amount_cents INTEGER NOT NULL DEFAULT 0,
                 installment_number INTEGER NOT NULL DEFAULT 0,
                 installment_total INTEGER NOT NULL DEFAULT 0,
                 is_settled INTEGER NOT NULL DEFAULT 0,
@@ -2237,6 +2251,19 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
                 FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS workspace_accounting_goal_payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id INTEGER NOT NULL,
+                entry_id INTEGER NOT NULL,
+                amount_cents INTEGER NOT NULL DEFAULT 0,
+                created_by INTEGER DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (entry_id) REFERENCES workspace_accounting_entries(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
             )'
         );
     }
@@ -2272,6 +2299,20 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
             $pdo->exec("ALTER TABLE workspace_accounting_entries ADD COLUMN is_monthly SMALLINT NOT NULL DEFAULT 0");
         } else {
             $pdo->exec("ALTER TABLE workspace_accounting_entries ADD COLUMN is_monthly INTEGER NOT NULL DEFAULT 0");
+        }
+    }
+    if (!tableHasColumn($pdo, 'workspace_accounting_entries', 'monthly_mode')) {
+        if (dbDriverName($pdo) === 'pgsql') {
+            $pdo->exec("ALTER TABLE workspace_accounting_entries ADD COLUMN monthly_mode VARCHAR(16) NOT NULL DEFAULT 'uniform'");
+        } else {
+            $pdo->exec("ALTER TABLE workspace_accounting_entries ADD COLUMN monthly_mode TEXT NOT NULL DEFAULT 'uniform'");
+        }
+    }
+    if (!tableHasColumn($pdo, 'workspace_accounting_entries', 'paid_amount_cents')) {
+        if (dbDriverName($pdo) === 'pgsql') {
+            $pdo->exec("ALTER TABLE workspace_accounting_entries ADD COLUMN paid_amount_cents BIGINT NOT NULL DEFAULT 0");
+        } else {
+            $pdo->exec("ALTER TABLE workspace_accounting_entries ADD COLUMN paid_amount_cents INTEGER NOT NULL DEFAULT 0");
         }
     }
     if (!tableHasColumn($pdo, 'workspace_accounting_entries', 'installment_number')) {
@@ -2362,11 +2403,15 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
         'CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_accounting_periods_workspace_period
          ON workspace_accounting_periods(workspace_id, period_key)'
     );
+    $pdo->exec(
+        'CREATE INDEX IF NOT EXISTS idx_workspace_accounting_goal_payments_workspace_entry_created
+         ON workspace_accounting_goal_payments(workspace_id, entry_id, created_at, id)'
+    );
 
     $rows = $pdo->query(
         'SELECT id, period_key, entry_type, label, amount_cents, total_amount_cents, is_installment,
-                installment_number, installment_total, is_monthly, is_settled, due_date, source_due_entry_id,
-                carry_source_entry_id, sort_order, created_at, updated_at
+                installment_number, installment_total, is_monthly, monthly_mode, paid_amount_cents,
+                is_settled, due_date, source_due_entry_id, carry_source_entry_id, sort_order, created_at, updated_at
          FROM workspace_accounting_entries'
     )->fetchAll();
     if ($rows) {
@@ -2379,6 +2424,8 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
                  total_amount_cents = :total_amount_cents,
                  is_installment = :is_installment,
                  is_monthly = :is_monthly,
+                 monthly_mode = :monthly_mode,
+                 paid_amount_cents = :paid_amount_cents,
                  installment_number = :installment_number,
                  installment_total = :installment_total,
                  is_settled = :is_settled,
@@ -2415,12 +2462,35 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
                 $normalizedTotalAmount = $normalizedAmount;
             }
             $normalizedMonthly = ((int) ($row['is_monthly'] ?? 0)) === 1 ? 1 : 0;
-            $normalizedSettled = ((int) ($row['is_settled'] ?? 0)) === 1 ? 1 : 0;
-            $normalizedDueDate = dueDateForStorage((string) ($row['due_date'] ?? ''));
             $sourceDueEntryId = isset($row['source_due_entry_id']) ? (int) $row['source_due_entry_id'] : 0;
             if ($sourceDueEntryId <= 0) {
                 $sourceDueEntryId = null;
             }
+            $normalizedMonthlyMode = normalizeAccountingMonthlyMode(
+                (string) ($row['monthly_mode'] ?? 'uniform'),
+                $normalizedType,
+                $normalizedMonthly,
+                $sourceDueEntryId ?? 0
+            );
+            $normalizedPaidAmount = normalizeDueAmountCents($row['paid_amount_cents'] ?? null) ?? 0;
+            if ($normalizedPaidAmount < 0) {
+                $normalizedPaidAmount = 0;
+            }
+            if ($installmentMeta['is_installment'] === 1 || $normalizedMonthlyMode !== 'goal') {
+                if ($installmentMeta['is_installment'] !== 1) {
+                    $normalizedTotalAmount = $normalizedAmount;
+                }
+                $normalizedPaidAmount = 0;
+                $normalizedMonthlyMode = 'uniform';
+            } else {
+                $normalizedTotalAmount = $normalizedAmount + $normalizedPaidAmount;
+            }
+            $normalizedSettled = $normalizedMonthlyMode === 'goal'
+                ? ($normalizedAmount <= 0 ? 1 : 0)
+                : (((int) ($row['is_settled'] ?? 0)) === 1 ? 1 : 0);
+            $normalizedDueDate = $normalizedMonthlyMode === 'goal'
+                ? null
+                : dueDateForStorage((string) ($row['due_date'] ?? ''));
             $carrySourceEntryId = isset($row['carry_source_entry_id']) ? (int) $row['carry_source_entry_id'] : 0;
             if ($carrySourceEntryId <= 0) {
                 $carrySourceEntryId = null;
@@ -2436,6 +2506,8 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
                 ':total_amount_cents' => $normalizedTotalAmount,
                 ':is_installment' => $installmentMeta['is_installment'],
                 ':is_monthly' => $normalizedMonthly,
+                ':monthly_mode' => $normalizedMonthlyMode,
+                ':paid_amount_cents' => $normalizedPaidAmount,
                 ':installment_number' => $installmentMeta['installment_number'],
                 ':installment_total' => $installmentMeta['installment_total'],
                 ':is_settled' => $normalizedSettled,
@@ -2471,6 +2543,69 @@ function ensureWorkspaceAccountingSchema(PDO $pdo): void
                     : nowIso(),
                 ':id' => (int) ($periodRow['id'] ?? 0),
             ]);
+        }
+    }
+
+    $goalPaymentBackfillRows = $pdo->query(
+        "SELECT id, workspace_id, paid_amount_cents, created_by, created_at, updated_at
+         FROM workspace_accounting_entries
+         WHERE entry_type = 'expense'
+           AND is_monthly = 1
+           AND monthly_mode = 'goal'
+           AND paid_amount_cents > 0"
+    )->fetchAll();
+    if ($goalPaymentBackfillRows) {
+        $existingGoalPaymentEntryIds = $pdo->query(
+            'SELECT DISTINCT entry_id
+             FROM workspace_accounting_goal_payments'
+        )->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        $existingGoalPaymentEntryIds = array_fill_keys(array_map('intval', $existingGoalPaymentEntryIds), true);
+
+        $goalPaymentInsertStmt = $pdo->prepare(
+            'INSERT INTO workspace_accounting_goal_payments (
+                workspace_id,
+                entry_id,
+                amount_cents,
+                created_by,
+                created_at
+            ) VALUES (
+                :workspace_id,
+                :entry_id,
+                :amount_cents,
+                :created_by,
+                :created_at
+            )'
+        );
+
+        foreach ($goalPaymentBackfillRows as $goalPaymentBackfillRow) {
+            $entryId = (int) ($goalPaymentBackfillRow['id'] ?? 0);
+            if ($entryId <= 0 || isset($existingGoalPaymentEntryIds[$entryId])) {
+                continue;
+            }
+
+            $createdAt = trim((string) ($goalPaymentBackfillRow['updated_at'] ?? ''));
+            if ($createdAt === '') {
+                $createdAt = trim((string) ($goalPaymentBackfillRow['created_at'] ?? ''));
+            }
+            if ($createdAt === '') {
+                $createdAt = nowIso();
+            }
+
+            $createdBy = isset($goalPaymentBackfillRow['created_by'])
+                ? (int) $goalPaymentBackfillRow['created_by']
+                : 0;
+
+            $goalPaymentInsertStmt->bindValue(':workspace_id', (int) ($goalPaymentBackfillRow['workspace_id'] ?? 0), PDO::PARAM_INT);
+            $goalPaymentInsertStmt->bindValue(':entry_id', $entryId, PDO::PARAM_INT);
+            $goalPaymentInsertStmt->bindValue(':amount_cents', normalizeDueAmountCents($goalPaymentBackfillRow['paid_amount_cents'] ?? null) ?? 0, PDO::PARAM_INT);
+            if ($createdBy > 0) {
+                $goalPaymentInsertStmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+            } else {
+                $goalPaymentInsertStmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+            }
+            $goalPaymentInsertStmt->bindValue(':created_at', $createdAt, PDO::PARAM_STR);
+            $goalPaymentInsertStmt->execute();
+            $existingGoalPaymentEntryIds[$entryId] = true;
         }
     }
 }
@@ -2668,9 +2803,18 @@ function workspaceAccountingSchemaCapabilities(PDO $pdo): array
         'source_due_entry_id' => tableHasColumn($pdo, 'workspace_accounting_entries', 'source_due_entry_id'),
         'carry_source_entry_id' => tableHasColumn($pdo, 'workspace_accounting_entries', 'carry_source_entry_id'),
         'is_monthly' => tableHasColumn($pdo, 'workspace_accounting_entries', 'is_monthly'),
+        'monthly_mode' => tableHasColumn($pdo, 'workspace_accounting_entries', 'monthly_mode'),
+        'paid_amount_cents' => tableHasColumn($pdo, 'workspace_accounting_entries', 'paid_amount_cents'),
     ];
 
-    if (!$capabilities['due_date'] || !$capabilities['source_due_entry_id'] || !$capabilities['carry_source_entry_id'] || !$capabilities['is_monthly']) {
+    if (
+        !$capabilities['due_date']
+        || !$capabilities['source_due_entry_id']
+        || !$capabilities['carry_source_entry_id']
+        || !$capabilities['is_monthly']
+        || !$capabilities['monthly_mode']
+        || !$capabilities['paid_amount_cents']
+    ) {
         try {
             ensureWorkspaceAccountingSchema($pdo);
         } catch (Throwable $_) {
@@ -2681,6 +2825,8 @@ function workspaceAccountingSchemaCapabilities(PDO $pdo): array
         $capabilities['source_due_entry_id'] = tableHasColumn($pdo, 'workspace_accounting_entries', 'source_due_entry_id');
         $capabilities['carry_source_entry_id'] = tableHasColumn($pdo, 'workspace_accounting_entries', 'carry_source_entry_id');
         $capabilities['is_monthly'] = tableHasColumn($pdo, 'workspace_accounting_entries', 'is_monthly');
+        $capabilities['monthly_mode'] = tableHasColumn($pdo, 'workspace_accounting_entries', 'monthly_mode');
+        $capabilities['paid_amount_cents'] = tableHasColumn($pdo, 'workspace_accounting_entries', 'paid_amount_cents');
     }
 
     $cache[$cacheKey] = $capabilities;
@@ -5272,6 +5418,22 @@ function accountingMonthLabel(string $periodKey): string
     return $monthLabel . ' de ' . (string) $year;
 }
 
+function accountingDateTimeLabel(?string $dateTimeValue): string
+{
+    $dateTimeValue = trim((string) $dateTimeValue);
+    if ($dateTimeValue === '') {
+        return '';
+    }
+
+    try {
+        $dateTime = new DateTimeImmutable($dateTimeValue);
+    } catch (Throwable $e) {
+        return $dateTimeValue;
+    }
+
+    return $dateTime->format('d/m/Y H:i');
+}
+
 function parseAccountingInstallmentProgress(?string $value): ?array
 {
     $raw = trim((string) $value);
@@ -5404,6 +5566,60 @@ function resolveAccountingEntryAmounts(
     ];
 }
 
+function resolveAccountingGoalMonthlyState($totalAmountInput, ?int $existingPaidAmountCents = null): array
+{
+    $totalAmountCents = normalizeDueAmountCents($totalAmountInput);
+    if ($totalAmountCents === null) {
+        throw new RuntimeException('Informe um valor valido.');
+    }
+
+    $paidAmountCents = max(0, $existingPaidAmountCents ?? 0);
+    if ($paidAmountCents > $totalAmountCents) {
+        $paidAmountCents = $totalAmountCents;
+    }
+
+    $remainingAmountCents = max(0, $totalAmountCents - $paidAmountCents);
+
+    return [
+        'amount_cents' => $remainingAmountCents,
+        'total_amount_cents' => $totalAmountCents,
+        'paid_amount_cents' => $paidAmountCents,
+        'is_settled' => $remainingAmountCents <= 0 ? 1 : 0,
+        'is_installment' => 0,
+        'installment_number' => 0,
+        'installment_total' => 0,
+    ];
+}
+
+function resolveAccountingGoalMonthlyPaymentState(int $startingAmountCents, $paidAmountInput): array
+{
+    $startingAmountCents = max(0, $startingAmountCents);
+    $paidAmountCents = normalizeDueAmountCents($paidAmountInput);
+    if ($paidAmountCents === null) {
+        throw new RuntimeException('Informe um valor valido.');
+    }
+
+    return resolveAccountingGoalMonthlyPaymentStateFromCents($startingAmountCents, $paidAmountCents);
+}
+
+function resolveAccountingGoalMonthlyPaymentStateFromCents(int $startingAmountCents, int $paidAmountCents): array
+{
+    $startingAmountCents = max(0, $startingAmountCents);
+    if ($paidAmountCents < 0) {
+        $paidAmountCents = 0;
+    }
+    if ($paidAmountCents > $startingAmountCents) {
+        $paidAmountCents = $startingAmountCents;
+    }
+
+    return [
+        'amount_cents' => max(0, $startingAmountCents - $paidAmountCents),
+        'total_amount_cents' => $startingAmountCents,
+        'paid_amount_cents' => $paidAmountCents,
+        'is_settled' => $paidAmountCents >= $startingAmountCents ? 1 : 0,
+    ];
+}
+
 function normalizeAccountingEntryType(string $value): string
 {
     $normalized = mb_strtolower(trim($value));
@@ -5423,6 +5639,25 @@ function normalizeAccountingEntryLabel(string $value): string
     }
 
     return uppercaseFirstCharacter($value);
+}
+
+function normalizeAccountingMonthlyMode(
+    string $value,
+    string $entryType = 'expense',
+    int $isMonthly = 0,
+    int $sourceDueEntryId = 0
+): string {
+    if ($sourceDueEntryId > 0) {
+        return 'uniform';
+    }
+
+    if (normalizeAccountingEntryType($entryType) !== 'expense' || $isMonthly !== 1) {
+        return 'uniform';
+    }
+
+    return mb_strtolower(trim($value)) === 'goal'
+        ? 'goal'
+        : 'uniform';
 }
 
 function accountingEntryTypeLabel(string $entryType): string
@@ -5499,6 +5734,38 @@ function workspaceAccountingNormalizeEntryRow(array $row, string $defaultPeriodK
             $row['monthly_day'] = $row['source_due_monthly_day'];
         }
     }
+    $row['monthly_mode'] = normalizeAccountingMonthlyMode(
+        (string) ($row['monthly_mode'] ?? 'uniform'),
+        (string) $row['entry_type'],
+        (int) $row['is_monthly'],
+        $row['source_due_entry_id'] !== null ? (int) $row['source_due_entry_id'] : 0
+    );
+    $row['paid_amount_cents'] = normalizeDueAmountCents($row['paid_amount_cents'] ?? null) ?? 0;
+    if ($row['paid_amount_cents'] < 0) {
+        $row['paid_amount_cents'] = 0;
+    }
+    $row['is_monthly_goal'] = (
+        $row['entry_type'] === 'expense'
+        && $row['is_monthly'] === 1
+        && $row['source_due_entry_id'] === null
+        && $row['monthly_mode'] === 'goal'
+    ) ? 1 : 0;
+    if ($row['is_monthly_goal'] === 1) {
+        $row['total_amount_cents'] = $row['amount_cents'] + $row['paid_amount_cents'];
+        $row['is_settled'] = $row['amount_cents'] <= 0 ? 1 : 0;
+        $row['due_date'] = null;
+        $row['due_date_display'] = '';
+        $row['amount_display'] = dueAmountLabelFromCents($row['amount_cents']);
+        $row['amount_input'] = dueAmountLabelFromCents($row['amount_cents']);
+        $row['total_amount_display'] = dueAmountLabelFromCents($row['total_amount_cents']);
+        $row['total_amount_input'] = dueAmountLabelFromCents($row['total_amount_cents']);
+        $row['goal_payment_display'] = dueAmountLabelFromCents($row['paid_amount_cents']);
+        $row['goal_payment_input'] = dueAmountLabelFromCents($row['paid_amount_cents']);
+    } else {
+        $row['paid_amount_cents'] = 0;
+        $row['goal_payment_display'] = dueAmountLabelFromCents(0);
+        $row['goal_payment_input'] = dueAmountLabelFromCents(0);
+    }
     $row['sort_order'] = max(0, (int) ($row['sort_order'] ?? 0));
     $row['created_by'] = isset($row['created_by']) ? (int) $row['created_by'] : null;
     $carrySourceEntryId = isset($row['carry_source_entry_id']) ? (int) $row['carry_source_entry_id'] : 0;
@@ -5506,6 +5773,122 @@ function workspaceAccountingNormalizeEntryRow(array $row, string $defaultPeriodK
     $row['is_carried'] = $row['carry_source_entry_id'] !== null ? 1 : 0;
 
     return $row;
+}
+
+function workspaceAccountingGoalPaymentHistoryByEntryIds(PDO $pdo, int $workspaceId, array $entryIds): array
+{
+    if ($workspaceId <= 0) {
+        return [];
+    }
+
+    $entryIds = array_values(array_unique(array_filter(array_map('intval', $entryIds), static fn (int $entryId): bool => $entryId > 0)));
+    if (!$entryIds) {
+        return [];
+    }
+
+    $placeholders = implode(', ', array_fill(0, count($entryIds), '?'));
+    $stmt = $pdo->prepare(
+        "SELECT id,
+                workspace_id,
+                entry_id,
+                amount_cents,
+                created_by,
+                created_at
+         FROM workspace_accounting_goal_payments
+         WHERE workspace_id = ?
+           AND entry_id IN ({$placeholders})
+         ORDER BY created_at DESC, id DESC"
+    );
+    $stmt->execute(array_merge([$workspaceId], $entryIds));
+    $rows = $stmt->fetchAll() ?: [];
+
+    $historyByEntryId = [];
+    foreach ($rows as $row) {
+        $entryId = (int) ($row['entry_id'] ?? 0);
+        if ($entryId <= 0) {
+            continue;
+        }
+
+        $amountCents = normalizeDueAmountCents($row['amount_cents'] ?? null) ?? 0;
+        if ($amountCents <= 0) {
+            continue;
+        }
+
+        $historyByEntryId[$entryId][] = [
+            'id' => (int) ($row['id'] ?? 0),
+            'workspace_id' => (int) ($row['workspace_id'] ?? 0),
+            'entry_id' => $entryId,
+            'amount_cents' => $amountCents,
+            'amount_display' => dueAmountLabelFromCents($amountCents),
+            'created_by' => isset($row['created_by']) ? (int) $row['created_by'] : null,
+            'created_at' => trim((string) ($row['created_at'] ?? '')),
+            'created_at_display' => accountingDateTimeLabel((string) ($row['created_at'] ?? '')),
+        ];
+    }
+
+    return $historyByEntryId;
+}
+
+function workspaceAccountingGoalPaymentHistory(PDO $pdo, int $workspaceId, int $entryId): array
+{
+    if ($workspaceId <= 0 || $entryId <= 0) {
+        return [];
+    }
+
+    $historyByEntryId = workspaceAccountingGoalPaymentHistoryByEntryIds($pdo, $workspaceId, [$entryId]);
+    return $historyByEntryId[$entryId] ?? [];
+}
+
+function workspaceAccountingAttachGoalPaymentHistory(PDO $pdo, int $workspaceId, array $entries): array
+{
+    if ($workspaceId <= 0 || !$entries) {
+        return $entries;
+    }
+
+    $goalEntryIds = [];
+    foreach ($entries as $entry) {
+        if (((int) ($entry['is_monthly_goal'] ?? 0)) !== 1) {
+            continue;
+        }
+
+        $entryId = (int) ($entry['id'] ?? 0);
+        if ($entryId > 0) {
+            $goalEntryIds[] = $entryId;
+        }
+    }
+
+    if (!$goalEntryIds) {
+        return $entries;
+    }
+
+    $historyByEntryId = workspaceAccountingGoalPaymentHistoryByEntryIds($pdo, $workspaceId, $goalEntryIds);
+    foreach ($entries as &$entry) {
+        $entryId = (int) ($entry['id'] ?? 0);
+        $entry['goal_payment_history'] = $historyByEntryId[$entryId] ?? [];
+    }
+    unset($entry);
+
+    return $entries;
+}
+
+function workspaceAccountingGoalPaymentTotalCents(PDO $pdo, int $workspaceId, int $entryId): int
+{
+    if ($workspaceId <= 0 || $entryId <= 0) {
+        return 0;
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT COALESCE(SUM(amount_cents), 0)
+         FROM workspace_accounting_goal_payments
+         WHERE workspace_id = :workspace_id
+           AND entry_id = :entry_id'
+    );
+    $stmt->execute([
+        ':workspace_id' => $workspaceId,
+        ':entry_id' => $entryId,
+    ]);
+
+    return max(0, (int) $stmt->fetchColumn());
 }
 
 function workspaceAccountingEntriesListRaw(
@@ -5533,6 +5916,12 @@ function workspaceAccountingEntriesListRaw(
     $isMonthlySelect = !empty($accountingSchema['is_monthly'])
         ? 'ae.is_monthly'
         : '0 AS is_monthly';
+    $monthlyModeSelect = !empty($accountingSchema['monthly_mode'])
+        ? 'ae.monthly_mode'
+        : "'uniform' AS monthly_mode";
+    $paidAmountSelect = !empty($accountingSchema['paid_amount_cents'])
+        ? 'ae.paid_amount_cents'
+        : '0 AS paid_amount_cents';
     $sourceDueRecurrenceSelect = !empty($accountingSchema['source_due_entry_id'])
         ? 'de.recurrence_type AS source_due_recurrence_type'
         : 'NULL AS source_due_recurrence_type';
@@ -5553,6 +5942,8 @@ function workspaceAccountingEntriesListRaw(
                 ae.total_amount_cents,
                 ae.is_installment,
                 ' . $isMonthlySelect . ',
+                ' . $monthlyModeSelect . ',
+                ' . $paidAmountSelect . ',
                 ae.installment_number,
                 ae.installment_total,
                 ae.is_settled,
@@ -5590,7 +5981,7 @@ function workspaceAccountingEntriesListRaw(
     }
     unset($row);
 
-    return $rows;
+    return workspaceAccountingAttachGoalPaymentHistory($pdo, $workspaceId, $rows);
 }
 
 function workspaceAccountingEntryById(PDO $pdo, int $workspaceId, int $entryId): ?array
@@ -5612,6 +6003,12 @@ function workspaceAccountingEntryById(PDO $pdo, int $workspaceId, int $entryId):
     $isMonthlySelect = !empty($accountingSchema['is_monthly'])
         ? 'ae.is_monthly'
         : '0 AS is_monthly';
+    $monthlyModeSelect = !empty($accountingSchema['monthly_mode'])
+        ? 'ae.monthly_mode'
+        : "'uniform' AS monthly_mode";
+    $paidAmountSelect = !empty($accountingSchema['paid_amount_cents'])
+        ? 'ae.paid_amount_cents'
+        : '0 AS paid_amount_cents';
     $sourceDueRecurrenceSelect = !empty($accountingSchema['source_due_entry_id'])
         ? 'de.recurrence_type AS source_due_recurrence_type'
         : 'NULL AS source_due_recurrence_type';
@@ -5632,6 +6029,8 @@ function workspaceAccountingEntryById(PDO $pdo, int $workspaceId, int $entryId):
                 ae.total_amount_cents,
                 ae.is_installment,
                 ' . $isMonthlySelect . ',
+                ' . $monthlyModeSelect . ',
+                ' . $paidAmountSelect . ',
                 ae.installment_number,
                 ae.installment_total,
                 ae.is_settled,
@@ -5658,10 +6057,15 @@ function workspaceAccountingEntryById(PDO $pdo, int $workspaceId, int $entryId):
         return null;
     }
 
-    return workspaceAccountingNormalizeEntryRow(
+    $entry = workspaceAccountingNormalizeEntryRow(
         $row,
         normalizeAccountingPeriodKey((string) ($row['period_key'] ?? ''))
     );
+    $entry['goal_payment_history'] = ((int) ($entry['is_monthly_goal'] ?? 0)) === 1
+        ? workspaceAccountingGoalPaymentHistory($pdo, $workspaceId, $entryId)
+        : [];
+
+    return $entry;
 }
 
 function workspaceAccountingNextSortOrder(PDO $pdo, int $workspaceId, string $periodKey, string $entryType): int
@@ -5866,6 +6270,9 @@ function workspaceAccountingBuildDueLinkedPayload(array $dueEntry, string $perio
         'amount_cents' => $amountCents,
         'total_amount_cents' => $amountCents,
         'is_installment' => 0,
+        'is_monthly' => 1,
+        'monthly_mode' => 'uniform',
+        'paid_amount_cents' => 0,
         'installment_number' => 0,
         'installment_total' => 0,
         'due_date' => $dueDate,
@@ -5900,6 +6307,9 @@ function workspaceAccountingCreateDueLinkedEntry(PDO $pdo, array $payload, int $
                 amount_cents,
                 total_amount_cents,
                 is_installment,
+                is_monthly,
+                monthly_mode,
+                paid_amount_cents,
                 installment_number,
                 installment_total,
                 is_settled,
@@ -5918,6 +6328,9 @@ function workspaceAccountingCreateDueLinkedEntry(PDO $pdo, array $payload, int $
                 :amount_cents,
                 :total_amount_cents,
                 :is_installment,
+                :is_monthly,
+                :monthly_mode,
+                :paid_amount_cents,
                 :installment_number,
                 :installment_total,
                 :is_settled,
@@ -5941,6 +6354,9 @@ function workspaceAccountingCreateDueLinkedEntry(PDO $pdo, array $payload, int $
                 amount_cents,
                 total_amount_cents,
                 is_installment,
+                is_monthly,
+                monthly_mode,
+                paid_amount_cents,
                 installment_number,
                 installment_total,
                 is_settled,
@@ -5959,6 +6375,9 @@ function workspaceAccountingCreateDueLinkedEntry(PDO $pdo, array $payload, int $
                 :amount_cents,
                 :total_amount_cents,
                 :is_installment,
+                :is_monthly,
+                :monthly_mode,
+                :paid_amount_cents,
                 :installment_number,
                 :installment_total,
                 :is_settled,
@@ -5980,6 +6399,9 @@ function workspaceAccountingCreateDueLinkedEntry(PDO $pdo, array $payload, int $
     $stmt->bindValue(':amount_cents', normalizeDueAmountCents($payload['amount_cents'] ?? null) ?? 0, PDO::PARAM_INT);
     $stmt->bindValue(':total_amount_cents', normalizeDueAmountCents($payload['total_amount_cents'] ?? null) ?? 0, PDO::PARAM_INT);
     $stmt->bindValue(':is_installment', 0, PDO::PARAM_INT);
+    $stmt->bindValue(':is_monthly', 1, PDO::PARAM_INT);
+    $stmt->bindValue(':monthly_mode', 'uniform', PDO::PARAM_STR);
+    $stmt->bindValue(':paid_amount_cents', 0, PDO::PARAM_INT);
     $stmt->bindValue(':installment_number', 0, PDO::PARAM_INT);
     $stmt->bindValue(':installment_total', 0, PDO::PARAM_INT);
     $stmt->bindValue(':is_settled', $isSettled === 1 ? 1 : 0, PDO::PARAM_INT);
@@ -6019,6 +6441,8 @@ function workspaceAccountingUpdateDueLinkedEntry(
              total_amount_cents = :total_amount_cents,
              is_installment = :is_installment,
              is_monthly = :is_monthly,
+             monthly_mode = :monthly_mode,
+             paid_amount_cents = :paid_amount_cents,
              installment_number = :installment_number,
              installment_total = :installment_total,
              is_settled = :is_settled,
@@ -6037,6 +6461,8 @@ function workspaceAccountingUpdateDueLinkedEntry(
         ':total_amount_cents' => normalizeDueAmountCents($payload['total_amount_cents'] ?? null) ?? 0,
         ':is_installment' => 0,
         ':is_monthly' => 1,
+        ':monthly_mode' => 'uniform',
+        ':paid_amount_cents' => 0,
         ':installment_number' => 0,
         ':installment_total' => 0,
         ':is_settled' => $isSettled === 1 ? 1 : 0,
@@ -6204,6 +6630,13 @@ function workspaceAccountingCreateCarriedEntry(PDO $pdo, array $payload): int
     $totalAmountCents = normalizeDueAmountCents($payload['total_amount_cents'] ?? null) ?? $amountCents;
     $isInstallment = ((int) ($payload['is_installment'] ?? 0)) === 1;
     $isMonthly = ((int) ($payload['is_monthly'] ?? 0)) === 1;
+    $monthlyMode = normalizeAccountingMonthlyMode(
+        (string) ($payload['monthly_mode'] ?? 'uniform'),
+        $entryType,
+        $isMonthly ? 1 : 0,
+        max(0, (int) ($payload['source_due_entry_id'] ?? 0))
+    );
+    $paidAmountCents = normalizeDueAmountCents($payload['paid_amount_cents'] ?? null) ?? 0;
     $installmentNumber = max(0, (int) ($payload['installment_number'] ?? 0));
     $installmentTotal = max(0, (int) ($payload['installment_total'] ?? 0));
     $dueDate = dueDateForStorage((string) ($payload['due_date'] ?? ''));
@@ -6231,6 +6664,8 @@ function workspaceAccountingCreateCarriedEntry(PDO $pdo, array $payload): int
                 total_amount_cents,
                 is_installment,
                 is_monthly,
+                monthly_mode,
+                paid_amount_cents,
                 installment_number,
                 installment_total,
                 is_settled,
@@ -6250,6 +6685,8 @@ function workspaceAccountingCreateCarriedEntry(PDO $pdo, array $payload): int
                 :total_amount_cents,
                 :is_installment,
                 :is_monthly,
+                :monthly_mode,
+                :paid_amount_cents,
                 :installment_number,
                 :installment_total,
                 :is_settled,
@@ -6274,6 +6711,8 @@ function workspaceAccountingCreateCarriedEntry(PDO $pdo, array $payload): int
                 total_amount_cents,
                 is_installment,
                 is_monthly,
+                monthly_mode,
+                paid_amount_cents,
                 installment_number,
                 installment_total,
                 is_settled,
@@ -6293,6 +6732,8 @@ function workspaceAccountingCreateCarriedEntry(PDO $pdo, array $payload): int
                 :total_amount_cents,
                 :is_installment,
                 :is_monthly,
+                :monthly_mode,
+                :paid_amount_cents,
                 :installment_number,
                 :installment_total,
                 :is_settled,
@@ -6315,6 +6756,8 @@ function workspaceAccountingCreateCarriedEntry(PDO $pdo, array $payload): int
     $stmt->bindValue(':total_amount_cents', $totalAmountCents, PDO::PARAM_INT);
     $stmt->bindValue(':is_installment', $isInstallment ? 1 : 0, PDO::PARAM_INT);
     $stmt->bindValue(':is_monthly', $isMonthly ? 1 : 0, PDO::PARAM_INT);
+    $stmt->bindValue(':monthly_mode', $monthlyMode, PDO::PARAM_STR);
+    $stmt->bindValue(':paid_amount_cents', $paidAmountCents, PDO::PARAM_INT);
     $stmt->bindValue(':installment_number', $installmentNumber, PDO::PARAM_INT);
     $stmt->bindValue(':installment_total', $installmentTotal, PDO::PARAM_INT);
     $stmt->bindValue(':is_settled', 0, PDO::PARAM_INT);
@@ -6367,6 +6810,12 @@ function workspaceAccountingNextCarryEntryPayload(array $sourceEntry, string $ta
     $installmentTotal = (int) ($sourceEntry['installment_total'] ?? 0);
     $totalAmountCents = normalizeDueAmountCents($sourceEntry['total_amount_cents'] ?? null) ?? 0;
     $amountCents = normalizeDueAmountCents($sourceEntry['amount_cents'] ?? null) ?? 0;
+    $monthlyMode = normalizeAccountingMonthlyMode(
+        (string) ($sourceEntry['monthly_mode'] ?? 'uniform'),
+        $entryType,
+        $isMonthly ? 1 : 0,
+        max(0, (int) ($sourceEntry['source_due_entry_id'] ?? 0))
+    );
     $dueDate = dueDateForStorage((string) ($sourceEntry['due_date'] ?? ''));
 
     if ($entryType === 'income' && $isMonthly) {
@@ -6405,6 +6854,33 @@ function workspaceAccountingNextCarryEntryPayload(array $sourceEntry, string $ta
         return null;
     }
 
+    if ($isMonthly && $monthlyMode === 'goal') {
+        if ($amountCents <= 0) {
+            return null;
+        }
+
+        return [
+            'workspace_id' => $workspaceId,
+            'period_key' => $targetPeriodKey,
+            'entry_type' => 'expense',
+            'label' => normalizeAccountingEntryLabel((string) ($sourceEntry['label'] ?? '')),
+            'amount_cents' => $amountCents,
+            'total_amount_cents' => $amountCents,
+            'is_installment' => 0,
+            'is_monthly' => 1,
+            'monthly_mode' => 'goal',
+            'paid_amount_cents' => 0,
+            'installment_number' => 0,
+            'installment_total' => 0,
+            'due_date' => null,
+            'source_due_entry_id' => null,
+            'carry_source_entry_id' => $sourceEntryId,
+            'created_by' => isset($sourceEntry['created_by']) && (int) ($sourceEntry['created_by'] ?? 0) > 0
+                ? (int) $sourceEntry['created_by']
+                : null,
+        ];
+    }
+
     if ($isInstallment && $installmentTotal >= 2) {
         if ($installmentNumber < 1) {
             $installmentNumber = 1;
@@ -6427,6 +6903,8 @@ function workspaceAccountingNextCarryEntryPayload(array $sourceEntry, string $ta
             'total_amount_cents' => $totalAmountCents,
             'is_installment' => 1,
             'is_monthly' => 0,
+            'monthly_mode' => 'uniform',
+            'paid_amount_cents' => 0,
             'installment_number' => $nextInstallmentNumber,
             'installment_total' => $installmentTotal,
             'due_date' => $dueDate,
@@ -6451,6 +6929,8 @@ function workspaceAccountingNextCarryEntryPayload(array $sourceEntry, string $ta
         'total_amount_cents' => $amountCents,
         'is_installment' => 0,
         'is_monthly' => 0,
+        'monthly_mode' => 'uniform',
+        'paid_amount_cents' => 0,
         'installment_number' => 0,
         'installment_total' => 0,
         'due_date' => $dueDate,
@@ -6501,6 +6981,18 @@ function workspaceAccountingEntryMatchesCarryPayload(array $entry, array $payloa
         && (normalizeDueAmountCents($entry['total_amount_cents'] ?? null) ?? 0) === (normalizeDueAmountCents($payload['total_amount_cents'] ?? null) ?? 0)
         && ((((int) ($entry['is_installment'] ?? 0)) === 1) ? 1 : 0) === ((((int) ($payload['is_installment'] ?? 0)) === 1) ? 1 : 0)
         && ((((int) ($entry['is_monthly'] ?? 0)) === 1) ? 1 : 0) === ((((int) ($payload['is_monthly'] ?? 0)) === 1) ? 1 : 0)
+        && normalizeAccountingMonthlyMode(
+            (string) ($entry['monthly_mode'] ?? 'uniform'),
+            (string) ($entry['entry_type'] ?? 'expense'),
+            (((int) ($entry['is_monthly'] ?? 0)) === 1) ? 1 : 0,
+            max(0, (int) ($entry['source_due_entry_id'] ?? 0))
+        ) === normalizeAccountingMonthlyMode(
+            (string) ($payload['monthly_mode'] ?? 'uniform'),
+            (string) ($payload['entry_type'] ?? 'expense'),
+            (((int) ($payload['is_monthly'] ?? 0)) === 1) ? 1 : 0,
+            max(0, (int) ($payload['source_due_entry_id'] ?? 0))
+        )
+        && (normalizeDueAmountCents($entry['paid_amount_cents'] ?? null) ?? 0) === (normalizeDueAmountCents($payload['paid_amount_cents'] ?? null) ?? 0)
         && max(0, (int) ($entry['installment_number'] ?? 0)) === max(0, (int) ($payload['installment_number'] ?? 0))
         && max(0, (int) ($entry['installment_total'] ?? 0)) === max(0, (int) ($payload['installment_total'] ?? 0))
         && dueDateForStorage((string) ($entry['due_date'] ?? '')) === dueDateForStorage((string) ($payload['due_date'] ?? ''))
@@ -6519,6 +7011,8 @@ function workspaceAccountingUpdateCarriedEntry(PDO $pdo, int $workspaceId, int $
              total_amount_cents = :total_amount_cents,
              is_installment = :is_installment,
              is_monthly = :is_monthly,
+             monthly_mode = :monthly_mode,
+             paid_amount_cents = :paid_amount_cents,
              installment_number = :installment_number,
              installment_total = :installment_total,
              due_date = :due_date,
@@ -6536,6 +7030,13 @@ function workspaceAccountingUpdateCarriedEntry(PDO $pdo, int $workspaceId, int $
         ':total_amount_cents' => normalizeDueAmountCents($payload['total_amount_cents'] ?? null) ?? 0,
         ':is_installment' => ((int) ($payload['is_installment'] ?? 0)) === 1 ? 1 : 0,
         ':is_monthly' => ((int) ($payload['is_monthly'] ?? 0)) === 1 ? 1 : 0,
+        ':monthly_mode' => normalizeAccountingMonthlyMode(
+            (string) ($payload['monthly_mode'] ?? 'uniform'),
+            (string) ($payload['entry_type'] ?? 'expense'),
+            ((int) ($payload['is_monthly'] ?? 0)) === 1 ? 1 : 0,
+            max(0, (int) ($payload['source_due_entry_id'] ?? 0))
+        ),
+        ':paid_amount_cents' => normalizeDueAmountCents($payload['paid_amount_cents'] ?? null) ?? 0,
         ':installment_number' => max(0, (int) ($payload['installment_number'] ?? 0)),
         ':installment_total' => max(0, (int) ($payload['installment_total'] ?? 0)),
         ':due_date' => dueDateForStorage((string) ($payload['due_date'] ?? '')),
@@ -6622,6 +7123,8 @@ function workspaceAccountingDeleteEntryChain(PDO $pdo, int $workspaceId, int $en
     if (!$entryIds) {
         return;
     }
+
+    deleteWorkspaceAccountingGoalPaymentsByEntryIds($pdo, $workspaceId, $entryIds);
 
     $placeholders = implode(', ', array_fill(0, count($entryIds), '?'));
     $sql = "DELETE FROM workspace_accounting_entries WHERE workspace_id = ? AND id IN ({$placeholders})";
@@ -7087,7 +7590,8 @@ function createWorkspaceAccountingEntry(
     $installmentNumberInput = null,
     $installmentTotalInput = null,
     int $isMonthly = 0,
-    $monthlyDayInput = null
+    $monthlyDayInput = null,
+    ?string $monthlyMode = null
 ): int {
     if ($workspaceId <= 0) {
         throw new RuntimeException('Workspace inválido.');
@@ -7099,21 +7603,35 @@ function createWorkspaceAccountingEntry(
     if ($label === '') {
         throw new RuntimeException('Informe um nome para o registro.');
     }
-    $monthlyFlag = $entryType === 'income' && $isMonthly === 1 ? 1 : 0;
+    $requestedMonthlyMode = normalizeAccountingMonthlyMode(
+        (string) ($monthlyMode ?? 'uniform'),
+        $entryType,
+        $isMonthly === 1 ? 1 : 0
+    );
+    $isGoalMonthly = $entryType === 'expense' && $isMonthly === 1 && $requestedMonthlyMode === 'goal';
+    $monthlyFlag = ($entryType === 'income' && $isMonthly === 1) || $isGoalMonthly ? 1 : 0;
     if ($monthlyFlag === 1) {
         $isInstallment = 0;
     }
-    $amountPayload = resolveAccountingEntryAmounts(
-        $amountInput,
-        $totalAmountInput,
-        $isInstallment === 1 ? 1 : 0,
-        $installmentProgress,
-        $installmentNumberInput,
-        $installmentTotalInput
-    );
-    $settledFlag = $isSettled === 1 ? 1 : 0;
+    if ($isGoalMonthly) {
+        $amountPayload = resolveAccountingGoalMonthlyState($amountInput);
+        $settledFlag = (int) $amountPayload['is_settled'];
+        $paidAmountCents = (int) $amountPayload['paid_amount_cents'];
+    } else {
+        $amountPayload = resolveAccountingEntryAmounts(
+            $amountInput,
+            $totalAmountInput,
+            $isInstallment === 1 ? 1 : 0,
+            $installmentProgress,
+            $installmentNumberInput,
+            $installmentTotalInput
+        );
+        $settledFlag = $isSettled === 1 ? 1 : 0;
+        $paidAmountCents = 0;
+        $requestedMonthlyMode = 'uniform';
+    }
     $dueDate = null;
-    if ($monthlyFlag === 1) {
+    if ($monthlyFlag === 1 && !$isGoalMonthly) {
         $monthlyDay = normalizeDueMonthlyDay($monthlyDayInput);
         if ($monthlyDay === null) {
             $monthlyDay = (int) (new DateTimeImmutable('today'))->format('j');
@@ -7150,6 +7668,8 @@ function createWorkspaceAccountingEntry(
                 total_amount_cents,
                 is_installment,
                 is_monthly,
+                monthly_mode,
+                paid_amount_cents,
                 installment_number,
                 installment_total,
                 is_settled,
@@ -7167,6 +7687,8 @@ function createWorkspaceAccountingEntry(
                 :total_amount_cents,
                 :is_installment,
                 :is_monthly,
+                :monthly_mode,
+                :paid_amount_cents,
                 :installment_number,
                 :installment_total,
                 :is_settled,
@@ -7189,6 +7711,8 @@ function createWorkspaceAccountingEntry(
                 total_amount_cents,
                 is_installment,
                 is_monthly,
+                monthly_mode,
+                paid_amount_cents,
                 installment_number,
                 installment_total,
                 is_settled,
@@ -7206,6 +7730,8 @@ function createWorkspaceAccountingEntry(
                 :total_amount_cents,
                 :is_installment,
                 :is_monthly,
+                :monthly_mode,
+                :paid_amount_cents,
                 :installment_number,
                 :installment_total,
                 :is_settled,
@@ -7226,6 +7752,8 @@ function createWorkspaceAccountingEntry(
     $stmt->bindValue(':total_amount_cents', (int) $amountPayload['total_amount_cents'], PDO::PARAM_INT);
     $stmt->bindValue(':is_installment', (int) $amountPayload['is_installment'], PDO::PARAM_INT);
     $stmt->bindValue(':is_monthly', $monthlyFlag, PDO::PARAM_INT);
+    $stmt->bindValue(':monthly_mode', $requestedMonthlyMode, PDO::PARAM_STR);
+    $stmt->bindValue(':paid_amount_cents', $paidAmountCents, PDO::PARAM_INT);
     $stmt->bindValue(':installment_number', (int) $amountPayload['installment_number'], PDO::PARAM_INT);
     $stmt->bindValue(':installment_total', (int) $amountPayload['installment_total'], PDO::PARAM_INT);
     $stmt->bindValue(':is_settled', $settledFlag, PDO::PARAM_INT);
@@ -7265,7 +7793,10 @@ function updateWorkspaceAccountingEntry(
     $installmentTotalInput = null,
     int $isMonthly = 0,
     $monthlyDayInput = null,
-    ?string $periodKey = null
+    ?string $periodKey = null,
+    string $entryType = 'expense',
+    ?string $monthlyMode = null,
+    ?int $existingPaidAmountCents = null
 ): void {
     if ($workspaceId <= 0 || $entryId <= 0) {
         throw new RuntimeException('Registro inválido.');
@@ -7275,21 +7806,46 @@ function updateWorkspaceAccountingEntry(
     if ($label === '') {
         throw new RuntimeException('Informe um nome para o registro.');
     }
+    $entryType = normalizeAccountingEntryType($entryType);
+    $requestedMonthlyMode = normalizeAccountingMonthlyMode(
+        (string) ($monthlyMode ?? 'uniform'),
+        $entryType,
+        $isMonthly === 1 ? 1 : 0
+    );
+    $isGoalMonthly = $entryType === 'expense' && $isMonthly === 1 && $requestedMonthlyMode === 'goal';
     $monthlyFlag = $isMonthly === 1 ? 1 : 0;
     if ($monthlyFlag === 1) {
         $isInstallment = 0;
     }
-    $amountPayload = resolveAccountingEntryAmounts(
-        $amountInput,
-        $totalAmountInput,
-        $isInstallment === 1 ? 1 : 0,
-        $installmentProgress,
-        $installmentNumberInput,
-        $installmentTotalInput
-    );
-    $settledFlag = $isSettled === 1 ? 1 : 0;
+    if ($isGoalMonthly) {
+        $requestedTotalAmountCents = normalizeDueAmountCents($amountInput);
+        if ($requestedTotalAmountCents === null) {
+            throw new RuntimeException('Informe um valor valido.');
+        }
+
+        $existingPaidAmountCents = max(0, (int) ($existingPaidAmountCents ?? 0));
+        if ($requestedTotalAmountCents < $existingPaidAmountCents) {
+            throw new RuntimeException('O valor total da meta nao pode ser menor que o valor ja pago.');
+        }
+
+        $amountPayload = resolveAccountingGoalMonthlyState($amountInput, $existingPaidAmountCents);
+        $settledFlag = (int) $amountPayload['is_settled'];
+        $paidAmountCents = (int) $amountPayload['paid_amount_cents'];
+    } else {
+        $amountPayload = resolveAccountingEntryAmounts(
+            $amountInput,
+            $totalAmountInput,
+            $isInstallment === 1 ? 1 : 0,
+            $installmentProgress,
+            $installmentNumberInput,
+            $installmentTotalInput
+        );
+        $settledFlag = $isSettled === 1 ? 1 : 0;
+        $paidAmountCents = 0;
+        $requestedMonthlyMode = 'uniform';
+    }
     $dueDate = null;
-    if ($monthlyFlag === 1) {
+    if ($monthlyFlag === 1 && !$isGoalMonthly) {
         $monthlyDay = normalizeDueMonthlyDay($monthlyDayInput);
         if ($monthlyDay === null) {
             $monthlyDay = (int) (new DateTimeImmutable('today'))->format('j');
@@ -7307,6 +7863,8 @@ function updateWorkspaceAccountingEntry(
              total_amount_cents = :total_amount_cents,
              is_installment = :is_installment,
              is_monthly = :is_monthly,
+             monthly_mode = :monthly_mode,
+             paid_amount_cents = :paid_amount_cents,
              installment_number = :installment_number,
              installment_total = :installment_total,
              is_settled = :is_settled,
@@ -7321,6 +7879,8 @@ function updateWorkspaceAccountingEntry(
         ':total_amount_cents' => (int) $amountPayload['total_amount_cents'],
         ':is_installment' => (int) $amountPayload['is_installment'],
         ':is_monthly' => $monthlyFlag,
+        ':monthly_mode' => $requestedMonthlyMode,
+        ':paid_amount_cents' => $paidAmountCents,
         ':installment_number' => (int) $amountPayload['installment_number'],
         ':installment_total' => (int) $amountPayload['installment_total'],
         ':is_settled' => $settledFlag,
@@ -7348,11 +7908,253 @@ function updateWorkspaceAccountingEntry(
     }
 }
 
+function updateWorkspaceAccountingGoalPayment(PDO $pdo, int $workspaceId, int $entryId, array $paymentState): void
+{
+    $stmt = $pdo->prepare(
+        'UPDATE workspace_accounting_entries
+         SET amount_cents = :amount_cents,
+             total_amount_cents = :total_amount_cents,
+             is_installment = 0,
+             is_monthly = 1,
+             monthly_mode = :monthly_mode,
+             paid_amount_cents = :paid_amount_cents,
+             installment_number = 0,
+             installment_total = 0,
+             is_settled = :is_settled,
+             due_date = NULL,
+             updated_at = :updated_at
+         WHERE id = :id
+           AND workspace_id = :workspace_id'
+    );
+    $stmt->execute([
+        ':amount_cents' => (int) ($paymentState['amount_cents'] ?? 0),
+        ':total_amount_cents' => (int) ($paymentState['total_amount_cents'] ?? 0),
+        ':monthly_mode' => 'goal',
+        ':paid_amount_cents' => (int) ($paymentState['paid_amount_cents'] ?? 0),
+        ':is_settled' => ((int) ($paymentState['is_settled'] ?? 0)) === 1 ? 1 : 0,
+        ':updated_at' => nowIso(),
+        ':id' => $entryId,
+        ':workspace_id' => $workspaceId,
+    ]);
+
+    if ($stmt->rowCount() <= 0) {
+        $existsStmt = $pdo->prepare(
+            'SELECT 1
+             FROM workspace_accounting_entries
+             WHERE id = :id
+               AND workspace_id = :workspace_id
+             LIMIT 1'
+        );
+        $existsStmt->execute([
+            ':id' => $entryId,
+            ':workspace_id' => $workspaceId,
+        ]);
+        if (!$existsStmt->fetchColumn()) {
+            throw new RuntimeException('Registro nÃ£o encontrado.');
+        }
+    }
+}
+
+function deleteWorkspaceAccountingGoalPaymentsByEntryIds(PDO $pdo, int $workspaceId, array $entryIds): void
+{
+    if ($workspaceId <= 0) {
+        return;
+    }
+
+    $entryIds = array_values(array_unique(array_filter(array_map('intval', $entryIds), static fn (int $entryId): bool => $entryId > 0)));
+    if (!$entryIds) {
+        return;
+    }
+
+    $placeholders = implode(', ', array_fill(0, count($entryIds), '?'));
+    $stmt = $pdo->prepare(
+        "DELETE FROM workspace_accounting_goal_payments
+         WHERE workspace_id = ?
+           AND entry_id IN ({$placeholders})"
+    );
+    $stmt->execute(array_merge([$workspaceId], $entryIds));
+}
+
+function syncWorkspaceAccountingGoalPaymentHistory(PDO $pdo, int $workspaceId, int $entryId): array
+{
+    $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
+    if ($existingEntry === null) {
+        throw new RuntimeException('Registro nao encontrado.');
+    }
+    if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
+        throw new RuntimeException('Apenas metas mensais aceitam historico de pagamentos.');
+    }
+
+    $startingAmountCents = max(
+        (int) ($existingEntry['total_amount_cents'] ?? 0),
+        ((int) ($existingEntry['amount_cents'] ?? 0)) + ((int) ($existingEntry['paid_amount_cents'] ?? 0))
+    );
+    $paidAmountCents = workspaceAccountingGoalPaymentTotalCents($pdo, $workspaceId, $entryId);
+    if ($paidAmountCents > $startingAmountCents) {
+        throw new RuntimeException('O total pago excede o valor total da meta.');
+    }
+
+    updateWorkspaceAccountingGoalPayment(
+        $pdo,
+        $workspaceId,
+        $entryId,
+        resolveAccountingGoalMonthlyPaymentStateFromCents($startingAmountCents, $paidAmountCents)
+    );
+
+    $updatedEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
+    if ($updatedEntry === null) {
+        throw new RuntimeException('Registro nao encontrado.');
+    }
+
+    return $updatedEntry;
+}
+
+function addWorkspaceAccountingGoalPaymentWithCarrySync(
+    PDO $pdo,
+    int $workspaceId,
+    int $entryId,
+    $paymentAmountInput,
+    ?int $createdBy = null
+): void {
+    $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
+    if ($existingEntry === null) {
+        throw new RuntimeException('Registro nao encontrado.');
+    }
+    if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
+        throw new RuntimeException('Apenas metas mensais aceitam pagamentos parciais.');
+    }
+
+    $paymentAmountCents = normalizeDueAmountCents($paymentAmountInput);
+    if ($paymentAmountCents === null || $paymentAmountCents <= 0) {
+        throw new RuntimeException('Informe um valor valido para adicionar.');
+    }
+
+    $startingAmountCents = max(
+        (int) ($existingEntry['total_amount_cents'] ?? 0),
+        ((int) ($existingEntry['amount_cents'] ?? 0)) + ((int) ($existingEntry['paid_amount_cents'] ?? 0))
+    );
+    $currentPaidAmountCents = workspaceAccountingGoalPaymentTotalCents($pdo, $workspaceId, $entryId);
+    if (($currentPaidAmountCents + $paymentAmountCents) > $startingAmountCents) {
+        throw new RuntimeException('Esse lancamento ultrapassa o valor total da meta.');
+    }
+
+    $futureCarryLimit = workspaceAccountingLatestDescendantPeriodKey(
+        workspaceAccountingDescendantEntries($pdo, $workspaceId, $entryId)
+    );
+
+    $startedTransaction = !$pdo->inTransaction();
+    if ($startedTransaction) {
+        $pdo->beginTransaction();
+    }
+
+    try {
+        $stmt = $pdo->prepare(
+            'INSERT INTO workspace_accounting_goal_payments (
+                workspace_id,
+                entry_id,
+                amount_cents,
+                created_by,
+                created_at
+            ) VALUES (
+                :workspace_id,
+                :entry_id,
+                :amount_cents,
+                :created_by,
+                :created_at
+            )'
+        );
+        $stmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
+        $stmt->bindValue(':entry_id', $entryId, PDO::PARAM_INT);
+        $stmt->bindValue(':amount_cents', $paymentAmountCents, PDO::PARAM_INT);
+        if ($createdBy !== null && $createdBy > 0) {
+            $stmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+        }
+        $stmt->bindValue(':created_at', nowIso(), PDO::PARAM_STR);
+        $stmt->execute();
+
+        $updatedEntry = syncWorkspaceAccountingGoalPaymentHistory($pdo, $workspaceId, $entryId);
+        if ($futureCarryLimit !== null) {
+            workspaceAccountingSyncFutureChain($pdo, $updatedEntry, $futureCarryLimit);
+        }
+
+        if ($startedTransaction) {
+            $pdo->commit();
+        }
+    } catch (Throwable $e) {
+        if ($startedTransaction && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        throw $e;
+    }
+}
+
+function deleteWorkspaceAccountingGoalPaymentWithCarrySync(PDO $pdo, int $workspaceId, int $entryId, int $paymentId): void
+{
+    if ($paymentId <= 0) {
+        throw new RuntimeException('Lancamento invalido.');
+    }
+
+    $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
+    if ($existingEntry === null) {
+        throw new RuntimeException('Registro nao encontrado.');
+    }
+    if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
+        throw new RuntimeException('Apenas metas mensais aceitam pagamentos parciais.');
+    }
+
+    $futureCarryLimit = workspaceAccountingLatestDescendantPeriodKey(
+        workspaceAccountingDescendantEntries($pdo, $workspaceId, $entryId)
+    );
+
+    $startedTransaction = !$pdo->inTransaction();
+    if ($startedTransaction) {
+        $pdo->beginTransaction();
+    }
+
+    try {
+        $deleteStmt = $pdo->prepare(
+            'DELETE FROM workspace_accounting_goal_payments
+             WHERE id = :id
+               AND workspace_id = :workspace_id
+               AND entry_id = :entry_id'
+        );
+        $deleteStmt->execute([
+            ':id' => $paymentId,
+            ':workspace_id' => $workspaceId,
+            ':entry_id' => $entryId,
+        ]);
+
+        if ($deleteStmt->rowCount() <= 0) {
+            throw new RuntimeException('Lancamento nao encontrado.');
+        }
+
+        $updatedEntry = syncWorkspaceAccountingGoalPaymentHistory($pdo, $workspaceId, $entryId);
+        if ($futureCarryLimit !== null) {
+            workspaceAccountingSyncFutureChain($pdo, $updatedEntry, $futureCarryLimit);
+        }
+
+        if ($startedTransaction) {
+            $pdo->commit();
+        }
+    } catch (Throwable $e) {
+        if ($startedTransaction && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        throw $e;
+    }
+}
+
 function deleteWorkspaceAccountingEntry(PDO $pdo, int $workspaceId, int $entryId): void
 {
     if ($workspaceId <= 0 || $entryId <= 0) {
         throw new RuntimeException('Registro inválido.');
     }
+
+    deleteWorkspaceAccountingGoalPaymentsByEntryIds($pdo, $workspaceId, [$entryId]);
 
     $stmt = $pdo->prepare(
         'DELETE FROM workspace_accounting_entries
@@ -7382,7 +8184,8 @@ function updateWorkspaceAccountingEntryWithCarrySync(
     $installmentNumberInput = null,
     $installmentTotalInput = null,
     $monthlyDayInput = null,
-    ?int $isMonthlyInput = null
+    ?int $isMonthlyInput = null,
+    ?string $monthlyModeInput = null
 ): void
 {
     $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
@@ -7404,9 +8207,23 @@ function updateWorkspaceAccountingEntryWithCarrySync(
         $sourceDueEntryId = max(0, (int) ($existingEntry['source_due_entry_id'] ?? 0));
         $entryType = normalizeAccountingEntryType((string) ($existingEntry['entry_type'] ?? 'expense'));
         $existingIsMonthly = ((int) ($existingEntry['is_monthly'] ?? 0)) === 1 ? 1 : 0;
+        $existingMonthlyMode = normalizeAccountingMonthlyMode(
+            (string) ($existingEntry['monthly_mode'] ?? 'uniform'),
+            $entryType,
+            $existingIsMonthly ? 1 : 0,
+            $sourceDueEntryId
+        );
         $monthlyFlag = $entryType === 'income'
             ? ($isMonthlyInput === null ? $existingIsMonthly : ($isMonthlyInput === 1 ? 1 : 0))
-            : 0;
+            : ($existingMonthlyMode === 'goal' ? 1 : 0);
+        $monthlyMode = $entryType === 'expense' && $existingMonthlyMode === 'goal'
+            ? 'goal'
+            : normalizeAccountingMonthlyMode(
+                (string) ($monthlyModeInput ?? 'uniform'),
+                $entryType,
+                $monthlyFlag,
+                0
+            );
         $entryPeriodKey = normalizeAccountingPeriodKey((string) ($existingEntry['period_key'] ?? ''));
         $resolvedMonthlyDay = $monthlyDayInput;
         if ($monthlyFlag === 1 && normalizeDueMonthlyDay($resolvedMonthlyDay) === null) {
@@ -7460,14 +8277,99 @@ function updateWorkspaceAccountingEntryWithCarrySync(
             $installmentTotalInput,
             $monthlyFlag,
             $resolvedMonthlyDay,
-            $entryPeriodKey
+            $entryPeriodKey,
+            $entryType,
+            $monthlyMode,
+            $monthlyMode === 'goal'
+                ? workspaceAccountingGoalPaymentTotalCents($pdo, $workspaceId, $entryId)
+                : null
         );
+
+        $updatedEntry = syncWorkspaceAccountingGoalPaymentHistory($pdo, $workspaceId, $entryId);
+
+        }
+
+        if ($futureCarryLimit !== null) {
+            workspaceAccountingSyncFutureChain($pdo, $updatedEntry, $futureCarryLimit);
+        }
+
+        if ($startedTransaction) {
+            $pdo->commit();
+        }
+    } catch (Throwable $e) {
+        if ($startedTransaction && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        throw $e;
+    }
+}
+
+function updateWorkspaceAccountingGoalPaymentWithCarrySync(
+    PDO $pdo,
+    int $workspaceId,
+    int $entryId,
+    $paidAmountInput,
+    ?int $createdBy = null
+): void
+{
+    $existingEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
+    if ($existingEntry === null) {
+        throw new RuntimeException('Registro nÃ£o encontrado.');
+    }
+    if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
+        throw new RuntimeException('Apenas metas mensais aceitam pagamentos parciais.');
+    }
+
+    $futureCarryLimit = workspaceAccountingLatestDescendantPeriodKey(
+        workspaceAccountingDescendantEntries($pdo, $workspaceId, $entryId)
+    );
+
+    $startedTransaction = !$pdo->inTransaction();
+    if ($startedTransaction) {
+        $pdo->beginTransaction();
+    }
+
+    try {
+        $startingAmountCents = max(
+            (int) ($existingEntry['total_amount_cents'] ?? 0),
+            ((int) ($existingEntry['amount_cents'] ?? 0)) + ((int) ($existingEntry['paid_amount_cents'] ?? 0))
+        );
+        $paymentState = resolveAccountingGoalMonthlyPaymentState($startingAmountCents, $paidAmountInput);
+        deleteWorkspaceAccountingGoalPaymentsByEntryIds($pdo, $workspaceId, [$entryId]);
+
+        $paidAmountCents = (int) ($paymentState['paid_amount_cents'] ?? 0);
+        if ($paidAmountCents > 0) {
+            $insertStmt = $pdo->prepare(
+                'INSERT INTO workspace_accounting_goal_payments (
+                    workspace_id,
+                    entry_id,
+                    amount_cents,
+                    created_by,
+                    created_at
+                ) VALUES (
+                    :workspace_id,
+                    :entry_id,
+                    :amount_cents,
+                    :created_by,
+                    :created_at
+                )'
+            );
+            $insertStmt->bindValue(':workspace_id', $workspaceId, PDO::PARAM_INT);
+            $insertStmt->bindValue(':entry_id', $entryId, PDO::PARAM_INT);
+            $insertStmt->bindValue(':amount_cents', $paidAmountCents, PDO::PARAM_INT);
+            if ($createdBy !== null && $createdBy > 0) {
+                $insertStmt->bindValue(':created_by', $createdBy, PDO::PARAM_INT);
+            } else {
+                $insertStmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+            }
+            $insertStmt->bindValue(':created_at', nowIso(), PDO::PARAM_STR);
+            $insertStmt->execute();
+        }
 
         $updatedEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
         if ($updatedEntry === null) {
             throw new RuntimeException('Registro nÃ£o encontrado.');
-        }
-
         }
 
         if ($futureCarryLimit !== null) {
@@ -7532,6 +8434,8 @@ function accountingSummary(array $entries, int $openingBalanceCents): array
         $entryType = normalizeAccountingEntryType((string) ($entry['entry_type'] ?? 'expense'));
         $amountCents = normalizeDueAmountCents($entry['amount_cents'] ?? null) ?? 0;
         $isSettled = ((int) ($entry['is_settled'] ?? 0)) === 1;
+        $isMonthlyGoal = ((int) ($entry['is_monthly_goal'] ?? 0)) === 1;
+        $paidAmountCents = normalizeDueAmountCents($entry['paid_amount_cents'] ?? null) ?? 0;
 
         if ($entryType === 'income') {
             $incomeTotal += $amountCents;
@@ -7539,6 +8443,11 @@ function accountingSummary(array $entries, int $openingBalanceCents): array
                 $incomeReceived += $amountCents;
             }
         } else {
+            if ($isMonthlyGoal) {
+                $expenseTotal += $paidAmountCents;
+                $expensePaid += $paidAmountCents;
+                continue;
+            }
             $expenseTotal += $amountCents;
             if ($isSettled) {
                 $expensePaid += $amountCents;

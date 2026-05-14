@@ -43,8 +43,12 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $isInstallment = $entryType === 'expense' && ((string) ($_POST['is_installment'] ?? '0')) === '1' ? 1 : 0;
                 $isMonthlyDue = $entryType === 'expense' && ((string) ($_POST['is_monthly_due'] ?? '0')) === '1' ? 1 : 0;
                 $isMonthlyIncome = $entryType === 'income' && ((string) ($_POST['is_monthly_due'] ?? '0')) === '1' ? 1 : 0;
+                $monthlyMode = (string) ($_POST['monthly_mode'] ?? 'uniform');
+                $isMonthlyGoal = $entryType === 'expense'
+                    && $isMonthlyDue === 1
+                    && normalizeAccountingMonthlyMode($monthlyMode, $entryType, 1) === 'goal';
 
-                if ($isMonthlyDue === 1) {
+                if ($isMonthlyDue === 1 && !$isMonthlyGoal) {
                     createWorkspaceAccountingMonthlyDue(
                         $pdo,
                         $workspaceId,
@@ -70,8 +74,9 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                         $_POST['total_amount_value'] ?? null,
                         $_POST['installment_number'] ?? null,
                         $_POST['installment_total'] ?? null,
-                        $isMonthlyIncome,
-                        $_POST['monthly_day'] ?? null
+                        ($isMonthlyIncome === 1 || $isMonthlyGoal) ? 1 : 0,
+                        $_POST['monthly_day'] ?? null,
+                        $monthlyMode
                     );
                 }
 
@@ -113,7 +118,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $isSettled = array_key_exists('is_settled', $_POST) ? 1 : 0;
                 $entryType = normalizeAccountingEntryType((string) ($entryRow['entry_type'] ?? 'expense'));
                 $isInstallment = $entryType === 'expense' && ((string) ($_POST['is_installment'] ?? '0')) === '1' ? 1 : 0;
-                $isMonthlyIncome = $entryType === 'income' && ((string) ($_POST['is_monthly_due'] ?? '0')) === '1' ? 1 : 0;
+                $isMonthlyFlag = ((string) ($_POST['is_monthly_due'] ?? '0')) === '1' ? 1 : 0;
                 updateWorkspaceAccountingEntryWithCarrySync(
                     $pdo,
                     $workspaceId,
@@ -127,7 +132,8 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                     $_POST['installment_number'] ?? null,
                     $_POST['installment_total'] ?? null,
                     $_POST['monthly_day'] ?? null,
-                    $isMonthlyIncome
+                    $isMonthlyFlag,
+                    (string) ($_POST['monthly_mode'] ?? 'uniform')
                 );
 
                 if (requestExpectsJson()) {
@@ -138,6 +144,132 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 }
 
                 flash('success', 'Registro atualizado.');
+                redirectTo(accountingRedirectPathFromRequest());
+
+            case 'update_accounting_goal_payment':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                }
+
+                $entryId = (int) ($_POST['entry_id'] ?? 0);
+                if ($entryId <= 0) {
+                    throw new RuntimeException('Registro invÃ¡lido.');
+                }
+
+                $entryWorkspaceStmt = $pdo->prepare(
+                    'SELECT workspace_id
+                     FROM workspace_accounting_entries
+                     WHERE id = :id
+                     LIMIT 1'
+                );
+                $entryWorkspaceStmt->execute([':id' => $entryId]);
+                $entryWorkspaceId = (int) $entryWorkspaceStmt->fetchColumn();
+                if ($entryWorkspaceId <= 0 || $entryWorkspaceId !== $workspaceId) {
+                    throw new RuntimeException('Registro nÃ£o encontrado.');
+                }
+
+                updateWorkspaceAccountingGoalPaymentWithCarrySync(
+                    $pdo,
+                    $workspaceId,
+                    $entryId,
+                    $_POST['paid_amount_value'] ?? null,
+                    (int) ($authUser['id'] ?? 0)
+                );
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => 'Pagamento mensal atualizado.',
+                    ]);
+                }
+
+                flash('success', 'Pagamento mensal atualizado.');
+                redirectTo(accountingRedirectPathFromRequest());
+
+            case 'add_accounting_goal_payment':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                }
+
+                $entryId = (int) ($_POST['entry_id'] ?? 0);
+                if ($entryId <= 0) {
+                    throw new RuntimeException('Registro invÃ¡lido.');
+                }
+
+                $entryWorkspaceStmt = $pdo->prepare(
+                    'SELECT workspace_id
+                     FROM workspace_accounting_entries
+                     WHERE id = :id
+                     LIMIT 1'
+                );
+                $entryWorkspaceStmt->execute([':id' => $entryId]);
+                $entryWorkspaceId = (int) $entryWorkspaceStmt->fetchColumn();
+                if ($entryWorkspaceId <= 0 || $entryWorkspaceId !== $workspaceId) {
+                    throw new RuntimeException('Registro nÃ£o encontrado.');
+                }
+
+                addWorkspaceAccountingGoalPaymentWithCarrySync(
+                    $pdo,
+                    $workspaceId,
+                    $entryId,
+                    $_POST['payment_amount_value'] ?? null,
+                    (int) ($authUser['id'] ?? 0)
+                );
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => 'Pagamento adicionado.',
+                    ]);
+                }
+
+                flash('success', 'Pagamento adicionado.');
+                redirectTo(accountingRedirectPathFromRequest());
+
+            case 'delete_accounting_goal_payment':
+                $authUser = requireAuth();
+                $workspaceId = activeWorkspaceId($authUser);
+                if ($workspaceId === null) {
+                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                }
+
+                $entryId = (int) ($_POST['entry_id'] ?? 0);
+                $paymentId = (int) ($_POST['payment_id'] ?? 0);
+                if ($entryId <= 0 || $paymentId <= 0) {
+                    throw new RuntimeException('LanÃ§amento invÃ¡lido.');
+                }
+
+                $entryWorkspaceStmt = $pdo->prepare(
+                    'SELECT workspace_id
+                     FROM workspace_accounting_entries
+                     WHERE id = :id
+                     LIMIT 1'
+                );
+                $entryWorkspaceStmt->execute([':id' => $entryId]);
+                $entryWorkspaceId = (int) $entryWorkspaceStmt->fetchColumn();
+                if ($entryWorkspaceId <= 0 || $entryWorkspaceId !== $workspaceId) {
+                    throw new RuntimeException('Registro nÃ£o encontrado.');
+                }
+
+                deleteWorkspaceAccountingGoalPaymentWithCarrySync(
+                    $pdo,
+                    $workspaceId,
+                    $entryId,
+                    $paymentId
+                );
+
+                if (requestExpectsJson()) {
+                    respondJson([
+                        'ok' => true,
+                        'message' => 'Pagamento removido.',
+                    ]);
+                }
+
+                flash('success', 'Pagamento removido.');
                 redirectTo(accountingRedirectPathFromRequest());
 
             case 'delete_accounting_entry':
@@ -181,6 +313,9 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
         'set_accounting_opening_balance',
         'create_accounting_entry',
         'update_accounting_entry',
+        'update_accounting_goal_payment',
+        'add_accounting_goal_payment',
+        'delete_accounting_goal_payment',
         'delete_accounting_entry',
     ], true);
 }

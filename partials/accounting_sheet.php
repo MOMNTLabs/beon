@@ -28,13 +28,32 @@
                                     $accountingEntryIsCarried = ((int) ($accountingEntry['is_carried'] ?? 0)) === 1;
                                     $accountingEntrySourceDueId = (int) ($accountingEntry['source_due_entry_id'] ?? 0);
                                     $accountingEntryIsMonthlyDue = $accountingEntrySourceDueId > 0;
+                                    $accountingEntryIsMonthlyGoal = ((int) ($accountingEntry['is_monthly_goal'] ?? 0)) === 1;
                                     $accountingEntryMonthlyDay = normalizeDueMonthlyDay($accountingEntry['source_due_monthly_day'] ?? null);
                                     $accountingEntryDueDateDisplay = (string) ($accountingEntry['due_date_display'] ?? '');
-                                    $accountingEntryMonthlyBadge = $accountingEntryIsMonthlyDue && $accountingEntryMonthlyDay !== null
-                                        ? ('Mensal - ' . str_pad((string) $accountingEntryMonthlyDay, 2, '0', STR_PAD_LEFT))
-                                        : '';
+                                    $accountingEntryGoalPaymentInput = (string) ($accountingEntry['goal_payment_input'] ?? '0,00');
+                                    $accountingEntryGoalPaymentDisplay = (string) ($accountingEntry['goal_payment_display'] ?? 'R$ 0,00');
+                                    $accountingEntryGoalTotalDisplay = (string) ($accountingEntry['total_amount_display'] ?? $accountingEntryAmountInput);
+                                    $accountingEntryGoalPaymentHistory = is_array($accountingEntry['goal_payment_history'] ?? null)
+                                        ? $accountingEntry['goal_payment_history']
+                                        : [];
+                                    $accountingEntryGoalPaidCents = max(0, (int) ($accountingEntry['paid_amount_cents'] ?? 0));
+                                    $accountingEntryGoalTotalCents = max(0, (int) ($accountingEntry['total_amount_cents'] ?? 0));
+                                    $accountingEntryGoalProgressPercent = $accountingEntryGoalTotalCents > 0
+                                        ? min(100, max(0, ($accountingEntryGoalPaidCents / $accountingEntryGoalTotalCents) * 100))
+                                        : 0;
+                                    $accountingEntryGoalProgressWidth = number_format($accountingEntryGoalProgressPercent, 2, '.', '');
+                                    $accountingEntryMonthlyBadge = $accountingEntryIsMonthlyGoal
+                                        ? 'Meta'
+                                        : ($accountingEntryIsMonthlyDue && $accountingEntryMonthlyDay !== null
+                                            ? ('Mensal - ' . str_pad((string) $accountingEntryMonthlyDay, 2, '0', STR_PAD_LEFT))
+                                            : '');
+                                    $accountingEntryShowPendingBadge = $accountingEntryIsCarried
+                                        && !$accountingEntryIsSettled
+                                        && !$accountingEntryIsInstallment
+                                        && !$accountingEntryIsMonthlyGoal;
                                     ?>
-                                    <div class="accounting-entry-row">
+                                    <div class="accounting-entry-row<?= $accountingEntryIsMonthlyGoal ? ' is-goal-entry' : '' ?>">
                                         <button
                                             type="button"
                                             class="accounting-entry-summary"
@@ -42,38 +61,149 @@
                                             aria-expanded="false"
                                         >
                                             <span class="accounting-entry-summary-main">
-                                                <span class="accounting-entry-summary-title"><?= e($accountingEntryLabel) ?></span>
-                                                <?php if ($accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment || ($accountingEntryIsCarried && !$accountingEntryIsSettled && !$accountingEntryIsInstallment)): ?>
-                                                    <span class="accounting-entry-summary-meta">
-                                                        <?php if ($accountingEntryMonthlyBadge !== ''): ?>
-                                                            <span class="accounting-entry-badge is-monthly"><?= e($accountingEntryMonthlyBadge) ?></span>
-                                                        <?php elseif ($accountingEntryIsInstallment): ?>
-                                                            <span class="accounting-entry-badge is-installment"><?= e($accountingEntryInstallmentBadge) ?></span>
-                                                        <?php endif; ?>
-                                                        <?php if ($accountingEntryIsCarried && !$accountingEntryIsSettled && !$accountingEntryIsInstallment): ?>
-                                                            <span class="accounting-entry-badge is-pending">Pendente</span>
-                                                        <?php endif; ?>
-                                                    </span>
-                                                <?php endif; ?>
+                                                <span class="accounting-entry-summary-head">
+                                                    <span class="accounting-entry-summary-title" title="<?= e($accountingEntryLabel) ?>"><?= e($accountingEntryLabel) ?></span>
+                                                    <?php if ($accountingEntryIsMonthlyGoal): ?>
+                                                        <span
+                                                            class="accounting-entry-goal-progress"
+                                                            aria-label="Pago <?= e($accountingEntryGoalPaymentDisplay) ?> de <?= e($accountingEntryGoalTotalDisplay) ?>"
+                                                        >
+                                                            <span class="accounting-entry-goal-progress-bar">
+                                                                <span class="accounting-entry-goal-progress-fill" style="width: <?= e($accountingEntryGoalProgressWidth) ?>%"></span>
+                                                                <span class="accounting-entry-goal-progress-values">
+                                                                    <span class="accounting-entry-goal-progress-paid"><?= e($accountingEntryGoalPaymentDisplay) ?></span>
+                                                                    <span class="accounting-entry-goal-progress-separator">/</span>
+                                                                    <strong class="accounting-entry-goal-progress-total"><?= e($accountingEntryGoalTotalDisplay) ?></strong>
+                                                                </span>
+                                                            </span>
+                                                        </span>
+                                                    <?php elseif ($accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment || $accountingEntryShowPendingBadge): ?>
+                                                        <span class="accounting-entry-summary-meta">
+                                                            <?php if ($accountingEntryMonthlyBadge !== ''): ?>
+                                                                <span class="accounting-entry-badge is-monthly"><?= e($accountingEntryMonthlyBadge) ?></span>
+                                                            <?php elseif ($accountingEntryIsInstallment): ?>
+                                                                <span class="accounting-entry-badge is-installment"><?= e($accountingEntryInstallmentBadge) ?></span>
+                                                            <?php endif; ?>
+                                                            <?php if ($accountingEntryShowPendingBadge): ?>
+                                                                <span class="accounting-entry-badge is-pending">Pendente</span>
+                                                            <?php endif; ?>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </span>
                                             </span>
-                                            <span class="accounting-entry-summary-amount"><?= e($accountingEntryAmountInput) ?></span>
+                                            <?php if ($accountingEntryIsMonthlyGoal): ?>
+                                                <span
+                                                    class="accounting-entry-summary-amount accounting-entry-summary-amount-goal"
+                                                    aria-label="Pago no m&ecirc;s <?= e($accountingEntryGoalPaymentDisplay) ?>"
+                                                >
+                                                    <?= e($accountingEntryGoalPaymentDisplay) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="accounting-entry-summary-amount"><?= e($accountingEntryAmountInput) ?></span>
+                                            <?php endif; ?>
                                         </button>
-                                        <form method="post" class="accounting-entry-quick-status-form" data-accounting-form>
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
-                                            <input type="hidden" name="action" value="update_accounting_entry">
-                                            <input type="hidden" name="entry_id" value="<?= e((string) $accountingEntryId) ?>">
-                                            <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
-                                            <input type="hidden" name="label" value="<?= e($accountingEntryLabel) ?>">
-                                            <input type="hidden" name="amount_value" value="<?= e($accountingEntryAmountInput) ?>">
-                                            <input type="hidden" name="is_installment" value="<?= $accountingEntryIsInstallment ? '1' : '0' ?>">
-                                            <input type="hidden" name="installment_progress" value="<?= e($accountingEntryInstallmentProgress) ?>">
-                                            <input type="hidden" name="total_amount_value" value="<?= e($accountingEntryTotalAmountInput) ?>">
-                                            <input type="hidden" name="monthly_day" value="<?= $accountingEntryMonthlyDay !== null ? e((string) $accountingEntryMonthlyDay) : '' ?>">
-                                            <label class="accounting-check">
-                                                <input type="checkbox" name="is_settled" value="1" <?= $accountingEntryIsSettled ? 'checked' : '' ?>>
-                                                <span>Pago</span>
-                                            </label>
-                                        </form>
+                                        <?php if ($accountingEntryIsMonthlyGoal): ?>
+                                            <div class="accounting-entry-goal-payment-panel">
+                                                <button
+                                                    type="button"
+                                                    class="accounting-entry-goal-payment-trigger"
+                                                    data-accounting-goal-payment-toggle
+                                                    aria-label="<?= e($accountingEntryGoalPaymentDisplay !== 'R$ 0,00' ? 'Editar valor pago do mês' : 'Registrar valor pago do mês') ?>"
+                                                    title="<?= e($accountingEntryGoalPaymentDisplay !== 'R$ 0,00' ? 'Editar valor pago do mês' : 'Registrar valor pago do mês') ?>"
+                                                >
+                                                    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                                        <path d="M11.8 1.8a1.75 1.75 0 0 1 2.47 2.47L6.09 12.45 3 13l.55-3.09L11.8 1.8Zm1.41.71a.75.75 0 0 0-1.06 0l-.77.77 1.06 1.06.77-.77a.75.75 0 0 0 0-1.06ZM11.73 5l-1.06-1.06-6.16 6.16-.24 1.37 1.37-.24L11.73 5Z" fill="currentColor"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <div class="accounting-entry-goal-payment-drawer" data-accounting-goal-payment-drawer hidden>
+                                                <div class="accounting-entry-goal-payment-drawer-head">
+                                                    <div class="accounting-entry-goal-payment-drawer-copy">
+                                                        <strong>Lancamentos do mes</strong>
+                                                        <span>A soma abaixo define o valor pago no mes.</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        class="accounting-entry-goal-payment-close"
+                                                        data-accounting-goal-payment-close
+                                                        aria-label="Fechar lancamentos do mes"
+                                                    >
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <form method="post" class="accounting-entry-goal-payment-add-form" data-accounting-goal-payment-add-form autocomplete="off">
+                                                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                    <input type="hidden" name="action" value="add_accounting_goal_payment">
+                                                    <input type="hidden" name="entry_id" value="<?= e((string) $accountingEntryId) ?>">
+                                                    <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
+                                                    <input
+                                                        type="text"
+                                                        name="payment_amount_value"
+                                                        value=""
+                                                        class="accounting-input accounting-input-amount"
+                                                        inputmode="numeric"
+                                                        placeholder="0,00"
+                                                        autocomplete="off"
+                                                        required
+                                                    >
+                                                    <div class="accounting-entry-goal-payment-actions">
+                                                        <button type="submit" class="btn btn-mini">Adicionar valor</button>
+                                                    </div>
+                                                </form>
+                                                <div class="accounting-entry-goal-payment-history">
+                                                    <?php if ($accountingEntryGoalPaymentHistory): ?>
+                                                        <?php foreach ($accountingEntryGoalPaymentHistory as $goalPaymentHistoryItem): ?>
+                                                            <?php
+                                                            $goalPaymentHistoryId = (int) ($goalPaymentHistoryItem['id'] ?? 0);
+                                                            $goalPaymentHistoryAmountDisplay = (string) ($goalPaymentHistoryItem['amount_display'] ?? 'R$ 0,00');
+                                                            $goalPaymentHistoryCreatedAt = (string) ($goalPaymentHistoryItem['created_at'] ?? '');
+                                                            $goalPaymentHistoryCreatedAtDisplay = (string) ($goalPaymentHistoryItem['created_at_display'] ?? '');
+                                                            ?>
+                                                            <div class="accounting-entry-goal-payment-item">
+                                                                <div class="accounting-entry-goal-payment-item-main">
+                                                                    <strong><?= e($goalPaymentHistoryAmountDisplay) ?></strong>
+                                                                    <time datetime="<?= e($goalPaymentHistoryCreatedAt) ?>"><?= e($goalPaymentHistoryCreatedAtDisplay) ?></time>
+                                                                </div>
+                                                                <form method="post" class="accounting-entry-goal-payment-delete-form" data-accounting-goal-payment-delete-form>
+                                                                    <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                                    <input type="hidden" name="action" value="delete_accounting_goal_payment">
+                                                                    <input type="hidden" name="entry_id" value="<?= e((string) $accountingEntryId) ?>">
+                                                                    <input type="hidden" name="payment_id" value="<?= e((string) $goalPaymentHistoryId) ?>">
+                                                                    <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
+                                                                    <button
+                                                                        type="submit"
+                                                                        class="accounting-entry-goal-payment-delete"
+                                                                        aria-label="Remover lancamento de <?= e($goalPaymentHistoryAmountDisplay) ?>"
+                                                                    >
+                                                                        <span aria-hidden="true">&times;</span>
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php else: ?>
+                                                        <p class="accounting-entry-goal-payment-empty">Nenhum valor lancado neste mes.</p>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <form method="post" class="accounting-entry-quick-status-form" data-accounting-form>
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+                                                <input type="hidden" name="action" value="update_accounting_entry">
+                                                <input type="hidden" name="entry_id" value="<?= e((string) $accountingEntryId) ?>">
+                                                <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
+                                                <input type="hidden" name="label" value="<?= e($accountingEntryLabel) ?>">
+                                                <input type="hidden" name="amount_value" value="<?= e($accountingEntryAmountInput) ?>">
+                                                <input type="hidden" name="is_installment" value="<?= $accountingEntryIsInstallment ? '1' : '0' ?>">
+                                                <input type="hidden" name="installment_progress" value="<?= e($accountingEntryInstallmentProgress) ?>">
+                                                <input type="hidden" name="total_amount_value" value="<?= e($accountingEntryTotalAmountInput) ?>">
+                                                <input type="hidden" name="monthly_mode" value="uniform">
+                                                <input type="hidden" name="monthly_day" value="<?= $accountingEntryMonthlyDay !== null ? e((string) $accountingEntryMonthlyDay) : '' ?>">
+                                                <label class="accounting-check">
+                                                    <input type="checkbox" name="is_settled" value="1" <?= $accountingEntryIsSettled ? 'checked' : '' ?>>
+                                                    <span>Pago</span>
+                                                </label>
+                                            </form>
+                                        <?php endif; ?>
                                         <form method="post" class="accounting-entry-delete-form">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="delete_accounting_entry">
@@ -83,7 +213,7 @@
                                                 <span aria-hidden="true">&#10005;</span>
                                             </button>
                                         </form>
-                                        <form method="post" class="accounting-entry-form accounting-entry-editor-form" data-accounting-form hidden>
+                                        <form method="post" class="accounting-entry-form accounting-entry-editor-form" data-accounting-form hidden autocomplete="off">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="update_accounting_entry">
                                             <input type="hidden" name="entry_id" value="<?= e((string) $accountingEntryId) ?>">
@@ -95,22 +225,26 @@
                                                 maxlength="120"
                                                 class="accounting-input accounting-input-label"
                                                 placeholder="Nome da conta"
+                                                autocomplete="off"
                                                 required
                                             >
                                             <input
                                                 type="text"
                                                 name="amount_value"
-                                                value="<?= e($accountingEntryAmountInput) ?>"
+                                                value="<?= e($accountingEntryIsMonthlyGoal ? $accountingEntryTotalAmountInput : $accountingEntryAmountInput) ?>"
                                                 class="accounting-input accounting-input-amount"
                                                 inputmode="numeric"
                                                 placeholder="0,00"
+                                                autocomplete="off"
                                                 required
                                                 data-accounting-primary-amount
                                                 <?= $accountingEntryIsInstallment ? 'readonly' : '' ?>
                                             >
-                                            <?php if ($accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment || ($accountingEntryIsCarried && !$accountingEntryIsSettled && !$accountingEntryIsInstallment)): ?>
+                                            <?php if ($accountingEntryIsMonthlyGoal || $accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment || $accountingEntryShowPendingBadge): ?>
                                                 <div class="accounting-entry-meta">
-                                                    <?php if ($accountingEntryMonthlyBadge !== ''): ?>
+                                                    <?php if ($accountingEntryIsMonthlyGoal): ?>
+                                                        <span class="accounting-entry-goal-status">Os pagamentos do mes sao lancados no icone de lapis.</span>
+                                                    <?php elseif ($accountingEntryMonthlyBadge !== ''): ?>
                                                         <label class="accounting-entry-edit-control is-monthly">
                                                             <span>Mensal -</span>
                                                             <select name="monthly_day" class="accounting-installment-select" aria-label="Dia do vencimento mensal">
@@ -124,16 +258,18 @@
                                                     <?php elseif ($accountingEntryIsInstallment): ?>
                                                         <span class="accounting-entry-badge is-installment"><?= e($accountingEntryInstallmentBadge) ?></span>
                                                     <?php endif; ?>
-                                                    <?php if ($accountingEntryIsCarried && !$accountingEntryIsSettled && !$accountingEntryIsInstallment): ?>
+                                                    <?php if ($accountingEntryShowPendingBadge): ?>
                                                         <span class="accounting-entry-badge is-pending">Pendente</span>
                                                     <?php endif; ?>
                                                 </div>
                                             <?php endif; ?>
                                             <div class="accounting-entry-status">
-                                                <label class="accounting-check">
-                                                    <input type="checkbox" name="is_settled" value="1" <?= $accountingEntryIsSettled ? 'checked' : '' ?>>
-                                                    <span>Pago</span>
-                                                </label>
+                                                <?php if (!$accountingEntryIsMonthlyGoal): ?>
+                                                    <label class="accounting-check">
+                                                        <input type="checkbox" name="is_settled" value="1" <?= $accountingEntryIsSettled ? 'checked' : '' ?>>
+                                                        <span>Pago</span>
+                                                    </label>
+                                                <?php endif; ?>
                                             </div>
                                             <div class="accounting-entry-editor-actions">
                                                 <button type="submit" class="btn btn-mini">Salvar</button>
@@ -154,7 +290,8 @@
                                                 name="total_amount_value"
                                                 value="<?= e($accountingEntryTotalAmountInput) ?>"
                                             >
-                                            <input type="hidden" name="is_monthly_due" value="<?= $accountingEntryIsMonthlyDue ? '1' : '0' ?>">
+                                            <input type="hidden" name="is_monthly_due" value="<?= ($accountingEntryIsMonthlyDue || $accountingEntryIsMonthlyGoal) ? '1' : '0' ?>">
+                                            <input type="hidden" name="monthly_mode" value="<?= $accountingEntryIsMonthlyGoal ? 'goal' : 'uniform' ?>">
                                             <?php if (!$accountingEntryIsMonthlyDue): ?>
                                                 <input type="hidden" name="monthly_day" value="">
                                             <?php endif; ?>
@@ -167,7 +304,7 @@
                         <div class="accounting-card-footer">
                             <details class="accounting-create-toggle">
                                 <summary class="accounting-create-trigger">+ Adicionar</summary>
-                                <form method="post" class="accounting-create-form" data-accounting-form>
+                                <form method="post" class="accounting-create-form" data-accounting-form autocomplete="off">
                                     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                     <input type="hidden" name="action" value="create_accounting_entry">
                                     <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
@@ -178,6 +315,7 @@
                                         maxlength="120"
                                         class="accounting-input accounting-input-label"
                                         placeholder="Nova conta"
+                                        autocomplete="off"
                                         required
                                     >
                                     <input
@@ -186,6 +324,7 @@
                                         class="accounting-input accounting-input-amount"
                                         inputmode="numeric"
                                         placeholder="0,00"
+                                        autocomplete="off"
                                         required
                                         data-accounting-primary-amount
                                     >
@@ -202,7 +341,7 @@
                                                     <option value="installment">Parcelada</option>
                                                     <option value="monthly">Mensal</option>
                                                 </select>
-                                                <label class="accounting-check">
+                                                <label class="accounting-check" data-accounting-settled-check>
                                                     <input type="checkbox" name="is_settled" value="1">
                                                     <span>Pago</span>
                                                 </label>
@@ -265,20 +404,35 @@
                                                     >
                                                 </div>
                                                 <div class="accounting-monthly-fields" data-accounting-monthly-fields hidden>
-                                                    <span class="accounting-entry-inline-label">Vence no dia</span>
-                                                    <select
-                                                        name="monthly_day"
-                                                        class="accounting-installment-select accounting-monthly-day-select"
-                                                        aria-label="Dia do vencimento mensal"
-                                                        data-accounting-monthly-day
-                                                        disabled
-                                                    >
-                                                        <?php for ($monthlyDayOption = 1; $monthlyDayOption <= 31; $monthlyDayOption++): ?>
-                                                            <option value="<?= e((string) $monthlyDayOption) ?>" <?= $monthlyDayOption === 1 ? 'selected' : '' ?>>
-                                                                <?= e(str_pad((string) $monthlyDayOption, 2, '0', STR_PAD_LEFT)) ?>
-                                                            </option>
-                                                        <?php endfor; ?>
-                                                    </select>
+                                                    <label class="accounting-monthly-mode-field">
+                                                        <span class="accounting-entry-inline-label">Tipo mensal</span>
+                                                        <select
+                                                            name="monthly_mode"
+                                                            class="accounting-installment-select accounting-monthly-mode-select"
+                                                            aria-label="Modo da conta mensal"
+                                                            data-accounting-monthly-mode
+                                                            disabled
+                                                        >
+                                                            <option value="uniform">Uniforme</option>
+                                                            <option value="goal">Meta</option>
+                                                        </select>
+                                                    </label>
+                                                    <div class="accounting-monthly-day-field" data-accounting-monthly-day-field>
+                                                        <span class="accounting-entry-inline-label">Vence no dia</span>
+                                                        <select
+                                                            name="monthly_day"
+                                                            class="accounting-installment-select accounting-monthly-day-select"
+                                                            aria-label="Dia do vencimento mensal"
+                                                            data-accounting-monthly-day
+                                                            disabled
+                                                        >
+                                                            <?php for ($monthlyDayOption = 1; $monthlyDayOption <= 31; $monthlyDayOption++): ?>
+                                                                <option value="<?= e((string) $monthlyDayOption) ?>" <?= $monthlyDayOption === 1 ? 'selected' : '' ?>>
+                                                                    <?= e(str_pad((string) $monthlyDayOption, 2, '0', STR_PAD_LEFT)) ?>
+                                                                </option>
+                                                            <?php endfor; ?>
+                                                        </select>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -345,7 +499,7 @@
                                             aria-expanded="false"
                                         >
                                             <span class="accounting-entry-summary-main">
-                                                <span class="accounting-entry-summary-title"><?= e($accountingEntryLabel) ?></span>
+                                                <span class="accounting-entry-summary-title" title="<?= e($accountingEntryLabel) ?>"><?= e($accountingEntryLabel) ?></span>
                                                 <?php if ($accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment): ?>
                                                     <span class="accounting-entry-summary-meta">
                                                         <?php if ($accountingEntryMonthlyBadge !== ''): ?>
@@ -384,7 +538,7 @@
                                                 <span aria-hidden="true">&#10005;</span>
                                             </button>
                                         </form>
-                                        <form method="post" class="accounting-entry-form accounting-entry-editor-form" data-accounting-form hidden>
+                                        <form method="post" class="accounting-entry-form accounting-entry-editor-form" data-accounting-form hidden autocomplete="off">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                             <input type="hidden" name="action" value="update_accounting_entry">
                                             <input type="hidden" name="entry_id" value="<?= e((string) $accountingEntryId) ?>">
@@ -396,6 +550,7 @@
                                                 maxlength="120"
                                                 class="accounting-input accounting-input-label"
                                                 placeholder="Nome da entrada"
+                                                autocomplete="off"
                                                 required
                                             >
                                             <input
@@ -405,6 +560,7 @@
                                                 class="accounting-input accounting-input-amount"
                                                 inputmode="numeric"
                                                 placeholder="0,00"
+                                                autocomplete="off"
                                                 required
                                                 data-accounting-primary-amount
                                                 <?= $accountingEntryIsInstallment ? 'readonly' : '' ?>
@@ -465,7 +621,7 @@
                         <div class="accounting-card-footer">
                             <details class="accounting-create-toggle">
                                 <summary class="accounting-create-trigger">+ Adicionar</summary>
-                                <form method="post" class="accounting-create-form" data-accounting-form>
+                                <form method="post" class="accounting-create-form" data-accounting-form autocomplete="off">
                                     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                                     <input type="hidden" name="action" value="create_accounting_entry">
                                     <input type="hidden" name="period_key" value="<?= e($accountingPeriod) ?>">
@@ -476,6 +632,7 @@
                                         maxlength="120"
                                         class="accounting-input accounting-input-label"
                                         placeholder="Nova entrada"
+                                        autocomplete="off"
                                         required
                                     >
                                     <input
@@ -484,6 +641,7 @@
                                         class="accounting-input accounting-input-amount"
                                         inputmode="numeric"
                                         placeholder="0,00"
+                                        autocomplete="off"
                                         required
                                         data-accounting-primary-amount
                                     >
