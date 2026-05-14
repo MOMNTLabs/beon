@@ -2036,7 +2036,8 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
             <input type="hidden" name="redirect_created_by" value="<?= e((string) ($creatorFilterId ?? '')) ?>">
             <input type="hidden" name="redirect_assignee" value="<?= e((string) ($assigneeFilterId ?? '')) ?>">
 
-            <div class="task-detail-title-group-row">
+            <div class="task-create-modal-body">
+                <div class="task-detail-title-group-row">
                 <label>
                     <span>Titulo</span>
                     <div class="create-task-title-composer" data-create-task-title-composer>
@@ -2444,6 +2445,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                 <input type="hidden" name="subtasks_dependency_enabled" value="0" data-create-task-subtasks-dependency>
             </section>
 
+                </div>
             </div>
 
             <div class="modal-actions">

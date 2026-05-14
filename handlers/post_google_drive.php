@@ -100,6 +100,23 @@ function googleDriveAuthUrl(string $nextPath = ''): string
     ], '', '&', PHP_QUERY_RFC3986));
 }
 
+function googleDriveAppendResumeOpenPath(string $path): string
+{
+    $path = safeRedirectPath($path, dashboardPath('tasks'));
+    $parts = parse_url($path);
+    $query = [];
+    parse_str((string) ($parts['query'] ?? ''), $query);
+    $query['google_drive_browser_resume_open'] = '1';
+
+    $normalized = (string) ($parts['path'] ?? dashboardPath('tasks'));
+    $queryString = http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+    if ($queryString !== '') {
+        $normalized .= '?' . $queryString;
+    }
+
+    return safeRedirectPath($normalized, dashboardPath('tasks'));
+}
+
 function googleDriveTokenRow(PDO $pdo, int $userId): ?array
 {
     if ($userId <= 0) {
@@ -602,6 +619,7 @@ function handleGoogleDriveOAuthStart(PDO $pdo): void
 function handleGoogleDriveOAuthCallback(PDO $pdo): void
 {
     $nextPath = dashboardPath('tasks');
+    $shouldResumeDriveBrowser = false;
 
     try {
         $statePayload = googleDriveConsumeState((string) ($_GET['state'] ?? ''));
@@ -635,11 +653,15 @@ function handleGoogleDriveOAuthCallback(PDO $pdo): void
         ]);
         $tokenData = googleOAuthDecodeJsonResponse($response, 'Nao foi possivel conectar o Google Drive.');
         googleDriveSaveTokenData($pdo, $userId, $tokenData);
+        $shouldResumeDriveBrowser = true;
         flash('success', 'Google Drive conectado.');
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
     }
 
+    if ($shouldResumeDriveBrowser) {
+        $nextPath = googleDriveAppendResumeOpenPath($nextPath);
+    }
     redirectTo($nextPath);
 }
 

@@ -7650,6 +7650,10 @@ window.addEventListener("DOMContentLoaded", () => {
   let googleDriveBrowserNextPageToken = "";
   let googleDriveBrowserSelectedItems = new Map();
   let googleDriveBrowserLoading = false;
+  const googleDriveBrowserResumeStorageKey = "wf_google_drive_browser_resume_v1";
+  const googleDriveBrowserResumeQueryParam = "google_drive_browser_resume";
+  const googleDriveBrowserResumeOpenQueryParam = "google_drive_browser_resume_open";
+  const googleDriveBrowserResumeMaxAgeMs = 20 * 60 * 1000;
   let createTaskSubtaskItems = [];
   let createTaskSubtasksDependencyEnabled = false;
   const TASK_TITLE_TAG_DEFAULT_PALETTE = [
@@ -9527,6 +9531,388 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const googleDriveBrowserMaxSelectionCount = 20;
 
+  const canUseSessionStorage = () => {
+    try {
+      return typeof window.sessionStorage !== "undefined";
+    } catch (_error) {
+      return false;
+    }
+  };
+
+  const getGoogleDriveBrowserResumeCurrentPath = () =>
+    `${window.location.pathname}${window.location.search || ""}`;
+
+  const buildGoogleDriveBrowserResumeNextPath = () => {
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set(googleDriveBrowserResumeQueryParam, "1");
+    nextUrl.hash = "";
+    return `${nextUrl.pathname}${nextUrl.search}`;
+  };
+
+  const hasGoogleDriveBrowserResumeMarker = () => {
+    const currentUrl = new URL(window.location.href);
+    return currentUrl.searchParams.get(googleDriveBrowserResumeQueryParam) === "1";
+  };
+
+  const shouldResumeGoogleDriveBrowserOpen = () => {
+    const currentUrl = new URL(window.location.href);
+    return currentUrl.searchParams.get(googleDriveBrowserResumeOpenQueryParam) === "1";
+  };
+
+  const clearGoogleDriveBrowserResumeMarker = () => {
+    const currentUrl = new URL(window.location.href);
+    const hadResumeMarker = currentUrl.searchParams.has(googleDriveBrowserResumeQueryParam);
+    const hadOpenMarker = currentUrl.searchParams.has(googleDriveBrowserResumeOpenQueryParam);
+    if (!hadResumeMarker && !hadOpenMarker) {
+      return;
+    }
+
+    currentUrl.searchParams.delete(googleDriveBrowserResumeQueryParam);
+    currentUrl.searchParams.delete(googleDriveBrowserResumeOpenQueryParam);
+    currentUrl.hash = "";
+    if (window.history && typeof window.history.replaceState === "function") {
+      window.history.replaceState(null, "", `${currentUrl.pathname}${currentUrl.search}`);
+    }
+  };
+
+  const clearGoogleDriveBrowserResumeState = () => {
+    if (!canUseSessionStorage()) return;
+    try {
+      window.sessionStorage.removeItem(googleDriveBrowserResumeStorageKey);
+    } catch (_error) {
+      // noop
+    }
+  };
+
+  const writeGoogleDriveBrowserResumeState = (payload = {}) => {
+    if (!canUseSessionStorage()) return false;
+    try {
+      window.sessionStorage.setItem(
+        googleDriveBrowserResumeStorageKey,
+        JSON.stringify({
+          createdAt: Date.now(),
+          returnPath: buildGoogleDriveBrowserResumeNextPath(),
+          payload,
+        })
+      );
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  };
+
+  const consumeGoogleDriveBrowserResumeState = () => {
+    if (!canUseSessionStorage()) return null;
+
+    let parsed = null;
+    try {
+      const raw = window.sessionStorage.getItem(googleDriveBrowserResumeStorageKey);
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch (_error) {
+      parsed = null;
+    }
+    clearGoogleDriveBrowserResumeState();
+
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+
+    const createdAt = Math.max(0, Number(parsed.createdAt || 0));
+    if (!createdAt || Date.now() - createdAt > googleDriveBrowserResumeMaxAgeMs) {
+      return null;
+    }
+
+    const expectedPath = String(parsed.returnPath || "").trim();
+    if (!expectedPath || expectedPath !== getGoogleDriveBrowserResumeCurrentPath()) {
+      return null;
+    }
+
+    return parsed.payload && typeof parsed.payload === "object" ? parsed.payload : null;
+  };
+
+  const getCheckedFieldValues = (scope, selector) => {
+    if (!scope || typeof scope.querySelectorAll !== "function") return [];
+    return Array.from(scope.querySelectorAll(selector))
+      .filter((field) => field instanceof HTMLInputElement && field.checked)
+      .map((field) => String(field.value || "").trim())
+      .filter(Boolean);
+  };
+
+  const applyCheckedFieldValues = (scope, selector, values = []) => {
+    if (!scope || typeof scope.querySelectorAll !== "function") return;
+    const allowed = new Set((Array.isArray(values) ? values : []).map((value) => String(value || "").trim()));
+    scope.querySelectorAll(selector).forEach((field) => {
+      if (!(field instanceof HTMLInputElement)) return;
+      field.checked = allowed.has(String(field.value || "").trim());
+    });
+  };
+
+  const captureCreateTaskDraftState = () => {
+    if (!(createTaskModal instanceof HTMLElement) || createTaskModal.hidden) {
+      return null;
+    }
+
+    syncCreateTaskDescriptionTextareaFromEditor();
+
+    return {
+      kind: "create",
+      groupName:
+        createTaskGroupInput instanceof HTMLSelectElement ? String(createTaskGroupInput.value || "") : "",
+      title: createTaskTitleInput instanceof HTMLInputElement ? String(createTaskTitleInput.value || "") : "",
+      titleTag: createTaskTitleTagInput instanceof HTMLInputElement
+        ? String(createTaskTitleTagInput.value || "")
+        : normalizeTaskTitleTagValue(createTaskCurrentTitleTag),
+      titleTagColor: createTaskTitleTagColorInput instanceof HTMLInputElement
+        ? String(createTaskTitleTagColorInput.value || "")
+        : String(createTaskCurrentTitleTagColor || ""),
+      assigneeIds: getCheckedFieldValues(createTaskForm, 'input[name="assigned_to[]"]'),
+      status:
+        createTaskForm instanceof HTMLFormElement
+          ? String(createTaskForm.querySelector('select[name="status"]')?.value || "")
+          : "",
+      priority:
+        createTaskForm instanceof HTMLFormElement
+          ? String(createTaskForm.querySelector('select[name="priority"]')?.value || "")
+          : "",
+      dueDate:
+        createTaskForm instanceof HTMLFormElement
+          ? String(createTaskForm.querySelector('input[name="due_date"]')?.value || "")
+          : "",
+      description:
+        createTaskDescription instanceof HTMLTextAreaElement ? String(createTaskDescription.value || "") : "",
+      referenceLinks: parseReferenceUrlLines(createTaskReferenceLinks || []),
+      referenceImages: parseReferenceImageMediaItems(createTaskImageItems || []),
+      subtasks: parseTaskSubtaskList(createTaskSubtaskItems || [], 40, {
+        enforceDependency: createTaskSubtasksDependencyEnabled,
+      }),
+      subtasksDependencyEnabled: Boolean(createTaskSubtasksDependencyEnabled),
+      isMediaPage: Boolean(createTaskModal.classList.contains("is-task-media-page")),
+    };
+  };
+
+  const restoreCreateTaskDraftState = (draft) => {
+    if (!draft || draft.kind !== "create") {
+      return false;
+    }
+
+    openCreateModal(String(draft.groupName || ""));
+
+    if (createTaskTitleInput instanceof HTMLInputElement) {
+      createTaskTitleInput.value = String(draft.title || "");
+    }
+    resetCreateTaskTitleTagPicker(
+      String(draft.titleTag || ""),
+      String(draft.titleTagColor || "")
+    );
+
+    if (createTaskForm instanceof HTMLFormElement) {
+      const statusField = createTaskForm.querySelector('select[name="status"]');
+      if (statusField instanceof HTMLSelectElement) {
+        statusField.value = String(draft.status || statusField.value || "todo");
+        syncInlineSelectPicker(statusField);
+        syncSelectColor(statusField);
+      }
+
+      const priorityField = createTaskForm.querySelector('select[name="priority"]');
+      if (priorityField instanceof HTMLSelectElement) {
+        priorityField.value = String(draft.priority || priorityField.value || "medium");
+        syncInlineSelectPicker(priorityField);
+        syncSelectColor(priorityField);
+      }
+
+      const dueDateField = createTaskForm.querySelector('input[name="due_date"]');
+      if (dueDateField instanceof HTMLInputElement) {
+        dueDateField.value = String(draft.dueDate || "");
+      }
+
+      applyCheckedFieldValues(createTaskForm, 'input[name="assigned_to[]"]', draft.assigneeIds || []);
+      createTaskForm
+        .querySelectorAll(".assignee-picker")
+        .forEach(updateAssigneePickerSummaryVisual);
+    }
+
+    if (createTaskDescription instanceof HTMLTextAreaElement) {
+      createTaskDescription.value = String(draft.description || "");
+      syncCreateTaskDescriptionEditorFromTextarea();
+    }
+
+    setCreateTaskReferenceLinks(draft.referenceLinks || []);
+    setCreateTaskSubtasks(draft.subtasks || [], {
+      dependencyEnabled: Boolean(draft.subtasksDependencyEnabled),
+    });
+    renderCreateTaskSubtasksEditList();
+    setCreateTaskImageItems(draft.referenceImages || []);
+    setCreateTaskMediaPage(Boolean(draft.isMediaPage));
+
+    return true;
+  };
+
+  const captureTaskDetailDraftState = () => {
+    if (
+      !(taskDetailModal instanceof HTMLElement) ||
+      taskDetailModal.hidden ||
+      !taskDetailModal.classList.contains("is-editing")
+    ) {
+      return null;
+    }
+
+    const taskId = currentTaskDetailTaskId();
+    if (!(taskId > 0)) {
+      return null;
+    }
+
+    syncTaskDetailDescriptionTextareaFromEditor();
+
+    return {
+      kind: "task-detail",
+      taskId,
+      title: taskDetailEditTitle instanceof HTMLInputElement ? String(taskDetailEditTitle.value || "") : "",
+      titleTag: taskDetailEditTitleTagInput instanceof HTMLInputElement
+        ? String(taskDetailEditTitleTagInput.value || "")
+        : normalizeTaskTitleTagValue(taskDetailEditCurrentTitleTag),
+      titleTagColor: taskDetailEditTitleTagColorInput instanceof HTMLInputElement
+        ? String(taskDetailEditTitleTagColorInput.value || "")
+        : String(taskDetailEditCurrentTitleTagColor || ""),
+      assigneeIds: getCheckedFieldValues(taskDetailEditAssigneesMenu, 'input[type="checkbox"]'),
+      status: taskDetailEditStatus instanceof HTMLSelectElement ? String(taskDetailEditStatus.value || "") : "",
+      priority: taskDetailEditPriority instanceof HTMLSelectElement ? String(taskDetailEditPriority.value || "") : "",
+      groupName: taskDetailEditGroup instanceof HTMLSelectElement ? String(taskDetailEditGroup.value || "") : "",
+      dueDate: taskDetailEditDueDate instanceof HTMLInputElement ? String(taskDetailEditDueDate.value || "") : "",
+      description:
+        taskDetailEditDescription instanceof HTMLTextAreaElement
+          ? String(taskDetailEditDescription.value || "")
+          : "",
+      referenceLinks: parseReferenceUrlLines(taskDetailEditReferenceLinks || []),
+      referenceImages: parseReferenceImageMediaItems(taskDetailEditImageItems || []),
+      subtasks: parseTaskSubtaskList(taskDetailEditSubtaskItems || [], 40, {
+        enforceDependency: taskDetailEditSubtasksDependencyEnabled,
+      }),
+      subtasksDependencyEnabled: Boolean(taskDetailEditSubtasksDependencyEnabled),
+      isMediaPage: Boolean(taskDetailModal.classList.contains("is-task-media-page")),
+    };
+  };
+
+  const restoreTaskDetailDraftState = async (draft) => {
+    if (!draft || draft.kind !== "task-detail") {
+      return false;
+    }
+
+    const taskId = Math.max(0, Number.parseInt(String(draft.taskId || "0"), 10) || 0);
+    if (!(taskId > 0)) {
+      return false;
+    }
+
+    const taskItem = document.getElementById(`task-${taskId}`);
+    if (!(taskItem instanceof HTMLElement)) {
+      return false;
+    }
+
+    const bindings = getTaskDetailBindings(taskItem);
+    if (!bindings) {
+      return false;
+    }
+
+    openTaskDetailModal(taskItem, {
+      updateUrl: false,
+      scrollIntoView: false,
+    });
+    await hydrateTaskDetailPayloadFromServer(bindings, { force: true }).catch(() => {});
+    setTaskDetailEditMode(true);
+
+    if (taskDetailEditTitle instanceof HTMLInputElement) {
+      taskDetailEditTitle.value = String(draft.title || "");
+    }
+    resetTaskDetailTitleTagPicker(
+      String(draft.titleTag || ""),
+      String(draft.titleTagColor || "")
+    );
+
+    if (taskDetailEditStatus instanceof HTMLSelectElement) {
+      taskDetailEditStatus.value = String(draft.status || taskDetailEditStatus.value || "todo");
+      syncInlineSelectPicker(taskDetailEditStatus);
+      syncSelectColor(taskDetailEditStatus);
+    }
+    if (taskDetailEditPriority instanceof HTMLSelectElement) {
+      taskDetailEditPriority.value = String(draft.priority || taskDetailEditPriority.value || "medium");
+      syncInlineSelectPicker(taskDetailEditPriority);
+      syncSelectColor(taskDetailEditPriority);
+    }
+    if (taskDetailEditGroup instanceof HTMLSelectElement) {
+      taskDetailEditGroup.value = String(draft.groupName || taskDetailEditGroup.value || "");
+      syncInlineSelectPicker(taskDetailEditGroup);
+    }
+    if (taskDetailEditDueDate instanceof HTMLInputElement) {
+      taskDetailEditDueDate.value = String(draft.dueDate || "");
+    }
+    if (taskDetailEditDescription instanceof HTMLTextAreaElement) {
+      taskDetailEditDescription.value = String(draft.description || "");
+      syncTaskDetailDescriptionEditorFromTextarea();
+    }
+
+    applyCheckedFieldValues(taskDetailEditAssigneesMenu, 'input[type="checkbox"]', draft.assigneeIds || []);
+    if (taskDetailEditAssignees instanceof HTMLElement) {
+      updateAssigneePickerSummaryVisual(taskDetailEditAssignees);
+    }
+
+    setTaskDetailEditReferenceLinks(draft.referenceLinks || []);
+    setTaskDetailEditSubtasks(draft.subtasks || [], {
+      dependencyEnabled: Boolean(draft.subtasksDependencyEnabled),
+    });
+    renderTaskDetailSubtasksEditList();
+    setTaskDetailEditImageItems(draft.referenceImages || []);
+    setTaskDetailMediaPage(Boolean(draft.isMediaPage));
+
+    return true;
+  };
+
+  const captureGoogleDriveBrowserResumePayload = (targetName) => {
+    const normalizedTarget = targetName === "task-detail" ? "task-detail" : "create";
+    const draft =
+      normalizedTarget === "task-detail"
+        ? captureTaskDetailDraftState()
+        : captureCreateTaskDraftState();
+
+    if (!draft) {
+      return null;
+    }
+
+    return {
+      targetName: normalizedTarget,
+      draft,
+    };
+  };
+
+  const resumeGoogleDriveBrowserFlowAfterAuth = async () => {
+    if (!hasGoogleDriveBrowserResumeMarker()) {
+      return false;
+    }
+
+    const shouldOpenBrowser = shouldResumeGoogleDriveBrowserOpen();
+    const resumePayload = consumeGoogleDriveBrowserResumeState();
+    clearGoogleDriveBrowserResumeMarker();
+    if (!resumePayload) {
+      return false;
+    }
+
+    const targetName = resumePayload.targetName === "task-detail" ? "task-detail" : "create";
+    const restored =
+      targetName === "task-detail"
+        ? await restoreTaskDetailDraftState(resumePayload.draft)
+        : restoreCreateTaskDraftState(resumePayload.draft);
+
+    if (!restored) {
+      return false;
+    }
+
+    if (shouldOpenBrowser) {
+      window.setTimeout(() => {
+        void openGoogleDriveBrowserModal(targetName);
+      }, 60);
+    }
+
+    return true;
+  };
+
   const postGoogleDriveBrowserAction = async (action, payload = {}) => {
     const formData = new FormData();
     formData.append("action", String(action || "").trim());
@@ -9560,7 +9946,7 @@ window.addEventListener("DOMContentLoaded", () => {
     return data;
   };
 
-  const getGoogleDriveBrowserSession = async () => {
+  const getGoogleDriveBrowserSession = async (targetName) => {
     const csrfToken = getTaskTitleTagCsrfToken();
     if (!csrfToken) {
       throw new Error("Sessao expirada. Recarregue a pagina.");
@@ -9568,7 +9954,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const data = await postGoogleDriveBrowserAction("google_drive_browser_session", {
       csrf_token: csrfToken,
-      next: `${window.location.pathname}${window.location.search || ""}`,
+      next: buildGoogleDriveBrowserResumeNextPath(),
     });
 
     if (data.configured === false) {
@@ -9577,6 +9963,10 @@ window.addEventListener("DOMContentLoaded", () => {
     if (data.connected === false || data.reconnect_required === true) {
       const authUrl = String(data.auth_url || "").trim();
       if (authUrl) {
+        const resumePayload = captureGoogleDriveBrowserResumePayload(targetName);
+        if (resumePayload) {
+          writeGoogleDriveBrowserResumeState(resumePayload);
+        }
         window.location.href = authUrl;
         return null;
       }
@@ -9935,7 +10325,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const openGoogleDriveBrowserModal = async (targetName) => {
     try {
-      const session = await getGoogleDriveBrowserSession();
+      const session = await getGoogleDriveBrowserSession(targetName);
       if (!session) return;
 
       googleDriveBrowserTarget = targetName;
@@ -13988,6 +14378,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (createTaskForm) {
     createTaskForm.addEventListener("submit", () => {
+      clearGoogleDriveBrowserResumeState();
       if (createTaskTitleInput instanceof HTMLInputElement) {
         applyFirstLetterUppercaseToInput(createTaskTitleInput);
       }
@@ -14914,6 +15305,8 @@ window.addEventListener("DOMContentLoaded", () => {
       scrollIntoView: dashboardTaskIdFromUrl() > 0,
     });
   }
+
+  void resumeGoogleDriveBrowserFlowAfterAuth();
 
   window.addEventListener("popstate", () => {
     if (dashboardViewPanels.length) {

@@ -7864,6 +7864,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 .account-workspaces-card .workspace-settings-members,
 .users-wrap .workspace-settings-members,
 .assignee-picker-menu,
+.task-create-modal-body,
 .modal-card > .modal-form,
 .task-detail-modal-body {
     scrollbar-width: thin;
@@ -7878,6 +7879,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 .account-workspaces-card .workspace-settings-members::-webkit-scrollbar,
 .users-wrap .workspace-settings-members::-webkit-scrollbar,
 .assignee-picker-menu::-webkit-scrollbar,
+.task-create-modal-body::-webkit-scrollbar,
 .modal-card > .modal-form::-webkit-scrollbar,
 .task-detail-modal-body::-webkit-scrollbar {
     width: 10px;
@@ -7892,6 +7894,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 .account-workspaces-card .workspace-settings-members::-webkit-scrollbar-track,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-track,
 .assignee-picker-menu::-webkit-scrollbar-track,
+.task-create-modal-body::-webkit-scrollbar-track,
 .modal-card > .modal-form::-webkit-scrollbar-track,
 .task-detail-modal-body::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.02);
@@ -7906,6 +7909,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 .account-workspaces-card .workspace-settings-members::-webkit-scrollbar-thumb,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb,
 .assignee-picker-menu::-webkit-scrollbar-thumb,
+.task-create-modal-body::-webkit-scrollbar-thumb,
 .modal-card > .modal-form::-webkit-scrollbar-thumb,
 .task-detail-modal-body::-webkit-scrollbar-thumb {
     border-radius: 999px;
@@ -7922,6 +7926,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 .account-workspaces-card .workspace-settings-members::-webkit-scrollbar-thumb:hover,
 .users-wrap .workspace-settings-members::-webkit-scrollbar-thumb:hover,
 .assignee-picker-menu::-webkit-scrollbar-thumb:hover,
+.task-create-modal-body::-webkit-scrollbar-thumb:hover,
 .modal-card > .modal-form::-webkit-scrollbar-thumb:hover,
 .task-detail-modal-body::-webkit-scrollbar-thumb:hover {
     background:
@@ -10152,6 +10157,19 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     display: none;
 }
 
+.task-create-modal-large .task-detail-edit-description-wrap {
+    grid-template-rows: auto minmax(0, 1fr);
+    max-height: clamp(220px, 38vh, 420px);
+}
+
+.task-create-modal-large .task-detail-edit-description-editor {
+    min-height: clamp(180px, 24vh, 240px);
+    max-height: none;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
 .task-image-preview-modal {
     z-index: 60;
 }
@@ -10304,6 +10322,38 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     min-height: 0;
     overflow: auto;
     padding-right: 2px;
+}
+
+.task-create-modal-large > .modal-form[data-create-task-form] {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+    padding-right: 0;
+}
+
+.task-create-modal-body {
+    display: grid;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    align-content: start;
+    padding-right: 6px;
+    padding-bottom: 8px;
+}
+
+.task-create-modal-large > .modal-form[data-create-task-form] > .modal-actions {
+    position: static;
+    bottom: auto;
+    z-index: auto;
+    flex: 0 0 auto;
+    margin-top: 0;
+    padding: 12px 4px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(var(--color-accent-500-rgb), 0.12);
+    background:
+        linear-gradient(180deg, rgba(8, 12, 24, 0), rgba(8, 12, 24, 0.92) 28%),
+        rgba(8, 12, 24, 0.98);
 }
 
 .modal-actions {
@@ -16341,6 +16391,12 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
     min-height: 0;
 }
 
+.google-drive-browser-explorer {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
 .google-drive-browser-roots {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -16483,12 +16539,14 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
 
 .google-drive-browser-list {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     gap: 10px;
     min-height: 220px;
-    max-height: min(54vh, 520px);
+    max-height: none;
     overflow: auto;
     padding-right: 6px;
+    padding-bottom: 8px;
 }
 
 .google-drive-browser-item {
@@ -16593,8 +16651,19 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
 }
 
 .google-drive-browser-actions {
+    position: static;
+    bottom: auto;
+    z-index: auto;
     justify-content: space-between;
+    align-items: center;
+    flex: 0 0 auto;
+    margin-top: 0;
     gap: 18px;
+    padding: 14px 24px calc(18px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(var(--color-accent-500-rgb), 0.12);
+    background:
+        linear-gradient(180deg, rgba(8, 12, 20, 0), rgba(8, 12, 20, 0.92) 26%),
+        rgba(8, 12, 20, 0.98);
 }
 
 .google-drive-browser-selection-count {
@@ -16641,6 +16710,18 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
     }
 
     .google-drive-browser-actions {
+        padding: 12px 16px calc(18px + env(safe-area-inset-bottom));
         align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .google-drive-browser-selection-count {
+        width: 100%;
+    }
+
+    .google-drive-browser-actions-buttons {
+        width: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
     }
 }
