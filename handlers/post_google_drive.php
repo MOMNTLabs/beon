@@ -795,56 +795,128 @@ function handleGoogleDriveDownload(PDO $pdo): void
     if ($mimeType === '') {
         $mimeType = 'application/octet-stream';
     }
+    $rangeHeader = trim((string) ($_SERVER['HTTP_RANGE'] ?? ''));
 
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
-
-    header('Content-Type: ' . $mimeType);
-    header('Content-Disposition: inline; filename="' . addcslashes($safeName, '"\\') . '"');
-    header('Cache-Control: private, max-age=120');
 
     $downloadUrl = 'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId) . '?' . http_build_query([
         'alt' => 'media',
         'supportsAllDrives' => 'true',
     ], '', '&', PHP_QUERY_RFC3986);
 
+    $statusCode = 200;
+    $contentType = $mimeType;
+    $contentLength = '';
+    $contentRange = '';
+    $acceptRanges = 'bytes';
+    $responseBody = null;
+
     if (function_exists('curl_init')) {
+        $responseHeaders = [];
         $ch = curl_init($downloadUrl);
         if ($ch === false) {
             http_response_code(502);
             exit;
         }
+        $requestHeaders = ['Authorization: Bearer ' . $accessToken];
+        if ($rangeHeader !== '') {
+            $requestHeaders[] = 'Range: ' . $rangeHeader;
+        }
         curl_setopt_array($ch, [
-            CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $accessToken],
+            CURLOPT_HTTPHEADER => $requestHeaders,
             CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 0,
             CURLOPT_CONNECTTIMEOUT => 15,
-            CURLOPT_WRITEFUNCTION => static function ($curl, string $chunk): int {
-                echo $chunk;
-                return strlen($chunk);
+            CURLOPT_HEADERFUNCTION => static function ($curl, string $headerLine) use (&$responseHeaders): int {
+                $trimmed = trim($headerLine);
+                if ($trimmed !== '' && str_contains($trimmed, ':')) {
+                    [$name, $value] = explode(':', $trimmed, 2);
+                    $responseHeaders[strtolower(trim($name))] = trim($value);
+                }
+                return strlen($headerLine);
             },
         ]);
-        curl_exec($ch);
+
+        $responseBody = curl_exec($ch);
+        $statusCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $infoContentType = trim((string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE));
+        if ($infoContentType !== '') {
+            $contentType = $infoContentType;
+        } elseif (!empty($responseHeaders['content-type'])) {
+            $contentType = (string) $responseHeaders['content-type'];
+        }
+        if (!empty($responseHeaders['content-length']) && ctype_digit((string) $responseHeaders['content-length'])) {
+            $contentLength = (string) $responseHeaders['content-length'];
+        }
+        if (!empty($responseHeaders['content-range'])) {
+            $contentRange = (string) $responseHeaders['content-range'];
+        }
+        if (!empty($responseHeaders['accept-ranges'])) {
+            $acceptRanges = (string) $responseHeaders['accept-ranges'];
+        }
         curl_close($ch);
+    } else {
+        $requestHeader = 'Authorization: Bearer ' . $accessToken . "\r\n";
+        if ($rangeHeader !== '') {
+            $requestHeader .= 'Range: ' . $rangeHeader . "\r\n";
+        }
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'header' => $requestHeader,
+                'timeout' => 60,
+                'ignore_errors' => true,
+            ],
+        ]);
+        $responseBody = @file_get_contents($downloadUrl, false, $context);
+        $responseHeaders = $http_response_header ?? [];
+        foreach ($responseHeaders as $headerLine) {
+            if (preg_match('/^HTTP\/\S+\s+(\d{3})/i', $headerLine, $matches) === 1) {
+                $statusCode = (int) $matches[1];
+                continue;
+            }
+            if (stripos($headerLine, 'Content-Type:') === 0) {
+                $contentType = trim((string) substr($headerLine, 13));
+                continue;
+            }
+            if (stripos($headerLine, 'Content-Length:') === 0) {
+                $lengthValue = trim((string) substr($headerLine, 15));
+                if ($lengthValue !== '' && ctype_digit($lengthValue)) {
+                    $contentLength = $lengthValue;
+                }
+                continue;
+            }
+            if (stripos($headerLine, 'Content-Range:') === 0) {
+                $contentRange = trim((string) substr($headerLine, 14));
+                continue;
+            }
+            if (stripos($headerLine, 'Accept-Ranges:') === 0) {
+                $acceptRanges = trim((string) substr($headerLine, 14));
+            }
+        }
+    }
+
+    if ($statusCode < 200 || $statusCode >= 300 || !is_string($responseBody) || $responseBody === '') {
+        http_response_code($statusCode >= 400 ? $statusCode : 502);
         exit;
     }
 
-    $context = stream_context_create([
-        'http' => [
-            'method' => 'GET',
-            'header' => 'Authorization: Bearer ' . $accessToken . "\r\n",
-            'timeout' => 60,
-            'ignore_errors' => true,
-        ],
-    ]);
-    $stream = @fopen($downloadUrl, 'rb', false, $context);
-    if (!is_resource($stream)) {
-        http_response_code(502);
-        exit;
+    http_response_code($statusCode);
+    header('Content-Type: ' . $contentType);
+    header('Content-Disposition: inline; filename="' . addcslashes($safeName, '"\\') . '"');
+    header('Cache-Control: private, max-age=120');
+    header('Accept-Ranges: ' . ($acceptRanges !== '' ? $acceptRanges : 'bytes'));
+    if ($contentLength !== '') {
+        header('Content-Length: ' . $contentLength);
     }
-    fpassthru($stream);
-    fclose($stream);
+    if ($contentRange !== '') {
+        header('Content-Range: ' . $contentRange);
+    }
+
+    echo $responseBody;
     exit;
 }
 

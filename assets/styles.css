@@ -8989,9 +8989,9 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     display: block;
     width: 100%;
     padding: 0;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.02);
+    border-radius: 0;
+    border: 0;
+    background: transparent;
     overflow: hidden;
     aspect-ratio: 16 / 7;
     cursor: zoom-in;
@@ -8999,7 +8999,6 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 
 .task-detail-ref-image-link:hover,
 .task-detail-ref-image-link:focus-visible {
-    border-color: rgba(77, 194, 255, 0.24);
     box-shadow: 0 0 0 1px rgba(77, 194, 255, 0.16);
     outline: none;
 }
@@ -9009,6 +9008,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     height: 100%;
     object-fit: cover;
     display: block;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.02);
 }
 
@@ -10232,15 +10232,12 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     grid-template-columns: 44px minmax(0, 1fr) 44px;
     align-items: center;
     justify-content: center;
-    gap: 18px;
+    gap: 12px;
     width: fit-content;
     max-width: min(96vw, 1400px);
     max-height: min(84vh, 860px);
-    overflow: hidden;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(3, 6, 14, 0.88);
-    padding: 10px 14px;
+    overflow: visible;
+    padding: 0;
 }
 
 .task-image-preview-nav-slot {
@@ -10255,7 +10252,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     max-width: min(88vw, 1260px);
     max-height: min(82vh, 820px);
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: 0;
 }
 
 .task-image-preview-body img {
@@ -10265,7 +10262,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     width: auto;
     height: auto;
     object-fit: contain;
-    border-radius: 10px;
+    border-radius: 14px;
 }
 
 .task-image-preview-body video {
@@ -10275,8 +10272,8 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     width: auto;
     height: auto;
     object-fit: contain;
-    border-radius: 10px;
-    background: rgba(3, 6, 14, 0.88);
+    border-radius: 14px;
+    background: transparent;
 }
 
 .task-image-preview-nav {

@@ -3042,7 +3042,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const previewIndexByKey = new Map(
       previewMedia.map((item, index) => [referenceMediaItemKey(item) || item.previewUrl, index])
     );
-    taskImagePreviewState.items = [...previewMedia];
+    taskDetailViewPreviewItems = [...previewMedia];
     if (!previewMedia.length) {
       taskImagePreviewState.currentIndex = -1;
     }
@@ -7736,6 +7736,7 @@ window.addEventListener("DOMContentLoaded", () => {
   let taskDetailEditOpenColorPaletteTag = "";
   let taskDetailEditTitleTagIsCreating = false;
   let taskDetailSaveInFlight = false;
+  let taskDetailViewPreviewItems = [];
   const taskImagePreviewState = {
     items: [],
     currentIndex: -1,
@@ -9002,13 +9003,20 @@ window.addEventListener("DOMContentLoaded", () => {
     taskImagePreviewState.currentIndex = nextIndex;
     if (previewItem.kind === "video") {
       taskImagePreviewImage.hidden = true;
+      taskImagePreviewImage.src = "";
       taskImagePreviewImage.removeAttribute("src");
       taskImagePreviewImage.alt = "Imagem de referencia ampliada";
 
-      taskImagePreviewVideo.hidden = false;
-      if (taskImagePreviewVideo.src !== previewUrl) {
-        taskImagePreviewVideo.src = previewUrl;
+      taskImagePreviewVideo.pause();
+      try {
+        taskImagePreviewVideo.currentTime = 0;
+      } catch (_error) {
+        // Ignore reset failures before metadata is available.
       }
+      taskImagePreviewVideo.removeAttribute("src");
+      taskImagePreviewVideo.load();
+      taskImagePreviewVideo.hidden = false;
+      taskImagePreviewVideo.src = previewUrl;
       const posterUrl = String(previewItem.thumbnailPreviewUrl || "").trim();
       if (posterUrl) {
         taskImagePreviewVideo.poster = posterUrl;
@@ -9025,9 +9033,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskImagePreviewVideo.removeAttribute("aria-label");
 
       taskImagePreviewImage.hidden = false;
-      if (taskImagePreviewImage.src !== previewUrl) {
-        taskImagePreviewImage.src = previewUrl;
-      }
+      taskImagePreviewImage.src = previewUrl;
       taskImagePreviewImage.alt = `Imagem de referencia ${nextIndex + 1} de ${total}`;
     }
     syncTaskImagePreviewNavigation();
@@ -9048,6 +9054,7 @@ window.addEventListener("DOMContentLoaded", () => {
     taskImagePreviewState.currentIndex = -1;
     taskImagePreviewState.items = [];
     if (taskImagePreviewImage instanceof HTMLImageElement) {
+      taskImagePreviewImage.src = "";
       taskImagePreviewImage.removeAttribute("src");
       taskImagePreviewImage.alt = "Imagem de referencia ampliada";
       taskImagePreviewImage.hidden = false;
@@ -9058,6 +9065,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskImagePreviewVideo.removeAttribute("src");
       taskImagePreviewVideo.removeAttribute("poster");
       taskImagePreviewVideo.removeAttribute("aria-label");
+      taskImagePreviewVideo.load();
     }
     syncTaskImagePreviewNavigation();
     syncBodyModalLock();
@@ -13952,7 +13960,7 @@ window.addEventListener("DOMContentLoaded", () => {
       );
       openTaskImagePreview({
         src: previewImageTrigger.dataset.taskRefImagePreview || "",
-        items: taskImagePreviewState.items,
+        items: taskDetailViewPreviewItems,
         index: Number.isFinite(previewIndex) && previewIndex >= 0 ? previewIndex : 0,
       });
       return;
