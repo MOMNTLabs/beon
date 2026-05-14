@@ -340,6 +340,7 @@
                                                     <option value="single">&Uacute;nica</option>
                                                     <option value="installment">Parcelada</option>
                                                     <option value="monthly">Mensal</option>
+                                                    <option value="goal">Meta</option>
                                                 </select>
                                                 <label class="accounting-check" data-accounting-settled-check>
                                                     <input type="checkbox" name="is_settled" value="1">
@@ -403,20 +404,13 @@
                                                         disabled
                                                     >
                                                 </div>
+                                                <input
+                                                    type="hidden"
+                                                    name="monthly_mode"
+                                                    value="uniform"
+                                                    data-accounting-monthly-mode
+                                                >
                                                 <div class="accounting-monthly-fields" data-accounting-monthly-fields hidden>
-                                                    <label class="accounting-monthly-mode-field">
-                                                        <span class="accounting-entry-inline-label">Tipo mensal</span>
-                                                        <select
-                                                            name="monthly_mode"
-                                                            class="accounting-installment-select accounting-monthly-mode-select"
-                                                            aria-label="Modo da conta mensal"
-                                                            data-accounting-monthly-mode
-                                                            disabled
-                                                        >
-                                                            <option value="uniform">Uniforme</option>
-                                                            <option value="goal">Meta</option>
-                                                        </select>
-                                                    </label>
                                                     <div class="accounting-monthly-day-field" data-accounting-monthly-day-field>
                                                         <span class="accounting-entry-inline-label">Vence no dia</span>
                                                         <select

@@ -5914,13 +5914,21 @@ window.addEventListener("DOMContentLoaded", () => {
     if (typeSelect instanceof HTMLSelectElement) {
       installmentToggle.checked = typeSelect.value === "installment";
       if (monthlyToggle instanceof HTMLInputElement) {
-        monthlyToggle.checked = typeSelect.value === "monthly";
+        monthlyToggle.checked = typeSelect.value === "monthly" || typeSelect.value === "goal";
+      }
+      if (
+        monthlyModeField instanceof HTMLSelectElement ||
+        monthlyModeField instanceof HTMLInputElement
+      ) {
+        monthlyModeField.value = typeSelect.value === "goal" ? "goal" : "uniform";
       }
     }
 
     const isMonthlyDue = monthlyToggle instanceof HTMLInputElement && monthlyToggle.checked;
     const monthlyMode =
-      monthlyModeField instanceof HTMLSelectElement && monthlyModeField.value === "goal"
+      (monthlyModeField instanceof HTMLSelectElement ||
+        monthlyModeField instanceof HTMLInputElement) &&
+      monthlyModeField.value === "goal"
         ? "goal"
         : "uniform";
     const isMonthlyGoal = isMonthlyDue && monthlyMode === "goal";
@@ -5940,10 +5948,15 @@ window.addEventListener("DOMContentLoaded", () => {
     totalAmountField.required = isInstallment;
     primaryAmountField.readOnly = isInstallment;
     if (monthlyFields instanceof HTMLElement) {
-      monthlyFields.hidden = !isMonthlyDue;
+      monthlyFields.hidden = !isMonthlyDue || isMonthlyGoal;
     }
-    if (monthlyModeField instanceof HTMLSelectElement) {
-      monthlyModeField.disabled = !isMonthlyDue;
+    if (
+      monthlyModeField instanceof HTMLSelectElement ||
+      monthlyModeField instanceof HTMLInputElement
+    ) {
+      if ("disabled" in monthlyModeField) {
+        monthlyModeField.disabled = false;
+      }
       if (isMonthlyDue && !String(monthlyModeField.value || "").trim()) {
         monthlyModeField.value = "uniform";
       }
@@ -5975,7 +5988,13 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
     if (typeSelect instanceof HTMLSelectElement) {
-      typeSelect.value = isInstallment ? "installment" : (isMonthlyDue ? "monthly" : "single");
+      typeSelect.value = isInstallment
+        ? "installment"
+        : isMonthlyGoal
+          ? "goal"
+          : isMonthlyDue
+            ? "monthly"
+            : "single";
     }
 
     let installmentTotal = Number.parseInt(installmentTotalCountField.value, 10);
@@ -6316,6 +6335,22 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     toggle.open = false;
+  };
+
+  const focusAccountingCreateLabelField = (toggle) => {
+    if (!(toggle instanceof HTMLDetailsElement) || !toggle.open) return;
+
+    const form = toggle.querySelector(".accounting-create-form");
+    if (!(form instanceof HTMLFormElement)) return;
+
+    const labelField = form.querySelector('input[name="label"]');
+    if (!(labelField instanceof HTMLInputElement)) return;
+
+    window.requestAnimationFrame(() => {
+      if (!toggle.open || !labelField.isConnected) return;
+      labelField.focus();
+      labelField.select();
+    });
   };
 
   const autosaveTimers = new WeakMap();
@@ -16175,6 +16210,15 @@ window.addEventListener("DOMContentLoaded", () => {
 
         event.preventDefault();
         closeAccountingGoalPaymentForm(entryRow);
+      });
+    });
+
+    root.querySelectorAll("details.accounting-create-toggle").forEach((toggle) => {
+      if (!(toggle instanceof HTMLDetailsElement) || toggle.dataset.accountingCreateBound === "1") return;
+      toggle.dataset.accountingCreateBound = "1";
+      toggle.addEventListener("toggle", () => {
+        if (!toggle.open) return;
+        focusAccountingCreateLabelField(toggle);
       });
     });
   };
