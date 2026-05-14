@@ -9002,6 +9002,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     taskImagePreviewState.currentIndex = nextIndex;
     if (previewItem.kind === "video") {
+      taskImagePreviewModal.classList.add("is-video-preview");
       taskImagePreviewImage.hidden = true;
       taskImagePreviewImage.src = "";
       taskImagePreviewImage.removeAttribute("src");
@@ -9016,6 +9017,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskImagePreviewVideo.removeAttribute("src");
       taskImagePreviewVideo.load();
       taskImagePreviewVideo.hidden = false;
+      taskImagePreviewVideo.preload = "auto";
       taskImagePreviewVideo.src = previewUrl;
       const posterUrl = String(previewItem.thumbnailPreviewUrl || "").trim();
       if (posterUrl) {
@@ -9026,6 +9028,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskImagePreviewVideo.setAttribute("aria-label", `Video de referencia ${nextIndex + 1} de ${total}`);
       taskImagePreviewVideo.load();
     } else {
+      taskImagePreviewModal.classList.remove("is-video-preview");
       taskImagePreviewVideo.pause();
       taskImagePreviewVideo.hidden = true;
       taskImagePreviewVideo.removeAttribute("src");
@@ -9067,6 +9070,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskImagePreviewVideo.removeAttribute("aria-label");
       taskImagePreviewVideo.load();
     }
+    taskImagePreviewModal.classList.remove("is-video-preview");
     syncTaskImagePreviewNavigation();
     syncBodyModalLock();
   };

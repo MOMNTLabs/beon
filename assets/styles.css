@@ -10255,6 +10255,11 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
     border-radius: 0;
 }
 
+.task-image-preview-modal.is-video-preview .task-image-preview-viewport {
+    min-width: min(72vw, 460px);
+    min-height: min(78vh, 760px);
+}
+
 .task-image-preview-body img {
     display: block;
     max-width: 100%;
@@ -10267,13 +10272,13 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 
 .task-image-preview-body video {
     display: block;
+    width: min(82vw, 960px);
     max-width: min(88vw, 1260px);
     max-height: min(82vh, 820px);
-    width: auto;
     height: auto;
     object-fit: contain;
     border-radius: 14px;
-    background: transparent;
+    background: rgba(0, 0, 0, 0.88);
 }
 
 .task-image-preview-nav {

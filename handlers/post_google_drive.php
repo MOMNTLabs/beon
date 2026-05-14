@@ -811,10 +811,10 @@ function handleGoogleDriveDownload(PDO $pdo): void
     $contentLength = '';
     $contentRange = '';
     $acceptRanges = 'bytes';
-    $responseBody = null;
 
     if (function_exists('curl_init')) {
         $responseHeaders = [];
+        $headersSent = false;
         $ch = curl_init($downloadUrl);
         if ($ch === false) {
             http_response_code(502);
@@ -827,37 +827,71 @@ function handleGoogleDriveDownload(PDO $pdo): void
         curl_setopt_array($ch, [
             CURLOPT_HTTPHEADER => $requestHeaders,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 0,
             CURLOPT_CONNECTTIMEOUT => 15,
-            CURLOPT_HEADERFUNCTION => static function ($curl, string $headerLine) use (&$responseHeaders): int {
+            CURLOPT_HEADERFUNCTION => static function ($curl, string $headerLine) use (&$responseHeaders, &$statusCode, &$contentType, &$contentLength, &$contentRange, &$acceptRanges, $mimeType): int {
                 $trimmed = trim($headerLine);
+                if (preg_match('/^HTTP\/\S+\s+(\d{3})/i', $trimmed, $matches) === 1) {
+                    $statusCode = (int) $matches[1];
+                    $responseHeaders = [];
+                    $contentType = $mimeType;
+                    $contentLength = '';
+                    $contentRange = '';
+                    $acceptRanges = 'bytes';
+                    return strlen($headerLine);
+                }
                 if ($trimmed !== '' && str_contains($trimmed, ':')) {
                     [$name, $value] = explode(':', $trimmed, 2);
-                    $responseHeaders[strtolower(trim($name))] = trim($value);
+                    $headerName = strtolower(trim($name));
+                    $headerValue = trim($value);
+                    $responseHeaders[$headerName] = $headerValue;
+                    if ($headerName === 'content-type' && $headerValue !== '') {
+                        $contentType = $headerValue;
+                    } elseif ($headerName === 'content-length' && ctype_digit($headerValue)) {
+                        $contentLength = $headerValue;
+                    } elseif ($headerName === 'content-range') {
+                        $contentRange = $headerValue;
+                    } elseif ($headerName === 'accept-ranges' && $headerValue !== '') {
+                        $acceptRanges = $headerValue;
+                    }
                 }
                 return strlen($headerLine);
             },
+            CURLOPT_WRITEFUNCTION => static function ($curl, string $chunk) use (&$headersSent, &$statusCode, &$contentType, &$contentLength, &$contentRange, &$acceptRanges, $safeName): int {
+                if (!$headersSent) {
+                    http_response_code($statusCode);
+                    header('Content-Type: ' . $contentType);
+                    header('Content-Disposition: inline; filename="' . addcslashes($safeName, '"\\') . '"');
+                    header('Cache-Control: private, max-age=120');
+                    header('Accept-Ranges: ' . ($acceptRanges !== '' ? $acceptRanges : 'bytes'));
+                    if ($contentLength !== '') {
+                        header('Content-Length: ' . $contentLength);
+                    }
+                    if ($contentRange !== '') {
+                        header('Content-Range: ' . $contentRange);
+                    }
+                    $headersSent = true;
+                }
+                echo $chunk;
+                flush();
+                return strlen($chunk);
+            },
         ]);
 
-        $responseBody = curl_exec($ch);
+        $result = curl_exec($ch);
         $statusCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        $infoContentType = trim((string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE));
-        if ($infoContentType !== '') {
-            $contentType = $infoContentType;
-        } elseif (!empty($responseHeaders['content-type'])) {
-            $contentType = (string) $responseHeaders['content-type'];
+        if ($result === false) {
+            if (!$headersSent) {
+                http_response_code(502);
+            }
+            curl_close($ch);
+            exit;
         }
-        if (!empty($responseHeaders['content-length']) && ctype_digit((string) $responseHeaders['content-length'])) {
-            $contentLength = (string) $responseHeaders['content-length'];
-        }
-        if (!empty($responseHeaders['content-range'])) {
-            $contentRange = (string) $responseHeaders['content-range'];
-        }
-        if (!empty($responseHeaders['accept-ranges'])) {
-            $acceptRanges = (string) $responseHeaders['accept-ranges'];
+        if (!$headersSent) {
+            http_response_code($statusCode >= 400 ? $statusCode : 204);
         }
         curl_close($ch);
+        exit;
     } else {
         $requestHeader = 'Authorization: Bearer ' . $accessToken . "\r\n";
         if ($rangeHeader !== '') {
@@ -897,27 +931,26 @@ function handleGoogleDriveDownload(PDO $pdo): void
                 $acceptRanges = trim((string) substr($headerLine, 14));
             }
         }
-    }
+        if ($statusCode < 200 || $statusCode >= 300 || !is_string($responseBody) || $responseBody === '') {
+            http_response_code($statusCode >= 400 ? $statusCode : 502);
+            exit;
+        }
 
-    if ($statusCode < 200 || $statusCode >= 300 || !is_string($responseBody) || $responseBody === '') {
-        http_response_code($statusCode >= 400 ? $statusCode : 502);
+        http_response_code($statusCode);
+        header('Content-Type: ' . $contentType);
+        header('Content-Disposition: inline; filename="' . addcslashes($safeName, '"\\') . '"');
+        header('Cache-Control: private, max-age=120');
+        header('Accept-Ranges: ' . ($acceptRanges !== '' ? $acceptRanges : 'bytes'));
+        if ($contentLength !== '') {
+            header('Content-Length: ' . $contentLength);
+        }
+        if ($contentRange !== '') {
+            header('Content-Range: ' . $contentRange);
+        }
+
+        echo $responseBody;
         exit;
     }
-
-    http_response_code($statusCode);
-    header('Content-Type: ' . $contentType);
-    header('Content-Disposition: inline; filename="' . addcslashes($safeName, '"\\') . '"');
-    header('Cache-Control: private, max-age=120');
-    header('Accept-Ranges: ' . ($acceptRanges !== '' ? $acceptRanges : 'bytes'));
-    if ($contentLength !== '') {
-        header('Content-Length: ' . $contentLength);
-    }
-    if ($contentRange !== '') {
-        header('Content-Range: ' . $contentRange);
-    }
-
-    echo $responseBody;
-    exit;
 }
 
 function handleGoogleDriveThumbnail(PDO $pdo): void
