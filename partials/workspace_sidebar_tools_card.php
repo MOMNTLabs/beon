@@ -14,7 +14,15 @@ $availableToAddTools = is_array($workspaceSidebarConfig['available_to_add'] ?? n
 ?>
 
 <section class="workspace-settings-card workspace-sidebar-tools-card<?= empty($canManageWorkspace) ? ' is-readonly' : '' ?>">
-    <h3>Ferramentas</h3>
+    <?php
+    $visibleSidebarToolsCount = 1 + count($enabledOptionalTools);
+    $visibleSidebarToolsLabel = $visibleSidebarToolsCount === 1 ? 'item' : 'itens';
+    ?>
+    <div class="workspace-settings-card-head">
+        <div>
+            <h3>Ferramentas</h3>
+        </div>
+    </div>
 
     <?php if (!empty($canManageWorkspace)): ?>
         <form method="post" class="workspace-settings-form workspace-sidebar-tools-form" data-sidebar-tools-form data-sidebar-tools-autosave-add="1">
@@ -59,7 +67,9 @@ $availableToAddTools = is_array($workspaceSidebarConfig['available_to_add'] ?? n
                 Nenhuma ferramenta adicional no sidebar.
             </p>
 
-            <button type="submit" class="btn btn-mini">Salvar ordem das ferramentas</button>
+            <div class="workspace-settings-actions">
+                <button type="submit" class="btn btn-mini">Salvar ordem das ferramentas</button>
+            </div>
 
             <template data-sidebar-tools-row-template>
                 <li class="workspace-sidebar-tool-item" data-sidebar-tool-key="">

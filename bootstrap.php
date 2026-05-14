@@ -3983,6 +3983,27 @@ function dueAmountLabelFromCents($amountCents): string
     return 'R$ ' . number_format($normalized / 100, 2, ',', '.');
 }
 
+function dueAmountCompactLabelFromCents($amountCents, bool $allowThousandsSuffix = false): string
+{
+    $normalized = normalizeDueAmountCents($amountCents) ?? 0;
+    if ($normalized % 100 !== 0) {
+        return 'R$ ' . number_format($normalized / 100, 2, ',', '.');
+    }
+
+    $wholeReais = intdiv($normalized, 100);
+    if ($allowThousandsSuffix && $wholeReais >= 1000) {
+        if ($wholeReais % 1000 === 0) {
+            return 'R$ ' . number_format(intdiv($wholeReais, 1000), 0, ',', '.') . 'k';
+        }
+
+        if ($wholeReais % 100 === 0) {
+            return 'R$ ' . number_format($wholeReais / 1000, 1, ',', '.') . 'k';
+        }
+    }
+
+    return 'R$ ' . number_format($wholeReais, 0, ',', '.');
+}
+
 function dueAmountLabelFromSignedCents($amountCents): string
 {
     $normalized = 0;
@@ -8263,30 +8284,36 @@ function updateWorkspaceAccountingEntryWithCarrySync(
             );
             $updatedEntry = workspaceAccountingDueLinkedEntryForPeriod($pdo, $workspaceId, $sourceDueEntryId, $currentPeriodKey);
         } else {
-        updateWorkspaceAccountingEntry(
-            $pdo,
-            $workspaceId,
-            $entryId,
-            $label,
-            $amountInput,
-            $isSettled,
-            $isInstallment,
-            $installmentProgress,
-            $totalAmountInput,
-            $installmentNumberInput,
-            $installmentTotalInput,
-            $monthlyFlag,
-            $resolvedMonthlyDay,
-            $entryPeriodKey,
-            $entryType,
-            $monthlyMode,
-            $monthlyMode === 'goal'
-                ? workspaceAccountingGoalPaymentTotalCents($pdo, $workspaceId, $entryId)
-                : null
-        );
+            updateWorkspaceAccountingEntry(
+                $pdo,
+                $workspaceId,
+                $entryId,
+                $label,
+                $amountInput,
+                $isSettled,
+                $isInstallment,
+                $installmentProgress,
+                $totalAmountInput,
+                $installmentNumberInput,
+                $installmentTotalInput,
+                $monthlyFlag,
+                $resolvedMonthlyDay,
+                $entryPeriodKey,
+                $entryType,
+                $monthlyMode,
+                $monthlyMode === 'goal'
+                    ? workspaceAccountingGoalPaymentTotalCents($pdo, $workspaceId, $entryId)
+                    : null
+            );
 
-        $updatedEntry = syncWorkspaceAccountingGoalPaymentHistory($pdo, $workspaceId, $entryId);
-
+            if ($monthlyMode === 'goal') {
+                $updatedEntry = syncWorkspaceAccountingGoalPaymentHistory($pdo, $workspaceId, $entryId);
+            } else {
+                $updatedEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
+                if ($updatedEntry === null) {
+                    throw new RuntimeException('Registro nÃ£o encontrado.');
+                }
+            }
         }
 
         if ($futureCarryLimit !== null) {

@@ -4774,9 +4774,9 @@ body.is-dashboard .accounting-entry-badge.is-installment {
 }
 
 body.is-dashboard .accounting-entry-badge.is-monthly {
-    border-color: rgba(67, 145, 106, 0.24);
-    background: rgba(111, 186, 145, 0.12);
-    color: #345d46;
+    border-color: rgba(var(--color-accent-500-rgb), 0.18);
+    background: rgba(var(--color-accent-200-rgb), 0.12);
+    color: #7b5b35;
 }
 
 body.is-dashboard .accounting-entry-badge.is-due-date {

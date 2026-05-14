@@ -11,6 +11,7 @@ $workspaceStatusesFormId = 'workspace-task-statuses-form-' . (int) ($currentWork
 $workspaceStatusColorPalette = taskStatusColorPalette();
 $newWorkspaceStatusColor = normalizeTaskStatusPaletteColor(taskStatusDefaultColorForKind('in_progress'), 'in_progress');
 $newWorkspaceStatusColorLabel = (string) ($workspaceStatusColorPalette[$newWorkspaceStatusColor] ?? $newWorkspaceStatusColor);
+$workspaceStatusesBadgeLabel = count($workspaceTaskStatuses) === 1 ? 'etapa' : 'etapas';
 ?>
 <section class="workspace-settings-card workspace-statuses-card<?= $canManageTaskStatuses ? '' : ' is-readonly' ?>">
     <div class="workspace-statuses-card-head">

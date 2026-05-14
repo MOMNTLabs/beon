@@ -39,6 +39,8 @@
                                         : [];
                                     $accountingEntryGoalPaidCents = max(0, (int) ($accountingEntry['paid_amount_cents'] ?? 0));
                                     $accountingEntryGoalTotalCents = max(0, (int) ($accountingEntry['total_amount_cents'] ?? 0));
+                                    $accountingEntryGoalPaymentCompactDisplay = dueAmountCompactLabelFromCents($accountingEntryGoalPaidCents, true);
+                                    $accountingEntryGoalTotalCompactDisplay = dueAmountCompactLabelFromCents($accountingEntryGoalTotalCents, true);
                                     $accountingEntryGoalProgressPercent = $accountingEntryGoalTotalCents > 0
                                         ? min(100, max(0, ($accountingEntryGoalPaidCents / $accountingEntryGoalTotalCents) * 100))
                                         : 0;
@@ -71,9 +73,9 @@
                                                             <span class="accounting-entry-goal-progress-bar">
                                                                 <span class="accounting-entry-goal-progress-fill" style="width: <?= e($accountingEntryGoalProgressWidth) ?>%"></span>
                                                                 <span class="accounting-entry-goal-progress-values">
-                                                                    <span class="accounting-entry-goal-progress-paid"><?= e($accountingEntryGoalPaymentDisplay) ?></span>
+                                                                    <span class="accounting-entry-goal-progress-paid"><?= e($accountingEntryGoalPaymentCompactDisplay) ?></span>
                                                                     <span class="accounting-entry-goal-progress-separator">/</span>
-                                                                    <strong class="accounting-entry-goal-progress-total"><?= e($accountingEntryGoalTotalDisplay) ?></strong>
+                                                                    <strong class="accounting-entry-goal-progress-total"><?= e($accountingEntryGoalTotalCompactDisplay) ?></strong>
                                                                 </span>
                                                             </span>
                                                         </span>
@@ -108,12 +110,10 @@
                                                     type="button"
                                                     class="accounting-entry-goal-payment-trigger"
                                                     data-accounting-goal-payment-toggle
-                                                    aria-label="<?= e($accountingEntryGoalPaymentDisplay !== 'R$ 0,00' ? 'Editar valor pago do mês' : 'Registrar valor pago do mês') ?>"
-                                                    title="<?= e($accountingEntryGoalPaymentDisplay !== 'R$ 0,00' ? 'Editar valor pago do mês' : 'Registrar valor pago do mês') ?>"
+                                                    aria-label="Abrir lançamentos do mês"
+                                                    title="Abrir lançamentos do mês"
                                                 >
-                                                    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-                                                        <path d="M11.8 1.8a1.75 1.75 0 0 1 2.47 2.47L6.09 12.45 3 13l.55-3.09L11.8 1.8Zm1.41.71a.75.75 0 0 0-1.06 0l-.77.77 1.06 1.06.77-.77a.75.75 0 0 0 0-1.06ZM11.73 5l-1.06-1.06-6.16 6.16-.24 1.37 1.37-.24L11.73 5Z" fill="currentColor"/>
-                                                    </svg>
+                                                    <span class="accounting-entry-goal-payment-trigger-icon" aria-hidden="true">+</span>
                                                 </button>
                                             </div>
                                             <div class="accounting-entry-goal-payment-drawer" data-accounting-goal-payment-drawer hidden>
@@ -243,7 +243,7 @@
                                             <?php if ($accountingEntryIsMonthlyGoal || $accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment || $accountingEntryShowPendingBadge): ?>
                                                 <div class="accounting-entry-meta">
                                                     <?php if ($accountingEntryIsMonthlyGoal): ?>
-                                                        <span class="accounting-entry-goal-status">Os pagamentos do mês são lançados no ícone de lápis.</span>
+                                                        <span class="accounting-entry-goal-status">Os pagamentos do mês são lançados no botão +.</span>
                                                     <?php elseif ($accountingEntryMonthlyBadge !== ''): ?>
                                                         <label class="accounting-entry-edit-control is-monthly">
                                                             <span>Mensal -</span>
@@ -342,10 +342,6 @@
                                                     <option value="monthly">Mensal</option>
                                                     <option value="goal">Meta</option>
                                                 </select>
-                                                <label class="accounting-check" data-accounting-settled-check>
-                                                    <input type="checkbox" name="is_settled" value="1">
-                                                    <span>Pago</span>
-                                                </label>
                                                 <input
                                                     type="checkbox"
                                                     name="is_installment"
