@@ -2453,7 +2453,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                     <button type="button" class="btn btn-mini btn-ghost" data-create-task-open-media>Mídias</button>
                     <button type="button" class="btn btn-mini btn-ghost" data-create-task-back-main hidden>Voltar</button>
                 </div>
-                <button type="submit" class="btn btn-pill" <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar tarefa</button>
+                <button type="submit" class="btn btn-pill" data-create-task-submit <?= empty($taskGroupsWithAccess) ? 'disabled' : '' ?>>Adicionar tarefa</button>
             </div>
         </form>
     </section>
@@ -3566,6 +3566,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
     <div class="modal-scrim" data-close-task-image-preview></div>
     <section class="modal-card task-image-preview-card" role="dialog" aria-modal="true" aria-label="Midia de referencia">
         <header class="modal-head task-image-preview-head">
+            <div class="task-image-preview-title" data-task-image-preview-title></div>
             <button type="button" class="modal-close-button" data-close-task-image-preview aria-label="Fechar visualizacao da midia">
                 <span aria-hidden="true">&#10005;</span>
             </button>

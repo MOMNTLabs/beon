@@ -7450,6 +7450,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const createTaskImageList = document.querySelector("[data-create-task-image-list]");
   const createTaskOpenMediaButton = document.querySelector("[data-create-task-open-media]");
   const createTaskBackMainButton = document.querySelector("[data-create-task-back-main]");
+  const createTaskSubmitButton = document.querySelector("[data-create-task-submit]");
   const createTaskImagesFieldWrap =
     createTaskImagePicker instanceof HTMLElement
       ? createTaskImagePicker.closest(".task-detail-edit-images-field")
@@ -7563,6 +7564,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const taskDetailViewImagesWrap = document.querySelector("[data-task-detail-view-images-wrap]");
   const taskDetailViewImages = document.querySelector("[data-task-detail-view-images]");
   const taskImagePreviewModal = document.querySelector("[data-task-image-preview-modal]");
+  const taskImagePreviewTitle = document.querySelector("[data-task-image-preview-title]");
   const taskImagePreviewImage = document.querySelector("[data-task-image-preview-img]");
   const taskImagePreviewVideo = document.querySelector("[data-task-image-preview-video]");
   const taskImagePreviewPrevButton = document.querySelector("[data-task-image-preview-prev]");
@@ -8955,6 +8957,30 @@ window.addEventListener("DOMContentLoaded", () => {
     };
   };
 
+  const referenceMediaDisplayLabel = (item) => {
+    if (!item || typeof item !== "object") return "";
+
+    const explicitTitle = normalizeReferenceImageTitle(item.title || "");
+    if (explicitTitle) return explicitTitle;
+
+    const explicitName = normalizeReferenceMediaName(item.name || item.label || "");
+    if (explicitName) return explicitName;
+
+    const rawUrl = String(
+      item.downloadUrl || item.webViewLink || item.src || item.thumbnailUrl || item.previewUrl || ""
+    ).trim();
+    if (!rawUrl) return "";
+
+    try {
+      const parsed = new URL(rawUrl, window.location.origin);
+      const segments = parsed.pathname.split("/").filter(Boolean);
+      const lastSegment = segments.length ? segments[segments.length - 1] : "";
+      return lastSegment ? decodeURIComponent(lastSegment) : "";
+    } catch (_error) {
+      return "";
+    }
+  };
+
   const normalizeTaskImagePreviewCollection = (images = []) => {
     const seen = new Set();
     const items = [];
@@ -8999,6 +9025,11 @@ window.addEventListener("DOMContentLoaded", () => {
     const previewItem = taskImagePreviewState.items[nextIndex] || null;
     const previewUrl = String(previewItem?.previewUrl || "").trim();
     if (!previewItem || !previewUrl) return false;
+    if (taskImagePreviewTitle instanceof HTMLElement) {
+      taskImagePreviewTitle.textContent =
+        referenceMediaDisplayLabel(previewItem) || `Midia ${nextIndex + 1}`;
+      taskImagePreviewTitle.title = taskImagePreviewTitle.textContent;
+    }
 
     taskImagePreviewState.currentIndex = nextIndex;
     if (previewItem.kind === "video") {
@@ -9056,6 +9087,10 @@ window.addEventListener("DOMContentLoaded", () => {
     taskImagePreviewModal.hidden = true;
     taskImagePreviewState.currentIndex = -1;
     taskImagePreviewState.items = [];
+    if (taskImagePreviewTitle instanceof HTMLElement) {
+      taskImagePreviewTitle.textContent = "";
+      taskImagePreviewTitle.removeAttribute("title");
+    }
     if (taskImagePreviewImage instanceof HTMLImageElement) {
       taskImagePreviewImage.src = "";
       taskImagePreviewImage.removeAttribute("src");
@@ -9404,6 +9439,9 @@ window.addEventListener("DOMContentLoaded", () => {
     if (createTaskBackMainButton instanceof HTMLButtonElement) {
       createTaskBackMainButton.hidden = !isEnabled;
     }
+    if (createTaskSubmitButton instanceof HTMLButtonElement) {
+      createTaskSubmitButton.hidden = isEnabled;
+    }
 
     createTaskImagePickerExpanded = isEnabled || createTaskImageItems.length > 0;
     syncCreateTaskImagePickerLayout();
@@ -9572,7 +9610,11 @@ window.addEventListener("DOMContentLoaded", () => {
       removeButton.setAttribute("aria-label", "Remover imagem de referencia");
       removeButton.textContent = "x";
 
-      item.append(preview, titleInput, removeButton);
+      const topBar = document.createElement("div");
+      topBar.className = "task-detail-edit-image-topbar";
+      topBar.append(titleInput, removeButton);
+
+      item.append(preview, topBar);
       appendReferenceMediaProviderBadge(item, mediaItem);
       taskDetailImageList.append(item);
     });
@@ -9616,7 +9658,11 @@ window.addEventListener("DOMContentLoaded", () => {
       removeButton.setAttribute("aria-label", "Remover imagem de referencia");
       removeButton.textContent = "x";
 
-      item.append(preview, titleInput, removeButton);
+      const topBar = document.createElement("div");
+      topBar.className = "task-detail-edit-image-topbar";
+      topBar.append(titleInput, removeButton);
+
+      item.append(preview, topBar);
       appendReferenceMediaProviderBadge(item, mediaItem);
       createTaskImageList.append(item);
     });
