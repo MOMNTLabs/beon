@@ -3948,6 +3948,101 @@ window.addEventListener("DOMContentLoaded", () => {
     return blockedTarget instanceof HTMLElement && groupHead.contains(blockedTarget);
   };
 
+  const getGroupRenameFields = (renameForm) => {
+    if (!(renameForm instanceof HTMLFormElement)) {
+      return {
+        nameInput: null,
+        oldNameField: null,
+        nameDisplay: null,
+        editButton: null,
+      };
+    }
+
+    return {
+      nameInput: renameForm.querySelector("[data-group-name-input]"),
+      oldNameField: renameForm.querySelector('input[name="old_group_name"]'),
+      nameDisplay: renameForm.querySelector("[data-group-name-display]"),
+      editButton: renameForm.querySelector("[data-enable-group-rename]"),
+    };
+  };
+
+  const syncGroupRenamePresentation = (renameForm, groupName = null) => {
+    if (!(renameForm instanceof HTMLFormElement)) return;
+    const { nameInput, oldNameField, nameDisplay, editButton } = getGroupRenameFields(renameForm);
+    const fallbackName =
+      (groupName ?? "").trim() ||
+      (oldNameField instanceof HTMLInputElement ? oldNameField.value : "").trim() ||
+      (nameInput instanceof HTMLInputElement ? nameInput.value : "").trim() ||
+      "Grupo";
+
+    if (nameDisplay instanceof HTMLElement) {
+      nameDisplay.textContent = fallbackName;
+    }
+    if (nameInput instanceof HTMLInputElement && !renameForm.classList.contains("is-editing")) {
+      nameInput.value = fallbackName;
+    }
+    if (editButton instanceof HTMLButtonElement) {
+      editButton.setAttribute("aria-label", `Editar nome do grupo ${fallbackName}`);
+      editButton.setAttribute("title", "Editar nome do grupo");
+      editButton.setAttribute("aria-pressed", renameForm.classList.contains("is-editing") ? "true" : "false");
+    }
+  };
+
+  const setGroupRenameEditing = (renameForm, editing, options = {}) => {
+    if (!(renameForm instanceof HTMLFormElement)) return;
+    const { nameInput, oldNameField, editButton } = getGroupRenameFields(renameForm);
+    if (!(nameInput instanceof HTMLInputElement)) return;
+
+    const canEdit = !nameInput.readOnly;
+    const nextEditing = Boolean(editing) && canEdit;
+
+    if (!nextEditing && options.restoreValue !== false && oldNameField instanceof HTMLInputElement) {
+      nameInput.value = (oldNameField.value || "").trim() || nameInput.value;
+    }
+
+    renameForm.classList.toggle("is-editing", nextEditing);
+    nameInput.hidden = !nextEditing;
+    nameInput.disabled = !nextEditing;
+
+    if (nextEditing) {
+      nameInput.removeAttribute("tabindex");
+    } else {
+      nameInput.tabIndex = -1;
+    }
+
+    syncGroupRenamePresentation(renameForm);
+
+    if (nextEditing) {
+      window.requestAnimationFrame(() => {
+        try {
+          nameInput.focus({ preventScroll: true });
+        } catch (_error) {
+          nameInput.focus();
+        }
+        if (options.select !== false) {
+          nameInput.select();
+        }
+      });
+      return;
+    }
+
+    if (options.focusTrigger && editButton instanceof HTMLButtonElement) {
+      window.requestAnimationFrame(() => editButton.focus());
+    }
+  };
+
+  const initializeGroupRenameForm = (renameForm) => {
+    if (!(renameForm instanceof HTMLFormElement) || renameForm.dataset.groupRenameReady === "1") {
+      return;
+    }
+    renameForm.dataset.groupRenameReady = "1";
+    setGroupRenameEditing(renameForm, false, { restoreValue: false });
+    renameForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitRenameGroup(renameForm).catch(() => {});
+    });
+  };
+
   const moveTaskItemToGroupDom = (taskItem, groupName) => {
     if (!(taskItem instanceof HTMLElement) || !taskItem.isConnected) return false;
     const nextGroup = (groupName || "").trim() || "Geral";
@@ -6464,6 +6559,36 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  document.addEventListener("focusout", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) || !target.matches("[data-group-name-input]")) {
+      return;
+    }
+
+    const renameForm = target.closest("[data-group-rename-form]");
+    if (!(renameForm instanceof HTMLFormElement) || !renameForm.classList.contains("is-editing")) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      if (renameForm.contains(document.activeElement)) {
+        return;
+      }
+      if (renameForm.dataset.submitting === "1") {
+        return;
+      }
+
+      const { oldNameField } = getGroupRenameFields(renameForm);
+      const previousName = (oldNameField instanceof HTMLInputElement ? oldNameField.value : "").trim();
+      const requestedName = (target.value || "").trim();
+      if (!requestedName || requestedName === previousName) {
+        target.value = previousName || target.value;
+        syncGroupRenamePresentation(renameForm, previousName || target.value);
+        setGroupRenameEditing(renameForm, false);
+      }
+    }, 0);
+  });
+
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement) || !form.matches("[data-task-autosave-form]")) {
@@ -6480,10 +6605,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   document.querySelectorAll("[data-group-rename-form]").forEach((form) => {
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      submitRenameGroup(form).catch(() => {});
-    });
+    initializeGroupRenameForm(form);
   });
 
   let draggedTaskItem = null;
@@ -7007,6 +7129,15 @@ window.addEventListener("DOMContentLoaded", () => {
       if (groupSection instanceof HTMLElement) {
         const shouldHideDone = !groupSection.classList.contains("is-done-hidden");
         setTaskGroupDoneHidden(groupSection, shouldHideDone);
+      }
+      return;
+    }
+
+    const groupRenameEditButton = target.closest("[data-enable-group-rename]");
+    if (groupRenameEditButton instanceof HTMLButtonElement) {
+      const renameForm = groupRenameEditButton.closest("[data-group-rename-form]");
+      if (renameForm instanceof HTMLFormElement) {
+        setGroupRenameEditing(renameForm, true);
       }
       return;
     }
@@ -12688,8 +12819,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!(renameForm instanceof HTMLFormElement)) return;
     if (renameForm.dataset.submitting === "1") return;
 
-    const nameInput = renameForm.querySelector("[data-group-name-input]");
-    const oldNameField = renameForm.querySelector('input[name="old_group_name"]');
+    const { nameInput, oldNameField } = getGroupRenameFields(renameForm);
     if (!(nameInput instanceof HTMLInputElement) || !(oldNameField instanceof HTMLInputElement)) {
       return;
     }
@@ -12699,9 +12829,13 @@ window.addEventListener("DOMContentLoaded", () => {
     const requestedName = (nameInput.value || "").trim();
     if (!requestedName) {
       nameInput.value = previousName;
+      syncGroupRenamePresentation(renameForm, previousName);
+      setGroupRenameEditing(renameForm, false);
       return;
     }
     if (requestedName === previousName) {
+      syncGroupRenamePresentation(renameForm, previousName);
+      setGroupRenameEditing(renameForm, false);
       return;
     }
 
@@ -12732,6 +12866,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
       nameInput.value = nextGroupName;
       oldNameField.value = nextGroupName;
+      syncGroupRenamePresentation(renameForm, nextGroupName);
+      setGroupRenameEditing(renameForm, false, { restoreValue: false });
 
       const groupAddButtons = groupSection?.querySelectorAll("[data-open-create-task-modal][data-create-group]");
       groupAddButtons?.forEach((button) => {
@@ -12795,6 +12931,8 @@ window.addEventListener("DOMContentLoaded", () => {
       showClientFlash("success", `Grupo renomeado para ${nextGroupName}.`);
     } catch (error) {
       nameInput.value = previousName;
+      syncGroupRenamePresentation(renameForm, previousName);
+      setGroupRenameEditing(renameForm, false);
       showClientFlash(
         "error",
         error instanceof Error ? error.message : "Falha ao renomear grupo."
@@ -14292,7 +14430,21 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (event.key === "Enter" && target instanceof HTMLElement && target.matches("[data-group-name-input]")) {
       event.preventDefault();
-      target.blur();
+      const renameForm = target.closest("[data-group-rename-form]");
+      submitRenameGroup(renameForm).catch(() => {});
+      return;
+    }
+
+    if (event.key === "Escape" && target instanceof HTMLInputElement && target.matches("[data-group-name-input]")) {
+      event.preventDefault();
+      const renameForm = target.closest("[data-group-rename-form]");
+      if (renameForm instanceof HTMLFormElement) {
+        const { oldNameField } = getGroupRenameFields(renameForm);
+        const previousName = (oldNameField instanceof HTMLInputElement ? oldNameField.value : "").trim();
+        target.value = previousName || target.value;
+        syncGroupRenamePresentation(renameForm, previousName || target.value);
+        setGroupRenameEditing(renameForm, false, { focusTrigger: true });
+      }
       return;
     }
 

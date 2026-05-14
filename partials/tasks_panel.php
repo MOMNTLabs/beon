@@ -296,6 +296,22 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                         <input type="hidden" name="action" value="rename_group">
                                         <input type="hidden" name="old_group_name" value="<?= e((string) $groupName) ?>">
                                         <h3 id="group-<?= e(md5((string) $groupName)) ?>">
+                                            <span class="task-group-name-shell">
+                                                <span class="task-group-name-display" data-group-name-display><?= e((string) $groupName) ?></span>
+                                                <?php if ($taskGroupCanAccess): ?>
+                                                    <button
+                                                        type="button"
+                                                        class="task-group-name-edit-button"
+                                                        data-enable-group-rename
+                                                        aria-label="Editar nome do grupo <?= e((string) $groupName) ?>"
+                                                        title="Editar nome do grupo"
+                                                    >
+                                                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                                            <path d="M11.8 1.8a1.75 1.75 0 0 1 2.47 2.47L6.09 12.45 3 13l.55-3.09L11.8 1.8Zm1.41.71a.75.75 0 0 0-1.06 0l-.77.77 1.06 1.06.77-.77a.75.75 0 0 0 0-1.06ZM11.73 5l-1.06-1.06-6.16 6.16-.24 1.37 1.37-.24L11.73 5Z" fill="currentColor"/>
+                                                        </svg>
+                                                    </button>
+                                                <?php endif; ?>
+                                            </span>
                                             <input
                                                 type="text"
                                                 name="new_group_name"
@@ -305,9 +321,11 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                                 data-group-name-input
                                                 aria-label="Nome do grupo"
                                                 spellcheck="false"
-                                                <?= $taskGroupCanAccess ? '' : 'readonly' ?>
+                                                hidden
+                                                <?= $taskGroupCanAccess ? 'disabled' : 'readonly disabled' ?>
                                             >
                                         </h3>
+                                        <button type="submit" class="sr-only">Salvar grupo</button>
                                     </form>
                                 </div>
                                 <div class="task-group-head-actions">
