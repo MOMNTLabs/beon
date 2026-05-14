@@ -14,25 +14,25 @@
                     <?php $groupFilterValue = (string) ($groupFilter ?? ''); ?>
                     <div class="tag-field row-inline-picker-wrap" data-inline-select-wrap>
                         <details class="row-inline-picker filter-inline-picker" data-inline-select-picker>
-                            <summary aria-label="Filtrar por grupo">
+                            <summary aria-label="Filtrar por projeto">
                                 <span class="row-inline-picker-summary-text" data-inline-select-text>
                                     <?php if ($groupFilterValue === ''): ?>
-                                        Todos Grupos
+                                        Todos Projetos
                                     <?php else: ?>
                                         <?= e($groupFilterValue) ?>
                                     <?php endif; ?>
                                 </span>
                             </summary>
-                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Filtro de grupo">
+                            <div class="assignee-picker-menu row-inline-picker-menu" role="listbox" aria-label="Filtro de projeto">
                                 <button
                                     type="button"
                                     class="row-inline-picker-option<?= $groupFilterValue === '' ? ' is-active' : '' ?>"
                                     data-inline-select-option
                                     data-value=""
-                                    data-label="Todos Grupos"
+                                    data-label="Todos Projetos"
                                     role="option"
                                     aria-selected="<?= $groupFilterValue === '' ? 'true' : 'false' ?>"
-                                >Todos Grupos</button>
+                                >Todos Projetos</button>
                                 <?php foreach ($taskGroups as $groupOption): ?>
                                     <button
                                         type="button"
@@ -52,7 +52,7 @@
                             data-inline-select-source
                             hidden
                         >
-                            <option value="">Todos Grupos</option>
+                            <option value="">Todos Projetos</option>
                             <?php foreach ($taskGroups as $groupOption): ?>
                                 <option value="<?= e((string) $groupOption) ?>"<?= $groupFilterValue === (string) $groupOption ? ' selected' : '' ?>>
                                     <?= e((string) $groupOption) ?>
@@ -334,7 +334,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     <?php if ($taskGroupCanAccess): ?>
                                         <button
                                             type="button"
-                                            class="group-add-button"
+                                            class="group-add-button task-group-add-button"
                                             data-open-create-task-modal
                                             data-create-group="<?= e((string) $groupName) ?>"
                                             aria-label="Criar tarefa no grupo <?= e((string) $groupName) ?>"
@@ -354,7 +354,7 @@ $statusMetaByKey = is_array($statusConfig['meta_by_key'] ?? null) ? $statusConfi
                                     <?php if (!$taskGroupCanAccess): ?>
                                         <span class="task-group-readonly-tag">Somente leitura</span>
                                     <?php endif; ?>
-                                    <span class="task-group-count"><?= e((string) count($groupTasks)) ?></span>
+                                    <span class="task-group-count task-group-count-subtle"><?= e((string) count($groupTasks)) ?></span>
                                 </div>
                             </header>
 
