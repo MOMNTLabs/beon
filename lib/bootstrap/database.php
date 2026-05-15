@@ -126,7 +126,7 @@ function postgresConfigFromUrl(string $databaseUrl): array
 {
     $parts = parse_url($databaseUrl);
     if ($parts === false) {
-        throw new RuntimeException('DATABASE_URL invÃ¡lida.');
+        throw new RuntimeException('DATABASE_URL inválida.');
     }
 
     $host = $parts['host'] ?? null;

@@ -22,7 +22,7 @@ function setActiveWorkspaceId(?int $workspaceId): void
 function personalWorkspaceDefaultName(int $userId): string
 {
     if ($userId <= 0) {
-        return 'UsuÃ¡rio Workspace';
+        return 'Usuário Workspace';
     }
 
     $stmt = db()->prepare(
@@ -34,7 +34,7 @@ function personalWorkspaceDefaultName(int $userId): string
     $stmt->execute([':user_id' => $userId]);
     $userName = normalizeUserDisplayName((string) $stmt->fetchColumn());
     if ($userName === '') {
-        $userName = 'UsuÃ¡rio';
+        $userName = 'Usuário';
     }
 
     return $userName . ' Workspace';

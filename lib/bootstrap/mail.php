@@ -191,11 +191,11 @@ function logEmailDeliveryFallback(
 function deliveryFallbackNotice(array $delivery, string $localRelativePath): string
 {
     if (!empty($delivery['logged_to_file'])) {
-        return ' Se o envio nao estiver configurado neste ambiente, confira o arquivo ' . $localRelativePath . '.';
+        return ' Se o envio não estiver configurado neste ambiente, confira o arquivo ' . $localRelativePath . '.';
     }
 
     if (!empty($delivery['logged_to_app_log'])) {
-        return ' Se o envio nao estiver configurado neste ambiente, confira os logs da aplicacao.';
+        return ' Se o envio não estiver configurado neste ambiente, confira os logs da aplicação.';
     }
 
     return '';
@@ -209,7 +209,7 @@ function sendPasswordResetEmail(string $email, string $name, string $resetUrl, s
         return ['sent' => false, 'logged_to_file' => false];
     }
 
-    $subject = APP_NAME . ' | RedefiniÃ§Ã£o de senha';
+    $subject = APP_NAME . ' | Redefinição de senha';
     $body = implode("\n", [
         'Oi' . ($name !== '' ? ' ' . $name : '') . ',',
         '',
@@ -218,7 +218,7 @@ function sendPasswordResetEmail(string $email, string $name, string $resetUrl, s
         $resetUrl,
         '',
         'Este link expira em ' . $expiresAt . '.',
-        'Se vocÃª nÃ£o fez esse pedido, pode ignorar esta mensagem.',
+        'Se você não fez esse pedido, pode ignorar esta mensagem.',
     ]);
 
     $configuredFromAddress = trim((string) envValue('MAIL_FROM_ADDRESS', ''));
@@ -273,14 +273,14 @@ function sendWorkspaceInvitationEmail(
         'Oi,',
         '',
         ($inviterName !== '' ? $inviterName : 'Um administrador')
-            . ' convidou voce para acessar o workspace '
+            . ' convidou você para acessar o workspace '
             . ($workspaceName !== '' ? '"' . $workspaceName . '"' : 'na ' . APP_NAME)
             . '.',
         'Use o link abaixo para entrar ou criar sua conta e aceitar o convite:',
         $inviteUrl,
         '',
         'Este link expira em ' . $expiresAt . '.',
-        'Se voce nao esperava este convite, ignore esta mensagem.',
+        'Se você não esperava este convite, ignore esta mensagem.',
     ]);
 
     $configuredFromAddress = trim((string) envValue('MAIL_FROM_ADDRESS', ''));

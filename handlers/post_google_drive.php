@@ -73,17 +73,17 @@ function googleDriveConsumeState(string $state): array
     unset($_SESSION['google_drive_oauth_state']);
 
     if (!is_array($stored) || $state === '') {
-        throw new RuntimeException('Sessao do Google Drive expirada. Tente novamente.');
+        throw new RuntimeException('Sessão do Google Drive expirada. Tente novamente.');
     }
 
     $createdAt = (int) ($stored['created_at'] ?? 0);
     if ($createdAt <= 0 || (time() - $createdAt) > GOOGLE_OAUTH_STATE_TTL_SECONDS) {
-        throw new RuntimeException('Sessao do Google Drive expirada. Tente novamente.');
+        throw new RuntimeException('Sessão do Google Drive expirada. Tente novamente.');
     }
 
     $expectedHash = (string) ($stored['state_hash'] ?? '');
     if ($expectedHash === '' || !hash_equals($expectedHash, hash('sha256', $state))) {
-        throw new RuntimeException('Sessao do Google Drive invalida. Tente novamente.');
+        throw new RuntimeException('Sessão do Google Drive inválida. Tente novamente.');
     }
 
     return [
@@ -204,13 +204,13 @@ function googleDriveDecryptTokenValue(?string $value): string
 function googleDriveSaveTokenData(PDO $pdo, int $userId, array $tokenData, ?array $existingRow = null): void
 {
     if ($userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     $existingRow ??= googleDriveTokenRow($pdo, $userId);
     $accessToken = trim((string) ($tokenData['access_token'] ?? ''));
     if ($accessToken === '') {
-        throw new RuntimeException('Google Drive nao retornou token de acesso.');
+        throw new RuntimeException('Google Drive não retornou token de acesso.');
     }
 
     $refreshToken = trim((string) ($tokenData['refresh_token'] ?? ''));
@@ -218,7 +218,7 @@ function googleDriveSaveTokenData(PDO $pdo, int $userId, array $tokenData, ?arra
         $refreshToken = googleDriveDecryptTokenValue((string) ($existingRow['refresh_token'] ?? ''));
     }
     if ($refreshToken === '') {
-        throw new RuntimeException('Google Drive nao retornou permissao offline. Tente conectar novamente.');
+        throw new RuntimeException('Google Drive não retornou permissão offline. Tente conectar novamente.');
     }
 
     $expiresIn = max(60, (int) ($tokenData['expires_in'] ?? 3600));
@@ -279,7 +279,7 @@ function googleDriveRefreshAccessToken(PDO $pdo, int $userId, array $row): strin
         throw new RuntimeException('Conecte o Google Drive novamente.');
     }
     if (!googleDriveOAuthConfigured()) {
-        throw new RuntimeException('Google Drive ainda nao configurado. Defina GOOGLE_DRIVE_CLIENT_ID e GOOGLE_DRIVE_CLIENT_SECRET.');
+        throw new RuntimeException('Google Drive ainda não configurado. Defina GOOGLE_DRIVE_CLIENT_ID e GOOGLE_DRIVE_CLIENT_SECRET.');
     }
 
     $response = googleOAuthRequest('POST', 'https://oauth2.googleapis.com/token', [], [
@@ -288,7 +288,7 @@ function googleDriveRefreshAccessToken(PDO $pdo, int $userId, array $row): strin
         'refresh_token' => $refreshToken,
         'grant_type' => 'refresh_token',
     ]);
-    $tokenData = googleOAuthDecodeJsonResponse($response, 'Nao foi possivel renovar acesso ao Google Drive.');
+    $tokenData = googleOAuthDecodeJsonResponse($response, 'Não foi possível renovar acesso ao Google Drive.');
     googleDriveSaveTokenData($pdo, $userId, $tokenData, $row);
 
     return trim((string) ($tokenData['access_token'] ?? ''));
@@ -355,7 +355,7 @@ function googleDriveFetchBrowserFolder(string $accessToken, string $fileId): arr
 {
     $fileId = googleDriveNormalizeFileId($fileId);
     if ($fileId === '') {
-        throw new RuntimeException('Pasta do Google Drive invalida.');
+        throw new RuntimeException('Pasta do Google Drive inválida.');
     }
 
     $file = googleDriveApiJson(
@@ -366,11 +366,11 @@ function googleDriveFetchBrowserFolder(string $accessToken, string $fileId): arr
             'fields' => 'id,name,mimeType,parents',
             'supportsAllDrives' => 'true',
         ],
-        'Nao foi possivel abrir a pasta do Google Drive.'
+        'Não foi possível abrir a pasta do Google Drive.'
     );
 
     if (!googleDriveIsFolderMimeType((string) ($file['mimeType'] ?? ''))) {
-        throw new RuntimeException('O item selecionado nao e uma pasta do Google Drive.');
+        throw new RuntimeException('O item selecionado não é uma pasta do Google Drive.');
     }
 
     return $file;
@@ -431,7 +431,7 @@ function googleDriveNormalizeBrowserItem(array $file): array
 {
     $fileId = googleDriveNormalizeFileId((string) ($file['id'] ?? ''));
     if ($fileId === '') {
-        throw new RuntimeException('Arquivo do Google Drive invalido.');
+        throw new RuntimeException('Arquivo do Google Drive inválido.');
     }
 
     $mimeType = trim((string) ($file['mimeType'] ?? ''));
@@ -499,7 +499,7 @@ function googleDriveListBrowserItems(string $accessToken, string $root, string $
         'https://www.googleapis.com/drive/v3/files',
         $accessToken,
         $payload,
-        'Nao foi possivel listar os arquivos do Google Drive.'
+        'Não foi possível listar os arquivos do Google Drive.'
     );
 
     $files = [];
@@ -530,7 +530,7 @@ function googleDriveFetchFileMetadata(string $accessToken, string $fileId): arra
 {
     $fileId = googleDriveNormalizeFileId($fileId);
     if ($fileId === '') {
-        throw new RuntimeException('Arquivo do Google Drive invalido.');
+        throw new RuntimeException('Arquivo do Google Drive inválido.');
     }
 
     return googleDriveApiJson(
@@ -541,7 +541,7 @@ function googleDriveFetchFileMetadata(string $accessToken, string $fileId): arra
             'fields' => 'id,name,mimeType,thumbnailLink,webViewLink,webContentLink,iconLink,size,capabilities/canDownload',
             'supportsAllDrives' => 'true',
         ],
-        'Nao foi possivel ler o arquivo do Google Drive.'
+        'Não foi possível ler o arquivo do Google Drive.'
     );
 }
 
@@ -549,12 +549,12 @@ function googleDriveMediaItemFromFile(array $file): array
 {
     $fileId = googleDriveNormalizeFileId((string) ($file['id'] ?? ''));
     if ($fileId === '') {
-        throw new RuntimeException('Arquivo do Google Drive invalido.');
+        throw new RuntimeException('Arquivo do Google Drive inválido.');
     }
 
     $mimeType = trim((string) ($file['mimeType'] ?? ''));
     if ($mimeType !== '' && !str_starts_with(strtolower($mimeType), 'image/') && !str_starts_with(strtolower($mimeType), 'video/')) {
-        throw new RuntimeException('Selecione apenas imagens ou videos do Google Drive.');
+        throw new RuntimeException('Selecione apenas imagens ou vídeos do Google Drive.');
     }
 
     $name = trim((string) ($file['name'] ?? 'Arquivo do Drive'));
@@ -687,10 +687,10 @@ function handleGoogleDriveOAuthStart(PDO $pdo): void
 {
     $authUser = requireAuth();
     if ((int) ($authUser['id'] ?? 0) <= 0) {
-        throw new RuntimeException('Sessao expirada. Faca login novamente.');
+        throw new RuntimeException('Sessão expirada. Faça login novamente.');
     }
     if (!googleDriveOAuthConfigured()) {
-        flash('error', 'Google Drive ainda nao configurado. Defina GOOGLE_DRIVE_CLIENT_ID e GOOGLE_DRIVE_CLIENT_SECRET.');
+        flash('error', 'Google Drive ainda não configurado. Defina GOOGLE_DRIVE_CLIENT_ID e GOOGLE_DRIVE_CLIENT_SECRET.');
         redirectTo(dashboardPath('tasks'));
     }
 
@@ -722,21 +722,21 @@ function handleGoogleDriveOAuthCallback(PDO $pdo): void
 
         $googleError = trim((string) ($_GET['error'] ?? ''));
         if ($googleError !== '') {
-            throw new RuntimeException('Conexao com Google Drive cancelada ou nao autorizada.');
+            throw new RuntimeException('Conexão com Google Drive cancelada ou não autorizada.');
         }
 
         $authUser = requireAuth();
         $userId = (int) ($authUser['id'] ?? 0);
         if ($userId <= 0) {
-            throw new RuntimeException('Sessao expirada. Faca login novamente.');
+            throw new RuntimeException('Sessão expirada. Faça login novamente.');
         }
         if (!googleDriveOAuthConfigured()) {
-            throw new RuntimeException('Google Drive ainda nao configurado.');
+            throw new RuntimeException('Google Drive ainda não configurado.');
         }
 
         $code = trim((string) ($_GET['code'] ?? ''));
         if ($code === '') {
-            throw new RuntimeException('Google Drive nao retornou o codigo de autorizacao.');
+            throw new RuntimeException('Google Drive não retornou o código de autorização.');
         }
 
         $response = googleOAuthRequest('POST', 'https://oauth2.googleapis.com/token', [], [
@@ -746,7 +746,7 @@ function handleGoogleDriveOAuthCallback(PDO $pdo): void
             'redirect_uri' => googleDriveRedirectUri(),
             'grant_type' => 'authorization_code',
         ]);
-        $tokenData = googleOAuthDecodeJsonResponse($response, 'Nao foi possivel conectar o Google Drive.');
+        $tokenData = googleOAuthDecodeJsonResponse($response, 'Não foi possível conectar o Google Drive.');
         googleDriveSaveTokenData($pdo, $userId, $tokenData);
         $shouldResumeDriveBrowser = true;
         flash('success', 'Google Drive conectado.');
@@ -784,7 +784,7 @@ function handleGoogleDriveDownload(PDO $pdo): void
 
     $canDownload = $file['capabilities']['canDownload'] ?? true;
     if ($canDownload === false || (is_string($canDownload) && strtolower($canDownload) === 'false')) {
-        throw new RuntimeException('Sua conta nao tem permissao para baixar este arquivo.');
+        throw new RuntimeException('Sua conta não tem permissão para baixar este arquivo.');
     }
 
     $name = trim((string) ($file['name'] ?? 'drive-file'));
@@ -998,7 +998,7 @@ function handleGoogleDrivePostAction(PDO $pdo, string $action): bool
                     'configured' => false,
                     'connected' => false,
                     'browser_ready' => false,
-                    'error' => 'Google Drive ainda nao configurado.',
+                    'error' => 'Google Drive ainda não configurado.',
                 ]);
             }
 
@@ -1021,7 +1021,7 @@ function handleGoogleDrivePostAction(PDO $pdo, string $action): bool
                     'browser_ready' => false,
                     'reconnect_required' => true,
                     'auth_url' => googleDriveAuthUrl($nextPath),
-                    'message' => 'Reconecte o Google Drive para autorizar a navegacao completa por pastas.',
+                    'message' => 'Reconecte o Google Drive para autorizar a navegação completa por pastas.',
                 ]);
             }
 
@@ -1037,10 +1037,10 @@ function handleGoogleDrivePostAction(PDO $pdo, string $action): bool
             $userId = (int) ($authUser['id'] ?? 0);
             $tokenRow = googleDriveTokenRow($pdo, $userId);
             if (!is_array($tokenRow) || !googleDriveConnected($pdo, $userId)) {
-                throw new RuntimeException('Conecte o Google Drive para navegar pelas midias.');
+                throw new RuntimeException('Conecte o Google Drive para navegar pelas mídias.');
             }
             if (!googleDriveTokenSupportsBrowser($tokenRow)) {
-                throw new RuntimeException('Reconecte o Google Drive para autorizar a navegacao completa por pastas.');
+                throw new RuntimeException('Reconecte o Google Drive para autorizar a navegação completa por pastas.');
             }
 
             $root = trim((string) ($_POST['root'] ?? ''));

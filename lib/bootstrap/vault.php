@@ -77,7 +77,7 @@ function vaultEncryptSecret(string $plainValue): string
     );
 
     if (!is_string($ciphertext) || $ciphertext === '' || strlen($tag) !== 16) {
-        throw new RuntimeException('Nao foi possivel proteger a senha do cofre.');
+        throw new RuntimeException('Não foi possível proteger a senha do cofre.');
     }
 
     return VAULT_SECRET_PREFIX . base64_encode($nonce . $tag . $ciphertext);
@@ -96,7 +96,7 @@ function vaultDecryptSecret(string $storedValue): string
 
     $payload = base64_decode(substr($storedValue, strlen(VAULT_SECRET_PREFIX)), true);
     if (!is_string($payload) || strlen($payload) <= 28) {
-        throw new RuntimeException('Senha do cofre esta em formato invalido.');
+        throw new RuntimeException('Senha do cofre está em formato inválido.');
     }
 
     $nonce = substr($payload, 0, 12);
@@ -113,7 +113,7 @@ function vaultDecryptSecret(string $storedValue): string
     );
 
     if (!is_string($plainValue)) {
-        throw new RuntimeException('Nao foi possivel descriptografar uma senha do cofre.');
+        throw new RuntimeException('Não foi possível descriptografar uma senha do cofre.');
     }
 
     return $plainValue;

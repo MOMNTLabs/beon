@@ -8,7 +8,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $periodKey = normalizeAccountingPeriodKey((string) ($_POST['period_key'] ?? ''));
@@ -150,12 +150,12 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
                 if ($entryId <= 0) {
-                    throw new RuntimeException('Registro invÃ¡lido.');
+                    throw new RuntimeException('Registro inválido.');
                 }
 
                 $entryWorkspaceStmt = $pdo->prepare(
@@ -167,7 +167,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $entryWorkspaceStmt->execute([':id' => $entryId]);
                 $entryWorkspaceId = (int) $entryWorkspaceStmt->fetchColumn();
                 if ($entryWorkspaceId <= 0 || $entryWorkspaceId !== $workspaceId) {
-                    throw new RuntimeException('Registro nÃ£o encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
 
                 updateWorkspaceAccountingGoalPaymentWithCarrySync(
@@ -192,12 +192,12 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
                 if ($entryId <= 0) {
-                    throw new RuntimeException('Registro invÃ¡lido.');
+                    throw new RuntimeException('Registro inválido.');
                 }
 
                 $entryWorkspaceStmt = $pdo->prepare(
@@ -209,7 +209,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $entryWorkspaceStmt->execute([':id' => $entryId]);
                 $entryWorkspaceId = (int) $entryWorkspaceStmt->fetchColumn();
                 if ($entryWorkspaceId <= 0 || $entryWorkspaceId !== $workspaceId) {
-                    throw new RuntimeException('Registro nÃ£o encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
 
                 addWorkspaceAccountingGoalPaymentWithCarrySync(
@@ -234,13 +234,13 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $entryId = (int) ($_POST['entry_id'] ?? 0);
                 $paymentId = (int) ($_POST['payment_id'] ?? 0);
                 if ($entryId <= 0 || $paymentId <= 0) {
-                    throw new RuntimeException('LanÃ§amento invÃ¡lido.');
+                    throw new RuntimeException('Lançamento inválido.');
                 }
 
                 $entryWorkspaceStmt = $pdo->prepare(
@@ -252,7 +252,7 @@ function handleAccountingPostAction(PDO $pdo, string $action): bool
                 $entryWorkspaceStmt->execute([':id' => $entryId]);
                 $entryWorkspaceId = (int) $entryWorkspaceStmt->fetchColumn();
                 if ($entryWorkspaceId <= 0 || $entryWorkspaceId !== $workspaceId) {
-                    throw new RuntimeException('Registro nÃ£o encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
 
                 deleteWorkspaceAccountingGoalPaymentWithCarrySync(

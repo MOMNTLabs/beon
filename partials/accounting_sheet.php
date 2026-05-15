@@ -647,10 +647,6 @@
                                                     <option value="single">&Uacute;nica</option>
                                                     <option value="monthly">Mensal</option>
                                                 </select>
-                                                <label class="accounting-check">
-                                                    <input type="checkbox" name="is_settled" value="1">
-                                                    <span>Recebido</span>
-                                                </label>
                                                 <input
                                                     type="checkbox"
                                                     name="is_installment"
@@ -768,7 +764,6 @@
                                     inputmode="numeric"
                                     placeholder="0,00"
                                     data-accounting-allow-negative="1"
-                                    required
                                 >
                             </label>
                             <div class="accounting-opening-balance-actions">

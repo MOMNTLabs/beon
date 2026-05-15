@@ -39,7 +39,7 @@ function deletePasswordResetTokensForUser(int $userId): void
 function issuePasswordResetToken(int $userId): array
 {
     if ($userId <= 0) {
-        throw new RuntimeException('UsuÃ¡rio invÃ¡lido para redefiniÃ§Ã£o de senha.');
+        throw new RuntimeException('Usuário inválido para redefinição de senha.');
     }
 
     $pdo = db();

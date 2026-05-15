@@ -40,7 +40,7 @@ set_exception_handler(static function (Throwable $e): void {
     if (function_exists('requestExpectsJson') && requestExpectsJson()) {
         respondJson([
             'ok' => false,
-            'error' => 'Nao foi possivel carregar o app agora.',
+            'error' => 'Não foi possível carregar o app agora.',
         ], 500);
     }
 
@@ -51,7 +51,7 @@ set_exception_handler(static function (Throwable $e): void {
 
     $homeUrl = e(siteUrl('home'));
     $loginUrl = e(appUrl('?auth=login#login'));
-    echo '<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' . e(APP_NAME) . '</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f8fb;color:#263241;font-family:Arial,sans-serif}.error-card{width:min(520px,calc(100% - 32px));padding:28px;border:1px solid #d9e1ec;border-radius:8px;background:#fff;box-shadow:0 18px 42px rgba(39,54,78,.12)}h1{margin:0 0 10px;font-size:22px}p{margin:0 0 18px;line-height:1.5}.actions{display:flex;gap:10px;flex-wrap:wrap}a{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:6px;background:#263241;color:#fff;text-decoration:none}a.secondary{background:#eef2f7;color:#263241}</style></head><body><main class="error-card"><h1>Nao foi possivel carregar o app agora.</h1><p>O erro foi registrado no servidor. Tente atualizar a pagina; se continuar, entre novamente.</p><div class="actions"><a href="' . $loginUrl . '">Entrar novamente</a><a class="secondary" href="' . $homeUrl . '">Voltar para o site</a></div></main></body></html>';
+    echo '<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' . e(APP_NAME) . '</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f8fb;color:#263241;font-family:Arial,sans-serif}.error-card{width:min(520px,calc(100% - 32px));padding:28px;border:1px solid #d9e1ec;border-radius:8px;background:#fff;box-shadow:0 18px 42px rgba(39,54,78,.12)}h1{margin:0 0 10px;font-size:22px}p{margin:0 0 18px;line-height:1.5}.actions{display:flex;gap:10px;flex-wrap:wrap}a{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:6px;background:#263241;color:#fff;text-decoration:none}a.secondary{background:#eef2f7;color:#263241}</style></head><body><main class="error-card"><h1>Não foi possível carregar o app agora.</h1><p>O erro foi registrado no servidor. Tente atualizar a página; se continuar, entre novamente.</p><div class="actions"><a href="' . $loginUrl . '">Entrar novamente</a><a class="secondary" href="' . $homeUrl . '">Voltar para o site</a></div></main></body></html>';
     exit;
 });
 
@@ -189,13 +189,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $selector = trim((string) ($_GET['selector'] ?? ''));
         $token = trim((string) ($_GET['token'] ?? ''));
         if ($selector === '' || $token === '') {
-            flash('error', 'Link de convite invalido.');
+            flash('error', 'Link de convite inválido.');
             redirectTo(appUrl('?auth=login#login'));
         }
 
         $workspaceInviteRequest = validWorkspaceEmailInvitationRequest($selector, $token);
         if (!$workspaceInviteRequest) {
-            flash('error', 'Este link de convite e invalido ou expirou.');
+            flash('error', 'Este link de convite é inválido ou expirou.');
             redirectTo(appUrl('?auth=login#login'));
         }
 
@@ -217,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             try {
                 $acceptedWorkspaceId = acceptWorkspaceEmailInvitation($pdo, $selector, $token, (int) ($entryUser['id'] ?? 0));
                 setActiveWorkspaceId($acceptedWorkspaceId);
-                flash('success', 'Convite aceito. Voce entrou no workspace.');
+                flash('success', 'Convite aceito. Você entrou no workspace.');
                 redirectTo(dashboardPath('users'));
             } catch (Throwable $e) {
                 if (!userHasAppAccess((int) ($entryUser['id'] ?? 0))) {
@@ -585,7 +585,7 @@ if ($currentUser && $currentWorkspaceId !== null) {
             }
         ));
     } catch (Throwable $e) {
-        $appendDashboardLoadError('Nao foi possivel carregar o cofre deste workspace.', $e);
+        $appendDashboardLoadError('Não foi possível carregar o cofre deste workspace.', $e);
     }
 }
 $vaultEntriesByGroup = $currentUser ? vaultEntriesByGroup($vaultEntries, $vaultGroups) : [];
@@ -606,7 +606,7 @@ if ($currentUser && $currentWorkspaceId !== null) {
             }
         ));
     } catch (Throwable $e) {
-        $appendDashboardLoadError('Nao foi possivel carregar os vencimentos deste workspace.', $e);
+        $appendDashboardLoadError('Não foi possível carregar os vencimentos deste workspace.', $e);
     }
 }
 $dueEntriesByGroup = $currentUser ? dueEntriesByGroup($dueEntries, $dueGroups) : [];
@@ -615,7 +615,7 @@ if ($currentUser && $currentWorkspaceId !== null) {
     try {
         $inventoryEntries = workspaceInventoryEntriesList($currentWorkspaceId);
     } catch (Throwable $e) {
-        $appendDashboardLoadError('Nao foi possivel carregar o estoque deste workspace.', $e);
+        $appendDashboardLoadError('Não foi possível carregar o estoque deste workspace.', $e);
     }
 }
 $inventoryEntriesByGroup = $currentUser ? inventoryEntriesByGroup($inventoryEntries, $inventoryGroups) : [];
@@ -631,7 +631,7 @@ if ($currentUser && $currentWorkspaceId !== null) {
     try {
         $accountingEntries = workspaceAccountingEntriesList($currentWorkspaceId, $accountingPeriod);
     } catch (Throwable $e) {
-        $appendDashboardLoadError('Nao foi possivel carregar a contabilidade deste workspace.', $e);
+        $appendDashboardLoadError('Não foi possível carregar a contabilidade deste workspace.', $e);
     }
 }
 $accountingEntriesByType = workspaceAccountingEntriesByType($accountingEntries);
@@ -642,7 +642,7 @@ if ($currentUser && $currentWorkspaceId !== null) {
     try {
         $accountingOpeningBalanceCents = workspaceAccountingOpeningBalanceCents($currentWorkspaceId, $accountingPeriod);
     } catch (Throwable $e) {
-        $appendDashboardLoadError('Nao foi possivel carregar o saldo inicial da contabilidade.', $e);
+        $appendDashboardLoadError('Não foi possível carregar o saldo inicial da contabilidade.', $e);
     }
 }
 $accountingSummary = accountingSummary($accountingEntries, $accountingOpeningBalanceCents);
@@ -718,7 +718,7 @@ if ($currentUser && $currentWorkspaceId !== null) {
         $myOpenTasks = countMyAssignedTasks($allTasks, (int) $currentUser['id']);
         $completionRate = $stats['total'] > 0 ? (int) round(($stats['done'] / $stats['total']) * 100) : 0;
     } catch (Throwable $e) {
-        $appendDashboardLoadError('Nao foi possivel carregar as tarefas deste workspace.', $e);
+        $appendDashboardLoadError('Não foi possível carregar as tarefas deste workspace.', $e);
     }
 }
 
@@ -727,7 +727,7 @@ if ($currentUser) {
     try {
         $globalDashboardOverview = buildGlobalDashboardOverview($currentUser, $userWorkspaces);
     } catch (Throwable $e) {
-        $appendDashboardLoadError('Nao foi possivel carregar o dashboard geral agora.', $e);
+        $appendDashboardLoadError('Não foi possível carregar o dashboard geral agora.', $e);
     }
 }
 $overviewStats = $currentUser ? [

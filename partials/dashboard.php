@@ -957,7 +957,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                         type="button"
                         class="icon-gear-button task-filters-reorder-groups"
                         data-toggle-task-group-reorder
-                        aria-label="Ativar organizacao de grupos"
+                        aria-label="Ativar organização de grupos"
                         aria-pressed="false"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1165,6 +1165,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                             <input type="hidden" name="action" value="update_task">
                                             <input type="hidden" name="task_id" value="<?= e((string) $taskId) ?>">
                                             <input type="hidden" name="autosave" value="1">
+                                            <input type="hidden" name="include_history" value="1">
                                             <input type="hidden" name="reference_links_json" value="<?= e(encodeReferenceUrlList($task['reference_links'] ?? [])) ?>" data-task-reference-links-json>
                                             <input type="hidden" value="<?= e(encodeReferenceImageList($task['reference_images'] ?? [])) ?>" data-task-reference-images-json>
                                             <input type="hidden" name="subtasks_json" value="<?= e(encodeTaskSubtasks($taskSubtasks, $taskSubtasksDependencyEnabled === 1)) ?>" data-task-subtasks-json>
@@ -1174,6 +1175,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                             <input type="hidden" name="overdue_flag" value="<?= $isOverdueMarked ? '1' : '0' ?>" data-task-overdue-flag>
                                             <input type="hidden" name="overdue_since_date" value="<?= e((string) ($task['overdue_since_date'] ?? '')) ?>" data-task-overdue-since-date>
                                             <input type="hidden" value="<?= e((string) (($task['overdue_days'] ?? 0))) ?>" data-task-overdue-days>
+                                            <input type="hidden" value="<?= e(json_encode(is_array($task['history'] ?? null) ? $task['history'] : [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]') ?>" data-task-history-json>
                                             <input type="hidden" name="has_active_revision" value="<?= $hasActiveRevisionRequest ? '1' : '0' ?>" data-task-has-active-revision>
                                             <input type="hidden" name="expected_updated_at" value="<?= e((string) ($task['updated_at'] ?? '')) ?>" data-task-expected-updated-at>
 
@@ -1193,7 +1195,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                                         value="<?= e((string) $task['title']) ?>"
                                                         maxlength="140"
                                                         class="task-title-input"
-                                                        aria-label="Titulo da tarefa"
+                                                        aria-label="Título da tarefa"
                                                         required
                                                     >
                                                     <div
@@ -1978,7 +1980,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                 <path d="M9.5 3.5 5 8l4.5 4.5"></path>
                             </svg>
                         </a>
-                        <label for="accounting-period-input" class="sr-only">Periodo de referencia</label>
+                        <label for="accounting-period-input" class="sr-only">Período de referência</label>
                         <input
                             type="month"
                             id="accounting-period-input"
@@ -2057,7 +2059,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
             <div class="task-create-modal-body">
                 <div class="task-detail-title-group-row">
                 <label>
-                    <span>Titulo</span>
+                    <span>Título</span>
                     <div class="create-task-title-composer" data-create-task-title-composer>
                         <div class="create-task-title-tag-picker" data-create-task-title-tag-picker>
                             <button
@@ -2148,7 +2150,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
 
             <div class="task-detail-inline-controls">
                 <div class="assignee-picker-wrap task-detail-inline-field task-detail-inline-assignees">
-                    <span class="assignee-picker-label">Responsaveis</span>
+                    <span class="assignee-picker-label">Responsáveis</span>
                     <details class="assignee-picker task-detail-inline-assignee-picker">
                         <summary>Selecionar</summary>
                         <div class="assignee-picker-menu">
@@ -2388,7 +2390,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                             <span class="task-image-add-button-label">Google Drive</span>
                         </button>
                     </div>
-                    <div class="task-detail-edit-image-picker" data-create-task-image-picker tabindex="0" aria-label="Adicionar mídias de referencia">
+                    <div class="task-detail-edit-image-picker" data-create-task-image-picker tabindex="0" aria-label="Adicionar mídias de referência">
                         <input type="file" accept="image/*" multiple data-create-task-image-input hidden>
                         <div class="task-detail-edit-image-list" data-create-task-image-list></div>
                     </div>
@@ -3095,7 +3097,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                 <span class="task-detail-view-tag" data-task-detail-view-status></span>
                                 <span class="task-detail-view-tag" data-task-detail-view-priority></span>
                                 <span class="task-detail-view-tag" data-task-detail-view-group></span>
-                                <span class="task-detail-view-tag" data-task-detail-view-due></span>
+                                <span class="task-detail-view-tag task-detail-view-tag-due" data-task-detail-view-due></span>
                             </div>
                             <div class="task-detail-view-assignees" data-task-detail-view-assignees></div>
                         </div>
@@ -3143,9 +3145,16 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                     </div>
 
                     <details class="task-detail-history-column" data-task-detail-history-column>
-                        <summary class="task-detail-history-summary">
-                            <span class="task-detail-view-label">Historico</span>
-                            <span class="task-detail-history-summary-icon" aria-hidden="true">&#8249;</span>
+                        <summary class="task-detail-history-summary" aria-label="Histórico da tarefa" title="Histórico">
+                            <span class="task-detail-history-summary-glyph" aria-hidden="true">
+                                <svg viewBox="0 0 20 20" focusable="false">
+                                    <path d="M3.5 5.5V2.9"></path>
+                                    <path d="M3.5 2.9h2.6"></path>
+                                    <path d="M4 8.1a6.4 6.4 0 1 1 2 6.9"></path>
+                                    <path d="M10 6.4v3.9l2.7 1.7"></path>
+                                </svg>
+                            </span>
+                            <span class="task-detail-history-summary-title" aria-hidden="true">Histórico</span>
                         </summary>
                         <div class="task-detail-history-list" data-task-detail-view-history></div>
                     </details>
@@ -3156,7 +3165,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                 <div class="form-stack modal-form">
                     <div class="task-detail-title-group-row">
                         <label>
-                            <span>Titulo</span>
+                            <span>Título</span>
                             <div class="create-task-title-composer" data-task-detail-edit-title-composer>
                                 <div class="create-task-title-tag-picker" data-task-detail-edit-title-tag-picker>
                                     <button
@@ -3245,7 +3254,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
 
                     <div class="task-detail-inline-controls">
                         <div class="assignee-picker-wrap task-detail-inline-field task-detail-inline-assignees">
-                            <span class="assignee-picker-label">Responsaveis</span>
+                            <span class="assignee-picker-label">Responsáveis</span>
                             <details class="assignee-picker task-detail-inline-assignee-picker" data-task-detail-edit-assignees>
                                 <summary>Selecionar</summary>
                                 <div class="assignee-picker-menu" data-task-detail-edit-assignees-menu></div>
@@ -3465,7 +3474,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                                     <span class="task-image-add-button-label">Google Drive</span>
                                 </button>
                             </div>
-                            <div class="task-detail-edit-image-picker" data-task-detail-image-picker tabindex="0" aria-label="Adicionar mídias de referencia">
+                            <div class="task-detail-edit-image-picker" data-task-detail-image-picker tabindex="0" aria-label="Adicionar mídias de referência">
                                 <input type="file" accept="image/*" multiple data-task-detail-image-input hidden>
                                 <div class="task-detail-edit-image-list" data-task-detail-image-list></div>
                             </div>
@@ -3585,10 +3594,10 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
 
 <div class="modal-backdrop task-image-preview-modal" data-task-image-preview-modal hidden>
     <div class="modal-scrim" data-close-task-image-preview></div>
-    <section class="modal-card task-image-preview-card" role="dialog" aria-modal="true" aria-label="Midia de referencia">
+    <section class="modal-card task-image-preview-card" role="dialog" aria-modal="true" aria-label="Mídia de referência">
         <header class="modal-head task-image-preview-head">
             <div class="task-image-preview-title" data-task-image-preview-title></div>
-            <button type="button" class="modal-close-button" data-close-task-image-preview aria-label="Fechar visualizacao da midia">
+            <button type="button" class="modal-close-button" data-close-task-image-preview aria-label="Fechar visualização da mídia">
                 <span aria-hidden="true">&#10005;</span>
             </button>
         </header>
@@ -3605,7 +3614,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                 </button>
             </div>
             <div class="task-image-preview-viewport">
-                <img src="" alt="Imagem de referencia ampliada" data-task-image-preview-img>
+                <img src="" alt="Imagem de referência ampliada" data-task-image-preview-img>
                 <video controls playsinline preload="metadata" hidden data-task-image-preview-video></video>
             </div>
             <div class="task-image-preview-nav-slot">
@@ -3629,7 +3638,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
         <header class="modal-head google-drive-browser-modal-head">
             <div class="google-drive-browser-head-copy">
                 <h2 id="google-drive-browser-title">Google Drive</h2>
-                <p>Escolha midias por pasta, com navegacao hierarquica dentro do Bexon.</p>
+                <p>Escolha mídias por pasta, com navegação hierárquica dentro do Bexon.</p>
             </div>
             <button type="button" class="modal-close-button" data-close-google-drive-browser aria-label="Fechar navegador do Google Drive">
                 <span aria-hidden="true">&#10005;</span>
@@ -3648,7 +3657,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                     </span>
                     <span class="google-drive-browser-root-copy">
                         <strong>Meu Drive</strong>
-                        <span>Arquivos e pastas do proprio usuario.</span>
+                        <span>Arquivos e pastas do próprio usuário.</span>
                     </span>
                 </button>
 

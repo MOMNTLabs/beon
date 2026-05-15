@@ -318,18 +318,18 @@ function workspacePendingEmailInvitationsForWorkspace(int $workspaceId): array
 function createWorkspaceInvitation(PDO $pdo, int $workspaceId, int $invitedUserId, int $invitedBy): int
 {
     if ($workspaceId <= 0 || $invitedUserId <= 0 || $invitedBy <= 0) {
-        throw new RuntimeException('Convite invÃ¡lido.');
+        throw new RuntimeException('Convite inválido.');
     }
 
     $workspace = workspaceById($workspaceId);
     if (!$workspace) {
-        throw new RuntimeException('Workspace nÃ£o encontrado.');
+        throw new RuntimeException('Workspace não encontrado.');
     }
     if (!empty($workspace['is_personal'])) {
-        throw new RuntimeException('Workspace pessoal nÃ£o permite convidar usuÃ¡rios.');
+        throw new RuntimeException('Workspace pessoal não permite convidar usuários.');
     }
     if (userHasWorkspaceAccess($invitedUserId, $workspaceId)) {
-        throw new RuntimeException('UsuÃ¡rio jÃ¡ pertence a este workspace.');
+        throw new RuntimeException('Usuário já pertence a este workspace.');
     }
 
     ensureWorkspaceCanInviteMembers($workspaceId);
@@ -349,7 +349,7 @@ function createWorkspaceInvitation(PDO $pdo, int $workspaceId, int $invitedUserI
     $existing = $existingStmt->fetch();
 
     if ($existing && (string) ($existing['status'] ?? '') === 'pending') {
-        throw new RuntimeException('Convite jÃ¡ enviado para este usuÃ¡rio.');
+        throw new RuntimeException('Convite já enviado para este usuário.');
     }
 
     $now = nowIso();
@@ -417,25 +417,25 @@ function createWorkspaceEmailInvitation(PDO $pdo, int $workspaceId, string $invi
 {
     $invitedEmail = strtolower(trim($invitedEmail));
     if ($workspaceId <= 0 || $invitedBy <= 0 || $invitedEmail === '') {
-        throw new RuntimeException('Convite invalido.');
+        throw new RuntimeException('Convite inválido.');
     }
     if (!filter_var($invitedEmail, FILTER_VALIDATE_EMAIL)) {
-        throw new RuntimeException('Informe um e-mail valido.');
+        throw new RuntimeException('Informe um e-mail válido.');
     }
 
     $workspace = workspaceById($workspaceId);
     if (!$workspace) {
-        throw new RuntimeException('Workspace nao encontrado.');
+        throw new RuntimeException('Workspace não encontrado.');
     }
     if (!empty($workspace['is_personal'])) {
-        throw new RuntimeException('Workspace pessoal nao permite convidar usuarios.');
+        throw new RuntimeException('Workspace pessoal não permite convidar usuários.');
     }
 
     $existingUserStmt = $pdo->prepare('SELECT id FROM users WHERE LOWER(email) = :email LIMIT 1');
     $existingUserStmt->execute([':email' => $invitedEmail]);
     $existingUserId = (int) $existingUserStmt->fetchColumn();
     if ($existingUserId > 0 && userHasWorkspaceAccess($existingUserId, $workspaceId)) {
-        throw new RuntimeException('Usuario ja pertence a este workspace.');
+        throw new RuntimeException('Usuário já pertence a este workspace.');
     }
 
     ensureWorkspaceCanInviteMembers($workspaceId);
@@ -557,20 +557,20 @@ function createWorkspaceEmailInvitation(PDO $pdo, int $workspaceId, string $invi
 function acceptWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): int
 {
     if ($invitationId <= 0 || $userId <= 0) {
-        throw new RuntimeException('Convite invÃ¡lido.');
+        throw new RuntimeException('Convite inválido.');
     }
 
     $invitation = workspaceInvitationById($pdo, $invitationId);
     if (!$invitation || (int) ($invitation['invited_user_id'] ?? 0) !== $userId) {
-        throw new RuntimeException('Convite nÃ£o encontrado.');
+        throw new RuntimeException('Convite não encontrado.');
     }
     if ((string) ($invitation['status'] ?? '') !== 'pending') {
-        throw new RuntimeException('Este convite nÃ£o estÃ¡ mais pendente.');
+        throw new RuntimeException('Este convite não está mais pendente.');
     }
 
     $workspaceId = (int) ($invitation['workspace_id'] ?? 0);
     if ($workspaceId <= 0 || workspaceIsPersonal($workspaceId)) {
-        throw new RuntimeException('Workspace invÃ¡lido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     ensureWorkspaceCanInviteMembers($workspaceId);
@@ -604,7 +604,7 @@ function acceptWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): in
         ]);
 
         if ($stmt->rowCount() <= 0) {
-            throw new RuntimeException('Este convite nÃ£o estÃ¡ mais pendente.');
+            throw new RuntimeException('Este convite não está mais pendente.');
         }
 
         if ($startedTransaction) {
@@ -623,12 +623,12 @@ function acceptWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): in
 function acceptWorkspaceEmailInvitation(PDO $pdo, string $selector, string $plainToken, int $userId): int
 {
     if ($userId <= 0) {
-        throw new RuntimeException('Convite invalido.');
+        throw new RuntimeException('Convite inválido.');
     }
 
     $invitation = validWorkspaceEmailInvitationRequest($selector, $plainToken);
     if (!$invitation) {
-        throw new RuntimeException('Este link de convite e invalido ou expirou.');
+        throw new RuntimeException('Este link de convite é inválido ou expirou.');
     }
 
     $user = userById($userId);
@@ -640,7 +640,7 @@ function acceptWorkspaceEmailInvitation(PDO $pdo, string $selector, string $plai
 
     $workspaceId = (int) ($invitation['workspace_id'] ?? 0);
     if ($workspaceId <= 0 || !empty($invitation['workspace_is_personal'])) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $now = nowIso();
@@ -675,7 +675,7 @@ function acceptWorkspaceEmailInvitation(PDO $pdo, string $selector, string $plai
         ]);
 
         if ($stmt->rowCount() <= 0) {
-            throw new RuntimeException('Este convite nao esta mais pendente.');
+            throw new RuntimeException('Este convite não está mais pendente.');
         }
 
         if ($startedTransaction) {
@@ -694,15 +694,15 @@ function acceptWorkspaceEmailInvitation(PDO $pdo, string $selector, string $plai
 function declineWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): int
 {
     if ($invitationId <= 0 || $userId <= 0) {
-        throw new RuntimeException('Convite invÃ¡lido.');
+        throw new RuntimeException('Convite inválido.');
     }
 
     $invitation = workspaceInvitationById($pdo, $invitationId);
     if (!$invitation || (int) ($invitation['invited_user_id'] ?? 0) !== $userId) {
-        throw new RuntimeException('Convite nÃ£o encontrado.');
+        throw new RuntimeException('Convite não encontrado.');
     }
     if ((string) ($invitation['status'] ?? '') !== 'pending') {
-        throw new RuntimeException('Este convite nÃ£o estÃ¡ mais pendente.');
+        throw new RuntimeException('Este convite não está mais pendente.');
     }
 
     $workspaceId = (int) ($invitation['workspace_id'] ?? 0);
@@ -726,7 +726,7 @@ function declineWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): i
     ]);
 
     if ($stmt->rowCount() <= 0) {
-        throw new RuntimeException('Este convite nÃ£o estÃ¡ mais pendente.');
+        throw new RuntimeException('Este convite não está mais pendente.');
     }
 
     return $workspaceId;
@@ -735,15 +735,15 @@ function declineWorkspaceInvitation(PDO $pdo, int $invitationId, int $userId): i
 function cancelWorkspaceInvitation(PDO $pdo, int $invitationId, int $workspaceId): void
 {
     if ($invitationId <= 0 || $workspaceId <= 0) {
-        throw new RuntimeException('Convite invÃ¡lido.');
+        throw new RuntimeException('Convite inválido.');
     }
 
     $invitation = workspaceInvitationById($pdo, $invitationId);
     if (!$invitation || (int) ($invitation['workspace_id'] ?? 0) !== $workspaceId) {
-        throw new RuntimeException('Convite nÃ£o encontrado.');
+        throw new RuntimeException('Convite não encontrado.');
     }
     if ((string) ($invitation['status'] ?? '') !== 'pending') {
-        throw new RuntimeException('Este convite nÃ£o estÃ¡ mais pendente.');
+        throw new RuntimeException('Este convite não está mais pendente.');
     }
 
     $stmt = $pdo->prepare(
@@ -766,23 +766,23 @@ function cancelWorkspaceInvitation(PDO $pdo, int $invitationId, int $workspaceId
     ]);
 
     if ($stmt->rowCount() <= 0) {
-        throw new RuntimeException('Este convite nÃ£o estÃ¡ mais pendente.');
+        throw new RuntimeException('Este convite não está mais pendente.');
     }
 }
 
 function cancelWorkspaceEmailInvitation(PDO $pdo, int $invitationId, int $workspaceId): void
 {
     if ($invitationId <= 0 || $workspaceId <= 0) {
-        throw new RuntimeException('Convite invalido.');
+        throw new RuntimeException('Convite inválido.');
     }
 
     pruneExpiredWorkspaceEmailInvitations($pdo);
     $invitation = workspaceEmailInvitationById($pdo, $invitationId);
     if (!$invitation || (int) ($invitation['workspace_id'] ?? 0) !== $workspaceId) {
-        throw new RuntimeException('Convite nao encontrado.');
+        throw new RuntimeException('Convite não encontrado.');
     }
     if ((string) ($invitation['status'] ?? '') !== 'pending') {
-        throw new RuntimeException('Este convite nao esta mais pendente.');
+        throw new RuntimeException('Este convite não está mais pendente.');
     }
 
     $stmt = $pdo->prepare(
@@ -805,6 +805,6 @@ function cancelWorkspaceEmailInvitation(PDO $pdo, int $invitationId, int $worksp
     ]);
 
     if ($stmt->rowCount() <= 0) {
-        throw new RuntimeException('Este convite nao esta mais pendente.');
+        throw new RuntimeException('Este convite não está mais pendente.');
     }
 }

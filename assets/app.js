@@ -2945,9 +2945,17 @@ window.addEventListener("DOMContentLoaded", () => {
       case "created":
         return "Tarefa criada";
       case "title_changed":
-        return "Titulo atualizado";
+        return "Título atualizado";
       case "title_tag_changed":
-        return `Tag do titulo: ${payload.old || "Sem tag"} ${transitionSymbol} ${payload.new || "Sem tag"}`;
+        return `Tag do título: ${payload.old || "Sem tag"} ${transitionSymbol} ${payload.new || "Sem tag"}`;
+      case "description_changed":
+        if (payload.old_empty && !payload.new_empty) {
+          return "Descrição adicionada";
+        }
+        if (!payload.old_empty && payload.new_empty) {
+          return "Descrição removida";
+        }
+        return "Descrição atualizada";
       case "status_changed":
         return `Status: ${payload.old_label || payload.old || "-"} ${transitionSymbol} ${
           payload.new_label || payload.new || "-"
@@ -2963,7 +2971,11 @@ window.addEventListener("DOMContentLoaded", () => {
       case "group_changed":
         return `Grupo: ${payload.old || "-"} ${transitionSymbol} ${payload.new || "-"}`;
       case "assignees_changed":
-        return "Responsaveis atualizados";
+        return "Responsáveis atualizados";
+      case "links_changed":
+        return `Links: ${Number(payload.old_count) || 0} ${transitionSymbol} ${Number(payload.new_count) || 0}`;
+      case "media_changed":
+        return `Mídias: ${Number(payload.old_count) || 0} ${transitionSymbol} ${Number(payload.new_count) || 0}`;
       case "subtasks_changed":
         return `Etapas: ${Number(payload.old_completed) || 0}/${Number(payload.old_total) || 0} ${transitionSymbol} ${
           Number(payload.new_completed) || 0
@@ -2975,9 +2987,9 @@ window.addEventListener("DOMContentLoaded", () => {
       case "overdue_started":
         return `Atraso detectado (${Math.max(0, Number(payload.overdue_days) || 0)} dia(s))`;
       case "overdue_cleared":
-        return "Sinalizacao de atraso removida";
+        return "Sinalização de atraso removida";
       default:
-        return "Atualizacao registrada";
+        return "Atualização registrada";
     }
   };
 
@@ -3000,7 +3012,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const subtitle = document.createElement("span");
       subtitle.textContent = overdueSinceDate
         ? `Desde ${formatHistoryDate(overdueSinceDate)}`
-        : "Aguardando regularizacao";
+        : "Aguardando regularização";
       overdueItem.append(title, subtitle);
       items.push(overdueItem);
     }
@@ -3018,7 +3030,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const actorName = String(entry?.actor_name || "").trim();
       subtitle.textContent = actorName
         ? `${timeLabel || "Registro"} · ${actorName}`
-        : timeLabel || "Registro automatico";
+        : timeLabel || "Registro automático";
 
       card.append(title, subtitle);
       items.push(card);
@@ -3103,8 +3115,8 @@ window.addEventListener("DOMContentLoaded", () => {
         trigger.setAttribute(
           "aria-label",
           isVideoReferenceMediaItem(mediaItem)
-            ? "Abrir video de referencia"
-            : "Ampliar imagem de referencia"
+            ? "Abrir vídeo de referência"
+            : "Ampliar imagem de referência"
         );
 
         const img = createReferenceMediaThumbnailElement(mediaItem, {
@@ -4386,7 +4398,7 @@ window.addEventListener("DOMContentLoaded", () => {
     return {
       history_id: historyId,
       task_id: taskId,
-      title: title || "Notificacao",
+      title: title || "Notificação",
       message,
       created_at: createdAt,
       event_type: eventType,
@@ -4502,7 +4514,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
       const title = document.createElement("p");
       title.className = "header-notification-item-title";
-      title.textContent = String(item?.title || "Notificacao");
+      title.textContent = String(item?.title || "Notificação");
 
       const message = document.createElement("p");
       message.className = "header-notification-item-message";
@@ -4613,7 +4625,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
 
-    const title = String(notification?.title || "Notificacao");
+    const title = String(notification?.title || "Notificação");
     const body = String(notification?.message || "").trim();
     if (!body) return;
 
@@ -9357,7 +9369,7 @@ window.addEventListener("DOMContentLoaded", () => {
       taskImagePreviewImage.hidden = true;
       taskImagePreviewImage.src = "";
       taskImagePreviewImage.removeAttribute("src");
-      taskImagePreviewImage.alt = "Imagem de referencia ampliada";
+      taskImagePreviewImage.alt = "Imagem de referência ampliada";
 
       taskImagePreviewVideo.pause();
       try {
@@ -9414,7 +9426,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (taskImagePreviewImage instanceof HTMLImageElement) {
       taskImagePreviewImage.src = "";
       taskImagePreviewImage.removeAttribute("src");
-      taskImagePreviewImage.alt = "Imagem de referencia ampliada";
+      taskImagePreviewImage.alt = "Imagem de referência ampliada";
       taskImagePreviewImage.hidden = false;
     }
     if (taskImagePreviewVideo instanceof HTMLVideoElement) {
@@ -9647,7 +9659,7 @@ window.addEventListener("DOMContentLoaded", () => {
       button.setAttribute("aria-pressed", shouldEnable ? "true" : "false");
       button.setAttribute(
         "aria-label",
-        shouldEnable ? "Desativar organizacao de grupos" : "Ativar organizacao de grupos"
+        shouldEnable ? "Desativar organização de grupos" : "Ativar organização de grupos"
       );
     });
 
@@ -9844,7 +9856,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const createReferenceMediaThumbnailElement = (
     mediaItem,
-    { className = "task-detail-edit-image-preview", imageAlt = "Midia de referencia" } = {}
+    { className = "task-detail-edit-image-preview", imageAlt = "Mídia de referência" } = {}
   ) => {
     const thumbnailUrl = referenceMediaThumbnailUrl(mediaItem);
     if (thumbnailUrl) {
@@ -9876,8 +9888,8 @@ window.addEventListener("DOMContentLoaded", () => {
     button.setAttribute(
       "aria-label",
       isVideoReferenceMediaItem(mediaItem)
-        ? "Abrir video de referencia"
-        : "Ampliar imagem de referencia"
+        ? "Abrir vídeo de referência"
+        : "Ampliar imagem de referência"
     );
 
     const preview = createReferenceMediaThumbnailElement(mediaItem);
@@ -9927,7 +9939,7 @@ window.addEventListener("DOMContentLoaded", () => {
       removeButton.type = "button";
       removeButton.className = "task-detail-edit-image-remove";
       removeButton.dataset.taskDetailImageRemove = String(index);
-      removeButton.setAttribute("aria-label", "Remover imagem de referencia");
+      removeButton.setAttribute("aria-label", "Remover imagem de referência");
       removeButton.textContent = "x";
 
       const topBar = document.createElement("div");
@@ -9975,7 +9987,7 @@ window.addEventListener("DOMContentLoaded", () => {
       removeButton.type = "button";
       removeButton.className = "task-detail-edit-image-remove";
       removeButton.dataset.createTaskImageRemove = String(index);
-      removeButton.setAttribute("aria-label", "Remover imagem de referencia");
+      removeButton.setAttribute("aria-label", "Remover imagem de referência");
       removeButton.textContent = "x";
 
       const topBar = document.createElement("div");
@@ -10502,7 +10514,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!response.ok || !data || data.ok !== true) {
-      const message = (data && (data.error || data.message)) || "Nao foi possivel concluir a operacao.";
+      const message = (data && (data.error || data.message)) || "Não foi possível concluir a operação.";
       throw new Error(message);
     }
 
@@ -10512,7 +10524,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const getGoogleDriveBrowserSession = async (targetName) => {
     const csrfToken = getTaskTitleTagCsrfToken();
     if (!csrfToken) {
-      throw new Error("Sessao expirada. Recarregue a pagina.");
+      throw new Error("Sessão expirada. Recarregue a página.");
     }
 
     const data = await postGoogleDriveBrowserAction("google_drive_browser_session", {
@@ -10533,10 +10545,10 @@ window.addEventListener("DOMContentLoaded", () => {
         window.location.href = authUrl;
         return null;
       }
-      throw new Error("Conecte o Google Drive para navegar pelas midias.");
+      throw new Error("Conecte o Google Drive para navegar pelas mídias.");
     }
     if (data.browser_ready === false) {
-      throw new Error(String(data.message || "Google Drive ainda nao esta pronto para navegacao."));
+      throw new Error(String(data.message || "Google Drive ainda não está pronto para navegação."));
     }
 
     return data;
@@ -10545,7 +10557,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const addGoogleDriveMediaItems = async (targetName, fileIds) => {
     const csrfToken = getTaskTitleTagCsrfToken();
     if (!csrfToken) {
-      throw new Error("Sessao expirada. Recarregue a pagina.");
+      throw new Error("Sessão expirada. Recarregue a página.");
     }
 
     const data = await postGoogleDriveBrowserAction("google_drive_file_metadata", {
@@ -10801,7 +10813,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!root) return;
     const csrfToken = getTaskTitleTagCsrfToken();
     if (!csrfToken) {
-      throw new Error("Sessao expirada. Recarregue a pagina.");
+      throw new Error("Sessão expirada. Recarregue a página.");
     }
 
     googleDriveBrowserLoading = true;
@@ -12848,11 +12860,11 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       await refreshTasksSectionFromServer();
       renderDashboardSummary(data.dashboard);
-      showClientFlash("success", data.message || (action === "redo" ? "Acao refeita." : "Acao desfeita."));
+      showClientFlash("success", data.message || (action === "redo" ? "Ação refeita." : "Ação desfeita."));
     } catch (error) {
       showClientFlash(
         "error",
-        error instanceof Error ? error.message : "Nao foi possivel aplicar esta acao."
+        error instanceof Error ? error.message : "Não foi possível aplicar esta ação."
       );
     } finally {
       delete historyForm.dataset.submitting;
@@ -12960,7 +12972,7 @@ window.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       showClientFlash(
         "error",
-        error instanceof Error ? error.message : "Nao foi possivel restaurar este grupo."
+        error instanceof Error ? error.message : "Não foi possível restaurar este grupo."
       );
       throw error;
     } finally {
@@ -12983,7 +12995,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (action === "undo") {
       const { form: undoForm, synthetic } = ensureTaskHistoryForm("undo");
       if (!(undoForm instanceof HTMLFormElement)) {
-        showClientFlash("error", "Nenhuma acao disponivel para retroceder.");
+        showClientFlash("error", "Nenhuma ação disponível para retroceder.");
         if (flash instanceof HTMLElement) flash.remove();
         return;
       }
@@ -12992,7 +13004,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const currentUndoId = String(currentTaskHistoryState?.undo_operation_id || "").trim();
       const canUndo = currentTaskHistoryState?.can_undo === true;
       if (!canUndo || !currentUndoId || (expectedUndoId && expectedUndoId !== currentUndoId)) {
-        showClientFlash("error", "Essa exclusao ja nao e mais a ultima acao disponivel para retroceder.");
+        showClientFlash("error", "Essa exclusão já não é mais a última ação disponível para retroceder.");
         if (flash instanceof HTMLElement) flash.remove();
         return;
       }
@@ -13014,7 +13026,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (action === "restore-group") {
       const restoreToken = String(actionButton.dataset.flashActionToken || "").trim();
       if (!restoreToken) {
-        showClientFlash("error", "Esta restauracao ja nao esta disponivel.");
+        showClientFlash("error", "Esta restauração já não está disponível.");
         if (flash instanceof HTMLElement) flash.remove();
         return;
       }
@@ -13023,7 +13035,7 @@ window.addEventListener("DOMContentLoaded", () => {
         restore_token: restoreToken,
       });
       if (!(restoreForm instanceof HTMLFormElement)) {
-        showClientFlash("error", "Nao foi possivel preparar a restauracao.");
+        showClientFlash("error", "Não foi possível preparar a restauração.");
         if (flash instanceof HTMLElement) flash.remove();
         return;
       }

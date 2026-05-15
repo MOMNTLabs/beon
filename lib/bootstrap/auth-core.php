@@ -89,7 +89,7 @@ function linkGoogleAccountForUser(PDO $pdo, int $userId, string $googleId): void
 {
     $googleId = trim($googleId);
     if ($userId <= 0 || $googleId === '') {
-        throw new RuntimeException('Conta Google invalida.');
+        throw new RuntimeException('Conta Google inválida.');
     }
 
     ensureGoogleAuthSchema($pdo);
@@ -106,7 +106,7 @@ function linkGoogleAccountForUser(PDO $pdo, int $userId, string $googleId): void
             ':id' => $userId,
         ]);
     } catch (PDOException $e) {
-        throw new RuntimeException('Esta conta Google ja esta vinculada a outro usuario.');
+        throw new RuntimeException('Esta conta Google já está vinculada a outro usuário.');
     }
 
     if ($stmt->rowCount() > 0) {
@@ -117,7 +117,7 @@ function linkGoogleAccountForUser(PDO $pdo, int $userId, string $googleId): void
     $check->execute([':id' => $userId]);
     $currentGoogleId = trim((string) $check->fetchColumn());
     if ($currentGoogleId !== '' && $currentGoogleId !== $googleId) {
-        throw new RuntimeException('Este usuario ja esta vinculado a outra conta Google.');
+        throw new RuntimeException('Este usuário já está vinculado a outra conta Google.');
     }
 }
 
@@ -164,7 +164,7 @@ function uploadedUserAvatarDataUrl(array $file): string
 
     $size = (int) ($file['size'] ?? 0);
     if ($size <= 0) {
-        throw new RuntimeException('Arquivo de foto invalido.');
+        throw new RuntimeException('Arquivo de foto inválido.');
     }
 
     if ($size > 2 * 1024 * 1024) {
@@ -173,12 +173,12 @@ function uploadedUserAvatarDataUrl(array $file): string
 
     $tmpName = (string) ($file['tmp_name'] ?? '');
     if ($tmpName === '' || !is_file($tmpName)) {
-        throw new RuntimeException('Arquivo de foto invalido.');
+        throw new RuntimeException('Arquivo de foto inválido.');
     }
 
     $contents = file_get_contents($tmpName);
     if (!is_string($contents) || $contents === '') {
-        throw new RuntimeException('Nao foi possivel ler a foto de perfil.');
+        throw new RuntimeException('Não foi possível ler a foto de perfil.');
     }
 
     $imageInfo = @getimagesizefromstring($contents);
@@ -194,14 +194,14 @@ function uploadedUserAvatarDataUrl(array $file): string
 function updateUserProfile(PDO $pdo, int $userId, string $name, array $avatarFile = []): void
 {
     if ($userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     ensureUserProfileSchema($pdo);
 
     $normalizedName = normalizeUserDisplayName($name);
     if ($normalizedName === '') {
-        throw new RuntimeException('Informe um nome valido.');
+        throw new RuntimeException('Informe um nome válido.');
     }
 
     $params = [
@@ -228,7 +228,7 @@ function updateUserProfile(PDO $pdo, int $userId, string $name, array $avatarFil
 function updateUserPassword(PDO $pdo, int $userId, string $currentPassword, string $newPassword, string $confirmPassword): void
 {
     if ($userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     if ($currentPassword === '' || $newPassword === '' || $confirmPassword === '') {
@@ -236,7 +236,7 @@ function updateUserPassword(PDO $pdo, int $userId, string $currentPassword, stri
     }
 
     if ($newPassword !== $confirmPassword) {
-        throw new RuntimeException('A confirmacao da nova senha nao confere.');
+        throw new RuntimeException('A confirmação da nova senha não confere.');
     }
 
     if (mb_strlen($newPassword) < 6) {
@@ -247,11 +247,11 @@ function updateUserPassword(PDO $pdo, int $userId, string $currentPassword, stri
     $stmt->execute([':id' => $userId]);
     $hash = (string) $stmt->fetchColumn();
     if ($hash === '') {
-        throw new RuntimeException('Usuario nao encontrado.');
+        throw new RuntimeException('Usuário não encontrado.');
     }
 
     if (!password_verify($currentPassword, $hash)) {
-        throw new RuntimeException('Senha atual invalida.');
+        throw new RuntimeException('Senha atual inválida.');
     }
 
     if (password_verify($newPassword, $hash)) {

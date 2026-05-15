@@ -5,7 +5,7 @@ function workspaceRoles(): array
 {
     return [
         'admin' => 'Administrador',
-        'member' => 'UsuÃ¡rio',
+        'member' => 'Usuário',
     ];
 }
 
@@ -413,7 +413,7 @@ function createWorkspace(PDO $pdo, string $workspaceName, int $createdBy, bool $
 {
     $createdBy = (int) $createdBy;
     if ($createdBy <= 0) {
-        throw new RuntimeException('Criador do workspace invalido.');
+        throw new RuntimeException('Criador do workspace inválido.');
     }
 
     ensureWorkspaceTaskStatusSchema($pdo);
@@ -488,7 +488,7 @@ function uploadedWorkspaceAvatarDataUrl(array $file): string
 
     $size = (int) ($file['size'] ?? 0);
     if ($size <= 0) {
-        throw new RuntimeException('Arquivo de foto do workspace invalido.');
+        throw new RuntimeException('Arquivo de foto do workspace inválido.');
     }
 
     if ($size > 2 * 1024 * 1024) {
@@ -497,12 +497,12 @@ function uploadedWorkspaceAvatarDataUrl(array $file): string
 
     $tmpName = (string) ($file['tmp_name'] ?? '');
     if ($tmpName === '' || !is_file($tmpName)) {
-        throw new RuntimeException('Arquivo de foto do workspace invalido.');
+        throw new RuntimeException('Arquivo de foto do workspace inválido.');
     }
 
     $contents = file_get_contents($tmpName);
     if (!is_string($contents) || $contents === '') {
-        throw new RuntimeException('Nao foi possivel ler a foto do workspace.');
+        throw new RuntimeException('Não foi possível ler a foto do workspace.');
     }
 
     $imageInfo = @getimagesizefromstring($contents);
@@ -523,14 +523,14 @@ function updateWorkspaceProfile(
     bool $allowRename = true
 ): void {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     ensureWorkspaceProfileSchema($pdo);
     ensureUserProfileSchema($pdo);
     $workspace = workspaceById($workspaceId);
     if (!$workspace) {
-        throw new RuntimeException('Workspace nao encontrado.');
+        throw new RuntimeException('Workspace não encontrado.');
     }
 
     $isPersonalWorkspace = !empty($workspace['is_personal']);
@@ -573,7 +573,7 @@ function updateWorkspaceProfile(
     }
 
     if (count($setClauses) === 1 && $avatarDataUrl === '') {
-        throw new RuntimeException('Nenhuma alteracao enviada para o workspace.');
+        throw new RuntimeException('Nenhuma alteração enviada para o workspace.');
     }
 
     $stmt = $pdo->prepare(
@@ -607,13 +607,13 @@ function workspaceAdminCount(int $workspaceId): int
 function updateWorkspaceMemberRole(PDO $pdo, int $workspaceId, int $userId, string $role): void
 {
     if ($workspaceId <= 0 || $userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     $nextRole = normalizeWorkspaceRole($role);
     $currentRole = workspaceRoleForUser($userId, $workspaceId);
     if ($currentRole === null) {
-        throw new RuntimeException('Usuario nao pertence a este workspace.');
+        throw new RuntimeException('Usuário não pertence a este workspace.');
     }
     if ($currentRole === $nextRole) {
         return;
@@ -640,12 +640,12 @@ function updateWorkspaceMemberRole(PDO $pdo, int $workspaceId, int $userId, stri
 function removeWorkspaceMember(PDO $pdo, int $workspaceId, int $userId): void
 {
     if ($workspaceId <= 0 || $userId <= 0) {
-        throw new RuntimeException('Usuario invalido.');
+        throw new RuntimeException('Usuário inválido.');
     }
 
     $existingRole = workspaceRoleForUser($userId, $workspaceId);
     if ($existingRole === null) {
-        throw new RuntimeException('Usuario nao pertence a este workspace.');
+        throw new RuntimeException('Usuário não pertence a este workspace.');
     }
 
     if ($existingRole === 'admin' && workspaceAdminCount($workspaceId) <= 1) {
@@ -747,7 +747,7 @@ function workspaceMembersList(int $workspaceId): array
 function deleteWorkspaceOwnedByUser(PDO $pdo, int $workspaceId, int $ownerUserId): void
 {
     if ($workspaceId <= 0 || $ownerUserId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $workspaceStmt = $pdo->prepare(
@@ -759,7 +759,7 @@ function deleteWorkspaceOwnedByUser(PDO $pdo, int $workspaceId, int $ownerUserId
     $workspaceStmt->execute([':workspace_id' => $workspaceId]);
     $workspace = $workspaceStmt->fetch();
     if (!$workspace) {
-        throw new RuntimeException('Workspace nao encontrado.');
+        throw new RuntimeException('Workspace não encontrado.');
     }
 
     if ((int) ($workspace['created_by'] ?? 0) !== $ownerUserId) {
@@ -819,7 +819,7 @@ function deleteWorkspaceOwnedByUser(PDO $pdo, int $workspaceId, int $ownerUserId
 function leaveWorkspace(PDO $pdo, int $workspaceId, int $userId): void
 {
     if ($workspaceId <= 0 || $userId <= 0) {
-        throw new RuntimeException('Workspace invalido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $workspaceStmt = $pdo->prepare(
@@ -831,16 +831,16 @@ function leaveWorkspace(PDO $pdo, int $workspaceId, int $userId): void
     $workspaceStmt->execute([':workspace_id' => $workspaceId]);
     $workspace = $workspaceStmt->fetch();
     if (!$workspace) {
-        throw new RuntimeException('Workspace nao encontrado.');
+        throw new RuntimeException('Workspace não encontrado.');
     }
 
     if ((int) ($workspace['created_by'] ?? 0) === $userId) {
-        throw new RuntimeException('Voce criou este workspace. Use a opcao de remover workspace.');
+        throw new RuntimeException('Você criou este workspace. Use a opção de remover workspace.');
     }
 
     $role = workspaceRoleForUser($userId, $workspaceId);
     if ($role === null) {
-        throw new RuntimeException('Voce nao pertence a este workspace.');
+        throw new RuntimeException('Você não pertence a este workspace.');
     }
 
     $pdo->beginTransaction();
@@ -860,7 +860,7 @@ function leaveWorkspace(PDO $pdo, int $workspaceId, int $userId): void
             ]);
             $nextAdminUserId = (int) $promoteStmt->fetchColumn();
             if ($nextAdminUserId <= 0) {
-                throw new RuntimeException('Nao foi possivel sair deste workspace agora.');
+                throw new RuntimeException('Não foi possível sair deste workspace agora.');
             }
 
             $updateRoleStmt = $pdo->prepare(

@@ -132,17 +132,17 @@ function googleOAuthConsumeState(string $state): array
     unset($_SESSION['google_oauth_state']);
 
     if (!is_array($stored) || $state === '') {
-        throw new RuntimeException('Sessao do Google expirada. Tente novamente.');
+        throw new RuntimeException('Sessão do Google expirada. Tente novamente.');
     }
 
     $createdAt = (int) ($stored['created_at'] ?? 0);
     if ($createdAt <= 0 || (time() - $createdAt) > GOOGLE_OAUTH_STATE_TTL_SECONDS) {
-        throw new RuntimeException('Sessao do Google expirada. Tente novamente.');
+        throw new RuntimeException('Sessão do Google expirada. Tente novamente.');
     }
 
     $expectedHash = (string) ($stored['state_hash'] ?? '');
     if ($expectedHash === '' || !hash_equals($expectedHash, hash('sha256', $state))) {
-        throw new RuntimeException('Sessao do Google invalida. Tente novamente.');
+        throw new RuntimeException('Sessão do Google inválida. Tente novamente.');
     }
 
     return [
@@ -155,7 +155,7 @@ function googleOAuthRequest(string $method, string $url, array $headers = [], ar
 {
     $method = strtoupper(trim($method));
     if (!in_array($method, ['GET', 'POST'], true)) {
-        throw new RuntimeException('Metodo OAuth invalido.');
+        throw new RuntimeException('Método OAuth inválido.');
     }
 
     $encodedPayload = http_build_query($payload, '', '&', PHP_QUERY_RFC3986);
@@ -256,9 +256,9 @@ function googleOAuthExchangeCode(string $code): array
         'grant_type' => 'authorization_code',
     ]);
 
-    $tokenData = googleOAuthDecodeJsonResponse($response, 'Nao foi possivel validar o login com Google.');
+    $tokenData = googleOAuthDecodeJsonResponse($response, 'Não foi possível validar o login com Google.');
     if (trim((string) ($tokenData['access_token'] ?? '')) === '') {
-        throw new RuntimeException('Google nao retornou token de acesso.');
+        throw new RuntimeException('Google não retornou token de acesso.');
     }
 
     return $tokenData;
@@ -272,7 +272,7 @@ function googleOAuthFetchUserInfo(string $accessToken): array
         ['Authorization: Bearer ' . $accessToken]
     );
 
-    $profile = googleOAuthDecodeJsonResponse($response, 'Nao foi possivel carregar os dados da conta Google.');
+    $profile = googleOAuthDecodeJsonResponse($response, 'Não foi possível carregar os dados da conta Google.');
     $googleId = trim((string) ($profile['sub'] ?? ''));
     $email = strtolower(trim((string) ($profile['email'] ?? '')));
     $emailVerifiedRaw = $profile['email_verified'] ?? false;
@@ -282,7 +282,7 @@ function googleOAuthFetchUserInfo(string $accessToken): array
         || trim((string) $emailVerifiedRaw) === '1';
 
     if ($googleId === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new RuntimeException('Conta Google sem e-mail valido.');
+        throw new RuntimeException('Conta Google sem e-mail válido.');
     }
     if (!$emailVerified) {
         throw new RuntimeException('Confirme o e-mail da sua conta Google antes de entrar.');
@@ -315,7 +315,7 @@ function handleGoogleOAuthStart(PDO $pdo): void
     }
 
     if (!googleOAuthConfigured()) {
-        flash('error', 'Login com Google ainda nao configurado. Defina GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET.');
+        flash('error', 'Login com Google ainda não configurado. Defina GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET.');
         redirectTo(authErrorRedirectPath($redirectPanel, $nextPath));
     }
 
@@ -347,15 +347,15 @@ function handleGoogleOAuthCallback(PDO $pdo): void
 
         $googleError = trim((string) ($_GET['error'] ?? ''));
         if ($googleError !== '') {
-            throw new RuntimeException('Login com Google cancelado ou nao autorizado.');
+            throw new RuntimeException('Login com Google cancelado ou não autorizado.');
         }
 
         $code = trim((string) ($_GET['code'] ?? ''));
         if ($code === '') {
-            throw new RuntimeException('Google nao retornou o codigo de autorizacao.');
+            throw new RuntimeException('Google não retornou o código de autorização.');
         }
         if (!googleOAuthConfigured()) {
-            throw new RuntimeException('Login com Google ainda nao configurado.');
+            throw new RuntimeException('Login com Google ainda não configurado.');
         }
 
         $workspaceInviteRequest = validWorkspaceEmailInvitationRequestFromPath($nextPath);
@@ -386,13 +386,13 @@ function handleGoogleOAuthCallback(PDO $pdo): void
 
         if (!$userRow) {
             if (!authAllowsDirectRegisterForRedirectPath($nextPath)) {
-                throw new RuntimeException('Conta nao encontrada. Escolha um plano para criar sua conta.');
+                throw new RuntimeException('Conta não encontrada. Escolha um plano para criar sua conta.');
             }
 
             if ($intent !== 'register') {
                 $pendingRegistrationNextPath = $isWorkspaceInviteRedirect ? $nextPath : appPlansPath();
                 setPendingGoogleRegistration($googleProfile, $pendingRegistrationNextPath);
-                flash('error', 'Esta conta Google ainda nao esta cadastrada. Confirme se deseja cadastrar essa conta.');
+                flash('error', 'Esta conta Google ainda não está cadastrada. Confirme se deseja cadastrar essa conta.');
                 redirectTo(authErrorRedirectPath('register', $pendingRegistrationNextPath));
             }
 
@@ -403,7 +403,7 @@ function handleGoogleOAuthCallback(PDO $pdo): void
 
         $userId = (int) ($userRow['id'] ?? 0);
         if ($userId <= 0) {
-            throw new RuntimeException('Nao foi possivel identificar o usuario.');
+            throw new RuntimeException('Não foi possível identificar o usuário.');
         }
 
         if ($isCheckoutRedirect && $createdUser) {
@@ -452,7 +452,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             $redirectPathOnError = authErrorRedirectPath('register', $pendingNextPath);
 
             if (!$pendingGoogleRegistration) {
-                throw new RuntimeException('Sessao do Google expirada. Tente novamente.');
+                throw new RuntimeException('Sessão do Google expirada. Tente novamente.');
             }
 
             $googleId = (string) $pendingGoogleRegistration['google_id'];
@@ -476,7 +476,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
 
             $userId = (int) ($userRow['id'] ?? 0);
             if ($userId <= 0) {
-                throw new RuntimeException('Nao foi possivel criar a conta com Google.');
+                throw new RuntimeException('Não foi possível criar a conta com Google.');
             }
 
             loginUser($userId, true);
@@ -593,7 +593,7 @@ function handleAuthPostAction(PDO $pdo, string $action, string &$redirectPathOnE
             $redirectPathOnError = appUrl('?auth=forgot-password#forgot-password');
             $email = strtolower(trim((string) ($_POST['email'] ?? '')));
             if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                throw new RuntimeException('Informe um e-mail valido.');
+                throw new RuntimeException('Informe um e-mail válido.');
             }
 
             $delivery = ['logged_to_file' => false];

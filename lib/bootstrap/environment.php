@@ -133,15 +133,15 @@ function productionConfigDiagnostics(): array
     $warnings = [];
 
     if (configuredAppUrl() === '') {
-        $errors[] = 'APP_URL ausente ou invalida para este ambiente.';
+        $errors[] = 'APP_URL ausente ou inválida para este ambiente.';
     }
 
     if (configuredSiteUrl() === '') {
-        $warnings[] = 'SITE_URL nao definida; links de volta para o site podem apontar para o host atual.';
+        $warnings[] = 'SITE_URL não definida; links de volta para o site podem apontar para o host atual.';
     }
 
     if (trim((string) envValue('COOKIE_DOMAIN', '')) === '') {
-        $warnings[] = 'COOKIE_DOMAIN nao definido; revise cookies compartilhados entre app e site.';
+        $warnings[] = 'COOKIE_DOMAIN não definido; revise cookies compartilhados entre app e site.';
     }
 
     if (envFlag('APP_AUTO_MIGRATE', false)) {
@@ -149,15 +149,15 @@ function productionConfigDiagnostics(): array
     }
 
     if (configuredVaultEncryptionKeyValue() === '') {
-        $errors[] = 'APP_VAULT_ENCRYPTION_KEY nao definida.';
+        $errors[] = 'APP_VAULT_ENCRYPTION_KEY não definida.';
     }
 
     if (envFlag('APP_ALLOW_SQLITE_FALLBACK', false)) {
-        $warnings[] = 'APP_ALLOW_SQLITE_FALLBACK=true esta ativo; isso nao e recomendado em producao.';
+        $warnings[] = 'APP_ALLOW_SQLITE_FALLBACK=true está ativo; isso não é recomendado em produção.';
     }
 
     if (envFlag('APP_ALLOW_FILE_VAULT_KEY', false)) {
-        $warnings[] = 'APP_ALLOW_FILE_VAULT_KEY=true esta ativo; isso nao e recomendado em producao.';
+        $warnings[] = 'APP_ALLOW_FILE_VAULT_KEY=true está ativo; isso não é recomendado em produção.';
     }
 
     if (envFlag('APP_DIAGNOSTIC_FILES', false)) {
@@ -168,27 +168,27 @@ function productionConfigDiagnostics(): array
         $config = dbConfig();
         $driver = (string) ($config['driver'] ?? '');
         if ($driver !== 'pgsql') {
-            $errors[] = 'A configuracao de banco em producao deve resolver para PostgreSQL.';
+            $errors[] = 'A configuração de banco em produção deve resolver para PostgreSQL.';
         }
 
         if ($driver === 'pgsql' && !extension_loaded('pdo_pgsql')) {
-            $errors[] = 'A extensao pdo_pgsql nao esta carregada neste runtime.';
+            $errors[] = 'A extensão pdo_pgsql não está carregada neste runtime.';
         }
 
         $dsn = strtolower((string) ($config['dsn'] ?? ''));
         if ($driver === 'pgsql' && !str_contains($dsn, 'sslmode=require')) {
-            $warnings[] = 'A conexao PostgreSQL nao declara sslmode=require.';
+            $warnings[] = 'A conexão PostgreSQL não declara sslmode=require.';
         }
     } catch (Throwable $e) {
         $errors[] = $e->getMessage();
     }
 
     if (trim((string) envValue('MAIL_FROM_ADDRESS', '')) === '') {
-        $warnings[] = 'MAIL_FROM_ADDRESS nao definido; envio de e-mail pode cair em fallback.';
+        $warnings[] = 'MAIL_FROM_ADDRESS não definido; envio de e-mail pode cair em fallback.';
     }
 
     if (trim((string) envValue('RESEND_API_KEY', '')) === '') {
-        $warnings[] = 'RESEND_API_KEY nao definido; envio de e-mail dependera do mail() do ambiente.';
+        $warnings[] = 'RESEND_API_KEY não definido; envio de e-mail dependerá do mail() do ambiente.';
     }
 
     return [

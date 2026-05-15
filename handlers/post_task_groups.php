@@ -286,18 +286,18 @@ function handleTaskGroupPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nÃ£o encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $restoreToken = trim((string) ($_POST['restore_token'] ?? ''));
                 if ($restoreToken === '') {
-                    throw new RuntimeException('RestauraÃ§Ã£o invÃ¡lida.');
+                    throw new RuntimeException('Restauração inválida.');
                 }
 
                 $restoreSnapshot =
                     $_SESSION['task_group_restore'][$workspaceId][$restoreToken] ?? null;
                 if (!is_array($restoreSnapshot) || empty($restoreSnapshot['group'])) {
-                    throw new RuntimeException('Este grupo nÃ£o pode mais ser restaurado.');
+                    throw new RuntimeException('Este grupo não pode mais ser restaurado.');
                 }
 
                 $pdo->beginTransaction();

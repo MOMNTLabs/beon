@@ -9,7 +9,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $authUser = requireAuth();
                 $workspaceId = activeWorkspaceId($authUser);
                 if ($workspaceId === null) {
-                    throw new RuntimeException('Workspace ativo nao encontrado.');
+                    throw new RuntimeException('Workspace ativo não encontrado.');
                 }
 
                 $result = taskUndoApply(
@@ -18,7 +18,7 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                     (int) $authUser['id'],
                     $action === 'task_redo'
                 );
-                $message = (string) ($result['message'] ?? 'Acao aplicada.');
+                $message = (string) ($result['message'] ?? 'Ação aplicada.');
 
                 if (requestExpectsJson()) {
                     respondJson([
@@ -382,6 +382,8 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                 $existingOverdueFlag = ((int) ($existingTaskRow['overdue_flag'] ?? 0)) === 1 ? 1 : 0;
                 $existingOverdueSinceDate = dueDateForStorage((string) ($existingTaskRow['overdue_since_date'] ?? ''));
                 $existingAssigneeIds = decodeAssigneeIds($existingTaskRow['assignee_ids_json'] ?? null);
+                $existingReferenceLinks = decodeReferenceUrlList($existingTaskRow['reference_links_json'] ?? null);
+                $existingReferenceImages = decodeReferenceImageList($existingTaskRow['reference_images_json'] ?? null);
                 $existingSubtasksDependencyEnabled = normalizePermissionFlag(
                     $existingTaskRow['subtasks_dependency_enabled'] ?? 0
                 );
@@ -417,6 +419,21 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                         $taskId,
                         'title_tag_changed',
                         ['old' => $existingTitleTag, 'new' => $titleTag],
+                        $actorUserId,
+                        $updatedAt
+                    );
+                }
+                if ($existingDescription !== $description) {
+                    logTaskHistory(
+                        $pdo,
+                        $taskId,
+                        'description_changed',
+                        [
+                            'old_empty' => $existingDescription === '',
+                            'new_empty' => $description === '',
+                            'old_length' => mb_strlen($existingDescription),
+                            'new_length' => mb_strlen($description),
+                        ],
                         $actorUserId,
                         $updatedAt
                     );
@@ -477,6 +494,32 @@ function handleTaskPostAction(PDO $pdo, string $action): bool
                         $taskId,
                         'assignees_changed',
                         ['old' => $existingAssigneeIds, 'new' => $assigneeIds],
+                        $actorUserId,
+                        $updatedAt
+                    );
+                }
+                if ($existingReferenceLinks !== ($referenceLinks ?? [])) {
+                    logTaskHistory(
+                        $pdo,
+                        $taskId,
+                        'links_changed',
+                        [
+                            'old_count' => count($existingReferenceLinks),
+                            'new_count' => count($referenceLinks ?? []),
+                        ],
+                        $actorUserId,
+                        $updatedAt
+                    );
+                }
+                if ($existingReferenceImages !== ($referenceImages ?? [])) {
+                    logTaskHistory(
+                        $pdo,
+                        $taskId,
+                        'media_changed',
+                        [
+                            'old_count' => count($existingReferenceImages),
+                            'new_count' => count($referenceImages ?? []),
+                        ],
                         $actorUserId,
                         $updatedAt
                     );

@@ -703,10 +703,10 @@ function appBillingPlanUsersLabel(array $plan): string
 
     $maxUsers = max(0, (int) ($plan['max_users'] ?? 0));
     if ($maxUsers <= 1) {
-        return '1 usuario';
+        return '1 usuário';
     }
 
-    return 'Ate ' . $maxUsers . ' usuarios';
+    return 'Até ' . $maxUsers . ' usuários';
 }
 
 function appBillingPlanCheckoutUrl(string $planKey, string $billingInterval = 'year'): string
@@ -728,7 +728,7 @@ function appBillingPlanMailtoUrl(array $plan): string
 
     $subject = rawurlencode('Consulta Enterprise - Bexon');
     $body = rawurlencode(
-        "Ola, equipe Bexon.\n\nTenho interesse no plano Enterprise para uma equipe com mais de 15 usuarios.\n\nNome:\nEmpresa:\nQuantidade aproximada de usuarios:\nMensagem:"
+        "Olá, equipe Bexon.\n\nTenho interesse no plano Enterprise para uma equipe com mais de 15 usuários.\n\nNome:\nEmpresa:\nQuantidade aproximada de usuários:\nMensagem:"
     );
 
     return 'mailto:' . $email . '?subject=' . $subject . '&body=' . $body;
@@ -888,7 +888,7 @@ function ensureWorkspaceCanInviteMembers(int $workspaceId): void
         return;
     }
 
-    throw new RuntimeException('Este workspace precisa de plano Team ou superior para convidar usuarios.');
+    throw new RuntimeException('Este workspace precisa de plano Team ou superior para convidar usuários.');
 }
 
 function enforceWorkspaceMemberLimit(int $workspaceId, int $memberUserId): void
@@ -4650,7 +4650,7 @@ function createWorkspaceDueEntryFromAccounting(
     ?int $createdBy = null
 ): int {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invÃ¡lido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $label = normalizeDueEntryLabel($label);
@@ -6311,7 +6311,7 @@ function workspaceAccountingCreateDueLinkedEntry(PDO $pdo, array $payload, int $
     $sourceDueEntryId = max(0, (int) ($payload['source_due_entry_id'] ?? 0));
     $label = normalizeAccountingEntryLabel((string) ($payload['label'] ?? ''));
     if ($workspaceId <= 0 || $sourceDueEntryId <= 0 || $label === '') {
-        throw new RuntimeException('Conta mensal invalida.');
+        throw new RuntimeException('Conta mensal inválida.');
     }
 
     $periodKey = normalizeAccountingPeriodKey((string) ($payload['period_key'] ?? ''));
@@ -7431,7 +7431,10 @@ function setWorkspaceAccountingOpeningBalance(
     }
 
     $periodKey = normalizeAccountingPeriodKey($periodKey);
-    $amountCents = normalizeSignedDueAmountCents($amountInput);
+    $rawAmountInput = is_string($amountInput) ? trim($amountInput) : $amountInput;
+    $amountCents = ($rawAmountInput === '' || $rawAmountInput === null)
+        ? 0
+        : normalizeSignedDueAmountCents($amountInput);
     if ($amountCents === null) {
         throw new RuntimeException('Informe um saldo inicial válido.');
     }
@@ -7546,7 +7549,7 @@ function createWorkspaceAccountingMonthlyDue(
     $monthlyDay = null
 ): int {
     if ($workspaceId <= 0) {
-        throw new RuntimeException('Workspace invÃ¡lido.');
+        throw new RuntimeException('Workspace inválido.');
     }
 
     $periodKey = normalizeAccountingPeriodKey($periodKey);
@@ -8311,7 +8314,7 @@ function updateWorkspaceAccountingEntryWithCarrySync(
             } else {
                 $updatedEntry = workspaceAccountingEntryById($pdo, $workspaceId, $entryId);
                 if ($updatedEntry === null) {
-                    throw new RuntimeException('Registro nÃ£o encontrado.');
+                    throw new RuntimeException('Registro não encontrado.');
                 }
             }
         }
@@ -10149,7 +10152,7 @@ function taskNotificationMessageFromHistory(array $historyEntry, int $viewerUser
             }
 
             return [
-                'title' => 'Responsaveis atualizados',
+                'title' => 'Responsáveis atualizados',
                 'message' => $actorPrefix . 'atualizou responsáveis em "' . $taskTitle . '".',
             ];
 
@@ -10405,7 +10408,7 @@ function taskNotificationsForUser(
             'history_id' => $entry['history_id'],
             'task_id' => $entry['task_id'],
             'event_type' => $entry['event_type'],
-            'title' => (string) ($messageParts['title'] ?? 'Notificacao'),
+            'title' => (string) ($messageParts['title'] ?? 'Notificação'),
             'message' => (string) ($messageParts['message'] ?? ''),
             'created_at' => $entry['created_at'],
             'actor_name' => $entry['actor_name'],
@@ -12126,7 +12129,7 @@ function taskUndoEnsureSnapshotAccess(int $userId, int $workspaceId, ?array $sna
 
     $groupName = normalizeTaskGroupName((string) ($snapshot['group_name'] ?? 'Geral'));
     if (!userCanAccessTaskGroup($userId, $workspaceId, $groupName)) {
-        throw new RuntimeException('Voce nao possui acesso para aplicar esta acao.');
+        throw new RuntimeException('Você não possui acesso para aplicar esta ação.');
     }
 }
 
@@ -12139,7 +12142,7 @@ function taskUndoEnsureGroupSnapshotAccess(int $userId, int $workspaceId, ?array
 
     $groupName = normalizeTaskGroupName((string) ($group['name'] ?? 'Geral'));
     if (!userCanAccessTaskGroup($userId, $workspaceId, $groupName)) {
-        throw new RuntimeException('Voce nao possui acesso para aplicar esta acao.');
+        throw new RuntimeException('Você não possui acesso para aplicar esta ação.');
     }
 }
 
@@ -12202,12 +12205,12 @@ function taskUndoRestoreGroupSnapshot(PDO $pdo, int $workspaceId, array $snapsho
 {
     $group = is_array($snapshot['group'] ?? null) ? $snapshot['group'] : null;
     if ($group === null) {
-        throw new RuntimeException('Estado do grupo nao encontrado.');
+        throw new RuntimeException('Estado do grupo não encontrado.');
     }
 
     $groupName = normalizeTaskGroupName((string) ($group['name'] ?? ''));
     if ($groupName === '') {
-        throw new RuntimeException('Grupo invalido para desfazer.');
+        throw new RuntimeException('Grupo inválido para desfazer.');
     }
 
     $groupId = (int) ($group['id'] ?? 0);
@@ -12324,7 +12327,7 @@ function taskUndoApplyOperation(PDO $pdo, int $workspaceId, int $actorUserId, ar
         $group = is_array($groupSnapshot['group'] ?? null) ? $groupSnapshot['group'] : null;
         $groupName = normalizeTaskGroupName((string) ($operation['group_name'] ?? ($group['name'] ?? '')));
         if ($groupName === '') {
-            throw new RuntimeException('Grupo invalido para desfazer.');
+            throw new RuntimeException('Grupo inválido para desfazer.');
         }
 
         if ($redo) {
@@ -12337,17 +12340,17 @@ function taskUndoApplyOperation(PDO $pdo, int $workspaceId, int $actorUserId, ar
     }
 
     if ($taskId <= 0 || !in_array($type, ['create', 'update', 'delete'], true)) {
-        throw new RuntimeException('Acao invalida para desfazer.');
+        throw new RuntimeException('Ação inválida para desfazer.');
     }
 
     if ($type === 'update') {
         if (taskUndoTaskSnapshot($pdo, $workspaceId, $taskId) === null) {
-            throw new RuntimeException('Tarefa nao encontrada para desfazer.');
+            throw new RuntimeException('Tarefa não encontrada para desfazer.');
         }
         $target = $redo ? $after : $before;
         taskUndoEnsureSnapshotAccess($actorUserId, $workspaceId, $target);
         if ($target === null) {
-            throw new RuntimeException('Estado da tarefa nao encontrado.');
+            throw new RuntimeException('Estado da tarefa não encontrado.');
         }
         taskUndoRestoreSnapshot($pdo, $workspaceId, $target);
         return;
@@ -12357,7 +12360,7 @@ function taskUndoApplyOperation(PDO $pdo, int $workspaceId, int $actorUserId, ar
         if ($redo) {
             taskUndoEnsureSnapshotAccess($actorUserId, $workspaceId, $after);
             if ($after === null) {
-                throw new RuntimeException('Estado da tarefa nao encontrado.');
+                throw new RuntimeException('Estado da tarefa não encontrado.');
             }
             taskUndoRestoreSnapshot($pdo, $workspaceId, $after);
             return;
@@ -12376,7 +12379,7 @@ function taskUndoApplyOperation(PDO $pdo, int $workspaceId, int $actorUserId, ar
         }
 
         if ($before === null) {
-            throw new RuntimeException('Estado da tarefa nao encontrado.');
+            throw new RuntimeException('Estado da tarefa não encontrado.');
         }
         taskUndoRestoreSnapshot($pdo, $workspaceId, $before);
     }
@@ -12408,7 +12411,7 @@ function taskUndoApply(PDO $pdo, int $workspaceId, int $actorUserId, bool $redo)
 
     return [
         'operation' => $operation,
-        'message' => $redo ? 'Acao refeita.' : 'Acao desfeita.',
+        'message' => $redo ? 'Ação refeita.' : 'Ação desfeita.',
         'undo_state' => taskUndoState($workspaceId),
     ];
 }
