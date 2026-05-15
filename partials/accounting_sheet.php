@@ -39,8 +39,12 @@
                                         : [];
                                     $accountingEntryGoalPaidCents = max(0, (int) ($accountingEntry['paid_amount_cents'] ?? 0));
                                     $accountingEntryGoalTotalCents = max(0, (int) ($accountingEntry['total_amount_cents'] ?? 0));
+                                    $accountingEntryGoalRemainingCents = max(0, $accountingEntryGoalTotalCents - $accountingEntryGoalPaidCents);
                                     $accountingEntryGoalPaymentCompactDisplay = dueAmountCompactLabelFromCents($accountingEntryGoalPaidCents, true);
                                     $accountingEntryGoalTotalCompactDisplay = dueAmountCompactLabelFromCents($accountingEntryGoalTotalCents, true);
+                                    $accountingEntryGoalRemainingDisplay = dueAmountLabelFromCents($accountingEntryGoalRemainingCents);
+                                    $accountingEntryGoalIsComplete = $accountingEntryGoalTotalCents > 0
+                                        && $accountingEntryGoalPaidCents >= $accountingEntryGoalTotalCents;
                                     $accountingEntryGoalProgressPercent = $accountingEntryGoalTotalCents > 0
                                         ? min(100, max(0, ($accountingEntryGoalPaidCents / $accountingEntryGoalTotalCents) * 100))
                                         : 0;
@@ -67,9 +71,16 @@
                                                     <span class="accounting-entry-summary-title" title="<?= e($accountingEntryLabel) ?>"><?= e($accountingEntryLabel) ?></span>
                                                     <?php if ($accountingEntryIsMonthlyGoal): ?>
                                                         <span
-                                                            class="accounting-entry-goal-progress"
+                                                            class="accounting-entry-goal-progress<?= $accountingEntryGoalIsComplete ? ' is-complete' : '' ?>"
                                                             aria-label="Pago <?= e($accountingEntryGoalPaymentDisplay) ?> de <?= e($accountingEntryGoalTotalDisplay) ?>"
                                                         >
+                                                            <?php if ($accountingEntryGoalIsComplete): ?>
+                                                                <span class="accounting-entry-goal-progress-status" aria-hidden="true">
+                                                                    <svg viewBox="0 0 16 16" focusable="false">
+                                                                        <path d="M3.5 8.4 6.5 11.2 12.5 4.8"></path>
+                                                                    </svg>
+                                                                </span>
+                                                            <?php endif; ?>
                                                             <span class="accounting-entry-goal-progress-bar">
                                                                 <span class="accounting-entry-goal-progress-fill" style="width: <?= e($accountingEntryGoalProgressWidth) ?>%"></span>
                                                                 <span class="accounting-entry-goal-progress-values">
@@ -110,8 +121,8 @@
                                                     type="button"
                                                     class="accounting-entry-goal-payment-trigger"
                                                     data-accounting-goal-payment-toggle
-                                                    aria-label="Abrir lançamentos do mês"
-                                                    title="Abrir lançamentos do mês"
+                                                    aria-label="Abrir lançamentos"
+                                                    title="Abrir lançamentos"
                                                 >
                                                     <span class="accounting-entry-goal-payment-trigger-icon" aria-hidden="true">+</span>
                                                 </button>
@@ -119,17 +130,26 @@
                                             <div class="accounting-entry-goal-payment-drawer" data-accounting-goal-payment-drawer hidden>
                                                 <div class="accounting-entry-goal-payment-drawer-head">
                                                     <div class="accounting-entry-goal-payment-drawer-copy">
-                                                        <strong>Lançamentos do mês</strong>
-                                                        <span>A soma abaixo define o valor pago no mês.</span>
+                                                        <strong>Lançamentos</strong>
+                                                        <span>Os lançamentos abaixo compõem o valor já pago.</span>
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        class="accounting-entry-goal-payment-close"
-                                                        data-accounting-goal-payment-close
-                                                        aria-label="Fechar lançamentos do mês"
-                                                    >
-                                                        <span aria-hidden="true">&times;</span>
-                                                    </button>
+                                                    <div class="accounting-entry-goal-payment-drawer-tools">
+                                                        <div
+                                                            class="accounting-entry-goal-payment-remaining<?= $accountingEntryGoalIsComplete ? ' is-complete' : '' ?>"
+                                                            aria-label="Falta <?= e($accountingEntryGoalRemainingDisplay) ?> para concluir a meta"
+                                                        >
+                                                            <span>Falta</span>
+                                                            <strong><?= e($accountingEntryGoalRemainingDisplay) ?></strong>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            class="accounting-entry-goal-payment-close"
+                                                            data-accounting-goal-payment-close
+                                                            aria-label="Fechar lançamentos"
+                                                        >
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <form method="post" class="accounting-entry-goal-payment-add-form" data-accounting-goal-payment-add-form autocomplete="off">
                                                     <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
@@ -181,7 +201,7 @@
                                                             </div>
                                                         <?php endforeach; ?>
                                                     <?php else: ?>
-                                                        <p class="accounting-entry-goal-payment-empty">Nenhum valor lançado neste mês.</p>
+                                                        <p class="accounting-entry-goal-payment-empty">Nenhum lançamento registrado.</p>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
@@ -435,7 +455,7 @@
                             </details>
 
                             <dl class="accounting-totals is-single">
-                                <div>
+                                <div class="is-expense-total">
                                     <dt>Total</dt>
                                     <dd
                                         class="accounting-total-pair"
@@ -714,7 +734,7 @@
                             </details>
 
                             <dl class="accounting-totals is-single">
-                                <div>
+                                <div class="is-income-total">
                                     <dt>Total</dt>
                                     <dd
                                         class="accounting-total-pair"
@@ -736,6 +756,10 @@
                     $accountingOpeningBalanceActionLabel = $accountingOpeningBalanceCents !== 0
                         ? 'Atualizar saldo atual'
                         : 'Informar saldo atual';
+                    $accountingCurrentBalanceCents = (int) ($accountingSummary['current_balance_cents'] ?? 0);
+                    $accountingCurrentBalanceClass = $accountingCurrentBalanceCents < 0
+                        ? ' is-negative'
+                        : ($accountingCurrentBalanceCents > 0 ? ' is-positive' : '');
                     $accountingFinalBalanceCents = (int) ($accountingSummary['final_balance_cents'] ?? 0);
                     $accountingFinalBalanceClass = $accountingFinalBalanceCents < 0
                         ? ' is-negative'
@@ -773,11 +797,11 @@
                         </form>
                     </div>
                     <dl class="accounting-balance-values">
-                        <div>
+                        <div class="is-current<?= e($accountingCurrentBalanceClass) ?>">
                             <dt>Saldo atual</dt>
                             <dd><?= e((string) ($accountingSummary['current_balance_display'] ?? 'R$ 0,00')) ?></dd>
                         </div>
-                        <div class="is-final<?= e($accountingFinalBalanceClass) ?>">
+                        <div class="is-final is-projected<?= e($accountingFinalBalanceClass) ?>">
                             <dt>Saldo projetado</dt>
                             <dd><?= e((string) ($accountingSummary['final_balance_display'] ?? 'R$ 0,00')) ?></dd>
                         </div>

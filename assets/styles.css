@@ -14162,8 +14162,32 @@ select option:checked,
 .accounting-entry-goal-progress {
     display: flex;
     align-items: center;
+    gap: 6px;
     width: 100%;
     min-width: 0;
+}
+
+.accounting-entry-goal-progress-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #57b579 0%, #3f9460 100%);
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgba(63, 148, 96, 0.22);
+}
+
+.accounting-entry-goal-progress-status svg {
+    width: 10px;
+    height: 10px;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
 }
 
 .accounting-entry-goal-progress-values {
@@ -14217,6 +14241,20 @@ select option:checked,
     min-width: 0;
     border-radius: inherit;
     background: linear-gradient(90deg, rgba(191, 198, 208, 0.98) 0%, rgba(164, 173, 185, 0.98) 100%);
+}
+
+.accounting-entry-goal-progress.is-complete .accounting-entry-goal-progress-bar {
+    border-color: rgba(210, 171, 84, 0.34);
+    background: rgba(246, 232, 191, 0.78);
+}
+
+.accounting-entry-goal-progress.is-complete .accounting-entry-goal-progress-fill {
+    background: linear-gradient(90deg, rgba(240, 201, 106, 0.98) 0%, rgba(224, 176, 72, 0.98) 100%);
+}
+
+.accounting-entry-goal-progress.is-complete .accounting-entry-goal-progress-values {
+    color: #6f4c1f;
+    text-shadow: 0 1px 0 rgba(255, 249, 234, 0.5);
 }
 
 .accounting-entry-badge[data-accounting-entry-edit] {
@@ -14334,6 +14372,14 @@ select option:checked,
     gap: 2px;
 }
 
+.accounting-entry-goal-payment-drawer-tools {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+}
+
 .accounting-entry-goal-payment-drawer-copy strong {
     color: #29486a;
     font-size: 0.82rem;
@@ -14343,6 +14389,40 @@ select option:checked,
     color: #5d7490;
     font-size: 0.72rem;
     line-height: 1.35;
+}
+
+.accounting-entry-goal-payment-remaining {
+    display: grid;
+    gap: 1px;
+    min-width: 96px;
+    padding: 5px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(140, 181, 223, 0.22);
+    background: rgba(255, 255, 255, 0.82);
+    text-align: right;
+}
+
+.accounting-entry-goal-payment-remaining > span {
+    color: #6d86a2;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.accounting-entry-goal-payment-remaining > strong {
+    color: #29486a;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.accounting-entry-goal-payment-remaining.is-complete {
+    border-color: rgba(210, 171, 84, 0.28);
+    background: rgba(250, 239, 209, 0.92);
+}
+
+.accounting-entry-goal-payment-remaining.is-complete > strong {
+    color: #7a5228;
 }
 
 .accounting-entry-goal-payment-close {
@@ -14537,6 +14617,36 @@ select option:checked,
     font-weight: 700;
 }
 
+.accounting-card.is-expense-card .accounting-totals .is-expense-total {
+    border-color: rgba(180, 109, 93, 0.24);
+    background: linear-gradient(180deg, rgba(255, 249, 247, 0.98) 0%, rgba(250, 241, 238, 0.96) 100%);
+}
+
+.accounting-card.is-expense-card .accounting-totals .is-expense-total dt,
+.accounting-card.is-expense-card .accounting-totals .is-expense-total .accounting-total-secondary,
+.accounting-card.is-expense-card .accounting-totals .is-expense-total .accounting-total-separator {
+    color: #9b6a61;
+}
+
+.accounting-card.is-expense-card .accounting-totals .is-expense-total .accounting-total-main {
+    color: #a2544f;
+}
+
+.accounting-card.is-income-card .accounting-totals .is-income-total {
+    border-color: rgba(86, 141, 110, 0.24);
+    background: linear-gradient(180deg, rgba(247, 252, 249, 0.98) 0%, rgba(238, 247, 242, 0.96) 100%);
+}
+
+.accounting-card.is-income-card .accounting-totals .is-income-total dt,
+.accounting-card.is-income-card .accounting-totals .is-income-total .accounting-total-secondary,
+.accounting-card.is-income-card .accounting-totals .is-income-total .accounting-total-separator {
+    color: #5e7f69;
+}
+
+.accounting-card.is-income-card .accounting-totals .is-income-total .accounting-total-main {
+    color: #3f7d61;
+}
+
 .accounting-balance-card {
     border-radius: 10px;
     border: 1px solid rgba(133, 178, 225, 0.72);
@@ -14607,19 +14717,21 @@ select option:checked,
 }
 
 .accounting-balance-values div {
-    border: 0;
-    background: transparent;
-    padding: 0 2px;
+    border: 1px solid rgba(133, 178, 225, 0.16);
+    background: rgba(255, 255, 255, 0.78);
+    padding: 8px 12px;
     display: flex;
     align-items: baseline;
     justify-content: flex-start;
     gap: 6px;
     min-width: 0;
+    border-radius: 14px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 
 .accounting-balance-values div.is-final {
-    border: 0;
-    background: transparent;
+    border-color: rgba(133, 178, 225, 0.18);
+    background: rgba(255, 255, 255, 0.9);
 }
 
 .accounting-balance-values dt {
@@ -14634,6 +14746,19 @@ select option:checked,
     font-weight: 700;
     font-size: 1.04rem;
     font-variant-numeric: tabular-nums;
+}
+
+.accounting-balance-values div.is-current dt {
+    color: #66798f;
+}
+
+.accounting-balance-values div.is-current dd {
+    color: #2d4b6d;
+}
+
+.accounting-balance-values div.is-current.is-negative dt,
+.accounting-balance-values div.is-current.is-negative dd {
+    color: #9b5b57;
 }
 
 .accounting-balance-values div.is-final.is-positive dt,
@@ -14750,6 +14875,16 @@ select option:checked,
     .accounting-entry-goal-payment-add-form {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .accounting-entry-goal-payment-drawer-head {
+        flex-wrap: wrap;
+    }
+
+    .accounting-entry-goal-payment-drawer-tools {
+        width: 100%;
+        justify-content: space-between;
+        margin-left: 0;
     }
 
     .accounting-entry-goal-payment-add-form .accounting-input-amount,
@@ -15406,7 +15541,7 @@ select option:checked,
 
     body.is-dashboard[data-dashboard-view="accounting"] .accounting-balance-values div {
         min-height: 0;
-        padding: 0 2px;
+        padding: 8px 10px;
         gap: 2px;
         display: grid;
         align-items: start;

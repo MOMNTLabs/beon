@@ -4742,10 +4742,57 @@ body.is-dashboard .accounting-entry-goal-payment-drawer-copy strong {
     color: var(--bexon-text-strong);
 }
 
+body.is-dashboard .accounting-entry-goal-progress-status {
+    background: linear-gradient(180deg, #5fbe82 0%, #459c66 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.24),
+        0 1px 3px rgba(69, 156, 102, 0.24);
+}
+
+body.is-dashboard .accounting-entry-goal-progress.is-complete .accounting-entry-goal-progress-bar {
+    border-color: rgba(var(--color-accent-500-rgb), 0.3);
+    background: rgba(var(--color-accent-200-rgb), 0.34);
+}
+
+body.is-dashboard .accounting-entry-goal-progress.is-complete .accounting-entry-goal-progress-fill {
+    background: linear-gradient(90deg, rgba(232, 194, 101, 0.98) 0%, rgba(210, 156, 46, 0.98) 100%);
+}
+
+body.is-dashboard .accounting-entry-goal-progress.is-complete .accounting-entry-goal-progress-values {
+    color: #6f4b1f;
+}
+
 body.is-dashboard .accounting-entry-goal-payment-drawer-copy span,
 body.is-dashboard .accounting-entry-goal-payment-empty,
 body.is-dashboard .accounting-entry-goal-status {
     color: var(--bexon-text-soft);
+}
+
+body.is-dashboard .accounting-entry-goal-payment-remaining {
+    border-color: rgba(32, 36, 43, 0.08);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(250, 245, 239, 0.92) 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        0 1px 2px rgba(32, 36, 43, 0.04);
+}
+
+body.is-dashboard .accounting-entry-goal-payment-remaining > span {
+    color: var(--bexon-text-soft);
+}
+
+body.is-dashboard .accounting-entry-goal-payment-remaining > strong {
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .accounting-entry-goal-payment-remaining.is-complete {
+    border-color: rgba(var(--color-accent-500-rgb), 0.24);
+    background:
+        linear-gradient(180deg, rgba(255, 252, 244, 0.98) 0%, rgba(249, 240, 215, 0.94) 100%);
+}
+
+body.is-dashboard .accounting-entry-goal-payment-remaining.is-complete > strong {
+    color: #7a5228;
 }
 
 body.is-dashboard .accounting-entry-goal-payment-close {
@@ -4861,6 +4908,36 @@ body.is-dashboard .accounting-card.is-income-card .accounting-totals div.is-posi
     border-color: rgba(79, 148, 119, 0.22);
 }
 
+body.is-dashboard .accounting-card.is-expense-card .accounting-totals .is-expense-total {
+    border-color: rgba(176, 104, 92, 0.22);
+    background: linear-gradient(180deg, rgba(255, 248, 246, 0.98) 0%, rgba(249, 240, 236, 0.95) 100%);
+}
+
+body.is-dashboard .accounting-card.is-expense-card .accounting-totals .is-expense-total dt,
+body.is-dashboard .accounting-card.is-expense-card .accounting-totals .is-expense-total .accounting-total-secondary,
+body.is-dashboard .accounting-card.is-expense-card .accounting-totals .is-expense-total .accounting-total-separator {
+    color: #9a6960;
+}
+
+body.is-dashboard .accounting-card.is-expense-card .accounting-totals .is-expense-total .accounting-total-main {
+    color: #a35650;
+}
+
+body.is-dashboard .accounting-card.is-income-card .accounting-totals .is-income-total {
+    border-color: rgba(76, 140, 110, 0.2);
+    background: linear-gradient(180deg, rgba(246, 252, 248, 0.98) 0%, rgba(236, 246, 240, 0.95) 100%);
+}
+
+body.is-dashboard .accounting-card.is-income-card .accounting-totals .is-income-total dt,
+body.is-dashboard .accounting-card.is-income-card .accounting-totals .is-income-total .accounting-total-secondary,
+body.is-dashboard .accounting-card.is-income-card .accounting-totals .is-income-total .accounting-total-separator {
+    color: #5e7e68;
+}
+
+body.is-dashboard .accounting-card.is-income-card .accounting-totals .is-income-total .accounting-total-main {
+    color: #3f7d61;
+}
+
 body.is-dashboard .accounting-totals dt,
 body.is-dashboard .accounting-balance-values dt {
     color: var(--bexon-muted);
@@ -4884,14 +4961,29 @@ body.is-dashboard .accounting-balance-values {
 body.is-dashboard .accounting-balance-values div,
 body.is-dashboard .accounting-balance-values div.is-final {
     min-height: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
+    border-radius: 16px;
+    border: 1px solid rgba(32, 36, 43, 0.08);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 251, 0.92) 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 1px 2px rgba(32, 36, 43, 0.04);
 }
 
 body.is-dashboard .accounting-balance-values dd {
     color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .accounting-balance-values div.is-current dt {
+    color: var(--bexon-muted);
+}
+
+body.is-dashboard .accounting-balance-values div.is-current dd {
+    color: var(--bexon-text-strong);
+}
+
+body.is-dashboard .accounting-balance-values div.is-current.is-negative dt,
+body.is-dashboard .accounting-balance-values div.is-current.is-negative dd {
+    color: #9d5a56;
 }
 
 body.is-dashboard .accounting-balance-values div.is-final.is-positive dt,
