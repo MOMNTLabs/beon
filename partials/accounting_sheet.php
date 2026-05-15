@@ -1,3 +1,30 @@
+            <?php
+            $renderAccountingMoney = static function (string $amountLabel, string $extraClass = ''): string {
+                $normalized = trim($amountLabel);
+                if ($normalized === '') {
+                    $normalized = 'R$ 0,00';
+                }
+
+                $className = trim('accounting-money ' . $extraClass);
+                if (preg_match('/^(-?\s*R\$)?\s*([\d\.]+)(,\d{2})$/u', $normalized, $matches)) {
+                    $prefix = trim((string) ($matches[1] ?? ''));
+                    $major = (string) ($matches[2] ?? '0');
+                    $minor = (string) ($matches[3] ?? ',00');
+
+                    return sprintf(
+                        '<span class="%s">%s<span class="accounting-money-major">%s</span><span class="accounting-money-minor">%s</span></span>',
+                        e($className),
+                        $prefix !== ''
+                            ? '<span class="accounting-money-prefix">' . e($prefix) . '</span>'
+                            : '',
+                        e($major),
+                        e($minor)
+                    );
+                }
+
+                return '<span class="' . e($className) . '">' . e($normalized) . '</span>';
+            };
+            ?>
             <div class="accounting-sheet">
                 <div class="accounting-columns">
                     <section class="accounting-card is-expense-card<?= empty($accountingExpenseEntries) ? ' is-empty' : '' ?>">
@@ -109,10 +136,10 @@
                                                     class="accounting-entry-summary-amount accounting-entry-summary-amount-goal"
                                                     aria-label="Pago no m&ecirc;s <?= e($accountingEntryGoalPaymentDisplay) ?>"
                                                 >
-                                                    <?= e($accountingEntryGoalPaymentDisplay) ?>
+                                                    <?= $renderAccountingMoney($accountingEntryGoalPaymentDisplay) ?>
                                                 </span>
                                             <?php else: ?>
-                                                <span class="accounting-entry-summary-amount"><?= e($accountingEntryAmountInput) ?></span>
+                                                <span class="accounting-entry-summary-amount"><?= $renderAccountingMoney($accountingEntryAmountInput) ?></span>
                                             <?php endif; ?>
                                         </button>
                                         <?php if ($accountingEntryIsMonthlyGoal): ?>
@@ -139,7 +166,7 @@
                                                             aria-label="Falta <?= e($accountingEntryGoalRemainingDisplay) ?> para concluir a meta"
                                                         >
                                                             <span>Falta</span>
-                                                            <strong><?= e($accountingEntryGoalRemainingDisplay) ?></strong>
+                                                            <strong><?= $renderAccountingMoney($accountingEntryGoalRemainingDisplay) ?></strong>
                                                         </div>
                                                         <button
                                                             type="button"
@@ -181,7 +208,7 @@
                                                             ?>
                                                             <div class="accounting-entry-goal-payment-item">
                                                                 <div class="accounting-entry-goal-payment-item-main">
-                                                                    <strong><?= e($goalPaymentHistoryAmountDisplay) ?></strong>
+                                                                    <strong><?= $renderAccountingMoney($goalPaymentHistoryAmountDisplay) ?></strong>
                                                                     <time datetime="<?= e($goalPaymentHistoryCreatedAt) ?>"><?= e($goalPaymentHistoryCreatedAtDisplay) ?></time>
                                                                 </div>
                                                                 <form method="post" class="accounting-entry-goal-payment-delete-form" data-accounting-goal-payment-delete-form>
@@ -454,16 +481,26 @@
                                 </form>
                             </details>
 
+                            <?php
+                            $accountingExpenseTotalCents = max(0, (int) ($accountingSummary['expense_total_cents'] ?? 0));
+                            $accountingExpensePaidCents = max(0, (int) ($accountingSummary['expense_paid_cents'] ?? 0));
+                            $accountingHideExpensePaidTotal = $accountingExpenseTotalCents > 0
+                                && $accountingExpensePaidCents >= $accountingExpenseTotalCents;
+                            ?>
                             <dl class="accounting-totals is-single">
                                 <div class="is-expense-total">
                                     <dt>Total</dt>
                                     <dd
                                         class="accounting-total-pair"
-                                        aria-label="Pago <?= e((string) ($accountingSummary['expense_paid_display'] ?? 'R$ 0,00')) ?> de <?= e((string) ($accountingSummary['expense_total_display'] ?? 'R$ 0,00')) ?>"
+                                        aria-label="<?= $accountingHideExpensePaidTotal
+                                            ? ('Total pago ' . e((string) ($accountingSummary['expense_total_display'] ?? 'R$ 0,00')))
+                                            : ('Pago ' . e((string) ($accountingSummary['expense_paid_display'] ?? 'R$ 0,00')) . ' de ' . e((string) ($accountingSummary['expense_total_display'] ?? 'R$ 0,00'))) ?>"
                                     >
-                                        <span class="accounting-total-secondary"><?= e((string) ($accountingSummary['expense_paid_display'] ?? 'R$ 0,00')) ?></span>
-                                        <span class="accounting-total-separator">/</span>
-                                        <strong class="accounting-total-main"><?= e((string) ($accountingSummary['expense_total_display'] ?? 'R$ 0,00')) ?></strong>
+                                        <?php if (!$accountingHideExpensePaidTotal): ?>
+                                            <span class="accounting-total-secondary"><?= $renderAccountingMoney((string) ($accountingSummary['expense_paid_display'] ?? 'R$ 0,00')) ?></span>
+                                            <span class="accounting-total-separator">/</span>
+                                        <?php endif; ?>
+                                        <strong class="accounting-total-main"><?= $renderAccountingMoney((string) ($accountingSummary['expense_total_display'] ?? 'R$ 0,00')) ?></strong>
                                     </dd>
                                 </div>
                             </dl>
@@ -520,7 +557,7 @@
                                                     </span>
                                                 <?php endif; ?>
                                             </span>
-                                            <span class="accounting-entry-summary-amount"><?= e($accountingEntryAmountInput) ?></span>
+                                            <span class="accounting-entry-summary-amount"><?= $renderAccountingMoney($accountingEntryAmountInput) ?></span>
                                         </button>
                                         <form method="post" class="accounting-entry-quick-status-form" data-accounting-form>
                                             <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
@@ -733,16 +770,26 @@
                                 </form>
                             </details>
 
+                            <?php
+                            $accountingIncomeTotalCents = max(0, (int) ($accountingSummary['income_total_cents'] ?? 0));
+                            $accountingIncomeReceivedCents = max(0, (int) ($accountingSummary['income_received_cents'] ?? 0));
+                            $accountingHideIncomeReceivedTotal = $accountingIncomeTotalCents > 0
+                                && $accountingIncomeReceivedCents >= $accountingIncomeTotalCents;
+                            ?>
                             <dl class="accounting-totals is-single">
                                 <div class="is-income-total">
                                     <dt>Total</dt>
                                     <dd
                                         class="accounting-total-pair"
-                                        aria-label="Recebido <?= e((string) ($accountingSummary['income_received_display'] ?? 'R$ 0,00')) ?> de <?= e((string) ($accountingSummary['income_total_display'] ?? 'R$ 0,00')) ?>"
+                                        aria-label="<?= $accountingHideIncomeReceivedTotal
+                                            ? ('Total recebido ' . e((string) ($accountingSummary['income_total_display'] ?? 'R$ 0,00')))
+                                            : ('Recebido ' . e((string) ($accountingSummary['income_received_display'] ?? 'R$ 0,00')) . ' de ' . e((string) ($accountingSummary['income_total_display'] ?? 'R$ 0,00'))) ?>"
                                     >
-                                        <span class="accounting-total-secondary"><?= e((string) ($accountingSummary['income_received_display'] ?? 'R$ 0,00')) ?></span>
-                                        <span class="accounting-total-separator">/</span>
-                                        <strong class="accounting-total-main"><?= e((string) ($accountingSummary['income_total_display'] ?? 'R$ 0,00')) ?></strong>
+                                        <?php if (!$accountingHideIncomeReceivedTotal): ?>
+                                            <span class="accounting-total-secondary"><?= $renderAccountingMoney((string) ($accountingSummary['income_received_display'] ?? 'R$ 0,00')) ?></span>
+                                            <span class="accounting-total-separator">/</span>
+                                        <?php endif; ?>
+                                        <strong class="accounting-total-main"><?= $renderAccountingMoney((string) ($accountingSummary['income_total_display'] ?? 'R$ 0,00')) ?></strong>
                                     </dd>
                                 </div>
                             </dl>
@@ -799,11 +846,11 @@
                     <dl class="accounting-balance-values">
                         <div class="is-current<?= e($accountingCurrentBalanceClass) ?>">
                             <dt>Saldo atual</dt>
-                            <dd><?= e((string) ($accountingSummary['current_balance_display'] ?? 'R$ 0,00')) ?></dd>
+                            <dd><?= $renderAccountingMoney((string) ($accountingSummary['current_balance_display'] ?? 'R$ 0,00')) ?></dd>
                         </div>
                         <div class="is-final is-projected<?= e($accountingFinalBalanceClass) ?>">
                             <dt>Saldo projetado</dt>
-                            <dd><?= e((string) ($accountingSummary['final_balance_display'] ?? 'R$ 0,00')) ?></dd>
+                            <dd><?= $renderAccountingMoney((string) ($accountingSummary['final_balance_display'] ?? 'R$ 0,00')) ?></dd>
                         </div>
                     </dl>
                 </section>
