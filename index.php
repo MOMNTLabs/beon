@@ -357,6 +357,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         verifyCsrf();
+        if (appReleaseMismatch($pdo)) {
+            $staleMessage = staleAppEditingMessage();
+            if (requestExpectsJson()) {
+                respondJson([
+                    'ok' => false,
+                    'error' => $staleMessage,
+                    'code' => 'stale_app_release',
+                    'reload' => true,
+                    'app_release_id' => currentAppReleaseId($pdo),
+                ], 409);
+            }
+
+            flash('error', $staleMessage);
+            redirectTo(currentRequestQuerySuffix());
+        }
 
         switch ($action) {
 
@@ -391,6 +406,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Ação inválida.');
         }
     } catch (Throwable $e) {
+        if (appReleaseMismatch($pdo)) {
+            $staleMessage = staleAppEditingMessage();
+            if (requestExpectsJson()) {
+                respondJson([
+                    'ok' => false,
+                    'error' => $staleMessage,
+                    'code' => 'stale_app_release',
+                    'reload' => true,
+                    'app_release_id' => currentAppReleaseId($pdo),
+                ], 409);
+            }
+
+            flash('error', $staleMessage);
+            redirectTo(currentRequestQuerySuffix());
+        }
+
         if (requestExpectsJson()) {
             respondJson([
                 'ok' => false,
@@ -655,6 +686,7 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
 $appAssetVersion = is_file(__DIR__ . '/assets/app.js')
     ? (string) filemtime(__DIR__ . '/assets/app.js')
     : '1';
+$appReleaseId = currentAppReleaseId($pdo);
 $loadingAssetVersion = is_file(__DIR__ . '/assets/loading.js')
     ? (string) filemtime(__DIR__ . '/assets/loading.js')
     : '1';
@@ -775,6 +807,7 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
 </head>
 <body
     class="<?= $renderAuthScreen ? 'is-auth' : ($renderPlansScreen ? 'is-plans' : 'is-dashboard') ?>"
+    data-app-release-id="<?= e($appReleaseId) ?>"
     data-default-group-name="<?= e((string) $defaultTaskGroupName) ?>"
     data-workspace-id="<?= e((string) (($renderAuthScreen || $renderPlansScreen) ? '' : ($currentWorkspaceId ?? ''))) ?>"
     data-user-id="<?= e((string) ($renderAuthScreen ? '' : ($currentUser['id'] ?? ''))) ?>"

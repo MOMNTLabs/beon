@@ -974,6 +974,95 @@ function appMetaSet(PDO $pdo, string $metaKey, string $metaValue): void
     ]);
 }
 
+function appReleaseFallbackId(): string
+{
+    static $fallbackId = null;
+    if (is_string($fallbackId) && $fallbackId !== '') {
+        return $fallbackId;
+    }
+
+    $paths = [
+        __DIR__ . '/index.php',
+        __DIR__ . '/bootstrap.php',
+        __DIR__ . '/assets/app.js',
+        __DIR__ . '/handlers/post_tasks.php',
+        __DIR__ . '/handlers/post_accounting.php',
+    ];
+    $parts = [];
+    foreach ($paths as $path) {
+        $parts[] = is_file($path) ? (string) filemtime($path) : '0';
+    }
+
+    $fallbackId = sha1(implode('|', $parts));
+    return $fallbackId;
+}
+
+function currentAppReleaseId(?PDO $pdo = null): string
+{
+    static $cachedByDriver = [];
+
+    $fallbackId = appReleaseFallbackId();
+    $driverKey = 'fallback';
+    if ($pdo instanceof PDO) {
+        $driverKey = 'pdo:' . spl_object_id($pdo);
+    }
+
+    if (isset($cachedByDriver[$driverKey]) && trim((string) $cachedByDriver[$driverKey]) !== '') {
+        return (string) $cachedByDriver[$driverKey];
+    }
+
+    if (!$pdo instanceof PDO) {
+        try {
+            $pdo = db();
+            $driverKey = 'pdo:' . spl_object_id($pdo);
+            if (isset($cachedByDriver[$driverKey]) && trim((string) $cachedByDriver[$driverKey]) !== '') {
+                return (string) $cachedByDriver[$driverKey];
+            }
+        } catch (Throwable $_error) {
+            $cachedByDriver[$driverKey] = $fallbackId;
+            return $fallbackId;
+        }
+    }
+
+    try {
+        $storedValue = trim((string) (appMetaGet($pdo, 'app_release_id') ?? ''));
+        if ($storedValue !== '') {
+            $cachedByDriver[$driverKey] = $storedValue;
+            return $storedValue;
+        }
+    } catch (Throwable $_error) {
+        // Fall back to file-based release id when app_meta is unavailable.
+    }
+
+    $cachedByDriver[$driverKey] = $fallbackId;
+    return $fallbackId;
+}
+
+function requestAppReleaseId(): string
+{
+    $headerValue = trim((string) ($_SERVER['HTTP_X_APP_RELEASE_ID'] ?? ''));
+    if ($headerValue !== '') {
+        return $headerValue;
+    }
+
+    return trim((string) ($_POST['__app_release_id'] ?? ''));
+}
+
+function appReleaseMismatch(?PDO $pdo = null): bool
+{
+    $requestReleaseId = requestAppReleaseId();
+    if ($requestReleaseId === '') {
+        return false;
+    }
+
+    return !hash_equals(currentAppReleaseId($pdo), $requestReleaseId);
+}
+
+function staleAppEditingMessage(): string
+{
+    return 'O app foi atualizado enquanto você editava. Recarregue a página para continuar.';
+}
+
 function ensureWorkspaceSchema(PDO $pdo): void
 {
     $driver = dbDriverName($pdo);

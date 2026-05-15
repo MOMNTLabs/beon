@@ -4204,13 +4204,18 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const postFormJson = async (form) => runWithAppLoading(async () => {
     const runAttempt = async () => {
+      const requestBody = new FormData(form);
+      const appReleaseId = getCurrentAppReleaseId();
+      if (appReleaseId) {
+        requestBody.set("__app_release_id", appReleaseId);
+      }
       const response = await fetch(form.getAttribute("action") || window.location.href, {
         method: "POST",
-        body: new FormData(form),
-        headers: {
+        body: requestBody,
+        headers: buildAppReleaseRequestHeaders({
           "X-Requested-With": "XMLHttpRequest",
           Accept: "application/json",
-        },
+        }),
         credentials: "same-origin",
       });
 
@@ -4233,7 +4238,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
       const shouldRetry = attempt === 0 && isDatabaseLockedMessage(message);
       if (!shouldRetry) {
-        throw createRequestError(message, response, data);
+        const requestError = createRequestError(message, response, data);
+        if (handleStaleAppReloadRecovery(requestError, { form })) {
+          return new Promise(() => {});
+        }
+        throw requestError;
       }
 
       await new Promise((resolve) => window.setTimeout(resolve, 180));
@@ -4249,14 +4258,18 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!key || value === undefined || value === null) return;
       formData.append(key, String(value));
     });
+    const appReleaseId = getCurrentAppReleaseId();
+    if (appReleaseId) {
+      formData.set("__app_release_id", appReleaseId);
+    }
 
     const response = await fetch(window.location.pathname, {
       method: "POST",
       body: formData,
-      headers: {
+      headers: buildAppReleaseRequestHeaders({
         "X-Requested-With": "XMLHttpRequest",
         Accept: "application/json",
-      },
+      }),
       credentials: "same-origin",
     });
 
@@ -4265,6 +4278,14 @@ window.addEventListener("DOMContentLoaded", () => {
       data = await response.json();
     } catch (_error) {
       data = null;
+    }
+    if (!response.ok || !data || data.ok !== true) {
+      const requestMessage =
+        (data && (data.error || data.message)) || "NÃ£o foi possÃ­vel concluir a operaÃ§Ã£o.";
+      const requestError = createRequestError(requestMessage, response, data);
+      if (handleStaleAppReloadRecovery(requestError)) {
+        return new Promise(() => {});
+      }
     }
 
     if (!response.ok || !data || data.ok !== true) {
@@ -10440,6 +10461,628 @@ window.addEventListener("DOMContentLoaded", () => {
     return true;
   };
 
+  const appReloadResumeStorageKey = "wf_app_reload_resume_v1";
+  const appReloadResumeMaxAgeMs = 5 * 60 * 1000;
+  const staleAppFlashFragment = "o app foi atualizado enquanto você editava";
+
+  const getCurrentAppPath = () => `${window.location.pathname}${window.location.search || ""}`;
+
+  const getCurrentAppReleaseId = () =>
+    String(document.body?.dataset.appReleaseId || "").trim();
+
+  const isPostForm = (form) =>
+    form instanceof HTMLFormElement &&
+    String(form.getAttribute("method") || form.method || "get").trim().toUpperCase() === "POST";
+
+  const buildAppReleaseRequestHeaders = (headers = {}) => {
+    const nextHeaders = { ...(headers || {}) };
+    const appReleaseId = getCurrentAppReleaseId();
+    if (appReleaseId) {
+      nextHeaders["X-App-Release-Id"] = appReleaseId;
+    }
+    return nextHeaders;
+  };
+
+  const ensureAppReleaseField = (form) => {
+    if (!isPostForm(form)) return null;
+    const appReleaseId = getCurrentAppReleaseId();
+    if (!appReleaseId) return null;
+
+    let field = form.querySelector('input[name="__app_release_id"]');
+    if (!(field instanceof HTMLInputElement)) {
+      field = document.createElement("input");
+      field.type = "hidden";
+      field.name = "__app_release_id";
+      form.append(field);
+    }
+
+    field.value = appReleaseId;
+    return field;
+  };
+
+  const syncAppReleaseFields = (scope = document) => {
+    const root = scope instanceof Element || scope instanceof Document ? scope : document;
+    root.querySelectorAll("form").forEach((form) => {
+      ensureAppReleaseField(form);
+    });
+  };
+
+  const escapeFormFieldNameForSelector = (name) => {
+    const raw = String(name || "");
+    if (window.CSS && typeof window.CSS.escape === "function") {
+      return window.CSS.escape(raw);
+    }
+
+    return raw.replace(/["\\]/g, "\\$&");
+  };
+
+  const captureSerializableFormState = (form) => {
+    if (!(form instanceof HTMLFormElement)) return [];
+
+    const visitedNames = new Set();
+    const fields = Array.from(
+      form.querySelectorAll('input[name]:not([type="hidden"]):not([type="file"]), select[name], textarea[name]')
+    );
+    const state = [];
+
+    fields.forEach((field) => {
+      if (
+        !(
+          field instanceof HTMLInputElement ||
+          field instanceof HTMLSelectElement ||
+          field instanceof HTMLTextAreaElement
+        )
+      ) {
+        return;
+      }
+
+      const name = String(field.name || "").trim();
+      if (!name || visitedNames.has(name)) {
+        return;
+      }
+      visitedNames.add(name);
+
+      const siblings = Array.from(
+        form.querySelectorAll(`[name="${escapeFormFieldNameForSelector(name)}"]`)
+      ).filter(
+        (candidate) =>
+          candidate instanceof HTMLInputElement ||
+          candidate instanceof HTMLSelectElement ||
+          candidate instanceof HTMLTextAreaElement
+      );
+      if (!siblings.length) {
+        return;
+      }
+
+      const firstField = siblings[0];
+      if (firstField instanceof HTMLInputElement && (firstField.type === "checkbox" || firstField.type === "radio")) {
+        state.push({
+          name,
+          kind: firstField.type,
+          values: siblings
+            .filter((candidate) => candidate instanceof HTMLInputElement && candidate.checked)
+            .map((candidate) => String(candidate.value || "")),
+        });
+        return;
+      }
+
+      if (firstField instanceof HTMLSelectElement && firstField.multiple) {
+        state.push({
+          name,
+          kind: "select-multiple",
+          values: Array.from(firstField.selectedOptions).map((option) => String(option.value || "")),
+        });
+        return;
+      }
+
+      state.push({
+        name,
+        kind: "value",
+        value: String(firstField.value || ""),
+      });
+    });
+
+    return state;
+  };
+
+  const applySerializableFormState = (form, state = []) => {
+    if (!(form instanceof HTMLFormElement) || !Array.isArray(state)) return;
+
+    state.forEach((entry) => {
+      const name = String(entry?.name || "").trim();
+      if (!name) return;
+
+      const fields = Array.from(
+        form.querySelectorAll(`[name="${escapeFormFieldNameForSelector(name)}"]`)
+      ).filter(
+        (candidate) =>
+          candidate instanceof HTMLInputElement ||
+          candidate instanceof HTMLSelectElement ||
+          candidate instanceof HTMLTextAreaElement
+      );
+      if (!fields.length) return;
+
+      if (entry.kind === "checkbox" || entry.kind === "radio") {
+        const allowedValues = new Set(
+          (Array.isArray(entry.values) ? entry.values : []).map((value) => String(value || ""))
+        );
+        fields.forEach((candidate) => {
+          if (candidate instanceof HTMLInputElement) {
+            candidate.checked = allowedValues.has(String(candidate.value || ""));
+          }
+        });
+        return;
+      }
+
+      if (entry.kind === "select-multiple") {
+        const allowedValues = new Set(
+          (Array.isArray(entry.values) ? entry.values : []).map((value) => String(value || ""))
+        );
+        fields.forEach((candidate) => {
+          if (!(candidate instanceof HTMLSelectElement)) return;
+          Array.from(candidate.options).forEach((option) => {
+            option.selected = allowedValues.has(String(option.value || ""));
+          });
+        });
+        return;
+      }
+
+      const nextValue = String(entry?.value || "");
+      fields.forEach((candidate) => {
+        if (
+          candidate instanceof HTMLInputElement ||
+          candidate instanceof HTMLSelectElement ||
+          candidate instanceof HTMLTextAreaElement
+        ) {
+          candidate.value = nextValue;
+        }
+      });
+    });
+  };
+
+  const clearAppReloadResumeState = () => {
+    if (!canUseSessionStorage()) return;
+    try {
+      window.sessionStorage.removeItem(appReloadResumeStorageKey);
+    } catch (_error) {
+      // noop
+    }
+  };
+
+  const writeAppReloadResumeState = (payload = {}) => {
+    if (!canUseSessionStorage()) return false;
+    try {
+      window.sessionStorage.setItem(
+        appReloadResumeStorageKey,
+        JSON.stringify({
+          createdAt: Date.now(),
+          path: getCurrentAppPath(),
+          payload,
+        })
+      );
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  };
+
+  const readAppReloadResumeState = () => {
+    if (!canUseSessionStorage()) return null;
+
+    try {
+      const raw = window.sessionStorage.getItem(appReloadResumeStorageKey);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed || typeof parsed !== "object") {
+        return null;
+      }
+
+      const createdAt = Math.max(0, Number(parsed.createdAt || 0));
+      if (!createdAt || Date.now() - createdAt > appReloadResumeMaxAgeMs) {
+        return null;
+      }
+
+      const expectedPath = String(parsed.path || "").trim();
+      if (expectedPath !== getCurrentAppPath()) {
+        return null;
+      }
+
+      return parsed.payload && typeof parsed.payload === "object" ? parsed.payload : null;
+    } catch (_error) {
+      return null;
+    }
+  };
+
+  const getPageFlashElements = () =>
+    Array.from(document.querySelectorAll("[data-flash]")).filter((flash) => flash instanceof HTMLElement);
+
+  const hasStaleAppFlash = () =>
+    getPageFlashElements().some((flash) =>
+      String(flash.textContent || "").trim().toLowerCase().includes(staleAppFlashFragment)
+    );
+
+  const clearStaleAppFlashes = () => {
+    getPageFlashElements().forEach((flash) => {
+      const text = String(flash.textContent || "").trim().toLowerCase();
+      if (text.includes(staleAppFlashFragment)) {
+        flash.remove();
+      }
+    });
+  };
+
+  const buildAccountingResumePayload = (form) => {
+    if (!(form instanceof HTMLFormElement)) return null;
+
+    let formKind = "";
+    if (form.matches(".accounting-entry-form")) {
+      formKind = "entry-editor";
+    } else if (form.matches(".accounting-entry-quick-status-form")) {
+      formKind = "quick-status";
+    } else if (form.matches(".accounting-create-form")) {
+      formKind = "create";
+    } else if (form.matches(".accounting-entry-goal-payment-add-form")) {
+      formKind = "goal-payment-add";
+    } else if (form.matches(".accounting-opening-balance-form")) {
+      formKind = "opening-balance";
+    } else {
+      return null;
+    }
+
+    const entryIdField = form.querySelector('input[name="entry_id"]');
+    const entryTypeField = form.querySelector('[data-accounting-type-select], input[name="entry_type"]');
+    const card = form.closest(".accounting-card");
+    const cardType =
+      card instanceof HTMLElement && card.classList.contains("is-income-card") ? "income" : "expense";
+
+    return {
+      kind: "accounting-form",
+      formKind,
+      entryId:
+        entryIdField instanceof HTMLInputElement
+          ? Math.max(0, Number.parseInt(String(entryIdField.value || "0"), 10) || 0)
+          : 0,
+      cardType,
+      entryType:
+        entryTypeField instanceof HTMLInputElement || entryTypeField instanceof HTMLSelectElement
+          ? String(entryTypeField.value || "").trim()
+          : cardType === "income"
+            ? "income"
+            : "expense",
+      state: captureSerializableFormState(form),
+      autoRetry: true,
+    };
+  };
+
+  const locateAccountingResumeForm = (payload) => {
+    if (!payload || payload.kind !== "accounting-form") return null;
+
+    if (payload.formKind === "entry-editor") {
+      const entryIdField = document.querySelector(
+        `.accounting-entry-editor-form input[name="entry_id"][value="${payload.entryId}"]`
+      );
+      const entryRow = entryIdField?.closest(".accounting-entry-row");
+      if (!(entryRow instanceof HTMLElement)) return null;
+      openAccountingEntryEditor(entryRow);
+      return entryRow.querySelector(".accounting-entry-editor-form");
+    }
+
+    if (payload.formKind === "quick-status") {
+      const entryIdField = document.querySelector(
+        `.accounting-entry-quick-status-form input[name="entry_id"][value="${payload.entryId}"]`
+      );
+      return entryIdField?.closest("form") || null;
+    }
+
+    if (payload.formKind === "goal-payment-add") {
+      const entryIdField = document.querySelector(
+        `.accounting-entry-goal-payment-add-form input[name="entry_id"][value="${payload.entryId}"]`
+      );
+      const entryRow = entryIdField?.closest(".accounting-entry-row");
+      if (!(entryRow instanceof HTMLElement)) return null;
+      openAccountingGoalPaymentForm(entryRow);
+      return entryRow.querySelector(".accounting-entry-goal-payment-add-form");
+    }
+
+    if (payload.formKind === "opening-balance") {
+      openAccountingOpeningBalanceEditor();
+      return document.querySelector(".accounting-opening-balance-form");
+    }
+
+    if (payload.formKind === "create") {
+      const card = document.querySelector(
+        payload.cardType === "income" ? ".accounting-card.is-income-card" : ".accounting-card.is-expense-card"
+      );
+      const toggle = card?.querySelector("details.accounting-create-toggle");
+      if (!(toggle instanceof HTMLDetailsElement)) return null;
+      toggle.open = true;
+      focusAccountingCreateLabelField(toggle);
+      return toggle.querySelector(".accounting-create-form");
+    }
+
+    return null;
+  };
+
+  const retryAccountingResumePayload = (payload, form) => {
+    if (!(form instanceof HTMLFormElement) || !payload?.autoRetry) return;
+
+    if (payload.formKind === "entry-editor" || payload.formKind === "quick-status") {
+      void submitAccountingAutosaveForm(form, {
+        fallbackError: "Falha ao atualizar registro.",
+      }).catch(() => {});
+      return;
+    }
+
+    if (payload.formKind === "create") {
+      const isIncome =
+        String(
+          form.querySelector('[data-accounting-type-select], input[name="entry_type"]')?.value || payload.entryType || ""
+        ).trim() === "income";
+      void submitAccountingActionForm(form, {
+        successMessage: isIncome ? "Entrada adicionada." : "Conta adicionada.",
+        fallbackError: isIncome ? "Falha ao adicionar entrada." : "Falha ao adicionar conta.",
+        refresh: true,
+      }).catch(() => {});
+      return;
+    }
+
+    if (payload.formKind === "goal-payment-add") {
+      void submitAccountingActionForm(form, {
+        successMessage: "Pagamento adicionado.",
+        fallbackError: "Falha ao adicionar pagamento.",
+        refresh: true,
+      }).catch(() => {});
+      return;
+    }
+
+    if (payload.formKind === "opening-balance") {
+      void submitAccountingActionForm(form, {
+        successMessage: "Saldo atualizado.",
+        fallbackError: "Falha ao atualizar saldo.",
+        refresh: true,
+      }).catch(() => {});
+    }
+  };
+
+  const restoreAccountingResumePayload = async (payload) => {
+    const form = locateAccountingResumeForm(payload);
+    if (!(form instanceof HTMLFormElement)) return false;
+
+    applySerializableFormState(form, payload.state);
+    ensureAppReleaseField(form);
+    syncAccountingInstallmentForm(form);
+    form
+      .querySelectorAll(
+        'input[name="amount_value"], input[name="total_amount_value"], input[name="opening_balance_value"], input[name="paid_amount_value"], input[name="payment_amount_value"]'
+      )
+      .forEach((field) => {
+        if (field instanceof HTMLInputElement) {
+          normalizeAccountingCurrencyInputField(field);
+        }
+      });
+
+    if (payload.autoRetry) {
+      window.setTimeout(() => {
+        retryAccountingResumePayload(payload, form);
+      }, 60);
+    }
+
+    return true;
+  };
+
+  const buildTaskAutosaveResumePayload = (form) => {
+    if (!(form instanceof HTMLFormElement)) return null;
+
+    if (
+      taskDetailModal instanceof HTMLElement &&
+      !taskDetailModal.hidden &&
+      taskDetailModal.classList.contains("is-editing") &&
+      taskDetailContext?.form === form
+    ) {
+      const draft = captureTaskDetailDraftState();
+      if (draft) {
+        return {
+          kind: "task-detail-draft",
+          draft,
+          autoRetry: true,
+        };
+      }
+    }
+
+    const taskIdField = form.querySelector('input[name="task_id"]');
+    const taskId =
+      taskIdField instanceof HTMLInputElement
+        ? Math.max(0, Number.parseInt(String(taskIdField.value || "0"), 10) || 0)
+        : 0;
+    if (!(taskId > 0)) {
+      return null;
+    }
+
+    return {
+      kind: "task-row-form",
+      taskId,
+      state: captureSerializableFormState(form),
+      autoRetry: true,
+    };
+  };
+
+  const restoreTaskResumePayload = async (payload) => {
+    if (!payload || typeof payload !== "object") return false;
+
+    if (payload.kind === "task-detail-draft") {
+      const restored = await restoreTaskDetailDraftState(payload.draft);
+      if (restored && payload.autoRetry && taskDetailContext) {
+        const rowSynced = copyTaskDetailModalToRow(taskDetailContext);
+        if (rowSynced) {
+          scheduleTaskAutosave(taskDetailContext.form, 60);
+        }
+      }
+      return restored;
+    }
+
+    if (payload.kind !== "task-row-form") {
+      return false;
+    }
+
+    const taskItem = document.getElementById(`task-${payload.taskId}`);
+    const form = taskItem?.querySelector?.("[data-task-autosave-form]");
+    if (!(form instanceof HTMLFormElement)) {
+      return false;
+    }
+
+    applySerializableFormState(form, payload.state);
+    ensureAppReleaseField(form);
+    form.querySelectorAll('select[name="status"], select[name="priority"]').forEach((select) => {
+      if (select instanceof HTMLSelectElement) {
+        syncSelectColor(select);
+      }
+    });
+    form.querySelectorAll('input[name="due_date"]').forEach((input) => {
+      if (input instanceof HTMLInputElement) {
+        syncDueDateDisplay(input);
+      }
+    });
+    form.querySelectorAll(".row-assignee-picker").forEach((picker) => {
+      if (picker instanceof HTMLDetailsElement) {
+        updateAssigneePickerSummaryVisual(picker);
+      }
+    });
+
+    if (payload.autoRetry) {
+      scheduleTaskAutosave(form, 60);
+    }
+
+    return true;
+  };
+
+  const buildCreateTaskResumePayload = () => {
+    const draft = captureCreateTaskDraftState();
+    if (!draft) {
+      return null;
+    }
+
+    return {
+      kind: "create-task-draft",
+      draft,
+      autoRetry: false,
+    };
+  };
+
+  const restoreCreateTaskResumePayload = async (payload) => {
+    if (!payload || payload.kind !== "create-task-draft") {
+      return false;
+    }
+
+    return restoreCreateTaskDraftState(payload.draft);
+  };
+
+  const buildAppReloadResumePayloadFromForm = (form) => {
+    if (!(form instanceof HTMLFormElement)) {
+      return null;
+    }
+
+    if (form.matches("[data-task-autosave-form]")) {
+      return buildTaskAutosaveResumePayload(form);
+    }
+
+    if (
+      form.matches(
+        ".accounting-entry-form, .accounting-entry-quick-status-form, .accounting-create-form, .accounting-entry-goal-payment-add-form, .accounting-opening-balance-form"
+      )
+    ) {
+      return buildAccountingResumePayload(form);
+    }
+
+    if (form.matches("[data-create-task-form]")) {
+      return buildCreateTaskResumePayload();
+    }
+
+    return null;
+  };
+
+  const stageAppReloadResumeFromForm = (form, { trigger = "reload" } = {}) => {
+    const payload = buildAppReloadResumePayloadFromForm(form);
+    if (!payload) {
+      return false;
+    }
+
+    return writeAppReloadResumeState({
+      trigger,
+      payload,
+    });
+  };
+
+  const isStaleAppReloadError = (error) => {
+    if (!(error instanceof Error)) return false;
+
+    const status = Math.max(0, Number.parseInt(String(error.status || "0"), 10) || 0);
+    const payload = error.payload && typeof error.payload === "object" ? error.payload : {};
+    const code = String(payload.code || "").trim().toLowerCase();
+    const message = String(error.message || "").trim().toLowerCase();
+
+    return (
+      code === "stale_app_release" ||
+      (status === 409 && message.includes("app foi atualizado")) ||
+      message.includes("token csrf") ||
+      message.includes("sessão expirada")
+    );
+  };
+
+  const handleStaleAppReloadRecovery = (error, { form = null } = {}) => {
+    if (!isStaleAppReloadError(error)) {
+      return false;
+    }
+
+    if (form instanceof HTMLFormElement) {
+      stageAppReloadResumeFromForm(form, { trigger: "reload" });
+    }
+
+    window.location.assign(getCurrentAppPath());
+    return true;
+  };
+
+  const restoreAppReloadResumePayload = async (payload) => {
+    if (!payload || typeof payload !== "object") {
+      return false;
+    }
+
+    if (payload.kind === "accounting-form") {
+      return restoreAccountingResumePayload(payload);
+    }
+
+    if (payload.kind === "task-detail-draft" || payload.kind === "task-row-form") {
+      return restoreTaskResumePayload(payload);
+    }
+
+    if (payload.kind === "create-task-draft") {
+      return restoreCreateTaskResumePayload(payload);
+    }
+
+    return false;
+  };
+
+  const resumePendingAppReloadState = async () => {
+    const state = readAppReloadResumeState();
+    if (!state) {
+      clearAppReloadResumeState();
+      return false;
+    }
+
+    const trigger = String(state.trigger || "reload").trim().toLowerCase();
+    if (trigger === "stale-flash" && !hasStaleAppFlash()) {
+      clearAppReloadResumeState();
+      return false;
+    }
+
+    clearAppReloadResumeState();
+    const restored = await restoreAppReloadResumePayload(state.payload);
+    if (!restored) {
+      return false;
+    }
+
+    clearStaleAppFlashes();
+    showClientFlash("success", "O app foi atualizado e recuperamos sua edição.");
+    return true;
+  };
+
   const captureGoogleDriveBrowserResumePayload = (targetName) => {
     const normalizedTarget = targetName === "task-detail" ? "task-detail" : "create";
     const draft =
@@ -10495,14 +11138,18 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!key || value === undefined || value === null) return;
       formData.append(key, String(value));
     });
+    const appReleaseId = getCurrentAppReleaseId();
+    if (appReleaseId) {
+      formData.set("__app_release_id", appReleaseId);
+    }
 
     const response = await fetch(window.location.pathname, {
       method: "POST",
       body: formData,
-      headers: {
+      headers: buildAppReleaseRequestHeaders({
         "X-Requested-With": "XMLHttpRequest",
         Accept: "application/json",
-      },
+      }),
       credentials: "same-origin",
     });
 
@@ -16173,6 +16820,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const initializeAccountingEnhancements = (root = document) => {
     if (!root || typeof root.querySelectorAll !== "function") return;
+    syncAppReleaseFields(root);
 
     root.querySelectorAll("[data-accounting-form]").forEach((form) => {
       if (!(form instanceof HTMLFormElement)) return;
@@ -16237,6 +16885,15 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!isPostForm(form)) return;
+
+    ensureAppReleaseField(form);
+    stageAppReloadResumeFromForm(form, { trigger: "stale-flash" });
+  }, true);
+
+  syncAppReleaseFields(document);
   initializeAccountingEnhancements(document);
 
   if (typeof syncTaskDetailModalFromUrl === "function") {
@@ -16246,7 +16903,10 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  void resumeGoogleDriveBrowserFlowAfterAuth();
+  void (async () => {
+    await resumePendingAppReloadState();
+    await resumeGoogleDriveBrowserFlowAfterAuth();
+  })();
 
   window.addEventListener("popstate", () => {
     if (dashboardViewPanels.length) {

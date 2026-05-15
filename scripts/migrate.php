@@ -25,6 +25,7 @@ if (appUsesProductionGuards()) {
 try {
     $pdo = db();
     migrate($pdo);
+    appMetaSet($pdo, 'app_release_id', generateUuidV4());
 } catch (Throwable $e) {
     fwrite(STDERR, "[error] Migration failed: " . $e->getMessage() . PHP_EOL);
     exit(1);

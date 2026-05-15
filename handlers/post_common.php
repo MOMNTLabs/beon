@@ -16,6 +16,9 @@ function respondJson(array $payload, int $status = 200): void
 {
     http_response_code($status);
     header('Content-Type: application/json; charset=UTF-8');
+    if (function_exists('currentAppReleaseId')) {
+        header('X-App-Release-Id: ' . currentAppReleaseId());
+    }
     echo json_encode($payload, JSON_UNESCAPED_UNICODE);
     exit;
 }
