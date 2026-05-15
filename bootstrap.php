@@ -7938,7 +7938,7 @@ function updateWorkspaceAccountingEntry(
 
         $existingPaidAmountCents = max(0, (int) ($existingPaidAmountCents ?? 0));
         if ($requestedTotalAmountCents < $existingPaidAmountCents) {
-            throw new RuntimeException('O valor total da meta não pode ser menor que o valor já pago.');
+            throw new RuntimeException('O valor total do saldo a quitar não pode ser menor que o valor já pago.');
         }
 
         $amountPayload = resolveAccountingGoalMonthlyState($amountInput, $existingPaidAmountCents);
@@ -8095,7 +8095,7 @@ function syncWorkspaceAccountingGoalPaymentHistory(PDO $pdo, int $workspaceId, i
         throw new RuntimeException('Registro não encontrado.');
     }
     if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
-        throw new RuntimeException('Apenas metas mensais aceitam histórico de pagamentos.');
+        throw new RuntimeException('Apenas itens do tipo saldo a quitar aceitam histórico de pagamentos.');
     }
 
     $startingAmountCents = max(
@@ -8104,7 +8104,7 @@ function syncWorkspaceAccountingGoalPaymentHistory(PDO $pdo, int $workspaceId, i
     );
     $paidAmountCents = workspaceAccountingGoalPaymentTotalCents($pdo, $workspaceId, $entryId);
     if ($paidAmountCents > $startingAmountCents) {
-        throw new RuntimeException('O total pago excede o valor total da meta.');
+        throw new RuntimeException('O total pago excede o valor total do saldo a quitar.');
     }
 
     updateWorkspaceAccountingGoalPayment(
@@ -8134,7 +8134,7 @@ function addWorkspaceAccountingGoalPaymentWithCarrySync(
         throw new RuntimeException('Registro não encontrado.');
     }
     if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
-        throw new RuntimeException('Apenas metas mensais aceitam pagamentos parciais.');
+        throw new RuntimeException('Apenas itens do tipo saldo a quitar aceitam pagamentos parciais.');
     }
 
     $paymentAmountCents = normalizeDueAmountCents($paymentAmountInput);
@@ -8148,7 +8148,7 @@ function addWorkspaceAccountingGoalPaymentWithCarrySync(
     );
     $currentPaidAmountCents = workspaceAccountingGoalPaymentTotalCents($pdo, $workspaceId, $entryId);
     if (($currentPaidAmountCents + $paymentAmountCents) > $startingAmountCents) {
-        throw new RuntimeException('Esse lançamento ultrapassa o valor total da meta.');
+        throw new RuntimeException('Esse lançamento ultrapassa o valor total do saldo a quitar.');
     }
 
     $futureCarryLimit = workspaceAccountingLatestDescendantPeriodKey(
@@ -8215,7 +8215,7 @@ function deleteWorkspaceAccountingGoalPaymentWithCarrySync(PDO $pdo, int $worksp
         throw new RuntimeException('Registro não encontrado.');
     }
     if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
-        throw new RuntimeException('Apenas metas mensais aceitam pagamentos parciais.');
+        throw new RuntimeException('Apenas itens do tipo saldo a quitar aceitam pagamentos parciais.');
     }
 
     $futureCarryLimit = workspaceAccountingLatestDescendantPeriodKey(
@@ -8437,7 +8437,7 @@ function updateWorkspaceAccountingGoalPaymentWithCarrySync(
         throw new RuntimeException('Registro não encontrado.');
     }
     if (((int) ($existingEntry['is_monthly_goal'] ?? 0)) !== 1) {
-        throw new RuntimeException('Apenas metas mensais aceitam pagamentos parciais.');
+        throw new RuntimeException('Apenas itens do tipo saldo a quitar aceitam pagamentos parciais.');
     }
 
     $futureCarryLimit = workspaceAccountingLatestDescendantPeriodKey(

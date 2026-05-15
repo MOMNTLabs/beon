@@ -77,7 +77,7 @@
                                         : 0;
                                     $accountingEntryGoalProgressWidth = number_format($accountingEntryGoalProgressPercent, 2, '.', '');
                                     $accountingEntryMonthlyBadge = $accountingEntryIsMonthlyGoal
-                                        ? 'Meta'
+                                        ? 'Saldo a quitar'
                                         : ($accountingEntryIsMonthlyDue && $accountingEntryMonthlyDay !== null
                                             ? ('Mensal - ' . str_pad((string) $accountingEntryMonthlyDay, 2, '0', STR_PAD_LEFT))
                                             : '');
@@ -134,7 +134,7 @@
                                             <?php if ($accountingEntryIsMonthlyGoal): ?>
                                                 <span
                                                     class="accounting-entry-summary-amount accounting-entry-summary-amount-goal"
-                                                    aria-label="Pago no m&ecirc;s <?= e($accountingEntryGoalPaymentDisplay) ?>"
+                                                    aria-label="Pago at&eacute; agora <?= e($accountingEntryGoalPaymentDisplay) ?>"
                                                 >
                                                     <?= $renderAccountingMoney($accountingEntryGoalPaymentDisplay) ?>
                                                 </span>
@@ -163,7 +163,7 @@
                                                     <div class="accounting-entry-goal-payment-drawer-tools">
                                                         <div
                                                             class="accounting-entry-goal-payment-remaining<?= $accountingEntryGoalIsComplete ? ' is-complete' : '' ?>"
-                                                            aria-label="Falta <?= e($accountingEntryGoalRemainingDisplay) ?> para concluir a meta"
+                                                            aria-label="Falta <?= e($accountingEntryGoalRemainingDisplay) ?> para quitar o saldo"
                                                         >
                                                             <span>Falta</span>
                                                             <strong><?= $renderAccountingMoney($accountingEntryGoalRemainingDisplay) ?></strong>
@@ -290,7 +290,7 @@
                                             <?php if ($accountingEntryIsMonthlyGoal || $accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment || $accountingEntryShowPendingBadge): ?>
                                                 <div class="accounting-entry-meta">
                                                     <?php if ($accountingEntryIsMonthlyGoal): ?>
-                                                        <span class="accounting-entry-goal-status">Os pagamentos do mês são lançados no botão +.</span>
+                                                        <span class="accounting-entry-goal-status">Os pagamentos parciais são lançados no botão +.</span>
                                                     <?php elseif ($accountingEntryMonthlyBadge !== ''): ?>
                                                         <label class="accounting-entry-edit-control is-monthly">
                                                             <span>Mensal -</span>
@@ -387,7 +387,7 @@
                                                     <option value="single">&Uacute;nica</option>
                                                     <option value="installment">Parcelada</option>
                                                     <option value="monthly">Mensal</option>
-                                                    <option value="goal">Meta</option>
+                                                    <option value="goal">Saldo a quitar</option>
                                                 </select>
                                                 <input
                                                     type="checkbox"
@@ -455,7 +455,7 @@
                                                 >
                                                 <div class="accounting-monthly-fields" data-accounting-monthly-fields hidden>
                                                     <div class="accounting-monthly-day-field" data-accounting-monthly-day-field>
-                                                        <span class="accounting-entry-inline-label">Vence no dia</span>
+                                                        <span class="accounting-entry-inline-label">Vencimento</span>
                                                         <select
                                                             name="monthly_day"
                                                             class="accounting-installment-select accounting-monthly-day-select"
@@ -546,16 +546,18 @@
                                             aria-expanded="false"
                                         >
                                             <span class="accounting-entry-summary-main">
-                                                <span class="accounting-entry-summary-title" title="<?= e($accountingEntryLabel) ?>"><?= e($accountingEntryLabel) ?></span>
-                                                <?php if ($accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment): ?>
-                                                    <span class="accounting-entry-summary-meta">
-                                                        <?php if ($accountingEntryMonthlyBadge !== ''): ?>
-                                                            <span class="accounting-entry-badge is-monthly"><?= e($accountingEntryMonthlyBadge) ?></span>
-                                                        <?php elseif ($accountingEntryIsInstallment): ?>
-                                                            <span class="accounting-entry-badge is-installment"><?= e($accountingEntryInstallmentBadge) ?></span>
-                                                        <?php endif; ?>
-                                                    </span>
-                                                <?php endif; ?>
+                                                <span class="accounting-entry-summary-head">
+                                                    <?php if ($accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment): ?>
+                                                        <span class="accounting-entry-summary-meta">
+                                                            <?php if ($accountingEntryMonthlyBadge !== ''): ?>
+                                                                <span class="accounting-entry-badge is-monthly"><?= e($accountingEntryMonthlyBadge) ?></span>
+                                                            <?php elseif ($accountingEntryIsInstallment): ?>
+                                                                <span class="accounting-entry-badge is-installment"><?= e($accountingEntryInstallmentBadge) ?></span>
+                                                            <?php endif; ?>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                    <span class="accounting-entry-summary-title" title="<?= e($accountingEntryLabel) ?>"><?= e($accountingEntryLabel) ?></span>
+                                                </span>
                                             </span>
                                             <span class="accounting-entry-summary-amount"><?= $renderAccountingMoney($accountingEntryAmountInput) ?></span>
                                         </button>
@@ -745,7 +747,7 @@
                                                     <input type="hidden" name="total_amount_value" value="" data-accounting-installment-total-amount disabled>
                                                 </div>
                                                 <div class="accounting-monthly-fields" data-accounting-monthly-fields hidden>
-                                                    <span class="accounting-entry-inline-label">Recebe no dia</span>
+                                                    <span class="accounting-entry-inline-label">Vencimento</span>
                                                     <select
                                                         name="monthly_day"
                                                         class="accounting-installment-select accounting-monthly-day-select"

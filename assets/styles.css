@@ -13912,14 +13912,15 @@ select option:checked,
 }
 
 .accounting-create-form .accounting-entry-options {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    justify-content: flex-start;
 }
 
 .accounting-entry-type-select {
-    flex: 1 1 148px;
-    min-width: 138px;
-    max-width: 220px;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 108px;
+    max-width: 100%;
 }
 
 .accounting-hidden-toggle {
@@ -13929,7 +13930,7 @@ select option:checked,
 .accounting-monthly-fields {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 
@@ -13937,7 +13938,7 @@ select option:checked,
 .accounting-monthly-day-field {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: nowrap;
 }
 
@@ -13994,9 +13995,13 @@ select option:checked,
 }
 
 .accounting-monthly-day-select {
-    width: 84px;
-    min-width: 84px;
-    flex: 0 0 84px;
+    width: 68px;
+    min-width: 68px;
+    flex: 0 0 68px;
+}
+
+.accounting-entry-inline-label {
+    white-space: nowrap;
 }
 
 .accounting-installment-select:focus {
