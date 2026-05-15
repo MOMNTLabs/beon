@@ -285,6 +285,24 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
             </div>
         </header>
 
+        <section class="panel pwa-install-surface pwa-install-dashboard-surface" data-pwa-install-entry="dashboard" hidden>
+            <div class="pwa-install-surface-copy">
+                <span class="pwa-install-surface-eyebrow">Aplicativo</span>
+                <h2>Instale o Bexon como app</h2>
+                <p data-pwa-install-message>
+                    Abra o Bexon em tela cheia e deixe o acesso mais direto no celular.
+                </p>
+            </div>
+            <div class="pwa-install-surface-actions">
+                <button type="button" class="btn btn-mini" data-pwa-install-trigger>
+                    Instalar app
+                </button>
+                <button type="button" class="btn btn-mini btn-ghost" data-pwa-install-dismiss>
+                    Agora nao
+                </button>
+            </div>
+        </section>
+
         <section class="overview-wrap panel" id="overview" data-dashboard-view-panel="overview"<?= $serverSelectedDashboardView !== 'overview' ? ' hidden' : '' ?>>
             <?php if (false): ?>
             <?php
@@ -3729,3 +3747,4 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
         </div>
     </section>
 </div>
+<?php include __DIR__ . '/pwa_install_modal.php'; ?>

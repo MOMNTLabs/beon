@@ -30,6 +30,15 @@
     window.matchMedia?.("(display-mode: standalone)")?.matches === true ||
     window.navigator.standalone === true;
 
+  const userAgent = String(window.navigator.userAgent || "");
+  const isAppleMobile =
+    /iPhone|iPad|iPod/i.test(userAgent) ||
+    (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+  const isAndroidMobile = /Android/i.test(userAgent);
+  const isSafariBrowser =
+    /Safari/i.test(userAgent) &&
+    !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\//i.test(userAgent);
+
   const syncDisplayMode = () => {
     document.documentElement.dataset.displayMode = isStandalone()
       ? "standalone"
@@ -90,56 +99,177 @@
   }
 
   let deferredPrompt = null;
-  let banner = null;
+  const entries = Array.from(document.querySelectorAll("[data-pwa-install-entry]"));
+  const installModal = document.querySelector("[data-pwa-install-modal]");
+  const installModalIntro = installModal?.querySelector("[data-pwa-install-modal-intro]");
+  const installModalSteps = installModal?.querySelector("[data-pwa-install-modal-steps]");
+  const installModalFootnote = installModal?.querySelector("[data-pwa-install-modal-footnote]");
 
-  const removeBanner = () => {
-    if (banner instanceof HTMLElement) {
-      banner.remove();
-    }
-    banner = null;
+  const getInstallMode = () => {
+    if (isStandalone()) return "installed";
+    if (deferredPrompt) return "prompt";
+    if (isAppleMobile && isSafariBrowser) return "ios_safari";
+    if (isAppleMobile) return "ios_other";
+    return "guide";
   };
 
-  const showBanner = () => {
-    if (!(document.body instanceof HTMLBodyElement)) return;
-    if (banner || !deferredPrompt || Date.now() < readDismissUntil()) return;
+  const getModeCopy = (mode) => {
+    switch (mode) {
+      case "prompt":
+        return {
+          message:
+            "Instale o Bexon como aplicativo para abrir mais rapido e usar o painel em tela cheia.",
+          triggerLabel: "Instalar app",
+        };
+      case "ios_safari":
+        return {
+          message:
+            "No iPhone, a instalacao e feita pelo menu Compartilhar do Safari. O botao abaixo mostra o caminho.",
+          triggerLabel: "Adicionar a Tela de Inicio",
+        };
+      case "ios_other":
+        return {
+          message:
+            "No iPhone, a instalacao do Bexon precisa ser feita no Safari. O botao abaixo mostra como seguir.",
+          triggerLabel: "Ver como instalar",
+        };
+      case "guide":
+        return {
+          message:
+            "A instalacao do Bexon depende do navegador do celular. O botao abaixo mostra o caminho recomendado.",
+          triggerLabel: "Como instalar",
+        };
+      default:
+        return {
+          message: "",
+          triggerLabel: "Instalar app",
+        };
+    }
+  };
 
-    const wrapper = document.createElement("section");
-    wrapper.className = "pwa-install-banner";
-    wrapper.setAttribute("aria-label", "Instalar aplicativo");
+  const getInstructionContent = (mode) => {
+    if (mode === "guide") {
+      if (isAndroidMobile) {
+        return {
+          intro:
+            "Neste navegador, o Bexon nao recebeu um prompt nativo de instalacao. Ainda assim, voce pode instalar manualmente.",
+          steps: [
+            "Abra o menu do navegador.",
+            "Procure por \"Instalar app\" ou \"Adicionar a tela inicial\".",
+            "Confirme a instalacao para salvar o Bexon como app.",
+          ],
+          footnote:
+            "Se essa opcao nao aparecer, abra o Bexon no Chrome ou Edge do Android.",
+        };
+      }
 
-    const copy = document.createElement("div");
-    copy.className = "pwa-install-banner-copy";
+      return {
+        intro:
+          "A instalacao do Bexon precisa ser concluida em um navegador compativel no celular.",
+        steps: [
+          "No Android, abra o Bexon no Chrome ou Edge.",
+          "No iPhone, abra o Bexon no Safari.",
+          "No navegador escolhido, use a opcao \"Instalar app\" ou \"Adicionar a Tela de Inicio\".",
+        ],
+        footnote:
+          "Em navegador interno, desktop ou contextos sem suporte ao prompt, a instalacao nao aparece diretamente aqui.",
+      };
+    }
 
-    const title = document.createElement("strong");
-    title.textContent = "Instale o Bexon";
+    if (mode === "ios_other") {
+      return {
+        intro:
+          "A instalacao do Bexon no iPhone precisa ser concluida no Safari.",
+        steps: [
+          "Abra esta mesma pagina no Safari.",
+          "No Safari, toque no botao Compartilhar.",
+          "Escolha \"Adicionar a Tela de Inicio\".",
+          "Confirme o nome do app e toque em \"Adicionar\".",
+        ],
+        footnote:
+          "Chrome e Edge no iPhone nao disparam o prompt de instalacao do PWA por conta propria.",
+      };
+    }
 
-    const text = document.createElement("p");
-    text.textContent =
-      "Abrir o Bexon como aplicativo deixa o acesso mais rapido e separado do navegador.";
+    return {
+      intro:
+        "No iPhone, a instalacao do Bexon e feita pelo menu do Safari.",
+      steps: [
+        "Toque no botao Compartilhar do Safari.",
+        "Escolha \"Adicionar a Tela de Inicio\".",
+        "Confirme o nome do app e toque em \"Adicionar\".",
+      ],
+      footnote: "",
+    };
+  };
 
-    copy.append(title, text);
+  const setModalOpen = (open) => {
+    if (!(installModal instanceof HTMLElement) || !(document.body instanceof HTMLBodyElement)) {
+      return;
+    }
 
-    const actions = document.createElement("div");
-    actions.className = "pwa-install-banner-actions";
+    installModal.hidden = !open;
+    document.body.classList.toggle("pwa-install-modal-open", open);
+  };
 
-    const dismissButton = document.createElement("button");
-    dismissButton.type = "button";
-    dismissButton.className = "pwa-install-banner-dismiss";
-    dismissButton.textContent = "Agora nao";
-    dismissButton.addEventListener("click", () => {
-      dismissPrompt();
-      removeBanner();
+  const openInstructionModal = (mode) => {
+    if (
+      !(installModal instanceof HTMLElement) ||
+      !(installModalIntro instanceof HTMLElement) ||
+      !(installModalSteps instanceof HTMLOListElement) ||
+      !(installModalFootnote instanceof HTMLElement)
+    ) {
+      return;
+    }
+
+    const instructionContent = getInstructionContent(mode);
+    installModalIntro.textContent = instructionContent.intro;
+    installModalSteps.innerHTML = instructionContent.steps
+      .map((step) => `<li>${step}</li>`)
+      .join("");
+    installModalFootnote.textContent = instructionContent.footnote;
+    installModalFootnote.hidden = instructionContent.footnote === "";
+    setModalOpen(true);
+  };
+
+  const closeInstructionModal = () => {
+    setModalOpen(false);
+  };
+
+  const updateEntries = () => {
+    const mode = getInstallMode();
+    const isDashboardDismissed = Date.now() < readDismissUntil();
+    const modeCopy = getModeCopy(mode);
+
+    entries.forEach((entry) => {
+      if (!(entry instanceof HTMLElement)) return;
+
+      const isDashboardEntry = entry.dataset.pwaInstallEntry === "dashboard";
+      const message = entry.querySelector("[data-pwa-install-message]");
+      const trigger = entry.querySelector("[data-pwa-install-trigger]");
+      const dismissButton = entry.querySelector("[data-pwa-install-dismiss]");
+      const shouldHide =
+        mode === "installed" ||
+        (isDashboardEntry && isDashboardDismissed);
+
+      entry.hidden = shouldHide;
+      if (message instanceof HTMLElement) {
+        message.textContent = modeCopy.message;
+      }
+      if (trigger instanceof HTMLButtonElement) {
+        trigger.textContent = modeCopy.triggerLabel;
+        trigger.disabled = mode === "installed";
+        trigger.dataset.pwaInstallMode = mode;
+      }
+      if (dismissButton instanceof HTMLElement) {
+        dismissButton.hidden = !isDashboardEntry;
+      }
     });
+  };
 
-    const installButton = document.createElement("button");
-    installButton.type = "button";
-    installButton.className = "pwa-install-banner-install";
-    installButton.textContent = "Instalar app";
-    installButton.addEventListener("click", async () => {
-      if (!deferredPrompt) return;
-
-      installButton.disabled = true;
-
+  const triggerInstallFlow = async () => {
+    const mode = getInstallMode();
+    if (mode === "prompt" && deferredPrompt) {
       try {
         await deferredPrompt.prompt();
         const choice = await deferredPrompt.userChoice;
@@ -150,27 +280,63 @@
         dismissPrompt();
       } finally {
         deferredPrompt = null;
-        removeBanner();
+        updateEntries();
       }
-    });
+      return;
+    }
 
-    actions.append(dismissButton, installButton);
-    wrapper.append(copy, actions);
-    document.body.append(wrapper);
-    banner = wrapper;
+    if (mode === "ios_safari" || mode === "ios_other" || mode === "guide") {
+      openInstructionModal(mode);
+    }
   };
+
+  entries.forEach((entry) => {
+    if (!(entry instanceof HTMLElement)) return;
+
+    const trigger = entry.querySelector("[data-pwa-install-trigger]");
+    const dismissButton = entry.querySelector("[data-pwa-install-dismiss]");
+
+    if (trigger instanceof HTMLButtonElement) {
+      trigger.addEventListener("click", () => {
+        triggerInstallFlow();
+      });
+    }
+
+    if (dismissButton instanceof HTMLButtonElement) {
+      dismissButton.addEventListener("click", () => {
+        dismissPrompt();
+        updateEntries();
+      });
+    }
+  });
+
+  Array.from(installModal?.querySelectorAll("[data-pwa-install-close]") || []).forEach(
+    (closeButton) => {
+      closeButton.addEventListener("click", () => {
+        closeInstructionModal();
+      });
+    }
+  );
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && installModal instanceof HTMLElement && !installModal.hidden) {
+      closeInstructionModal();
+    }
+  });
+
+  updateEntries();
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredPrompt = event;
-    clearDismissPrompt();
-    showBanner();
+    updateEntries();
   });
 
   window.addEventListener("appinstalled", () => {
     deferredPrompt = null;
     clearDismissPrompt();
-    removeBanner();
+    closeInstructionModal();
+    updateEntries();
     syncDisplayMode();
   });
 })();

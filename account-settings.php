@@ -243,6 +243,16 @@ $pwaIcon192AssetVersion = assetVersion('assets/pwa-icon-192.png');
                         </form>
                     </section>
 
+                    <section class="workspace-settings-card account-install-card" data-pwa-install-entry="settings" hidden>
+                        <h3>Aplicativo no celular</h3>
+                        <p class="workspace-settings-member-empty" data-pwa-install-message>
+                            Adicione o Bexon como aplicativo para abrir mais rapido e usar em tela cheia.
+                        </p>
+                        <div class="account-install-actions">
+                            <button type="button" class="btn btn-mini" data-pwa-install-trigger>Instalar app</button>
+                        </div>
+                    </section>
+
                     <section class="workspace-settings-card account-privacy-card">
                         <h3>Privacidade e dados</h3>
                         <p class="workspace-settings-member-empty">
@@ -320,6 +330,7 @@ $pwaIcon192AssetVersion = assetVersion('assets/pwa-icon-192.png');
                 </section>
             </section>
         </main>
+        <?php include __DIR__ . '/partials/pwa_install_modal.php'; ?>
     </div>
 
     <script>
