@@ -296,7 +296,16 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
                         <input type="hidden" name="action" value="logout">
-                        <button type="submit" class="btn btn-pill btn-logout"><span>Sair</span></button>
+                        <button type="submit" class="btn btn-pill btn-logout" aria-label="Sair">
+                            <span class="btn-logout-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M10 5H6.8A1.8 1.8 0 0 0 5 6.8v10.4A1.8 1.8 0 0 0 6.8 19H10"></path>
+                                    <path d="M14 8l4 4-4 4"></path>
+                                    <path d="M8.5 12H18"></path>
+                                </svg>
+                            </span>
+                            <span class="btn-logout-label">Sair</span>
+                        </button>
                     </form>
                 </div>
             </div>
