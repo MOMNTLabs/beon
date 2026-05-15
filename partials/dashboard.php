@@ -61,6 +61,23 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                         height="29"
                     >
                 </a>
+                <button
+                    type="button"
+                    class="sidebar-view-toggle workspace-mobile-overview-button is-active"
+                    data-dashboard-view-toggle
+                    data-view="overview"
+                    aria-pressed="true"
+                    aria-label="Dashboard geral"
+                    title="Dashboard geral"
+                >
+                    <span class="sidebar-view-toggle-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M4 11.5 12 5l8 6.5"></path>
+                            <path d="M6.5 10v9h11v-9"></path>
+                            <path d="M10 19v-5h4v5"></path>
+                        </svg>
+                    </span>
+                </button>
                 <div class="workspace-mobile-header-actions" data-dashboard-mobile-header-actions></div>
             </div>
             <div class="users-sidebar-body">
