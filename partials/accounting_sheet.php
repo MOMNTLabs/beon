@@ -81,6 +81,8 @@
                                         : ($accountingEntryIsMonthlyDue && $accountingEntryMonthlyDay !== null
                                             ? ('Mensal - ' . str_pad((string) $accountingEntryMonthlyDay, 2, '0', STR_PAD_LEFT))
                                             : '');
+                                    $accountingEntryIsOverdue = ((int) ($accountingEntry['is_overdue'] ?? 0)) === 1;
+                                    $accountingEntryOverdueDays = max(0, (int) ($accountingEntry['overdue_days'] ?? 0));
                                     $accountingEntryShowPendingBadge = $accountingEntryIsCarried
                                         && !$accountingEntryIsSettled
                                         && !$accountingEntryIsInstallment
@@ -117,7 +119,7 @@
                                                                 </span>
                                                             </span>
                                                         </span>
-                                                    <?php elseif ($accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment || $accountingEntryShowPendingBadge): ?>
+                                                    <?php elseif ($accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment || $accountingEntryShowPendingBadge || $accountingEntryIsOverdue): ?>
                                                         <span class="accounting-entry-summary-meta">
                                                             <?php if ($accountingEntryMonthlyBadge !== ''): ?>
                                                                 <span class="accounting-entry-badge is-monthly"><?= e($accountingEntryMonthlyBadge) ?></span>
@@ -126,6 +128,12 @@
                                                             <?php endif; ?>
                                                             <?php if ($accountingEntryShowPendingBadge): ?>
                                                                 <span class="accounting-entry-badge is-pending">Pendente</span>
+                                                            <?php endif; ?>
+                                                            <?php if ($accountingEntryIsOverdue): ?>
+                                                                <span
+                                                                    class="accounting-entry-badge is-overdue"
+                                                                    title="Conta em atraso h&aacute; <?= e((string) $accountingEntryOverdueDays) ?> dia(s)."
+                                                                >Atrasado</span>
                                                             <?php endif; ?>
                                                         </span>
                                                     <?php endif; ?>

@@ -5777,6 +5777,25 @@ function accountingEntryTypeLabel(string $entryType): string
         : 'Conta';
 }
 
+function workspaceAccountingResolvedDueDate(array $entry, ?string $defaultPeriodKey = null): ?string
+{
+    $dueDate = dueDateForStorage((string) ($entry['due_date'] ?? ''));
+    if ($dueDate !== null) {
+        return $dueDate;
+    }
+
+    $monthlyDay = normalizeDueMonthlyDay($entry['monthly_day'] ?? null);
+    if ($monthlyDay === null) {
+        $monthlyDay = normalizeDueMonthlyDay($entry['source_due_monthly_day'] ?? null);
+    }
+    if ($monthlyDay === null) {
+        return null;
+    }
+
+    $periodKey = normalizeAccountingPeriodKey((string) ($entry['period_key'] ?? $defaultPeriodKey));
+    return accountingDueDateForPeriod($periodKey, $monthlyDay);
+}
+
 function workspaceAccountingNormalizeEntryRow(array $row, string $defaultPeriodKey): array
 {
     $row['id'] = (int) ($row['id'] ?? 0);
@@ -5825,9 +5844,6 @@ function workspaceAccountingNormalizeEntryRow(array $row, string $defaultPeriodK
     if ($row['monthly_day'] === null && $row['due_date'] !== null) {
         $row['monthly_day'] = dueMonthlyDayFromDate($row['due_date']);
     }
-    $row['due_date_display'] = $row['due_date'] !== null
-        ? ((DateTimeImmutable::createFromFormat('Y-m-d', $row['due_date']) ?: null)?->format('d/m') ?? '')
-        : '';
     $sourceDueEntryId = isset($row['source_due_entry_id']) ? (int) $row['source_due_entry_id'] : 0;
     $row['source_due_entry_id'] = $sourceDueEntryId > 0 ? $sourceDueEntryId : null;
     $row['is_monthly_due'] = $row['source_due_entry_id'] !== null ? 1 : 0;
@@ -5876,6 +5892,36 @@ function workspaceAccountingNormalizeEntryRow(array $row, string $defaultPeriodK
         $row['goal_payment_display'] = dueAmountLabelFromCents(0);
         $row['goal_payment_input'] = dueAmountLabelFromCents(0);
     }
+    $row['resolved_due_date'] = $row['is_monthly_goal'] === 1
+        ? null
+        : workspaceAccountingResolvedDueDate($row, $defaultPeriodKey);
+    if ($row['is_monthly_goal'] !== 1 && $row['due_date'] === null && $row['resolved_due_date'] !== null) {
+        $row['due_date'] = $row['resolved_due_date'];
+    }
+    $today = (new DateTimeImmutable('today'))->format('Y-m-d');
+    $row['is_auto_received'] = (
+        $row['entry_type'] === 'income'
+        && $row['is_monthly'] === 1
+        && $row['is_monthly_goal'] !== 1
+        && $row['due_date'] !== null
+        && $row['due_date'] <= $today
+    ) ? 1 : 0;
+    if ($row['is_auto_received'] === 1) {
+        $row['is_settled'] = 1;
+    }
+    $row['is_overdue'] = (
+        $row['entry_type'] === 'expense'
+        && $row['is_monthly_goal'] !== 1
+        && $row['is_settled'] !== 1
+        && $row['due_date'] !== null
+        && $row['due_date'] < $today
+    ) ? 1 : 0;
+    $row['overdue_days'] = $row['is_overdue'] === 1
+        ? taskOverdueDays($row['due_date'])
+        : 0;
+    $row['due_date_display'] = $row['due_date'] !== null
+        ? ((DateTimeImmutable::createFromFormat('Y-m-d', $row['due_date']) ?: null)?->format('d/m') ?? '')
+        : '';
     $row['sort_order'] = max(0, (int) ($row['sort_order'] ?? 0));
     $row['created_by'] = isset($row['created_by']) ? (int) $row['created_by'] : null;
     $carrySourceEntryId = isset($row['carry_source_entry_id']) ? (int) $row['carry_source_entry_id'] : 0;

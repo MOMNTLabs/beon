@@ -4882,6 +4882,12 @@ body.is-dashboard .accounting-entry-badge.is-pending {
     color: #7d5a1d;
 }
 
+body.is-dashboard .accounting-entry-badge.is-overdue {
+    border-color: rgba(214, 99, 99, 0.34);
+    background: rgba(255, 230, 230, 0.94);
+    color: #b44f4f;
+}
+
 body.is-dashboard .accounting-entry-badge[data-accounting-entry-edit]:hover,
 body.is-dashboard .accounting-entry-badge[data-accounting-entry-edit]:focus-visible {
     border-color: rgba(var(--color-accent-500-rgb), 0.3);

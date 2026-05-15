@@ -14183,6 +14183,13 @@ select option:checked,
     color: #31597d;
 }
 
+.accounting-entry-badge.is-overdue {
+    border-color: rgba(255, 114, 114, 0.42);
+    background: rgba(255, 86, 86, 0.15);
+    color: #b44f4f;
+    letter-spacing: 0.08em;
+}
+
 .accounting-entry-goal-progress {
     display: flex;
     align-items: center;
