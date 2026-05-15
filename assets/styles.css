@@ -122,6 +122,7 @@ select optgroup {
     height: 100dvh;
     overflow: hidden;
     overscroll-behavior: none;
+    background: #ffffff;
 }
 
 .is-dashboard .app-shell {
@@ -11135,6 +11136,7 @@ body.is-dashboard.is-account-settings .account-privacy-card h3 {
 
 html {
     color-scheme: light;
+    background: #ffffff;
 }
 
 body {
@@ -14996,6 +14998,7 @@ select option:checked,
         overflow-y: auto;
         overscroll-behavior-y: none;
         -webkit-overflow-scrolling: touch;
+        background: #ffffff;
     }
 
     .is-dashboard .app-shell,
