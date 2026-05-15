@@ -17659,95 +17659,34 @@ body.pwa-install-modal-open {
     overflow: hidden;
 }
 
-.pwa-install-surface {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) auto;
-    gap: 18px;
-    align-items: center;
-    overflow: hidden;
-}
-
-.pwa-install-surface::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at top right, rgba(129, 214, 197, 0.18), transparent 34%),
-        radial-gradient(circle at left center, rgba(111, 165, 255, 0.16), transparent 42%);
-    pointer-events: none;
-}
-
-.pwa-install-surface > * {
-    position: relative;
-    z-index: 1;
-}
-
-.pwa-install-surface-copy {
-    display: grid;
-    gap: 8px;
-}
-
-.pwa-install-surface-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    min-height: 24px;
-    padding: 0 10px;
-    border-radius: 999px;
-    background: rgba(127, 212, 196, 0.12);
-    color: #9fe6d7;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.pwa-install-surface h2,
-.pwa-install-surface h3 {
-    margin: 0;
-    font-family: var(--font-display);
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-}
-
-.pwa-install-surface h2 {
-    font-size: clamp(1.35rem, 1.05rem + 0.8vw, 1.9rem);
-}
-
-.pwa-install-surface h3 {
-    font-size: 1.02rem;
-}
-
-.pwa-install-surface p {
-    margin: 0;
-    color: rgba(231, 239, 255, 0.78);
-    line-height: 1.55;
-}
-
-.pwa-install-surface-actions,
 .account-install-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 10px;
     flex-wrap: wrap;
 }
 
-.pwa-install-dashboard-surface {
-    margin-bottom: 14px;
-}
-
 .account-install-card {
     background:
-        radial-gradient(circle at top right, rgba(129, 214, 197, 0.16), transparent 38%),
-        radial-gradient(circle at left bottom, rgba(111, 165, 255, 0.12), transparent 42%),
-        rgba(8, 22, 44, 0.56);
+        radial-gradient(circle at top right, rgba(129, 214, 197, 0.12), transparent 38%),
+        radial-gradient(circle at left bottom, rgba(111, 165, 255, 0.1), transparent 42%),
+        rgba(8, 22, 44, 0.72);
+    border-color: rgba(255, 255, 255, 0.12);
 }
 
-.account-install-card .workspace-settings-member-empty {
+.account-install-card h3 {
+    color: rgba(244, 247, 255, 0.96);
+}
+
+.account-install-copy {
     margin: 0;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(226, 236, 248, 0.88);
+    line-height: 1.6;
 }
 
 .pwa-install-modal-card {
@@ -17784,27 +17723,16 @@ body.pwa-install-modal-open {
 }
 
 @media (max-width: 900px) {
-    .pwa-install-surface {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .pwa-install-surface-actions,
     .account-install-actions {
         justify-content: flex-start;
     }
 }
 
 @media (max-width: 720px) {
-    .pwa-install-surface {
-        gap: 14px;
-    }
-
-    .pwa-install-surface-actions,
     .account-install-actions {
         width: 100%;
     }
 
-    .pwa-install-surface-actions .btn,
     .account-install-actions .btn {
         flex: 1 1 180px;
         justify-content: center;

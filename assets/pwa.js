@@ -1,6 +1,4 @@
 (() => {
-  const INSTALL_DISMISS_KEY = "bexon_pwa_install_dismiss_until";
-  const INSTALL_DISMISS_MS = 1000 * 60 * 60 * 24 * 7;
   const scriptUrl = document.currentScript?.src || "";
   const basePath = (() => {
     try {
@@ -35,6 +33,7 @@
     /iPhone|iPad|iPod/i.test(userAgent) ||
     (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
   const isAndroidMobile = /Android/i.test(userAgent);
+  const isMobileInstallContext = isAppleMobile || isAndroidMobile;
   const isSafariBrowser =
     /Safari/i.test(userAgent) &&
     !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\//i.test(userAgent);
@@ -43,33 +42,6 @@
     document.documentElement.dataset.displayMode = isStandalone()
       ? "standalone"
       : "browser";
-  };
-
-  const readDismissUntil = () => {
-    try {
-      return Number.parseInt(window.localStorage.getItem(INSTALL_DISMISS_KEY) || "0", 10) || 0;
-    } catch (_error) {
-      return 0;
-    }
-  };
-
-  const dismissPrompt = () => {
-    try {
-      window.localStorage.setItem(
-        INSTALL_DISMISS_KEY,
-        String(Date.now() + INSTALL_DISMISS_MS)
-      );
-    } catch (_error) {
-      // Ignore storage failures and keep the prompt ephemeral.
-    }
-  };
-
-  const clearDismissPrompt = () => {
-    try {
-      window.localStorage.removeItem(INSTALL_DISMISS_KEY);
-    } catch (_error) {
-      // Ignore storage failures and keep the prompt ephemeral.
-    }
   };
 
   syncDisplayMode();
@@ -107,6 +79,7 @@
 
   const getInstallMode = () => {
     if (isStandalone()) return "installed";
+    if (!isMobileInstallContext) return "hidden";
     if (deferredPrompt) return "prompt";
     if (isAppleMobile && isSafariBrowser) return "ios_safari";
     if (isAppleMobile) return "ios_other";
@@ -238,19 +211,14 @@
 
   const updateEntries = () => {
     const mode = getInstallMode();
-    const isDashboardDismissed = Date.now() < readDismissUntil();
     const modeCopy = getModeCopy(mode);
 
     entries.forEach((entry) => {
       if (!(entry instanceof HTMLElement)) return;
 
-      const isDashboardEntry = entry.dataset.pwaInstallEntry === "dashboard";
       const message = entry.querySelector("[data-pwa-install-message]");
       const trigger = entry.querySelector("[data-pwa-install-trigger]");
-      const dismissButton = entry.querySelector("[data-pwa-install-dismiss]");
-      const shouldHide =
-        mode === "installed" ||
-        (isDashboardEntry && isDashboardDismissed);
+      const shouldHide = mode === "hidden" || mode === "installed";
 
       entry.hidden = shouldHide;
       if (message instanceof HTMLElement) {
@@ -261,9 +229,6 @@
         trigger.disabled = mode === "installed";
         trigger.dataset.pwaInstallMode = mode;
       }
-      if (dismissButton instanceof HTMLElement) {
-        dismissButton.hidden = !isDashboardEntry;
-      }
     });
   };
 
@@ -272,12 +237,9 @@
     if (mode === "prompt" && deferredPrompt) {
       try {
         await deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
-        if (choice?.outcome !== "accepted") {
-          dismissPrompt();
-        }
+        await deferredPrompt.userChoice;
       } catch (_error) {
-        dismissPrompt();
+        // Ignore and keep the entry available for another attempt.
       } finally {
         deferredPrompt = null;
         updateEntries();
@@ -294,18 +256,10 @@
     if (!(entry instanceof HTMLElement)) return;
 
     const trigger = entry.querySelector("[data-pwa-install-trigger]");
-    const dismissButton = entry.querySelector("[data-pwa-install-dismiss]");
 
     if (trigger instanceof HTMLButtonElement) {
       trigger.addEventListener("click", () => {
         triggerInstallFlow();
-      });
-    }
-
-    if (dismissButton instanceof HTMLButtonElement) {
-      dismissButton.addEventListener("click", () => {
-        dismissPrompt();
-        updateEntries();
       });
     }
   });
@@ -334,7 +288,6 @@
 
   window.addEventListener("appinstalled", () => {
     deferredPrompt = null;
-    clearDismissPrompt();
     closeInstructionModal();
     updateEntries();
     syncDisplayMode();

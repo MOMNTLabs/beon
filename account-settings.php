@@ -245,7 +245,7 @@ $pwaIcon192AssetVersion = assetVersion('assets/pwa-icon-192.png');
 
                     <section class="workspace-settings-card account-install-card" data-pwa-install-entry="settings" hidden>
                         <h3>Aplicativo no celular</h3>
-                        <p class="workspace-settings-member-empty" data-pwa-install-message>
+                        <p class="account-install-copy" data-pwa-install-message>
                             Adicione o Bexon como aplicativo para abrir mais rapido e usar em tela cheia.
                         </p>
                         <div class="account-install-actions">
