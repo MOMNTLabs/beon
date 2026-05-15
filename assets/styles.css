@@ -17659,7 +17659,7 @@ body.pwa-install-modal-open {
     overflow: hidden;
 }
 
-.dashboard-install-cta {
+.panel.dashboard-install-cta {
     display: grid;
     gap: 14px;
     margin-bottom: 14px;
@@ -17674,12 +17674,17 @@ body.pwa-install-modal-open {
         inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+.panel.dashboard-install-cta > * {
+    position: relative;
+    z-index: 1;
+}
+
 .dashboard-install-cta-copy {
     display: grid;
     gap: 8px;
 }
 
-.dashboard-install-cta-kicker {
+.panel.dashboard-install-cta .dashboard-install-cta-kicker {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -17689,36 +17694,46 @@ body.pwa-install-modal-open {
     border-radius: 999px;
     background: rgba(91, 201, 181, 0.18);
     color: #b8f2e7;
+    -webkit-text-fill-color: #b8f2e7;
+    opacity: 1;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
-.dashboard-install-cta h2 {
+.panel.dashboard-install-cta h2 {
     margin: 0;
     color: #f7fbff;
+    -webkit-text-fill-color: #f7fbff;
+    opacity: 1;
     font-family: var(--font-display);
     font-size: clamp(1.1rem, 1rem + 1vw, 1.45rem);
     letter-spacing: -0.03em;
     line-height: 1.08;
+    text-shadow: none;
 }
 
-.dashboard-install-cta p {
+.panel.dashboard-install-cta p {
     margin: 0;
-    color: rgba(231, 239, 255, 0.86);
+    color: #dbe7f7;
+    -webkit-text-fill-color: #dbe7f7;
+    opacity: 1;
     line-height: 1.5;
+    text-shadow: none;
 }
 
-.dashboard-install-cta-actions {
+.panel.dashboard-install-cta .dashboard-install-cta-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
 }
 
-.dashboard-install-cta-actions .btn {
+.panel.dashboard-install-cta .dashboard-install-cta-actions .btn {
     width: 100%;
     justify-content: center;
+    min-width: 0;
+    white-space: nowrap;
 }
 
 .account-install-actions {
@@ -17791,12 +17806,12 @@ body.pwa-install-modal-open {
 }
 
 @media (max-width: 720px) {
-    .dashboard-install-cta {
+    .panel.dashboard-install-cta {
         margin-inline: 0;
         padding: 14px;
     }
 
-    .dashboard-install-cta-actions {
+    .panel.dashboard-install-cta .dashboard-install-cta-actions {
         gap: 8px;
     }
 
