@@ -1,4 +1,6 @@
 (() => {
+  const INSTALL_DISMISS_KEY = "bexon_pwa_install_dashboard_dismiss_until";
+  const INSTALL_DISMISS_MS = 1000 * 60 * 60 * 24 * 7;
   const scriptUrl = document.currentScript?.src || "";
   const basePath = (() => {
     try {
@@ -42,6 +44,33 @@
     document.documentElement.dataset.displayMode = isStandalone()
       ? "standalone"
       : "browser";
+  };
+
+  const readDismissUntil = () => {
+    try {
+      return Number.parseInt(window.localStorage.getItem(INSTALL_DISMISS_KEY) || "0", 10) || 0;
+    } catch (_error) {
+      return 0;
+    }
+  };
+
+  const dismissDashboardEntry = () => {
+    try {
+      window.localStorage.setItem(
+        INSTALL_DISMISS_KEY,
+        String(Date.now() + INSTALL_DISMISS_MS)
+      );
+    } catch (_error) {
+      // Ignore storage failures and keep the prompt ephemeral.
+    }
+  };
+
+  const clearDashboardDismiss = () => {
+    try {
+      window.localStorage.removeItem(INSTALL_DISMISS_KEY);
+    } catch (_error) {
+      // Ignore storage failures and keep the prompt ephemeral.
+    }
   };
 
   syncDisplayMode();
@@ -91,25 +120,25 @@
       case "prompt":
         return {
           message:
-            "Instale o Bexon como aplicativo para abrir mais rapido e usar o painel em tela cheia.",
-          triggerLabel: "Instalar app",
+            "Instale o Bexon no celular para abrir direto da tela inicial.",
+          triggerLabel: "Instalar",
         };
       case "ios_safari":
         return {
           message:
-            "No iPhone, a instalacao e feita pelo menu Compartilhar do Safari. O botao abaixo mostra o caminho.",
-          triggerLabel: "Adicionar a Tela de Inicio",
+            "No iPhone, a instalacao e feita pelo menu Compartilhar do Safari.",
+          triggerLabel: "Ver passos",
         };
       case "ios_other":
         return {
           message:
-            "No iPhone, a instalacao do Bexon precisa ser feita no Safari. O botao abaixo mostra como seguir.",
-          triggerLabel: "Ver como instalar",
+            "No iPhone, abra o Bexon no Safari para adicionar a tela inicial.",
+          triggerLabel: "Ver passos",
         };
       case "guide":
         return {
           message:
-            "A instalacao do Bexon depende do navegador do celular. O botao abaixo mostra o caminho recomendado.",
+            "Use um navegador compativel no celular para instalar o app.",
           triggerLabel: "Como instalar",
         };
       default:
@@ -212,13 +241,19 @@
   const updateEntries = () => {
     const mode = getInstallMode();
     const modeCopy = getModeCopy(mode);
+    const isDashboardDismissed = Date.now() < readDismissUntil();
 
     entries.forEach((entry) => {
       if (!(entry instanceof HTMLElement)) return;
 
+      const isDashboardEntry = entry.dataset.pwaInstallEntry === "dashboard";
       const message = entry.querySelector("[data-pwa-install-message]");
       const trigger = entry.querySelector("[data-pwa-install-trigger]");
-      const shouldHide = mode === "hidden" || mode === "installed";
+      const dismissButton = entry.querySelector("[data-pwa-install-dismiss]");
+      const shouldHide =
+        mode === "hidden" ||
+        mode === "installed" ||
+        (isDashboardEntry && isDashboardDismissed);
 
       entry.hidden = shouldHide;
       if (message instanceof HTMLElement) {
@@ -228,6 +263,9 @@
         trigger.textContent = modeCopy.triggerLabel;
         trigger.disabled = mode === "installed";
         trigger.dataset.pwaInstallMode = mode;
+      }
+      if (dismissButton instanceof HTMLElement) {
+        dismissButton.hidden = !isDashboardEntry;
       }
     });
   };
@@ -256,10 +294,18 @@
     if (!(entry instanceof HTMLElement)) return;
 
     const trigger = entry.querySelector("[data-pwa-install-trigger]");
+    const dismissButton = entry.querySelector("[data-pwa-install-dismiss]");
 
     if (trigger instanceof HTMLButtonElement) {
       trigger.addEventListener("click", () => {
         triggerInstallFlow();
+      });
+    }
+
+    if (dismissButton instanceof HTMLButtonElement) {
+      dismissButton.addEventListener("click", () => {
+        dismissDashboardEntry();
+        updateEntries();
       });
     }
   });
@@ -288,6 +334,7 @@
 
   window.addEventListener("appinstalled", () => {
     deferredPrompt = null;
+    clearDashboardDismiss();
     closeInstructionModal();
     updateEntries();
     syncDisplayMode();

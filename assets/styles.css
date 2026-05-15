@@ -17659,6 +17659,68 @@ body.pwa-install-modal-open {
     overflow: hidden;
 }
 
+.dashboard-install-cta {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 14px;
+    padding: 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(22, 40, 68, 0.08);
+    background:
+        linear-gradient(145deg, rgba(16, 30, 54, 0.98), rgba(23, 39, 66, 0.96)),
+        #13243f;
+    box-shadow:
+        0 18px 36px rgba(9, 16, 29, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dashboard-install-cta-copy {
+    display: grid;
+    gap: 8px;
+}
+
+.dashboard-install-cta-kicker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(91, 201, 181, 0.18);
+    color: #b8f2e7;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.dashboard-install-cta h2 {
+    margin: 0;
+    color: #f7fbff;
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 1rem + 1vw, 1.45rem);
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+}
+
+.dashboard-install-cta p {
+    margin: 0;
+    color: rgba(231, 239, 255, 0.86);
+    line-height: 1.5;
+}
+
+.dashboard-install-cta-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.dashboard-install-cta-actions .btn {
+    width: 100%;
+    justify-content: center;
+}
+
 .account-install-actions {
     display: flex;
     align-items: center;
@@ -17729,6 +17791,15 @@ body.pwa-install-modal-open {
 }
 
 @media (max-width: 720px) {
+    .dashboard-install-cta {
+        margin-inline: 0;
+        padding: 14px;
+    }
+
+    .dashboard-install-cta-actions {
+        gap: 8px;
+    }
+
     .account-install-actions {
         width: 100%;
     }

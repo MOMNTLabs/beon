@@ -285,6 +285,24 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
             </div>
         </header>
 
+        <section class="panel dashboard-install-cta" data-pwa-install-entry="dashboard" hidden>
+            <div class="dashboard-install-cta-copy">
+                <span class="dashboard-install-cta-kicker">Aplicativo</span>
+                <h2>Instale o Bexon no celular</h2>
+                <p data-pwa-install-message>
+                    Abra o Bexon direto da tela inicial.
+                </p>
+            </div>
+            <div class="dashboard-install-cta-actions">
+                <button type="button" class="btn btn-mini" data-pwa-install-trigger>
+                    Ver passos
+                </button>
+                <button type="button" class="btn btn-mini btn-ghost" data-pwa-install-dismiss>
+                    Depois
+                </button>
+            </div>
+        </section>
+
         <section class="overview-wrap panel" id="overview" data-dashboard-view-panel="overview"<?= $serverSelectedDashboardView !== 'overview' ? ' hidden' : '' ?>>
             <?php if (false): ?>
             <?php
@@ -2478,6 +2496,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
         </form>
     </section>
 </div>
+<?php include __DIR__ . '/pwa_install_modal.php'; ?>
 
 <?php if (!empty($canManageWorkspace)): ?>
     <?php
