@@ -429,6 +429,7 @@ $salesAssetVersion = is_file(__DIR__ . '/assets/home.css')
     ? (string) filemtime(__DIR__ . '/assets/home.css')
     : '1';
 $complianceAssetVersion = assetVersion('assets/compliance.js');
+$profileIconAssetVersion = assetVersion('assets/Bexon---Perfil.png');
 $heroAssetVersion = assetVersion('assets/home-hero-product.png');
 $pdo = db();
 $billingPlans = publicBillingPlanDefinitions();
@@ -613,8 +614,8 @@ if ($checkoutNotice) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e(APP_NAME) ?> - Home</title>
-    <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
-    <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Perfil.png?v=' . $profileIconAssetVersion)) ?>">
+    <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Perfil.png?v=' . $profileIconAssetVersion)) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">

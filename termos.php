@@ -12,6 +12,7 @@ $legal = legalConfig();
 $stylesAssetVersion = assetVersion('assets/styles.css', '103');
 $themeBexonAssetVersion = assetVersion('assets/theme-bexon.css');
 $complianceAssetVersion = assetVersion('assets/compliance.js');
+$profileIconAssetVersion = assetVersion('assets/Bexon---Perfil.png');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -19,8 +20,8 @@ $complianceAssetVersion = assetVersion('assets/compliance.js');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Termos de Uso - <?= e(APP_NAME) ?></title>
-    <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
-    <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Perfil.png?v=' . $profileIconAssetVersion)) ?>">
+    <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Perfil.png?v=' . $profileIconAssetVersion)) ?>">
     <link rel="stylesheet" href="<?= e(appPath('assets/styles.css?v=' . $stylesAssetVersion)) ?>">
     <link rel="stylesheet" href="<?= e(appPath('assets/theme-bexon.css?v=' . $themeBexonAssetVersion)) ?>">
     <script src="<?= e(appPath('assets/compliance.js?v=' . $complianceAssetVersion)) ?>" defer></script>

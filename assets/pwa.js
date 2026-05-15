@@ -49,6 +49,40 @@
   const lockViewportZoom = () => {
     document.documentElement.style.touchAction = "pan-x pan-y";
     document.body.style.touchAction = "pan-x pan-y";
+    let lastTouchY = 0;
+
+    const findScrollableContainer = (target) => {
+      let element = target instanceof Element ? target : null;
+      while (element && element !== document.body && element !== document.documentElement) {
+        const style = window.getComputedStyle(element);
+        if (
+          /(auto|scroll|overlay)/.test(style.overflowY) &&
+          element.scrollHeight > element.clientHeight
+        ) {
+          return element;
+        }
+        element = element.parentElement;
+      }
+
+      return document.scrollingElement || document.documentElement;
+    };
+
+    const preventDocumentOverscroll = (event) => {
+      if (event.touches.length !== 1) return;
+
+      const currentY = event.touches[0]?.clientY || 0;
+      const deltaY = currentY - lastTouchY;
+      const scrollable = findScrollableContainer(event.target);
+      const maxScrollTop = Math.max(0, scrollable.scrollHeight - scrollable.clientHeight);
+      const isAtTop = scrollable.scrollTop <= 0;
+      const isAtBottom = scrollable.scrollTop >= maxScrollTop - 1;
+
+      if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+        event.preventDefault();
+      }
+
+      lastTouchY = currentY;
+    };
 
     document.addEventListener(
       "gesturestart",
@@ -59,11 +93,23 @@
     );
 
     document.addEventListener(
+      "touchstart",
+      (event) => {
+        if (event.touches.length === 1) {
+          lastTouchY = event.touches[0]?.clientY || 0;
+        }
+      },
+      { passive: true }
+    );
+
+    document.addEventListener(
       "touchmove",
       (event) => {
         if (event.touches.length > 1) {
           event.preventDefault();
+          return;
         }
+        preventDocumentOverscroll(event);
       },
       { passive: false }
     );

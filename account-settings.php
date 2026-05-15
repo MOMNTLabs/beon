@@ -88,6 +88,7 @@ $themeBexonAssetVersion = is_file(__DIR__ . '/assets/theme-bexon.css')
 $complianceAssetVersion = assetVersion('assets/compliance.js');
 $pwaAssetVersion = assetVersion('assets/pwa.js');
 $manifestAssetVersion = assetVersion('manifest.webmanifest');
+$profileIconAssetVersion = assetVersion('assets/Bexon---Perfil.png');
 $pwaIcon180AssetVersion = assetVersion('assets/pwa-icon-180.png');
 $pwaIcon192AssetVersion = assetVersion('assets/pwa-icon-192.png');
 ?>
@@ -103,9 +104,9 @@ $pwaIcon192AssetVersion = assetVersion('assets/pwa-icon-192.png');
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="<?= e(APP_NAME) ?>">
     <title><?= e(APP_NAME) ?> - Configurações da Conta</title>
-    <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Perfil.png?v=' . $profileIconAssetVersion)) ?>">
     <link rel="icon" sizes="192x192" href="<?= e(appPath('assets/pwa-icon-192.png?v=' . $pwaIcon192AssetVersion)) ?>">
-    <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Perfil.png?v=' . $profileIconAssetVersion)) ?>">
     <link rel="apple-touch-icon" href="<?= e(appPath('assets/pwa-icon-180.png?v=' . $pwaIcon180AssetVersion)) ?>">
     <link rel="manifest" href="<?= e(appPath('manifest.webmanifest?v=' . $manifestAssetVersion)) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">

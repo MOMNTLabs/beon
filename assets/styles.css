@@ -21,6 +21,8 @@
 html {
     scroll-behavior: smooth;
     color-scheme: dark;
+    overscroll-behavior: none;
+    background: #101820;
 }
 
 body {
@@ -40,6 +42,7 @@ body {
             #294c68 100%
         );
     overflow-x: hidden;
+    overscroll-behavior: none;
 }
 
 body.modal-open {
@@ -118,6 +121,7 @@ select optgroup {
 .is-dashboard {
     height: 100dvh;
     overflow: hidden;
+    overscroll-behavior: none;
 }
 
 .is-dashboard .app-shell {
@@ -14990,6 +14994,8 @@ select option:checked,
         min-height: 100dvh;
         overflow-x: hidden;
         overflow-y: auto;
+        overscroll-behavior-y: none;
+        -webkit-overflow-scrolling: touch;
     }
 
     .is-dashboard .app-shell,
