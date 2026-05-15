@@ -1,5 +1,5 @@
 (() => {
-  const INSTALL_DISMISS_KEY = "bexon_pwa_install_dashboard_dismiss_until";
+  const INSTALL_DISMISS_KEY = "bexon_pwa_install_toast_dismiss_until";
   const INSTALL_DISMISS_MS = 1000 * 60 * 60 * 24 * 7;
   const scriptUrl = document.currentScript?.src || "";
   const basePath = (() => {

@@ -285,23 +285,22 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
             </div>
         </header>
 
-        <section class="panel dashboard-install-cta" data-pwa-install-entry="dashboard" hidden>
-            <div class="dashboard-install-cta-copy">
-                <span class="dashboard-install-cta-kicker">Aplicativo</span>
-                <h2>Instale o Bexon no celular</h2>
-                <p data-pwa-install-message>
+        <aside class="dashboard-install-toast" data-pwa-install-entry="dashboard" role="region" aria-label="Instalar aplicativo" hidden>
+            <div class="dashboard-install-toast-copy">
+                <strong>Instale o Bexon</strong>
+                <span data-pwa-install-message>
                     Abra o Bexon direto da tela inicial.
-                </p>
+                </span>
             </div>
-            <div class="dashboard-install-cta-actions">
-                <button type="button" class="btn btn-mini" data-pwa-install-trigger>
+            <div class="dashboard-install-toast-actions">
+                <button type="button" class="dashboard-install-toast-action dashboard-install-toast-action-primary" data-pwa-install-trigger>
                     Ver passos
                 </button>
-                <button type="button" class="btn btn-mini btn-ghost" data-pwa-install-dismiss>
+                <button type="button" class="dashboard-install-toast-action dashboard-install-toast-action-secondary" data-pwa-install-dismiss>
                     Depois
                 </button>
             </div>
-        </section>
+        </aside>
 
         <section class="overview-wrap panel" id="overview" data-dashboard-view-panel="overview"<?= $serverSelectedDashboardView !== 'overview' ? ' hidden' : '' ?>>
             <?php if (false): ?>
