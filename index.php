@@ -51,7 +51,7 @@ set_exception_handler(static function (Throwable $e): void {
 
     $homeUrl = e(siteUrl('home'));
     $loginUrl = e(appUrl('?auth=login#login'));
-    echo '<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' . e(APP_NAME) . '</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f8fb;color:#263241;font-family:Arial,sans-serif}.error-card{width:min(520px,calc(100% - 32px));padding:28px;border:1px solid #d9e1ec;border-radius:8px;background:#fff;box-shadow:0 18px 42px rgba(39,54,78,.12)}h1{margin:0 0 10px;font-size:22px}p{margin:0 0 18px;line-height:1.5}.actions{display:flex;gap:10px;flex-wrap:wrap}a{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:6px;background:#263241;color:#fff;text-decoration:none}a.secondary{background:#eef2f7;color:#263241}</style></head><body><main class="error-card"><h1>Não foi possível carregar o app agora.</h1><p>O erro foi registrado no servidor. Tente atualizar a página; se continuar, entre novamente.</p><div class="actions"><a href="' . $loginUrl . '">Entrar novamente</a><a class="secondary" href="' . $homeUrl . '">Voltar para o site</a></div></main></body></html>';
+    echo '<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"><title>' . e(APP_NAME) . '</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f8fb;color:#263241;font-family:Arial,sans-serif}.error-card{width:min(520px,calc(100% - 32px));padding:28px;border:1px solid #d9e1ec;border-radius:8px;background:#fff;box-shadow:0 18px 42px rgba(39,54,78,.12)}h1{margin:0 0 10px;font-size:22px}p{margin:0 0 18px;line-height:1.5}.actions{display:flex;gap:10px;flex-wrap:wrap}a{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:6px;background:#263241;color:#fff;text-decoration:none}a.secondary{background:#eef2f7;color:#263241}</style></head><body><main class="error-card"><h1>Não foi possível carregar o app agora.</h1><p>O erro foi registrado no servidor. Tente atualizar a página; se continuar, entre novamente.</p><div class="actions"><a href="' . $loginUrl . '">Entrar novamente</a><a class="secondary" href="' . $homeUrl . '">Voltar para o site</a></div></main></body></html>';
     exit;
 });
 
@@ -789,7 +789,7 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="application-name" content="<?= e(APP_NAME) ?>">
     <meta name="theme-color" content="#040714">
     <meta name="mobile-web-app-capable" content="yes">

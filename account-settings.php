@@ -95,7 +95,7 @@ $pwaIcon192AssetVersion = assetVersion('assets/pwa-icon-192.png');
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="application-name" content="<?= e(APP_NAME) ?>">
     <meta name="theme-color" content="#040714">
     <meta name="mobile-web-app-capable" content="yes">
