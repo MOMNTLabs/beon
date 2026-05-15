@@ -1,5 +1,7 @@
 DirectoryIndex index.php home.php
 
+AddType application/manifest+json .webmanifest
+
 <IfModule mod_rewrite.c>
 RewriteEngine On
 

@@ -293,21 +293,35 @@ $flashes = getFlashes();
 $stylesAssetVersion = assetVersion('assets/styles.css', '103');
 $themeBexonAssetVersion = assetVersion('assets/theme-bexon.css');
 $complianceAssetVersion = assetVersion('assets/compliance.js');
+$pwaAssetVersion = assetVersion('assets/pwa.js');
+$manifestAssetVersion = assetVersion('manifest.webmanifest');
+$pwaIcon180AssetVersion = assetVersion('assets/pwa-icon-180.png');
+$pwaIcon192AssetVersion = assetVersion('assets/pwa-icon-192.png');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="application-name" content="<?= e(APP_NAME) ?>">
+    <meta name="theme-color" content="#040714">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="<?= e(APP_NAME) ?>">
     <title><?= e(APP_NAME) ?> - Configurações do Workspace</title>
     <link rel="icon" type="image/png" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="icon" sizes="192x192" href="<?= e(appPath('assets/pwa-icon-192.png?v=' . $pwaIcon192AssetVersion)) ?>">
     <link rel="shortcut icon" href="<?= e(appPath('assets/Bexon---Logo-Symbol.png?v=1')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(appPath('assets/pwa-icon-180.png?v=' . $pwaIcon180AssetVersion)) ?>">
+    <link rel="manifest" href="<?= e(appPath('manifest.webmanifest?v=' . $manifestAssetVersion)) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(appPath('assets/styles.css?v=' . $stylesAssetVersion)) ?>">
     <link rel="stylesheet" href="<?= e(appPath('assets/theme-bexon.css?v=' . $themeBexonAssetVersion)) ?>">
     <script src="<?= e(appPath('assets/compliance.js?v=' . $complianceAssetVersion)) ?>" defer></script>
+    <script src="<?= e(appPath('assets/pwa.js?v=' . $pwaAssetVersion)) ?>" defer></script>
 </head>
 <body class="is-dashboard is-workspace-settings" data-workspace-id="<?= e((string) $currentWorkspaceId) ?>">
     <div class="bg-layer bg-layer-one" aria-hidden="true"></div>

@@ -17649,3 +17649,119 @@ body:not(.is-dashboard) .task-list-item[data-status-color]::before {
         flex-wrap: wrap;
     }
 }
+
+html[data-display-mode="standalone"] .app-shell {
+    padding-top: calc(16px + env(safe-area-inset-top));
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+}
+
+.pwa-install-banner {
+    position: fixed;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 1300;
+    width: min(380px, calc(100vw - 32px));
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 22px;
+    background:
+        linear-gradient(180deg, rgba(20, 28, 47, 0.94), rgba(7, 10, 18, 0.98)),
+        rgba(7, 10, 18, 0.98);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(18px);
+}
+
+.pwa-install-banner-copy {
+    display: grid;
+    gap: 6px;
+}
+
+.pwa-install-banner-copy strong {
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+.pwa-install-banner-copy p {
+    margin: 0;
+    color: rgba(228, 236, 248, 0.74);
+    line-height: 1.45;
+    font-size: 0.94rem;
+}
+
+.pwa-install-banner-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.pwa-install-banner-dismiss,
+.pwa-install-banner-install {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform 0.16s ease, border-color 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+}
+
+.pwa-install-banner-dismiss {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(236, 241, 250, 0.82);
+}
+
+.pwa-install-banner-install {
+    background: linear-gradient(135deg, rgba(105, 147, 255, 0.96), rgba(127, 212, 196, 0.96));
+    color: #071018;
+    font-weight: 700;
+}
+
+.pwa-install-banner-dismiss:hover,
+.pwa-install-banner-dismiss:focus-visible,
+.pwa-install-banner-install:hover,
+.pwa-install-banner-install:focus-visible {
+    transform: translateY(-1px);
+}
+
+.pwa-install-banner-dismiss:hover,
+.pwa-install-banner-dismiss:focus-visible {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pwa-install-banner-install:hover,
+.pwa-install-banner-install:focus-visible {
+    opacity: 0.94;
+}
+
+.pwa-install-banner-install:disabled {
+    opacity: 0.58;
+    cursor: default;
+    transform: none;
+}
+
+@media (max-width: 720px) {
+    .pwa-install-banner {
+        left: 16px;
+        right: 16px;
+        width: auto;
+        border-radius: 18px;
+        padding: 16px;
+    }
+
+    .pwa-install-banner-actions {
+        justify-content: stretch;
+        flex-wrap: wrap;
+    }
+
+    .pwa-install-banner-dismiss,
+    .pwa-install-banner-install {
+        flex: 1 1 160px;
+        justify-content: center;
+    }
+}

@@ -84,6 +84,7 @@ if (in_array($requestedAuthPanel, ['login', 'register', 'forgot-password', 'rese
         : $requestedAuthPanel;
     $forceAuthScreen = true;
 }
+$isPwaEntryRequest = trim((string) ($_GET['pwa'] ?? '')) !== '';
 
 $entryAction = trim((string) ($_POST['action'] ?? $_GET['action'] ?? ''));
 $billingGateBypassActions = [
@@ -120,11 +121,16 @@ if (
     && !$forceAuthScreen
     && ($entryAction === '' || $entryAction === 'plans')
 ) {
-    if ($entryAction === 'plans') {
-        redirectTo(appUrl('?auth=login&next=' . urlencode(appPlansPath()) . '#login'));
-    }
+    if ($isPwaEntryRequest) {
+        $authInitialPanel = 'login';
+        $forceAuthScreen = true;
+    } else {
+        if ($entryAction === 'plans') {
+            redirectTo(appUrl('?auth=login&next=' . urlencode(appPlansPath()) . '#login'));
+        }
 
-    redirectTo(siteUrl('home'));
+        redirectTo(siteUrl('home'));
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -691,6 +697,10 @@ $loadingAssetVersion = is_file(__DIR__ . '/assets/loading.js')
     ? (string) filemtime(__DIR__ . '/assets/loading.js')
     : '1';
 $complianceAssetVersion = assetVersion('assets/compliance.js');
+$pwaAssetVersion = assetVersion('assets/pwa.js');
+$manifestAssetVersion = assetVersion('manifest.webmanifest');
+$pwaIcon180AssetVersion = assetVersion('assets/pwa-icon-180.png');
+$pwaIcon192AssetVersion = assetVersion('assets/pwa-icon-192.png');
 $groupFilter = isset($_GET['group']) && trim((string) $_GET['group']) !== ''
     ? normalizeTaskGroupName((string) $_GET['group'])
     : null;
@@ -780,11 +790,20 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="application-name" content="<?= e(APP_NAME) ?>">
+    <meta name="theme-color" content="#040714">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="<?= e(APP_NAME) ?>">
     <title><?= e(APP_NAME) ?></title>
     <link rel="icon" type="image/png" href="assets/Bexon---Logo-Symbol.png?v=1">
+    <link rel="icon" sizes="192x192" href="<?= e(appPath('assets/pwa-icon-192.png?v=' . $pwaIcon192AssetVersion)) ?>">
     <link rel="shortcut icon" href="assets/Bexon---Logo-Symbol.png?v=1">
-    <link rel="preçonnect" href="https://fonts.googleapis.com">
-    <link rel="preçonnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="apple-touch-icon" href="<?= e(appPath('assets/pwa-icon-180.png?v=' . $pwaIcon180AssetVersion)) ?>">
+    <link rel="manifest" href="<?= e(appPath('manifest.webmanifest?v=' . $manifestAssetVersion)) ?>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="assets/styles.css?v=<?= e($stylesAssetVersion) ?>">
@@ -802,6 +821,7 @@ $defaultTaskGroupName = $taskGroups[0] ?? 'Geral';
     <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js" defer></script>
     <script src="assets/compliance.js?v=<?= e($complianceAssetVersion) ?>" defer></script>
+    <script src="assets/pwa.js?v=<?= e($pwaAssetVersion) ?>" defer></script>
     <script src="assets/loading.js?v=<?= e($loadingAssetVersion) ?>" defer></script>
     <script src="assets/app.js?v=<?= e($appAssetVersion) ?>" defer></script>
 </head>

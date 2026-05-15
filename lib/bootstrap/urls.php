@@ -498,7 +498,7 @@ function requestTargetsConfiguredAppHost(): bool
 
 function requestWantsAppShell(): bool
 {
-    foreach (['auth', 'next', 'view', 'task', 'group', 'created_by', 'assignee', 'accounting_period'] as $key) {
+    foreach (['auth', 'next', 'view', 'task', 'group', 'created_by', 'assignee', 'accounting_period', 'pwa'] as $key) {
         if (array_key_exists($key, $_GET) && trim((string) ($_GET[$key] ?? '')) !== '') {
             return true;
         }
