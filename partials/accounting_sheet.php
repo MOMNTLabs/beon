@@ -33,7 +33,6 @@
                                 <h3>Contas</h3>
                                 <p>Despesas do mês</p>
                             </div>
-                            <span><?= e(appItemCountLabel(count($accountingExpenseEntries))) ?></span>
                         </header>
 
                         <div class="accounting-entries">
@@ -521,7 +520,6 @@
                                 <h3>Entradas</h3>
                                 <p>Receitas do mês</p>
                             </div>
-                            <span><?= e(appItemCountLabel(count($accountingIncomeEntries))) ?></span>
                         </header>
 
                         <div class="accounting-entries">
@@ -555,6 +553,7 @@
                                         >
                                             <span class="accounting-entry-summary-main">
                                                 <span class="accounting-entry-summary-head">
+                                                    <span class="accounting-entry-summary-title" title="<?= e($accountingEntryLabel) ?>"><?= e($accountingEntryLabel) ?></span>
                                                     <?php if ($accountingEntryMonthlyBadge !== '' || $accountingEntryIsInstallment): ?>
                                                         <span class="accounting-entry-summary-meta">
                                                             <?php if ($accountingEntryMonthlyBadge !== ''): ?>
@@ -564,7 +563,6 @@
                                                             <?php endif; ?>
                                                         </span>
                                                     <?php endif; ?>
-                                                    <span class="accounting-entry-summary-title" title="<?= e($accountingEntryLabel) ?>"><?= e($accountingEntryLabel) ?></span>
                                                 </span>
                                             </span>
                                             <span class="accounting-entry-summary-amount"><?= $renderAccountingMoney($accountingEntryAmountInput) ?></span>
