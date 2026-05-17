@@ -828,8 +828,37 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                 </div>
             </div>
 
+            <?php
+            $taskActiveFilterCount = 0;
+            $taskActiveFilterCount += trim((string) ($groupFilter ?? '')) !== '' ? 1 : 0;
+            $taskActiveFilterCount += $creatorFilterId !== null ? 1 : 0;
+            $taskActiveFilterCount += $assigneeFilterId !== null ? 1 : 0;
+            ?>
             <form method="get" class="task-filters" id="task-filters" data-task-filter-form>
-                <label>
+                <button
+                    type="button"
+                    class="task-filters-mobile-toggle<?= $taskActiveFilterCount > 0 ? ' is-active' : '' ?>"
+                    data-task-filters-toggle
+                    aria-expanded="false"
+                    aria-controls="task-filters-panel"
+                >
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                        <path d="M3 5h14M6 10h8M8 15h4"></path>
+                    </svg>
+                    <span>Filtros</span>
+                    <?php if ($taskActiveFilterCount > 0): ?>
+                        <span class="task-filters-active-count"><?= e((string) $taskActiveFilterCount) ?></span>
+                    <?php endif; ?>
+                </button>
+
+                <div class="task-filters-fields" id="task-filters-panel" data-task-filters-panel>
+                    <div class="task-filters-panel-head">
+                        <strong>Filtrar tarefas</strong>
+                        <?php if ($taskActiveFilterCount > 0): ?>
+                            <button type="button" class="task-filters-clear" data-task-filters-clear>Limpar</button>
+                        <?php endif; ?>
+                    </div>
+                <label class="task-filter-field" data-filter-label="Projeto">
                     <?php $groupFilterValue = (string) ($groupFilter ?? ''); ?>
                     <div class="tag-field row-inline-picker-wrap" data-inline-select-wrap>
                         <details class="row-inline-picker filter-inline-picker" data-inline-select-picker>
@@ -881,7 +910,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                     </div>
                 </label>
 
-                <label>
+                <label class="task-filter-field" data-filter-label="Criado por">
                     <?php $creatorFilterValue = $creatorFilterId !== null ? (string) $creatorFilterId : ''; ?>
                     <div class="tag-field row-inline-picker-wrap" data-inline-select-wrap>
                         <details class="row-inline-picker filter-inline-picker" data-inline-select-picker>
@@ -938,7 +967,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                     </div>
                 </label>
 
-                <label>
+                <label class="task-filter-field" data-filter-label="Responsavel">
                     <?php $assigneeFilterValue = $assigneeFilterId !== null ? (string) $assigneeFilterId : ''; ?>
                     <div class="tag-field row-inline-picker-wrap" data-inline-select-wrap>
                         <details class="row-inline-picker filter-inline-picker" data-inline-select-picker>
@@ -994,6 +1023,7 @@ $serverSelectedDashboardView = $workspaceSwitchView !== '' ? $workspaceSwitchVie
                         </select>
                     </div>
                 </label>
+                </div>
 
                 <div class="task-filters-create">
                     <button

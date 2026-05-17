@@ -6986,6 +6986,10 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     draggedTaskGroup = null;
     draggedTaskGroupInitialOrder = [];
+    if (taskGroupReorderActivatedByLongPress) {
+      taskGroupReorderActivatedByLongPress = false;
+      setTaskGroupReorderMode(false);
+    }
 
     if (draggedTaskItem) {
       draggedTaskItem.classList.remove("is-dragging", "drag-ghost");
@@ -7365,6 +7369,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const taskGroupHeadToggle = target.closest("[data-task-group-head-toggle]");
     if (taskGroupHeadToggle instanceof HTMLElement) {
+      if (ignoreNextTaskGroupHeadClick) {
+        ignoreNextTaskGroupHeadClick = false;
+        event.preventDefault();
+        return;
+      }
+
       if (isGroupHeadToggleTargetBlocked(target, taskGroupHeadToggle)) {
         return;
       }
@@ -7456,6 +7466,16 @@ window.addEventListener("DOMContentLoaded", () => {
     fabWrap.classList.toggle("is-open", open);
     fabToggleButton.setAttribute("aria-expanded", open ? "true" : "false");
     fabMenu.setAttribute("aria-hidden", open ? "false" : "true");
+  };
+
+  const setTaskFiltersPanelOpen = (open) => {
+    if (!(taskFilterForm instanceof HTMLElement)) return;
+    const shouldOpen = Boolean(open);
+    taskFilterForm.classList.toggle("is-mobile-open", shouldOpen);
+    const toggle = taskFilterForm.querySelector("[data-task-filters-toggle]");
+    if (toggle instanceof HTMLElement) {
+      toggle.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+    }
   };
 
   const normalizeDashboardViewCandidate = (value) => {
@@ -9542,6 +9562,13 @@ window.addEventListener("DOMContentLoaded", () => {
   let taskGroupReorderMode = false;
   let draggedTaskGroup = null;
   let draggedTaskGroupInitialOrder = [];
+  let taskGroupReorderActivatedByLongPress = false;
+  let taskGroupLongPressTimer = 0;
+  let taskGroupLongPressPointerId = null;
+  let taskGroupLongPressStartX = 0;
+  let taskGroupLongPressStartY = 0;
+  let taskGroupLongPressTarget = null;
+  let ignoreNextTaskGroupHeadClick = false;
 
   const normalizeTaskGroupNameKey = (value) =>
     String(value || "").trim().toLocaleLowerCase("pt-BR");
@@ -9666,6 +9693,39 @@ window.addEventListener("DOMContentLoaded", () => {
       .forEach((section) => section.classList.remove("is-group-drop-before", "is-group-drop-after"));
   };
 
+  const moveTaskGroupByPointer = (groupSection, pointerY) => {
+    if (!(taskGroupsListElement instanceof HTMLElement)) return;
+    if (!(groupSection instanceof HTMLElement)) return;
+
+    const groups = getTaskGroupSections().filter((section) => section !== groupSection);
+    let nextGroup = null;
+    for (const section of groups) {
+      const rect = section.getBoundingClientRect();
+      if (pointerY < rect.top + rect.height / 2) {
+        nextGroup = section;
+        break;
+      }
+    }
+
+    clearTaskGroupDropIndicators();
+
+    if (nextGroup instanceof HTMLElement) {
+      nextGroup.classList.add("is-group-drop-before");
+      if (groupSection !== nextGroup.previousElementSibling) {
+        taskGroupsListElement.insertBefore(groupSection, nextGroup);
+      }
+      activeTaskGroupDropTarget = nextGroup;
+      return;
+    }
+
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup instanceof HTMLElement) {
+      lastGroup.classList.add("is-group-drop-after");
+    }
+    taskGroupsListElement.append(groupSection);
+    activeTaskGroupDropTarget = lastGroup instanceof HTMLElement ? lastGroup : null;
+  };
+
   const setTaskGroupReorderMode = (enabled) => {
     const shouldEnable = Boolean(enabled) && taskGroupsListElement instanceof HTMLElement;
     taskGroupReorderMode = shouldEnable;
@@ -9703,9 +9763,145 @@ window.addEventListener("DOMContentLoaded", () => {
       if (draggedTaskGroup instanceof HTMLElement) {
         draggedTaskGroup.classList.remove("is-group-dragging");
       }
+      getTaskGroupSections().forEach((section) => {
+        section.classList.remove("is-group-reorder-armed");
+      });
       draggedTaskGroup = null;
       draggedTaskGroupInitialOrder = [];
     }
+  };
+
+  const isMobileTaskGroupReorderViewport = () => {
+    if (mobileSidebarMediaQuery && typeof mobileSidebarMediaQuery.matches === "boolean") {
+      return mobileSidebarMediaQuery.matches;
+    }
+    return window.innerWidth <= 768;
+  };
+
+  const cancelTaskGroupLongPressReorder = () => {
+    if (taskGroupLongPressTimer) {
+      window.clearTimeout(taskGroupLongPressTimer);
+    }
+    taskGroupLongPressTimer = 0;
+    taskGroupLongPressPointerId = null;
+    taskGroupLongPressTarget = null;
+  };
+
+  const isTaskGroupLongPressControl = (target) =>
+    target instanceof HTMLElement &&
+    target.closest(
+      [
+        "button",
+        "input",
+        "select",
+        "textarea",
+        "a[href]",
+        "summary",
+        "label",
+        "[role='button']",
+        "[data-inline-select-picker]",
+      ].join(",")
+    ) instanceof HTMLElement;
+
+  const finishTaskGroupLongPressReorder = () => {
+    const groupSection = draggedTaskGroup instanceof HTMLElement ? draggedTaskGroup : null;
+    if (groupSection instanceof HTMLElement) {
+      groupSection.classList.remove("is-group-dragging", "is-group-reorder-armed");
+      clearTaskGroupDropTarget();
+      const finalOrder = getCurrentTaskGroupOrder();
+      if (draggedTaskGroupInitialOrder.join("|") !== finalOrder.join("|")) {
+        persistTaskGroupOrder();
+        if (typeof syncTaskGroupInputs === "function") {
+          syncTaskGroupInputs();
+        }
+      }
+    }
+
+    taskGroupReorderActivatedByLongPress = false;
+    ignoreNextTaskGroupHeadClick = true;
+    window.setTimeout(() => {
+      ignoreNextTaskGroupHeadClick = false;
+    }, 0);
+    setTaskGroupReorderMode(false);
+    cancelTaskGroupLongPressReorder();
+  };
+
+  const initializeTaskGroupLongPressReorder = () => {
+    if (!(taskGroupsListElement instanceof HTMLElement)) return;
+
+    taskGroupsListElement.addEventListener("pointerdown", (event) => {
+      if (!isMobileTaskGroupReorderViewport()) return;
+      if (taskGroupReorderMode) return;
+      if (event.button !== 0) return;
+      if (event.pointerType === "mouse") return;
+
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!(target instanceof HTMLElement) || isTaskGroupLongPressControl(target)) return;
+
+      const groupHead = target.closest("[data-task-group-head-toggle]");
+      const groupSection = groupHead?.closest("[data-task-group]");
+      if (!(groupHead instanceof HTMLElement) || !(groupSection instanceof HTMLElement)) return;
+
+      cancelTaskGroupLongPressReorder();
+      taskGroupLongPressPointerId = event.pointerId;
+      taskGroupLongPressStartX = event.clientX;
+      taskGroupLongPressStartY = event.clientY;
+      taskGroupLongPressTarget = groupSection;
+
+      taskGroupLongPressTimer = window.setTimeout(() => {
+        if (!(taskGroupLongPressTarget instanceof HTMLElement)) return;
+
+        taskGroupReorderActivatedByLongPress = true;
+        draggedTaskGroup = taskGroupLongPressTarget;
+        draggedTaskGroupInitialOrder = getCurrentTaskGroupOrder();
+        draggedTaskGroup.classList.add("is-group-dragging", "is-group-reorder-armed");
+        setTaskGroupReorderMode(true);
+
+        if (typeof draggedTaskGroup.setPointerCapture === "function") {
+          try {
+            draggedTaskGroup.setPointerCapture(event.pointerId);
+          } catch (_error) {
+            // Pointer capture is optional; the gesture still works without it.
+          }
+        }
+      }, 420);
+    });
+
+    taskGroupsListElement.addEventListener("pointermove", (event) => {
+      if (taskGroupLongPressPointerId !== event.pointerId) return;
+
+      const distanceX = Math.abs(event.clientX - taskGroupLongPressStartX);
+      const distanceY = Math.abs(event.clientY - taskGroupLongPressStartY);
+      if (!taskGroupReorderActivatedByLongPress && (distanceX > 10 || distanceY > 10)) {
+        cancelTaskGroupLongPressReorder();
+        return;
+      }
+
+      if (!taskGroupReorderActivatedByLongPress || !(draggedTaskGroup instanceof HTMLElement)) return;
+      event.preventDefault();
+      moveTaskGroupByPointer(draggedTaskGroup, event.clientY);
+    });
+
+    ["pointerup", "pointercancel"].forEach((eventName) => {
+      taskGroupsListElement.addEventListener(eventName, (event) => {
+        if (taskGroupLongPressPointerId !== event.pointerId) return;
+
+        const activeGroup = draggedTaskGroup instanceof HTMLElement ? draggedTaskGroup : null;
+        if (activeGroup instanceof HTMLElement && typeof activeGroup.releasePointerCapture === "function") {
+          try {
+            activeGroup.releasePointerCapture(event.pointerId);
+          } catch (_error) {
+            // noop
+          }
+        }
+
+        if (taskGroupReorderActivatedByLongPress) {
+          finishTaskGroupLongPressReorder();
+        } else {
+          cancelTaskGroupLongPressReorder();
+        }
+      });
+    });
   };
 
   const syncGroupPermissionsModal = (modalElement) => {
@@ -14061,6 +14257,7 @@ window.addEventListener("DOMContentLoaded", () => {
     applyStoredTaskGroupOrder();
     syncTaskGroupInputs();
     setTaskGroupReorderMode(false);
+    initializeTaskGroupLongPressReorder();
     setCreateTaskSubtasks([]);
     renderCreateTaskSubtasksEditList();
     setTaskDetailEditSubtasks([]);
@@ -14866,6 +15063,37 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (fabWrap && fabWrap.classList.contains("is-open") && !target.closest("[data-task-fab-wrap]")) {
       setFabMenuOpen(false);
+    }
+
+    const taskFiltersClear = target.closest("[data-task-filters-clear]");
+    if (taskFiltersClear instanceof HTMLElement) {
+      const form = taskFiltersClear.closest("[data-task-filter-form]");
+      if (form instanceof HTMLFormElement) {
+        form.querySelectorAll('select[name="group"], select[name="created_by"], select[name="assignee"]').forEach((select) => {
+          if (!(select instanceof HTMLSelectElement)) return;
+          select.value = "";
+          syncSelectColor(select);
+          syncInlineSelectPicker(select);
+        });
+        applyTaskFilterForm(form);
+      }
+      return;
+    }
+
+    const taskFiltersToggle = target.closest("[data-task-filters-toggle]");
+    if (taskFiltersToggle instanceof HTMLElement) {
+      const form = taskFiltersToggle.closest("[data-task-filter-form]");
+      const isOpen = form instanceof HTMLElement && form.classList.contains("is-mobile-open");
+      setTaskFiltersPanelOpen(!isOpen);
+      return;
+    }
+
+    if (
+      taskFilterForm instanceof HTMLElement &&
+      taskFilterForm.classList.contains("is-mobile-open") &&
+      !(target.closest("[data-task-filter-form]") instanceof HTMLElement)
+    ) {
+      setTaskFiltersPanelOpen(false);
     }
 
     const toggleTaskGroupReorder = target.closest("[data-toggle-task-group-reorder]");
